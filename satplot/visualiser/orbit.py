@@ -1,346 +1,602 @@
 import numpy as np
 import logging
 
-import satplot.visualiser.utils as vis_utils
-import satplot.visualiser.basevisualiser as basevisualiser
-import satplot.util.constants as consts
-import satplot.visualiser.Assets as assets
+import geopandas as gpd
+import satplot.util.constants as c
+import satplot.util.epoch_u as epoch_u
+import satplot.visualiser.utils as visutils
+import satplot.visualiser.window as window
 import satplot.model.geometry.primgeom as pg
-
-import matplotlib.pyplot as plt
+import satplot.model.geometry.transformations as transforms
+import plotly.graph_objects as go
+import datetime as dt
+from skyfield.api import wgs84
 
 logger = logging.getLogger(__name__)
 
 #TODO: need to check garbage collection of actors
 # ipython keeps its own references so can't check in there
 
+epoch = dt.datetime(2000,1,1,11,58,55,816)
 
-class OrbitVisualiser(basevisualiser.Base):
-	"""Visualiser for an orbit created within satplot
-	
-	"""
-	def __init__(self, subplot=False, subplot_args=[None, 111]):
-		"""Creates visualiser instance
+class OrbitVisualiser():
+
+	def __init__(self):
+		self.fig = go.Figure()
+		self.fig.update_layout(scene_aspectmode='cube')
+		self.fig.update_layout(scene={'xaxis_showspikes':False,
+										'yaxis_showspikes':False,
+										'zaxis_showspikes':False})
+		# change margins
+		self.fig.update_layout(margin={'l':5,
+								 		'r':5,
+										't':5,
+										'b':5})
+		# remove axes box
+		self.fig.update_layout(scene={'xaxis':{'visible':False},
+										'yaxis':{'visible':False},
+										'zaxis':{'visible':False}})
 		
-		Creates a new matplotlib figure and 3d axes within it.
-		"""
-		if not subplot:
-			self.label_str = 'orbit'			
-			vis_utils.createFigure(self.label_str, 'Orbit', three_dim=True)
-		else:
-			self.label_str = subplot_args[0]
-			vis_utils.createFigure(self.label_str, 'Orbit', three_dim=True, subplot_pos=subplot_args[1])
-
-		self.subplot_pos = subplot_args[1]
-		self.setDefaultOptions()
-		self.fig = vis_utils.findFigure(self.label_str)
-		print(f"self.fig:{self.fig}")
-		self.ax = vis_utils.findAxes(self.label_str, self.subplot_pos)
+		self.traces = {}
 		
-		print(f"self.ax:{self.ax}")
-		self.orbit_points = None
-		self.orbit_vel = None
-		self.index = 0
-		self.actors = {}
-		self.source = None
-		self.sc_source = None
-
-		self.earth = assets.Earth(self, self.ax)
-		self.actors['earth'] = self.earth.draw()
-		# self.sun_dist = np.linalg.norm(self.orbit_points[0, :]) * 1.5
+		self.win = None
 		self.sun_dist = 10000
-		self.sun = assets.Sun(self, self.ax, self.sun_dist)
-		print("setting limit")
-		self.ax.set_xlim([-7000, 7000])
-		vis_utils.squareAxes(self.label_str, subplot_pos=self.subplot_pos)
-
-	def setDefaultOptions(self):
-		""" Sets the default options for the orbit_visualiser
 		
-		"""
+		# data
+		self.sc = None
+		self.orbit = None
+		self.supp_orbits = []
+		self.curr_index = 0
+		self.landmass_points = []
+		self.longitude_points = []
+
 		self._dflt_opts = {}
+		self.opts = {}
+		self._setDefaultOptions()
 		
-		self._dflt_opts['color'] = 'b'
-		self._dflt_opts['pos_marker'] = 'o'
-		self._dflt_opts['start_marker'] = 'x'
-		self._dflt_opts['end_marker'] = '>'
-		self._dflt_opts['marker_size'] = 20		
-		self._dflt_opts['umbra_color'] = np.asarray([110, 110, 110, 128]) / 256
-		self._dflt_opts['umbra_edge'] = 'k'
-		self._dflt_opts['orbital_length'] = 1
-		self._dflt_opts['x_units'] = 'x [km]'
-		self._dflt_opts['y_units'] = 'y [km]'
-		self._dflt_opts['z_units'] = 'z [km]'
 
-		self.opts = self._dflt_opts.copy()
-		self._createOptHelp()
+	def setSource(self, orbit):
+		self.orbit = orbit
+		# if orbit.timespan.num_steps < self.opts['orbital_length'] * self.orbit_period:
+		# 	logger.warning("Timespan has insufficient data points for the requested orbit fraction")
 
-	def setSource(self, source):
-		""" Sets source for orbit visualiser
-		
-		Source should be taken from an orbit class, currently set manually
-		
-		Parameters
-		----------
-		source : {(n,3) ndarray}
-		"""
-		# Set source to orbit class
-		# TODO: check source is an instance of orbit
-		self.source = source
-		self.orbit_points = source.pos
-		# self.orbit_points = source
-		# pull this from Orbit class once instituted
-		self.sun_dist = np.linalg.norm(self.orbit_points[0, :]) * 1.5
-		self.sun_rad = 2 * np.deg2rad(0.5) * self.sun_dist
-		# Need to pull this from orbit class once instituted
-		self.orbit_period = source.steps_orbital_period
+		self.start_index = 0
+		# TODO: need to update end_index if options are changed
+		self.end_index = min(len(self.orbit.timespan)-1, (self.orbit.period_steps * self.opts['orbital_length']))
+		self.sun_dist = 10000
 
-		if source.timespan.num_steps < self.opts['orbital_length'] * self.orbit_period:
-			logger.warning("Timespan has insufficient data points for the requested orbit fraction")
-		
-		self.orbit_vel = source.vel
-		# self.sun = source.sun / np.linalg.norm(source.sun, axis=1)[:, None] * self.sun_dist
+	def attachSupplementalOrbit(self, orbit):
+		if self.orbit is None:
+			raise AttributeError("Primary orbit not loaded")
+		if orbit.timespan != self.orbit.timespan:
+			raise AttributeError("Timespan of Supplemental orbit is different to Primary orbit")
+		self.supp_orbits.append(orbit)
 
-	def setSpacecraftSource(self, source):
-		"""Sets spacecraft source for visualiser
-		
-		Uses spacecraft source for rotating the spacecraft gizmo
-		
-		Parameters
-		----------
-		source : {satplot.Spacecraft}
-		"""
-		self.sc_source = source
-		self.gizmo = assets.Gizmo(self, self.ax, 900)
-
-	def plotOrbit(self):
-		""" Plots orbital trajectory from indexed position for an orbital period
-		
-		The length of the trajectory plotted can be set via the options 'orbital_length'
-		"""
-		if 'fut_trajectory' in self.actors.keys():
-			self.actors['fut_trajectory'][0].remove()
-			del self.actors['fut_trajectory']
-		if 'past_trajectory' in self.actors.keys():			
-			self.actors['past_trajectory'][0].remove()
-			del self.actors['past_trajectory']
-		start = 0
-		curr = max(0, self.index - int(self.opts['orbital_length'] / self.orbit_period))
-		end = min(len(self.source.timespan), (self.source.steps_orbital_period * self.opts['orbital_length']))
-		print(f"{start}->{end}")
-		self.actors['fut_trajectory'] = self.ax.plot(self.orbit_points[curr:end, 0],
-											self.orbit_points[curr:end, 1],
-											self.orbit_points[curr:end, 2], color=self.opts['color'])  # noqa: E126
-		self.actors['past_trajectory'] = self.ax.plot(self.orbit_points[start:curr, 0],
-											self.orbit_points[start:curr, 1],
-											self.orbit_points[start:curr, 2], color=self.opts['color'], linestyle='dotted')  # noqa: E126
-
-
-	def plotPos(self, gizmo=True):
-		""" Plots index position from attached orbit object
-		
-		Parameters
-		----------
-		gizmo : {bool}, optional
-			Spacecraft gizmo (the default is True, which will display the gizmo)
-		"""
-		
-		if not gizmo:
-			if 'pos' in self.actors.keys():
-				self.actors['pos'].remove()
-				del self.actors['pos']
-
-			self.actors['pos'] = self.ax.scatter(self.orbit_points[self.index, 0],
-									self.orbit_points[self.index, 1],
-									self.orbit_points[self.index, 2],  # noqa: E126
-									marker=self.opts['pos_marker'], 
-									s=self.opts['marker_size'],
-									color=self.opts['color'])
+	def add3DLandMass(self, countries=False):
+		# Adapted from https://community.plotly.com/t/create-earth-sphere-with-all-countries-in-plotly/79284
+		# Work by user baubin
+		if countries:
+			gdf = gpd.read_file('data/country_boundaries/ne_110m_admin_0_countries.shp')
 		else:
-			if 'gizmo' in self.actors.keys():
-				self.actors['gizmo'].remove()
-				del self.actors['gizmo']
+			gdf = gpd.read_file('data/land_boundaries/ne_110m_land.shp')
 
-			self.gizmo.transform(self.sc_source.pointing[self.index], self.sc_source.orbit.pos[self.index])
-			self.actors['gizmo'] = self.gizmo.draw()
+		num_traces = len(self.fig.data)
+		for ii in gdf.index:
+			polys = gdf.loc[ii].geometry
+			if polys.geom_type == 'Polygon':
+				coords = self._convertShapeFilePolys(polys)
+				self.fig.add_trace(go.Scatter3d(x=coords[:,0],
+												y=coords[:,1],
+												z=coords[:,2],
+												mode='lines',
+												line={'color':f"rgb{str(self.opts['landmass_colour'])}"},
+												showlegend=False,
+												hoverinfo='skip'))
+				self.landmass_points.append(coords)
+			elif polys.geom_type == 'MultiPolygon':
+				for poly in polys.geoms:
+					coords = self._convertShapeFilePolys(poly)
+					self.fig.add_trace(go.Scatter3d(x=coords[:,0],
+													y=coords[:,1],
+													z=coords[:,2],
+													mode='lines',
+													line={'color':f"rgb{str(self.opts['landmass_colour'])}"},
+													showlegend=False,
+													hoverinfo='skip'))
+		end_num_traces = len(self.fig.data)
+		self.traces['land_mass'] = range(num_traces, end_num_traces)
 
-	def plotStart(self):
-		""" Plots index position from attached orbit object
+	def addEarth(self):
+		if self.opts['plot_earth_sphere']:
+			trace_index = visutils.plotSphere(self.fig, (0,0,0), c.R_EARTH-1, col = f"rgb{self.opts['earth_sphere_colour']}")
+			self.traces['earth_sphere'] = trace_index
+			self.fig.data[trace_index].contours.x.highlight = False
+			self.fig.data[trace_index].contours.y.highlight = False
+			self.fig.data[trace_index].contours.z.highlight = False
 		
-		Parameters
-		----------
-		gizmo : {bool}, optional
-			Spacecraft gizmo (the default is True, which will display the gizmo)
-		"""
+		if self.opts['plot_earth_axis']:
+			trace_index = len(self.fig.data)
+			self.fig.add_trace(go.Scatter3d(x=[0, 0],
+											y=[0, 0],
+											z=[-1*(c.R_EARTH+1000), c.R_EARTH+1000],
+											mode='lines',
+											line={'dash':'solid',
+												'color':f"rgb{str(self.opts['earth_axis_colour'])}",
+												'width':4},
+											showlegend=False,
+											hoverinfo='skip'))
+			self.traces['axis'] = trace_index
 		
-		if 'start' in self.actors.keys():
-			self.actors['start'].remove()
-			del self.actors['start']
-
-		self.actors['start'] = self.ax.scatter(self.orbit_points[0, 0],
-								self.orbit_points[0, 1],
-								self.orbit_points[0, 2],  # noqa: E126
-								marker=self.opts['start_marker'], 
-								s=self.opts['marker_size'],
-								color=self.opts['color'])
-
-	def plotEnd(self):
-		""" Plots index position from attached orbit object
+		if self.opts['plot_equator']:
+			self.traces['equator'] = self._addParallel(0)
 		
-		Parameters
-		----------
-		gizmo : {bool}, optional
-			Spacecraft gizmo (the default is True, which will display the gizmo)
-		"""
+		if self.opts['plot_parallels']:
+			for ii in range(15, 90, self.opts['parallel_spacing']):
+				self.traces[f'lat_{str(ii)}'] = self._addParallel(ii)
+			for ii in range(15, 90, self.opts['parallel_spacing']):
+				self.traces[f'lat_{str(-ii)}'] = self._addParallel(-ii)
 		
-		if 'end' in self.actors.keys():
-			self.actors['end'].remove()
-			del self.actors['end']
+		self.traces['long'] = []
+		if self.opts['plot_meridians']:		
+			for ii in range(0, 180, self.opts['meridian_spacing']):
+				self.traces['long'].append(self._addMeridian(ii))
 
-		self.actors['end'] = self.ax.scatter(self.orbit_points[-1, 0],
-								self.orbit_points[-1, 1],
-								self.orbit_points[-1, 2],  # noqa: E126
-								marker=self.opts['end_marker'], 
-								s=self.opts['marker_size'],
-								color=self.opts['color'])
-
-	def drawUmbra(self):
-		""" Draws earth umbra in anti-sun direction, determined by sun location in attached orbit object
+	def addOrbit(self):
+		self.start_index = 0
+		curr = max(0, self.curr_index - int(self.opts['orbital_length'] / self.orbit.period))		
+		num_traces = len(self.fig.data)
 		
-		Due to matplotlib z order issues, umbra will not display properly at some orientations.
-		"""
-		shadow_color = self.opts['umbra_color']
-		shadow_edge = self.opts['umbra_edge']
+		self.fig.add_trace(go.Scatter3d(x=self.orbit.pos[self.start_index:curr,0],
+								  		y=self.orbit.pos[self.start_index:curr,1],
+										z=self.orbit.pos[self.start_index:curr,2],
+										mode='lines',
+										line={'dash':self.opts['prim_orbit_past_style'],
+											  'color':f"rgb{str(self.opts['prim_orbit_colour'])}",
+											  'width':self.opts['prim_orbit_width']},
+										showlegend=False))
+		self.traces['past_orbit'] = num_traces
+		past_text = [f'{ii}:{self.orbit.timespan.asText(ii)}' for ii in range(self.start_index,curr)]
+		self.fig.data[self.traces['past_orbit']]['text'] = past_text
+		self.fig.data[self.traces['past_orbit']]['hoverinfo'] = 'text'
 
-		if 'umbra' in self.actors.keys():
-			logger.debug("Removing umbra from orbit plot")
-			self.actors['umbra'].remove()
-			self.actors['umbra_cap1'].remove()
-			self.actors['umbra_cap2'].remove()
-			del self.actors['umbra']
-			del self.actors['umbra_cap1']
-			del self.actors['umbra_cap2']
+		self.fig.add_trace(go.Scatter3d(x=self.orbit.pos[curr:self.end_index,0],
+								  		y=self.orbit.pos[curr:self.end_index,1],
+										z=self.orbit.pos[curr:self.end_index,2],
+										mode='lines',
+										line={'dash':self.opts['prim_orbit_future_style'],
+											  'color':f"rgb{str(self.opts['prim_orbit_colour'])}",
+											  'width':self.opts['prim_orbit_width']},
+										showlegend=False))
+		self.traces['future_orbit'] = num_traces+1
+		fut_text = [f'{ii}:{self.orbit.timespan.asText(ii)}' for ii in range(curr, self.end_index)]
+		self.fig.data[self.traces['future_orbit']]['text'] = fut_text
+		self.fig.data[self.traces['future_orbit']]['hoverinfo'] = 'text'
+		
+		self.fig.add_trace(go.Scatter3d(x=[self.orbit.pos[self.start_index,0]],
+								  		y=[self.orbit.pos[self.start_index,1]],
+										z=[self.orbit.pos[self.start_index,2]],
+										mode='markers',
+										marker={'symbol':self.opts['prim_orbit_start_symbol'],
+				  					 			'color':f"rgb{str(self.opts['prim_orbit_colour'])}",
+												'size':self.opts['prim_orbit_start_symbol_size']},
+										showlegend=False))
+		self.traces['start_pos'] = num_traces+2
+		start_text = [f'{self.start_index}:{self.orbit.timespan.asText(self.start_index)}']
+		self.fig.data[self.traces['start_pos']]['text'] = start_text
+		self.fig.data[self.traces['start_pos']]['hoverinfo'] = 'text'
 
-		shadow_point = - self.sun_dist * pg.unitVector(self.source.sun[self.index])
+		curr = max(0, self.curr_index - int(self.opts['orbital_length'] / self.orbit.period))
+		self.fig.add_trace(go.Scatter3d(x=[self.orbit.pos[curr,0]],
+								  		y=[self.orbit.pos[curr,1]],
+										z=[self.orbit.pos[curr,2]],
+										mode='markers',
+										marker={'symbol':self.opts['prim_orbit_curr_symbol'],
+				  					 			'color':f"rgb{str(self.opts['prim_orbit_colour'])}",
+												'size':self.opts['prim_orbit_curr_symbol_size']},
+										showlegend=False))
+		self.traces['curr_pos'] = num_traces+3
+		curr_text = [f'{self.curr_index}:{self.orbit.timespan.asText(self.curr_index)}']
+		self.fig.data[self.traces['curr_pos']]['text'] = curr_text
+		self.fig.data[self.traces['curr_pos']]['hoverinfo'] = 'text'
+		
+		self.fig.add_trace(go.Scatter3d(x=[self.orbit.pos[self.end_index,0]],
+								  		y=[self.orbit.pos[self.end_index,1]],
+										z=[self.orbit.pos[self.end_index,2]],
+										mode='markers',
+										marker={'symbol':self.opts['prim_orbit_end_symbol'],
+				  				  				'color':f"rgb{str(self.opts['prim_orbit_colour'])}",
+												'size':self.opts['prim_orbit_end_symbol_size']},
+										showlegend=False))
+		self.traces['end_pos'] = num_traces+4
+		end_text = [f'{self.start_index}:{self.orbit.timespan.asText(self.end_index)}']
+		self.fig.data[self.traces['end_pos']]['text'] = end_text
+		self.fig.data[self.traces['end_pos']]['hoverinfo'] = 'text'
 
-		origin = np.array([0, 0, 0])
-		# axis and radius
-		p0 = origin
+	def addSupplementalOrbits(self):
+		self.start_index = 0
+		curr = max(0, self.curr_index - int(self.opts['orbital_length'] / self.orbit.period))		
+		
+		self.traces['supp_past_orbit']=[]
+		self.traces['supp_future_orbit']=[]
+		self.traces['supp_start_pos']=[]
+		self.traces['supp_curr_pos']=[]
+		self.traces['supp_end_pos']=[]
+		self.traces['supp_beam_cones'] =[]
+		self.traces['supp_beam_caps'] =[]
+		for ii, orbit in enumerate(self.supp_orbits):
+			# num_traces = len(self.fig.data)
+			# self.fig.add_trace(go.Scatter3d(x=orbit.pos[self.start_index:self.end_index,0],
+			# 								y=orbit.pos[self.start_index:self.end_index,1],
+			# 								z=orbit.pos[self.start_index:self.end_index,2],
+			# 								mode='lines',
+			# 								line={'dash':self.opts['supp_orbit_past_style'],
+			# 									'color':f"rgb{str(self.opts['supp_orbit_colour'])}",
+			# 									'width':self.opts['supp_orbit_width']},
+			# 								showlegend=False))
+			# self.traces['supp_past_orbit'].append(num_traces)
+			# past_text = [f'{jj}:{orbit.timespan.asText(jj)}' for jj in range(self.start_index,self.end_index)]
+			# self.fig.data[self.traces['supp_past_orbit'][ii]]['text'] = past_text
+			# self.fig.data[self.traces['supp_past_orbit'][ii]]['hoverinfo'] = 'text'
+
+			# num_traces = len(self.fig.data)
+			# self.fig.add_trace(go.Scatter3d(x=orbit.pos[curr:self.end_index,0],
+			# 								y=orbit.pos[curr:self.end_index,1],
+			# 								z=orbit.pos[curr:self.end_index,2],
+			# 								mode='lines',
+			# 								line={'dash':self.opts['supp_orbit_future_style'],
+			# 									'color':f"rgb{str(self.opts['supp_orbit_colour'])}",
+			# 									'width':self.opts['supp_orbit_width']},
+			# 								showlegend=False))
+			# self.traces['supp_future_orbit'].append(num_traces)
+			# fut_text = [f'{jj}:{orbit.timespan.asText(jj)}' for jj in range(curr, self.end_index)]
+			# self.fig.data[self.traces['supp_future_orbit'][ii]]['text'] = fut_text
+			# self.fig.data[self.traces['supp_future_orbit'][ii]]['hoverinfo'] = 'text'
+			
+			# num_traces = len(self.fig.data)
+			# self.fig.add_trace(go.Scatter3d(x=[orbit.pos[self.start_index,0]],
+			# 								y=[orbit.pos[self.start_index,1]],
+			# 								z=[orbit.pos[self.start_index,2]],
+			# 								mode='markers',
+			# 								marker={'symbol':self.opts['supp_orbit_start_symbol'],
+			# 										'color':f"rgb{str(self.opts['supp_orbit_colour'])}",
+			# 										'size':self.opts['supp_orbit_start_symbol_size']},
+			# 								showlegend=False))
+			# self.traces['supp_start_pos'].append(num_traces)
+			# start_text = [f'{self.start_index}:{orbit.timespan.asText(self.start_index)}']
+			# self.fig.data[self.traces['supp_start_pos'][ii]]['text'] = start_text
+			# self.fig.data[self.traces['supp_start_pos'][ii]]['hoverinfo'] = 'text'
+
+			num_traces = len(self.fig.data)
+			curr = max(0, self.curr_index - int(self.opts['orbital_length'] / orbit.period))
+			self.fig.add_trace(go.Scatter3d(x=[orbit.pos[curr,0]],
+											y=[orbit.pos[curr,1]],
+											z=[orbit.pos[curr,2]],
+											mode='markers',
+											marker={'symbol':self.opts['supp_orbit_curr_symbol'],
+													'color':f"rgb{str(self.opts['supp_orbit_colour'])}",
+													'size':self.opts['supp_orbit_curr_symbol_size']},
+											showlegend=False))
+			self.traces['supp_curr_pos'].append(num_traces)
+			curr_text = str(orbit.sat)
+			print(curr_text)
+			self.fig.data[self.traces['supp_curr_pos'][ii]]['text'] = curr_text
+			self.fig.data[self.traces['supp_curr_pos'][ii]]['hoverinfo'] = 'text'
+			
+			# num_traces = len(self.fig.data)
+			# self.fig.add_trace(go.Scatter3d(x=[orbit.pos[self.end_index,0]],
+			# 								y=[orbit.pos[self.end_index,1]],
+			# 								z=[orbit.pos[self.end_index,2]],
+			# 								mode='markers',
+			# 								marker={'symbol':self.opts['supp_orbit_end_symbol'],
+			# 										'color':f"rgb{str(self.opts['supp_orbit_colour'])}",
+			# 										'size':self.opts['supp_orbit_end_symbol_size']},
+			# 								showlegend=False))
+			# self.traces['supp_end_pos'].append(num_traces)
+			# end_text = [f'{self.start_index}:{orbit.timespan.asText(self.end_index)}']
+			# self.fig.data[self.traces['supp_end_pos'][ii]]['text'] = end_text
+			# self.fig.data[self.traces['supp_end_pos'][ii]]['hoverinfo'] = 'text'
+
+			cone_index, cap_index = visutils.plotCone(self.fig,
+														orbit.pos[curr],
+														np.linalg.norm(orbit.pos[curr]) - c.R_EARTH,
+														-1*pg.unitVector(orbit.pos[curr]),
+														62.9*2,
+														col = f"rgb{self.opts['supp_orbit_colour']}",
+														alpha=0.2)
+			self.traces['supp_beam_cones'].append(cone_index)
+			self.traces['supp_beam_caps'].append(cap_index)
+
+	def updateOrbit(self):
+		curr = max(0, self.curr_index - int(self.opts['orbital_length'] / self.orbit.period))
+		rot_rad = self._getCurrentECEFRotation(curr)
+		# rot_deg = 0
+		rot_mat = transforms.rotAround(rot_rad, pg.Z)
+		print(f"pos indices:{self.start_index}->{curr}->{self.end_index}")
+		
+		self.fig.data[self.traces['past_orbit']].x = self.orbit.pos[self.start_index:curr,0]
+		self.fig.data[self.traces['past_orbit']].y = self.orbit.pos[self.start_index:curr,1]
+		self.fig.data[self.traces['past_orbit']].z = self.orbit.pos[self.start_index:curr,2]
+		self.fig.data[self.traces['future_orbit']].x = self.orbit.pos[curr:self.end_index,0]
+		self.fig.data[self.traces['future_orbit']].y = self.orbit.pos[curr:self.end_index,1]
+		self.fig.data[self.traces['future_orbit']].z = self.orbit.pos[curr:self.end_index,2]
+		self.fig.data[self.traces['curr_pos']].x = [self.orbit.pos[curr,0]]
+		self.fig.data[self.traces['curr_pos']].y = [self.orbit.pos[curr,1]]
+		self.fig.data[self.traces['curr_pos']].z = [self.orbit.pos[curr,2]]
+		past_text = [f'{ii}:{self.orbit.timespan.asText(ii)}' for ii in range(self.start_index,curr)]
+		fut_text = [f'{ii}:{self.orbit.timespan.asText(ii)}' for ii in range(curr, self.end_index)]
+		curr_text = [f'{curr}:{self.orbit.timespan.asText(curr)}']
+		self.fig.data[self.traces['future_orbit']]['text'] = fut_text
+		self.fig.data[self.traces['future_orbit']]['hoverinfo'] = 'text'
+		self.fig.data[self.traces['past_orbit']]['text'] = past_text
+		self.fig.data[self.traces['past_orbit']]['hoverinfo'] = 'text'
+		self.fig.data[self.traces['curr_pos']]['text'] = curr_text
+		self.fig.data[self.traces['curr_pos']]['hoverinfo'] = 'text'
+
+		for ii, orbit in enumerate(self.supp_orbits):
+			# self.fig.data[self.traces['supp_past_orbit'][ii]].x = orbit.pos[self.start_index:self.end_index,0]
+			# self.fig.data[self.traces['supp_past_orbit'][ii]].y = orbit.pos[self.start_index:self.end_index,1]
+			# self.fig.data[self.traces['supp_past_orbit'][ii]].z = orbit.pos[self.start_index:self.end_index,2]
+			# self.fig.data[self.traces['supp_future_orbit'][ii]].x = orbit.pos[curr:self.end_index,0]
+			# self.fig.data[self.traces['supp_future_orbit'][ii]].y = orbit.pos[curr:self.end_index,1]
+			# self.fig.data[self.traces['supp_future_orbit'][ii]].z = orbit.pos[curr:self.end_index,2]
+			self.fig.data[self.traces['supp_curr_pos'][ii]].x = [orbit.pos[curr,0]]
+			self.fig.data[self.traces['supp_curr_pos'][ii]].y = [orbit.pos[curr,1]]
+			self.fig.data[self.traces['supp_curr_pos'][ii]].z = [orbit.pos[curr,2]]
+			past_text = [f'{jj}:{self.orbit.timespan.asText(jj)}' for jj in range(self.start_index,self.end_index)]
+			fut_text = [f'{jj}:{self.orbit.timespan.asText(jj)}' for jj in range(curr, self.end_index)]
+			curr_text = [orbit.sat]
+			# self.fig.data[self.traces['supp_future_orbit'][ii]]['text'] = fut_text
+			# self.fig.data[self.traces['supp_future_orbit'][ii]]['hoverinfo'] = 'text'
+			# self.fig.data[self.traces['supp_past_orbit'][ii]]['text'] = past_text
+			# self.fig.data[self.traces['supp_past_orbit'][ii]]['hoverinfo'] = 'text'
+			self.fig.data[self.traces['supp_curr_pos'][ii]]['text'] = curr_text
+			self.fig.data[self.traces['supp_curr_pos'][ii]]['hoverinfo'] = 'text'
+
+		if self.opts['plot_meridians']:
+			for ii, trace_index in enumerate(self.traces['long']):
+				meridian = self.longitude_points[ii]
+				new_coords = rot_mat.dot(meridian.T).T
+				self.fig.data[trace_index].x = new_coords[:,0]
+				self.fig.data[trace_index].y = new_coords[:,1]
+				self.fig.data[trace_index].z = new_coords[:,2]
+
+		if self.opts['plot_landmass']:
+			for ii, trace_index in enumerate(self.traces['land_mass']):
+				landmass = self.landmass_points[ii]
+				new_coords = rot_mat.dot(landmass.T).T
+				self.fig.data[trace_index].x = new_coords[:,0]
+				self.fig.data[trace_index].y = new_coords[:,1]
+				self.fig.data[trace_index].z = new_coords[:,2]
+
+	def addUmbra(self):
+		shadow_point = -self.sun_dist * pg.unitVector(self.orbit.sun[self.curr_index])
+
+		p0 = np.array([0,0,0])
 		p1 = shadow_point
-		# print(self.source.sun[self.index])
-		# print(shadow_point)
-		# TODO: need to pull radius from orbit central body
-		R = consts.R_EARTH
-		# vector in direction of axis
-		v = p1 - p0
-		# find magnitude of vector
-		mag = np.linalg.norm(v)
-		# unit vector in direction of axis
-		v = v / mag
-		# make some vector not in the same direction as v
-		not_v = np.array([1, 0, 0])
-		if (v == not_v).all():
-			not_v = np.array([0, 1, 0])
-		# make vector perpendicular to v
-		n1 = np.cross(v, not_v)
-		# normalize n1
-		n1 /= np.linalg.norm(n1)
-		# make unit vector perpendicular to v and n1
-		n2 = np.cross(v, n1)
-		# surface ranges over t from 0 to length of axis and 0 to 2*pi
-		t = np.linspace(0, mag, 2)
-		theta = np.linspace(0, 2 * np.pi, 99)
-		rsample = np.linspace(0, R, 2)
-		# use meshgrid to make 2d arrays
-		t, theta2 = np.meshgrid(t, theta)
+		R = c.R_EARTH
+		v_mag = np.linalg.norm(p1-p0)
+		v = pg.unitVector(p1-p0)
+		not_v = np.array([1,0,0])
+		if(v == not_v).all():
+			not_v = np.array([0,1,0])
+		n1 = pg.unitVector(np.cross(v, not_v))
+		n2 = pg.unitVector(np.cross(v, n1))
+
+		t = np.linspace(0,v_mag,2)
+		theta = np.linspace(0, 2*np.pi, 99)
+		rsample = np.linspace(0,R,2)
+		t, theta2 = np.meshgrid(t,theta)
 		rsample, theta = np.meshgrid(rsample, theta)
-		logger.debug("Adding umbra to orbit plot")
-		# Tube
-		X, Y, Z = [p0[i] + v[i] * t + R * np.sin(theta2) * n1[i] + R * np.cos(theta) * n2[i] for i in [0, 1, 2]]
-		# "Outer Cap"
-		X2, Y2, Z2 = [p0[i] + rsample[i] * np.sin(theta) * n1[i] + rsample[i] * np.cos(theta) * n2[i] for i in [0, 1, 2]]
-		# "Earth Center cap"
-		X3, Y3, Z3 = [p0[i] + v[i] * mag + rsample[i] * np.sin(theta) * n1[i] + rsample[i] * np.cos(theta) * n2[i] for i in [0, 1, 2]]
+		X,Y,Z = [p0[i] + v[i] * t + R * np.sin(theta2) * n1[i] + R * np.cos(theta) * n2[i] for i in [0, 1, 2]]
+		X2,Y2,Z2 = [p0[i] + v[i]*v_mag + rsample[i] * np.sin(theta) * n1[i] + rsample[i] * np.cos(theta) * n2[i] for i in [0, 1, 2]]
+		col=f"rgb{str(self.opts['umbra_colour'])}"
+		num_traces = len(self.fig.data)
 
-		self.actors['umbra'] = self.ax.plot_surface(X, Y, Z, color=shadow_color, edgecolor=None)
-		self.actors['umbra_cap1'] = self.ax.plot_surface(X2, Y2, Z2, color=shadow_color, edgecolor=shadow_edge)
-		self.actors['umbra_cap2'] = self.ax.plot_surface(X3, Y3, Z3, color=shadow_color, edgecolor=None)
+		self.fig.add_surface(x=X,
+					   		y=Y,
+							z=Z,
+							colorscale=[[0, col], [1, col]],
+							opacity=self.opts['umbra_opacity'],
+							showlegend=False,
+							lighting=dict(diffuse=0.1),
+							hoverinfo='skip',
+							showscale=False)
+		self.traces['umbra_tube'] = num_traces
 
-	def draw(self):
-		"""Draw orbit visualisation representing current data sources.
+		self.fig.add_surface(x=X2,
+					   		y=Y2,
+							z=Z2,
+							colorscale=[[0, col], [1, col]],
+							opacity=self.opts['umbra_opacity'],
+							showlegend=False,
+							lighting=dict(diffuse=0.1),
+							hoverinfo='skip',
+							showscale=False)
+		self.traces['umbra_cap'] = num_traces+1
 		
-		Will draw:
-			Single orbit starting at index position
-			Pos, identifed by x
-			Sun and sun vector at 1.5 x the orbit radius
-			Earth umbra
-		"""
-		self.plotOrbit()
-		self.plotStart()
-		self.plotEnd()
+		self.fig.data[self.traces['umbra_tube']].contours.x.highlight = False
+		self.fig.data[self.traces['umbra_tube']].contours.y.highlight = False
+		self.fig.data[self.traces['umbra_tube']].contours.z.highlight = False
+		self.fig.data[self.traces['umbra_cap']].contours.x.highlight = False
+		self.fig.data[self.traces['umbra_cap']].contours.y.highlight = False
+		self.fig.data[self.traces['umbra_cap']].contours.z.highlight = False
 
-		self.ax.set_xlabel(self.opts['x_units'])
-		self.ax.set_ylabel(self.opts['y_units'])
-		self.ax.set_zlabel(self.opts['z_units'])
-		
-		if self.orbit_points is not None:
-			self.plotPos(gizmo=False)
-		
-		if self.sun is not None:
-			self.sun.transform(self.source.sun[self.index])
-			self.sun.draw()
-			self.drawUmbra()
+		trace_index = visutils.plotSphere(self.fig, -1.5*shadow_point, 500, col=f"rgb{str(self.opts['sun_colour'])}")
+		self.traces['sun'] = trace_index
 
+		self.fig.update_layout(scene={'xaxis':{'range':[-1*(v_mag+c.R_EARTH/2), (v_mag+c.R_EARTH/2)]}})
+		self.fig.update_layout(scene={'yaxis':{'range':[-1*(v_mag+c.R_EARTH/2), (v_mag+c.R_EARTH/2)]}})
+		self.fig.update_layout(scene={'zaxis':{'range':[-1*(v_mag+c.R_EARTH/2), (v_mag+c.R_EARTH/2)]}})
+
+
+	def openWindow(self):
+		self.win = window.FigureViewer(self.fig)
+
+	def updateWindow(self):
+		self.updateOrbit()
+		self.fig.update_layout(coloraxis_showscale=False)
+		self.win.update()
+
+	def getTrace(self, trace_name):
+		trace_index = None
+		try:
+			trace_index = self.traces[trace_name]
+		except KeyError:
+			print(f"{trace_name} is not a valid trace.")
+			print("This visualiser has the following traces:")
+			for key in self.traces.keys():
+				print(f"\t{key}")
+		return self.fig.data[trace_index]
+
+	def getTraceIndex(self, trace_name):
+		trace_index = None
+		try:
+			trace_index = self.traces[trace_name]
+		except KeyError:
+			print(f"{trace_name} is not a valid trace.")
+			print("This visualiser has the following traces:")
+			for key in self.traces.keys():
+				print(f"\t{key}")
+		return trace_index
+
+	def _convertShapeFilePolys(self, poly):
+		xy_coords = poly.exterior.coords.xy
+		lon = np.array(xy_coords[0])
+		lat = np.array(xy_coords[1])
+		lon = lon * np.pi/180
+		lat = lat * np.pi/180
+		R = c.R_EARTH
+		coords = np.zeros((len(lon),3))
+		coords[:,0] = R * np.cos(lat) * np.cos(lon)
+		coords[:,1] = R * np.cos(lat) * np.sin(lon)
+		coords[:,2] = R * np.sin(lat)
+		
+		return coords
+
+	def _addParallel(self, lat_degs):
+		trace_index = len(self.fig.data)
+		long = np.linspace(0, 2.0*np.pi, 180)
+		R = c.R_EARTH * np.cos(np.deg2rad(lat_degs))
+		x = R*np.cos(long)
+		y = R*np.sin(long)
+		z = c.R_EARTH*np.ones(180)*np.sin(np.deg2rad(lat_degs))
+		self.fig.add_trace(go.Scatter3d(x=x,
+										y=y,
+										z=z,
+										mode='lines',
+										line={'dash':self.opts['parallel_style'],
+												'color':f"rgb{str(self.opts['parallel_colour'])}",
+												'width':self.opts['parallel_width']},
+										hoverinfo='skip',
+										showlegend=False))
+		return trace_index
+
+	def _addMeridian(self, long_degs):
+		trace_index = len(self.fig.data)
+		theta = np.linspace(0, 2.0*np.pi, 180)
+		R = c.R_EARTH
+		coords = np.zeros((180,3))
+		coords[:,0] = R*np.cos(theta)
+		coords[:,1] = np.zeros(180)
+		coords[:,2] = R*np.sin(theta)
+		
+		rot_mat = transforms.rotAround(np.deg2rad(long_degs), pg.Z)
+		coords = rot_mat.dot(coords.T).T
+
+		self.fig.add_trace(go.Scatter3d(x=coords[:,0],
+										y=coords[:,1],
+										z=coords[:,2],
+										mode='lines',
+										line={'dash':self.opts['meridian_style'],
+												'color':f"rgb{str(self.opts['meridian_colour'])}",
+												'width':self.opts['meridian_width']},
+										hoverinfo='skip',
+										showlegend=False))
+		self.longitude_points.append(coords)
+		return trace_index
+
+	def _getCurrentECEFRotation(self, index):
+		topos = wgs84.latlon(0,0)
+		t = self.orbit.timespan.asSkyfield(index)
+		nullisland_curr = topos.at(t).xyz.km
+		rot_rad = np.arctan2(nullisland_curr[1], nullisland_curr[0])
+		return rot_rad
+	
 	def _createOptHelp(self):
 		while True:
 			try:
 				self.opts_help = {}
-				self.opts_help['color'] = "Colour to be used for orbit trajectory. dflt: '{opt}'. fmt: matplotlib color string or (4,) np array".format(opt=self._dflt_opts['color'])
-				self.opts_help['pos_marker'] = "Marker to be used for indexed orbit position. dflt: '{opt}'. fmt: matplotlib marker string".format(opt=self._dflt_opts['pos_marker'])
-				self.opts_help['marker_size'] = "Marker size to be used for indexed orbit position. dflt: '{opt}'. fmt: int".format(opt=self._dflt_opts['marker_size'])
-				self.opts_help['umbra_color'] = "Color to be used with the umbra cylinder. dflt: '{opt}'. fmt: matplotlib color string or (4,) np array".format(opt=self._dflt_opts['umbra_color'])
-				self.opts_help['umbra_edge'] = "Color to be used with the umbra edge. dflt: '{opt}'. fmt: matplotlib color string or (4,) np array".format(opt=self._dflt_opts['umbra_color'])
-				self.opts_help['orbital_length'] = "Multiplier for how many orbital periods are to be plotted. dflt: '{opt}'. fmt: float".format(opt=self._dflt_opts['orbital_length'])
-				self.opts_help['x_units'] = "Unit to be displayed on x axis. dflt: '{opt}'.".format(opt=self._dflt_opts['x_units'])
-				self.opts_help['y_units'] = "Unit to be displayed on y axis. dflt: '{opt}'.".format(opt=self._dflt_opts['y_units'])
-				self.opts_help['z_units'] = "Unit to be displayed on z axis. dflt: '{opt}'.".format(opt=self._dflt_opts['z_units'])
+				self.opts_help['placeholder'] = 'No help exists yet'
+				# self.opts_help['color'] = "Colour to be used for orbit trajectory. dflt: '{opt}'. fmt: matplotlib color string or (4,) np array".format(opt=self._dflt_opts['color'])
+				# self.opts_help['pos_marker'] = "Marker to be used for indexed orbit position. dflt: '{opt}'. fmt: matplotlib marker string".format(opt=self._dflt_opts['pos_marker'])
+				# self.opts_help['marker_size'] = "Marker size to be used for indexed orbit position. dflt: '{opt}'. fmt: int".format(opt=self._dflt_opts['marker_size'])
+				# self.opts_help['umbra_color'] = "Color to be used with the umbra cylinder. dflt: '{opt}'. fmt: matplotlib color string or (4,) np array".format(opt=self._dflt_opts['umbra_color'])
+				# self.opts_help['umbra_edge'] = "Color to be used with the umbra edge. dflt: '{opt}'. fmt: matplotlib color string or (4,) np array".format(opt=self._dflt_opts['umbra_color'])
+				# self.opts_help['orbital_length'] = "Multiplier for how many orbital periods are to be plotted. dflt: '{opt}'. fmt: float".format(opt=self._dflt_opts['orbital_length'])
+				# self.opts_help['x_units'] = "Unit to be displayed on x axis. dflt: '{opt}'.".format(opt=self._dflt_opts['x_units'])
+				# self.opts_help['y_units'] = "Unit to be displayed on y axis. dflt: '{opt}'.".format(opt=self._dflt_opts['y_units'])
+				# self.opts_help['z_units'] = "Unit to be displayed on z axis. dflt: '{opt}'.".format(opt=self._dflt_opts['z_units'])
 				break
 			except AttributeError:
 				logger.debug("Options not yet set - setting.")
 				self.setDefaultOptions()
 
-		if self.opts_help.keys() != self._dflt_opts.keys():
-			logger.warning("Options help are not set for every option which exists. Missing {list}".format(list=set(self._dflt_opts.keys()) - set(self.opts_help.keys())))
+			if self.opts_help.keys() != self._dflt_opts.keys():
+				logger.warning("Options help are not set for every option which exists. Missing {list}".format(list=set(self._dflt_opts.keys()) - set(self.opts_help.keys())))
 
-def plotVectors(ax, points, dirs, scale=1, **kwargs):
-	# print(points[0])
-	# print(points[1])
-	# print(points[2])
-	# print(dirs[0] - points[0])
-	# print(dirs[1] - points[1])
-	# print(dirs[2] - points[2])
+	def _setDefaultOptions(self):
+		
+		self._dflt_opts['orbital_length'] = 1
 
-	#TODO: Not working properly when vectors are rows
+		self._dflt_opts['prim_orbit_colour'] = (0,0,255)
+		self._dflt_opts['prim_orbit_width'] = 4
+		self._dflt_opts['prim_orbit_start_symbol'] = 'x'
+		self._dflt_opts['prim_orbit_start_symbol_size'] = 2
+		self._dflt_opts['prim_orbit_curr_symbol'] = 'circle'
+		self._dflt_opts['prim_orbit_curr_symbol_size'] = 2
+		self._dflt_opts['prim_orbit_end_symbol'] = 'diamond'
+		self._dflt_opts['prim_orbit_end_symbol_size'] = 2
+		self._dflt_opts['prim_orbit_past_style'] = 'solid'
+		self._dflt_opts['prim_orbit_future_style'] = 'dash'
+		
+		self._dflt_opts['supp_orbit_colour'] = (0,255,0)
+		self._dflt_opts['supp_orbit_width'] = 2
+		self._dflt_opts['supp_orbit_start_symbol'] = 'x'
+		self._dflt_opts['supp_orbit_start_symbol_size'] = 1
+		self._dflt_opts['supp_orbit_curr_symbol'] = 'circle'
+		self._dflt_opts['supp_orbit_curr_symbol_size'] = 1.75 
+		self._dflt_opts['supp_orbit_end_symbol'] = 'diamond'
+		self._dflt_opts['supp_orbit_end_symbol_size'] = 1
+		self._dflt_opts['supp_orbit_past_style'] = 'solid'
+		self._dflt_opts['supp_orbit_future_style'] = 'dash'
 
-	# scale = 10*np.linalg.norm(dirs) / np.linalg.norm(points)
+		self._dflt_opts['plot_earth_sphere'] = True
+		self._dflt_opts['earth_sphere_colour'] = (220,220,220)
 
-	if points.shape != dirs.shape:
-		print("Same number of points and vectors must be supplied")
-	if len(points.shape) == 2:
-		m, n = points.shape
-		if m > n:
-			ax.quiver(points[0, :], points[1, :], points[2, :],
-						dirs[0, :] * scale, dirs[1, :] * scale, dirs[2, :] * scale,  # noqa: E128
-						**kwargs)  # noqa: E126
-		else:
-			ax.quiver(points[:, 0], points[:, 1], points[:, 2],
-						dirs[:, 0] * scale, dirs[:, 1] * scale, dirs[:, 2] * scale,  # noqa: E128
-						**kwargs)  # noqa: E126
-	else:
-		ax.quiver(points[0], points[1], points[2],
-					dirs[0] * scale, dirs[1] * scale, dirs[2] * scale,  # noqa: E128
-					**kwargs)  # noqa: E126
+		self._dflt_opts['plot_landmass'] = True
+		self._dflt_opts['landmass_colour'] = (0,0,0)
 
+		self._dflt_opts['plot_earth_axis'] = True
+		self._dflt_opts['earth_axis_colour'] = (255,0,0)
+		self._dflt_opts['earth_axis_style'] = 'solid'
+		
+		self._dflt_opts['umbra_colour'] = (0,0,0)
+		self._dflt_opts['umbra_opacity'] = 0.1
+		self._dflt_opts['sun_colour'] = (255,255,0)
+		
+		self._dflt_opts['plot_equator'] = True
 
+		self._dflt_opts['plot_parallels'] = True
+		self._dflt_opts['parallel_spacing'] = 15
+		self._dflt_opts['parallel_colour'] = (0,0,0)
+		self._dflt_opts['parallel_width'] = 0.5
+		self._dflt_opts['parallel_style'] = 'solid'
+		
+		self._dflt_opts['plot_meridians'] = True
+		self._dflt_opts['meridian_spacing'] = 30
+		self._dflt_opts['meridian_colour'] = (0,0,0)
+		self._dflt_opts['meridian_width'] = 0.5
+		self._dflt_opts['meridian_style'] = 'solid'
 
-
+		self.opts = self._dflt_opts.copy()
+		self._createOptHelp()

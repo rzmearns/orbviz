@@ -1,5 +1,7 @@
 import datetime as dt
+import numpy as np
 
+GMST_epoch = dt.datetime(2000,1,1,12,0,0)
 
 def epoch2datetime(string):
 	"""Converts a fractional epoch string to a datetime object.

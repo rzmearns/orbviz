@@ -52,13 +52,13 @@ class Orbit(object):
 	sun: (N, 3) np.array
 		Vector of the sun's position at each timestep (GCRS; units: km)
 		
-	orbital_period: float
+	period: float
 		Period of the satellite's orbit (units: s)
 		
-	steps_orbital_period: float
+	period_steps: float
 		Number of timesteps per orbital period of the satellite.
 		Useful to check the timestep is appropriate for this orbit.
-		Recommended: 10 < steps_orbital_period < 100 or so? Should we write warnings if outside this range?
+		Recommended: 10 < period_steps < 100 or so? Should we write warnings if outside this range?
 	
 	'''
 	def __init__(self, *args, **kwargs):
@@ -135,8 +135,8 @@ class Orbit(object):
 
 				self.TLE_epochs[ii] = epoch_u.datetime2TLEepoch(sat.epoch.utc_datetime())
 
-			self.orbital_period = 2 * np.pi / sat.model.no_kozai * 60
-			self.steps_orbital_period = int(self.orbital_period / self.timespan.time_step.total_seconds())
+			self.period = 2 * np.pi / sat.model.no_kozai * 60
+			self.period_steps = int(self.period / self.timespan.time_step.total_seconds())
 
 		elif self.gen_type == 'FAKE_TLE':
 			satrec = args[1]
@@ -152,8 +152,8 @@ class Orbit(object):
 				self.pos[ii, :] = sat.at(ts.utc(timestep.replace(tzinfo=self.timespan.timezone))).position.km 
 				self.vel[ii, :] = sat.at(ts.utc(timestep.replace(tzinfo=self.timespan.timezone))).velocity.km_per_s * 1000
 
-			self.orbital_period = 2 * np.pi / sat.model.no_kozai * 60
-			self.steps_orbital_period = int(self.orbital_period / self.timespan.time_step.total_seconds())
+			self.period = 2 * np.pi / sat.model.no_kozai * 60
+			self.period_steps = int(self.period / self.timespan.time_step.total_seconds())
 
 		elif self.gen_type == 'ANALYTICAL':
 			body = kwargs.get('body')
@@ -174,8 +174,8 @@ class Orbit(object):
 			self.pos = np.asarray(self.ephem.rv()[0])
 			self.vel = np.asarray(self.ephem.rv()[1]) * 1000
 
-			self.orbital_period = self.orb.period.unit.in_units('s') * self.orb.period.value
-			self.steps_orbital_period = int(self.orbital_period / self.timespan.time_step.total_seconds())
+			self.period = self.orb.period.unit.in_units('s') * self.orb.period.value
+			self.period_steps = int(self.period / self.timespan.time_step.total_seconds())
 			
 		elif self.gen_type == 'POS_LIST':
 			self.pos = args[1]
@@ -183,10 +183,10 @@ class Orbit(object):
 			# Then assume it stops at the last timestep.
 			self.vel = self.pos[1:] - self.pos[:-1]
 			self.vel = np.concatenate((self.vel, np.array([[0, 0, 0]])))
-			self.orbital_period = 1
-			self.steps_orbital_period = 1
+			self.period = 1
+			self.period_steps = 1
 			# Note that this doesn't define a period.
-			logger.warning("Warning: When generating satellite orbit from list of positions, `period` and `steps_orbital_period` will not be defined.")
+			logger.warning("Warning: When generating satellite orbit from list of positions, `period` and `period_steps` will not be defined.")
 		else: 
 			logger.error("Invalid orbit generation option {}. Valid options are TLE, FAKE_TLE, POS_LIST, and ANALYITCAL.".format(self.gen_type))
 			raise ValueError("Invalid orbit generation option {}.".format(self.gen_type))
@@ -232,9 +232,36 @@ class Orbit(object):
 		-------
 		satplot.Orbit
 		"""
-
 		sat_list = load.tle_file(tle_path)
 		return cls(timespan, sat_list, type='TLE')
+
+	@classmethod	
+	def multiFromTLE(cls, timespan, tle_path):
+		"""Create an orbit from an existing TLE or a list of historical TLEs
+				
+		Parameters
+		----------
+		timespan : {satplot.TimeSpan}
+			Timespan over which orbit is to be simulated
+		tle_path : {path to file containing TLE(s)}
+			A plain text file containing the TLE or list of TLE(s) with each TLE line on a new line in the file.
+		
+		Returns
+		-------
+		satplot.Orbit
+		"""
+		with open(tle_path) as fp:
+			lines = fp.readlines()
+		num_sats = int(len(lines)/3)
+		orbit_list = []
+		for ii in range(num_sats):
+			with open('temp.tle','w') as fp:
+				for jj in range(3):
+					fp.write(lines[ii*3+jj])
+			sat_list = load.tle_file('temp.tle')
+			orbit_list.append(cls(timespan, sat_list, type='TLE'))
+		return orbit_list
+
 
 	@classmethod
 	def fromTLEOrbitalParam(cls, timespan, a=6978, ecc=0, inc=0, raan=0, argp=0, mean_nu=0):
@@ -491,7 +518,7 @@ class Orbit(object):
 		elif self.gen_type == 'ANALYTICAL':			
 			start = self.timespan.start.strftime('%s')
 			step = self.timespan.time_step.days * 86400 + self.timespan.time_step.seconds
-			orbital_period = self.timespan.time_period.days * 86400 + self.timespan.time_period.seconds
+			period = self.timespan.time_period.days * 86400 + self.timespan.time_period.seconds
 			file_name = f'orbit_ANLT_{start}_{step}_{period}_{self.orb.epoch}_{self.orb.a}_{self.orb.ecc}_{self.orb.inc}_{self.orb.raan}_{self.orb.argp}_{self.orb.nu}.pickle'
 
 		elif self.gen_type == 'FAKE_TLE':

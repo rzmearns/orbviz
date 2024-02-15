@@ -3,6 +3,7 @@ from dateutil.relativedelta import relativedelta
 import logging
 import numpy as np
 from astropy.time import Time as astropyTime
+from skyfield.api import load
 
 import satplot.util.exceptions as exceptions
 
@@ -90,6 +91,9 @@ class TimeSpan(object):
 			logger.info("TimeSpan has {} timesteps".format(self.num_steps))
 
 		self._timearr = np.arange(self.start, self.end, self.time_step).astype(dt.datetime)
+		self._skyfield_timespan = load.timescale()
+
+
 
 	def __eq__(self, other):
 		if not isinstance(other, TimeSpan):
@@ -140,7 +144,28 @@ class TimeSpan(object):
 			return self._timearr[args[0]]
 		else:
 			return self._timearr
-			
+
+	def asSkyfield(self, *args):
+		"""
+		Return TimeSpan element as Skyfield Time object
+		
+		Returns
+		-------
+		Skyfield Time
+		"""
+		if len(args) == 1 and isinstance(args[0], int):
+			datetime = self._timearr[args[0]]
+			datetime = datetime.replace(tzinfo=dt.timezone.utc)
+			return self._skyfield_timespan.from_datetime(datetime)
+		else:
+			raise IndexError
+
+	def asText(self, *args):
+		if len(args) == 1 and isinstance(args[0], int):
+			return self._timearr[args[0]].strftime("%Y-%m-%d %H:%M:%S")
+		else:
+			raise IndexError
+
 	def secondsSinceStart(self):
 		'''
 		Return ndarray with the seconds of all timesteps since the beginning.

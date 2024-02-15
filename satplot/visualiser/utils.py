@@ -2,6 +2,9 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
+import satplot.model.geometry.primgeom as pg
+import satplot.model.geometry.polyhedra as polyhedra
+import plotly.graph_objects as go
 import numpy as np
 import logging
 
@@ -214,3 +217,121 @@ class SliderAxes(object):
 		self.fig = findFigure(figure_name)
 		self.axcolor = 'lightgoldenrodyellow'
 		self.ax = plt.axes([0.25, 0.05, 0.65, 0.015], facecolor=self.axcolor)
+
+
+def plotSphere(fig, center, r, col='rgb(220,220,220)', alpha=1):
+	R = np.sqrt(r)
+	u_angle = np.linspace(0, 2*np.pi, 25)
+	v_angle = np.linspace(0, np.pi, 25)
+	x_dir = np.outer(R*np.cos(u_angle), R*np.sin(v_angle)) + center[0]
+	y_dir = np.outer(R*np.sin(u_angle), R*np.sin(v_angle)) + center[1]
+	z_dir = np.outer(R*np.ones(u_angle.shape[0]), R*np.cos(v_angle)) + center[2]
+	num_traces = len(fig.data)
+	fig.add_surface(z=z_dir, x=x_dir, y=y_dir,
+						colorscale=[[0, col], [1, col]],
+						opacity=alpha,
+						showlegend=False,
+						lighting=dict(diffuse=0.1),
+						hoverinfo='skip',
+						showscale=False)
+	trace_index = num_traces
+	return trace_index
+
+# def plotCylinder(fig, )
+# 		shadow_point = -self.sun_dist * pg.unitVector(self.orbit.sun[self.curr_index])
+
+# 		p0 = np.array([0,0,0])
+# 		p1 = shadow_point
+# 		R = c.R_EARTH
+# 		v_mag = np.linalg.norm(p1-p0)
+# 		v = pg.unitVector(p1-p0)
+# 		not_v = np.array([1,0,0])
+# 		if(v == not_v).all():
+# 			not_v = np.array([0,1,0])
+# 		n1 = pg.unitVector(np.cross(v, not_v))
+# 		n2 = pg.unitVector(np.cross(v, n1))
+
+# 		t = np.linspace(0,v_mag,2)
+# 		theta = np.linspace(0, 2*np.pi, 99)
+# 		rsample = np.linspace(0,R,2)
+# 		t, theta2 = np.meshgrid(t,theta)
+# 		rsample, theta = np.meshgrid(rsample, theta)
+# 		X,Y,Z = [p0[i] + v[i] * t + R * np.sin(theta2) * n1[i] + R * np.cos(theta) * n2[i] for i in [0, 1, 2]]
+# 		X2,Y2,Z2 = [p0[i] + v[i]*v_mag + rsample[i] * np.sin(theta) * n1[i] + rsample[i] * np.cos(theta) * n2[i] for i in [0, 1, 2]]
+# 		col=f"rgb{str(self.opts['umbra_colour'])}"
+# 		num_traces = len(self.fig.data)
+
+# 		self.fig.add_surface(x=X,
+# 					   		y=Y,
+# 							z=Z,
+# 							colorscale=[[0, col], [1, col]],
+# 							opacity=self.opts['umbra_opacity'],
+# 							showlegend=False,
+# 							lighting=dict(diffuse=0.1),
+# 							hoverinfo='skip',
+# 							showscale=False)
+# 		self.traces['umbra_tube'] = num_traces
+
+# 		self.fig.add_surface(x=X2,
+# 					   		y=Y2,
+# 							z=Z2,
+# 							colorscale=[[0, col], [1, col]],
+# 							opacity=self.opts['umbra_opacity'],
+# 							showlegend=False,
+# 							lighting=dict(diffuse=0.1),
+# 							hoverinfo='skip',
+# 							showscale=False)
+# 		self.traces['umbra_cap'] = num_traces+1
+		
+# 		self.fig.data[self.traces['umbra_tube']].contours.x.highlight = False
+# 		self.fig.data[self.traces['umbra_tube']].contours.y.highlight = False
+# 		self.fig.data[self.traces['umbra_tube']].contours.z.highlight = False
+# 		self.fig.data[self.traces['umbra_cap']].contours.x.highlight = False
+# 		self.fig.data[self.traces['umbra_cap']].contours.y.highlight = False
+# 		self.fig.data[self.traces['umbra_cap']].contours.z.highlight = False
+
+# 		trace_index = visutils.plotSphere(self.fig, -1.5*shadow_point, 500, col=f"rgb{str(self.opts['sun_colour'])}")
+# 		self.traces['sun'] = trace_index
+
+# 		self.fig.update_layout(scene={'xaxis':{'range':[-1*(v_mag+c.R_EARTH/2), (v_mag+c.R_EARTH/2)]}})
+# 		self.fig.update_layout(scene={'yaxis':{'range':[-1*(v_mag+c.R_EARTH/2), (v_mag+c.R_EARTH/2)]}})
+# 		self.fig.update_layout(scene={'zaxis':{'range':[-1*(v_mag+c.R_EARTH/2), (v_mag+c.R_EARTH/2)]}})
+
+def plotCone(fig, apex, height, height_v, apex_angle_deg, col='rgb(220,220,220)', alpha=1, hovertext=None):
+		
+		cone,cap = polyhedra.calcCone(apex,height,height_v,apex_angle_deg, axis_sample=2,theta_sample=15)
+
+		if hovertext is None:
+			hover_info = 'skip'
+		else:
+			hover_info = 'text'
+
+		num_traces = len(fig.data)
+		fig.add_surface(x=cone[0],
+						y=cone[1],
+						z=cone[2],
+						colorscale=[[0, col], [1, col]],
+						opacity=alpha,
+						showlegend=False,
+						lighting=dict(diffuse=0.1),
+						hoverinfo=hover_info,
+						text=hovertext,
+						showscale=False)
+		cone_index = num_traces
+
+		fig.add_trace(go.Scatter3d(x=cap[0],
+									y=cap[1],
+									z=cap[2],
+									mode='lines',
+									line={'dash':'solid',
+										'color':col,
+										'width':2},
+									hoverinfo='skip',
+									showlegend=False))
+		cap_index = num_traces+1
+
+		fig.data[cone_index].contours.x.highlight = False
+		fig.data[cone_index].contours.y.highlight = False
+		fig.data[cone_index].contours.z.highlight = False
+
+		return cone_index, cap_index

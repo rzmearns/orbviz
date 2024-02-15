@@ -26,7 +26,7 @@ GM_MOON = 4.9048695e12 	# Moon standard gravitational parameter (SI)
 GM_MARS = 4.282837e13 	# Mars standard gravitational parameter (SI)
 AU = astroconst.au.value / 1000 	# Earth-Sun avg distance (1.49597871e8 km)
 J2 = 1082.6267e-6 	# Earth J2 perturbations (SI)
-
+W_EARTH = 7.29211510e-5 # Rotation rate of Earth rads/sec
 # ######### TEMP CONSTANTS ##########
 SB_SIGMA = astroconst.sigma_sb.value 	# the Stefan-Boltzmann constant (5.67037442e-8 SI)
 T_EARTH = 250     # Temperature of the Earth (K)
