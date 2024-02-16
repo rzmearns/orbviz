@@ -296,11 +296,12 @@ class OrbitVisualiser():
 			# self.fig.data[self.traces['supp_end_pos'][ii]]['text'] = end_text
 			# self.fig.data[self.traces['supp_end_pos'][ii]]['hoverinfo'] = 'text'
 
+			phi = 62.9
 			cone_index, cap_index = visutils.plotCone(self.fig,
-														orbit.pos[curr],
-														np.linalg.norm(orbit.pos[curr]) - c.R_EARTH,
+														orbit.pos[curr],														
+														(np.cos(np.deg2rad(phi))**2)*(np.linalg.norm(orbit.pos[curr]))-5,
 														-1*pg.unitVector(orbit.pos[curr]),
-														62.9*2,
+														phi*2,
 														col = f"rgb{self.opts['supp_orbit_colour']}",
 														alpha=0.2)
 			self.traces['supp_beam_cones'].append(cone_index)

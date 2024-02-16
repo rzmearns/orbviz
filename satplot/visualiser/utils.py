@@ -67,7 +67,7 @@ def plotSphere(fig, center, r, col='rgb(220,220,220)', alpha=1):
 
 def plotCone(fig, apex, height, height_v, apex_angle_deg, col='rgb(220,220,220)', alpha=1, hovertext=None):
 		
-		cone,cap = polyhedra.calcCone(apex,height,height_v,apex_angle_deg, axis_sample=2,theta_sample=15)
+		cone,cap = polyhedra.calcCone(apex,height,height_v,apex_angle_deg, axis_sample=2,theta_sample=30)
 
 		if hovertext is None:
 			hover_info = 'skip'
