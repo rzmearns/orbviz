@@ -1,0 +1,90 @@
+# Compiled source #
+###################
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+*.pyc
+*.aux 	#latex#
+*.bbl 	#latex#
+*.blg 	#latex#
+*.lof 	#latex#
+*.lot 	#latex#
+*.toc 	#latex#
+*.pdf
+*.vscode
+
+# Environment #
+############
+env/
+
+# Packages #
+############
+# it's better to unpack these files and commit the raw source
+# git has its own built in compression methods
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Logs and databases #
+######################
+*.log
+*.out
+*.sql
+*.sqlite
+#*.json
+
+# Caches #
+######################
+*__pycache__
+*.pytest_cache
+*.cache
+*.tags*
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Data files #
+######################
+*.dat
+*.mat
+*.npy
+*.pickle
+*.dbf
+*.prj
+*.shp
+*.shx
+*.cpg
+*.html
+*.txt
+*.tle
+
+# Backup files #
+######################
+*.m~
+*.xls#
+*.xlsx#
+*.doc#
+*.docx#
+*.ppt#
+*.csv#
+
+
+*.csv
+*.icloud
+*.nc
+*.nc4
