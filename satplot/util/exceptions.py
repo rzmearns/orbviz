@@ -1,4 +1,4 @@
-# Generic exceptions that apply throughout thermpy.
+# Generic exceptions that apply throughout satplot.
 
 class InputException(Exception):
 	'''Input is not valid

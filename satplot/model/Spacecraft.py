@@ -3,9 +3,6 @@ import numpy as np
 import importlib
 import os
 
-
-# from thermpy.solver.finite_elements.bulkNode import BulkNode
-
 import logging
 
 logger = logging.getLogger(__name__)
