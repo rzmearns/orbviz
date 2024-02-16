@@ -208,7 +208,7 @@ class OrbitVisualiser():
 												'size':self.opts['prim_orbit_end_symbol_size']},
 										showlegend=False))
 		self.traces['end_pos'] = num_traces+4
-		end_text = [f'{self.start_index}:{self.orbit.timespan.asText(self.end_index)}']
+		end_text = [f'{self.end_index}:{self.orbit.timespan.asText(self.end_index)}']
 		self.fig.data[self.traces['end_pos']]['text'] = end_text
 		self.fig.data[self.traces['end_pos']]['hoverinfo'] = 'text'
 
