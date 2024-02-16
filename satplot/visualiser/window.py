@@ -32,10 +32,9 @@ class FigureViewer(QtWebEngineWidgets.QWebEngineView):
 		self.show()
 		print(f"finish render: {dt.datetime.now()}")
 
-
-		if not self.env_ipython:
-			if exec:
-				self.app.exec_()
+		# if not self.env_ipython:
+		# 	print("not ipython environment")
+		# 	self.app.exec_()
 
 	def closeEvent(self, event):
 		os.remove(self.file_path)
