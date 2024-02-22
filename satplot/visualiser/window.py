@@ -1,69 +1,33 @@
-import numpy as np
-import plotly.graph_objs as go
-import plotly.offline
-import datetime as dt
+from PyQt5 import QtWidgets, QtCore
+from satplot.visualiser import controls
+from satplot.visualiser import canvaswrapper
 
+class MainWindow(QtWidgets.QMainWindow):
+	closing = QtCore.pyqtSignal()
 
-import os, sys
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtCore import QUrl
-from PyQt5 import QtWebEngineWidgets
-import time
+	def __init__(self, canvas_wrapper: canvaswrapper.CanvasWrapper, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		central_widget = QtWidgets.QWidget()
+		main_layout = QtWidgets.QHBoxLayout()
 
-class FigureViewer(QtWebEngineWidgets.QWebEngineView):
-	def __init__(self, fig, exec=True):
+		# Prep control area
+		self._controls = controls.Controls()
+		main_layout.addWidget(self._controls)
 
-		self.app = None
-		self.env_ipython = None
-		self.file_path = None
+		# Prep canvas area
+		self._canvas_wrapper = canvas_wrapper
+		main_layout.addWidget(self._canvas_wrapper.canvas.native)
 
-		self.setEnv()
+		central_widget.setLayout(main_layout)
+		self.setCentralWidget(central_widget)
 
-		# Create a QApplication instance or use the existing one if it exists
-		self.app = QApplication.instance() if QApplication.instance() else QApplication(sys.argv)
+		# Connect desired controls
+		self._connectControls()
 
-		super().__init__()
-
-
-		self.setFigure(fig)
-		print(f"create window: {dt.datetime.now()}")
-		self.update()
-		print(f"finish load html: {dt.datetime.now()}")
-		self.show()
-		print(f"finish render: {dt.datetime.now()}")
-
-		# if not self.env_ipython:
-		# 	print("not ipython environment")
-		# 	self.app.exec_()
+	def _connectControls(self):
+		self._controls.eq_c_chooser.currentTextChanged.connect(
+			self._canvas_wrapper.assets['earth'].visuals['parallels'].setEquatorColour)
 
 	def closeEvent(self, event):
-		os.remove(self.file_path)
-
-	def setEnv(self):
-		self.env_ipython = False
-		try:
-			from IPython import get_ipython
-		except:			
-			# can't be running in Ipython
-			return
-		ipython = get_ipython()
-		if ipython is not None:
-			self.env_ipython = True
-			ipython.magic("gui qt5")
-			return
-
-	def update(self):
-		print(f"start create html: {dt.datetime.now()}")
-		self.file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "temp.html"))
-		plotly.offline.plot(self.fig, filename=self.file_path, auto_open=False)
-		print(f"start load html: {dt.datetime.now()}")
-		self.load(QUrl.fromLocalFile(self.file_path))
-
-	def setFigure(self, fig):
-		self.fig = fig
-
-	def setTitle(self, title: str):
-		pass
-
-	def setWindowTitle(self, title: str):
-		self.setWindowTitle(title)
+		self.closing.emit()
+		return super().closeEvent(event)
