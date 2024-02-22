@@ -2,10 +2,6 @@ from vispy import scene
 
 class CanvasWrapper():
 	def __init__(self, w=800, h=600, keys='interactive', bgcolor='white'):
-		# self.canvas = Canvas(size=(w,h),
-		# 						  		keys=keys,
-		# 								bgcolor=bgcolor,
-		# 								show=True)
 		self.canvas = scene.SceneCanvas(size=(w,h),
 								  		keys=keys,
 										bgcolor=bgcolor,

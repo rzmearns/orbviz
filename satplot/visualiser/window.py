@@ -7,26 +7,33 @@ class MainWindow(QtWidgets.QMainWindow):
 
 	def __init__(self, canvas_wrapper: canvaswrapper.CanvasWrapper, *args, **kwargs):
 		super().__init__(*args, **kwargs)
-		central_widget = QtWidgets.QWidget()
-		main_layout = QtWidgets.QHBoxLayout()
+		main_widget = QtWidgets.QWidget()
+		main_layout = QtWidgets.QVBoxLayout()
+		disp_layout = QtWidgets.QHBoxLayout()
 
-		# Prep control area
-		self._controls = controls.Controls()
-		main_layout.addWidget(self._controls)
+		# Prep config area
+		self._config_controls = controls.Controls()
+		disp_layout.addWidget(self._config_controls)
 
 		# Prep canvas area
 		self._canvas_wrapper = canvas_wrapper
-		main_layout.addWidget(self._canvas_wrapper.canvas.native)
+		disp_layout.addWidget(self._canvas_wrapper.canvas.native)
+		
+		main_layout.addLayout(disp_layout)
+		# Prep time slider area
+		self._time_slider = controls.TimeSlider()
+		main_layout.addWidget(self._time_slider)
 
-		central_widget.setLayout(main_layout)
-		self.setCentralWidget(central_widget)
+		main_widget.setLayout(main_layout)
+		self.setCentralWidget(main_widget)
 
 		# Connect desired controls
 		self._connectControls()
 
 	def _connectControls(self):
-		self._controls.eq_c_chooser.currentTextChanged.connect(
+		self._config_controls.eq_c_chooser.currentTextChanged.connect(
 			self._canvas_wrapper.assets['earth'].visuals['parallels'].setEquatorColour)
+		
 
 	def closeEvent(self, event):
 		self.closing.emit()
