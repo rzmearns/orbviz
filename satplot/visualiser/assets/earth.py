@@ -23,34 +23,40 @@ class Earth(BaseAsset):
 		self.visuals = {}
 		self.data = {}
 		self.ecef_rads = 0
-		self.requires_recompute = True
-		self.requires_redraw = True
-
-		self.setDefaultOptions()	
+		self.requires_recompute = False
+		self._setDefaultOptions()	
+		self.draw()
+		self.axis_gizmo = axisInd.XYZAxis(scale=(c.R_EARTH+1500), parent=parent)
+	
+	def draw(self):
 		self.addEarthSphere()
 		self.addEarthAxis()
 		self.addLandMass()
 		self.visuals['parallels'] = ParallelsGrid(self.parent)
 		self.visuals['meridians'] = MeridiansGrid(self.parent)
-		self.axis_gizmo = axisInd.XYZAxis(scale=(c.R_EARTH+1500), parent=parent)
-	
+
+	def compute():
+		pass
+
 	def updateParentRef(self, new_parent):
 		self.parent = new_parent
 
 	def setCurrentECEFRotation(self, radians):
 		self.ecef_rads = radians
 		self.requires_recompute = True
-
-	def redraw(self):
-		if self.requires_redraw:
-			'''DO STUFF'''
-			self.requires_redraw = False
+		self.recompute()
 
 	def recompute(self):
 		if self.requires_recompute:
-			'''DO STUFF'''
+			rot_mat = transforms.rotAround(self.ecef_rads, pg.Z)
+			new_coords = rot_mat.dot(self.data['landmass'].T).T
+			self.visuals['landmass'].set_data(new_coords)
+
+			for key, visual in self.visuals.items():
+				if isinstance(visual,BaseAsset):
+					visual.setCurrentECEFRotation(self.ecef_rads)
+
 			self.requires_recompute = False
-			self.requires_redraw = True
 
 	def addEarthSphere(self):
 		self.visuals['earth'] = scene.visuals.Sphere(radius=c.R_EARTH,
@@ -67,7 +73,6 @@ class Earth(BaseAsset):
 										parent=self.parent)
 
 	def addLandMass(self):
-		self.data['landmass'] = []
 		gdf = gpd.read_file('data/land_boundaries/ne_110m_land.shp')
 		conn = None
 		total_len = 0
@@ -76,7 +81,6 @@ class Earth(BaseAsset):
 			polys = gdf.loc[ii].geometry
 			if polys.geom_type == 'Polygon':
 				coords = self._convertShapeFilePolys(polys)		
-				self.data['landmass'].append(coords)
 				poly_len = len(coords)				
 				new_conn = np.array([np.arange(poly_len-1),np.arange(1,poly_len)]).T + total_len
 				if conn is not None:
@@ -89,13 +93,15 @@ class Earth(BaseAsset):
 				else:
 					all_coords = coords
 
+		self.data['landmass'] = all_coords
+
 		self.visuals['landmass'] = scene.visuals.Line(all_coords,
 													color=colours.normaliseColour(self.opts['landmass_colour']),
 													antialias=self.opts['antialias'],
 													connect=conn,
 													parent=self.parent)
 	
-	def setDefaultOptions(self):
+	def _setDefaultOptions(self):
 		self._dflt_opts = {}
 		self._dflt_opts['antialias'] = True
 		self._dflt_opts['draw_earth_sphere'] = True
@@ -138,14 +144,15 @@ class ParallelsGrid(BaseAsset):
 	def __init__(self, parent_scene):
 		self.scene = parent_scene
 		self.visuals = {}
+		self.requires_recompute = True
 		self.eq_coords = None
 		self.p_conn = None
 		self.p_coords = None
-		self.setDefaultOptions()
-		self.recompute()
-		self.redraw()
+		self._setDefaultOptions()
+		self.compute()
+		self.draw()
 
-	def redraw(self):
+	def draw(self):
 		self.visuals['equator'] = \
 			scene.visuals.Line(self.eq_coords,
 								color=colours.normaliseColour(self.opts['parallel_colour']),
@@ -158,7 +165,7 @@ class ParallelsGrid(BaseAsset):
 								connect=self.p_conn,
 								parent=self.scene)
 
-	def recompute(self):
+	def compute(self):
 		total_len = 0
 		self.eq_coords = self._genParallel(0)
 		for ii in range(15, 90, self.opts['parallel_spacing']):
@@ -182,6 +189,13 @@ class ParallelsGrid(BaseAsset):
 			total_len += poly_len
 			self.p_coords = np.vstack((self.p_coords, new_coords))
 
+	def recompute(self):
+		# Nothing needed for this asset
+		pass
+
+	def setCurrentECEFRotation(self, radians):
+		pass
+
 	def _genParallel(self, lat_degs):
 		R = c.R_EARTH * np.cos(np.deg2rad(lat_degs))
 		z = c.R_EARTH * np.sin(np.deg2rad(lat_degs))
@@ -195,7 +209,7 @@ class ParallelsGrid(BaseAsset):
 		self.opts['equator_colour'] = new_colour
 		self.visuals['equator'].set_data(color=new_colour)
 
-	def setDefaultOptions(self):
+	def _setDefaultOptions(self):
 		self._dflt_opts = {}
 		self._dflt_opts['antialias'] = True
 		self._dflt_opts['equator_colour'] = (0,0,0)
@@ -210,14 +224,14 @@ class MeridiansGrid(BaseAsset):
 	def __init__(self, parent_scene):
 		self.scene = parent_scene
 		self.visuals = {}
-		self.eq_coords = None
+		self.requires_recompute = True		
 		self.m_conn = None
 		self.m_coords = None
-		self.setDefaultOptions()
-		self.recompute()
-		self.redraw()
+		self._setDefaultOptions()
+		self.compute()
+		self.draw()
 
-	def redraw(self):
+	def draw(self):
 		self.visuals['meridians'] = \
 			scene.visuals.Line(self.m_coords,
 						 		color=colours.normaliseColour(self.opts['meridian_colour']),
@@ -225,7 +239,7 @@ class MeridiansGrid(BaseAsset):
 								connect=self.m_conn,
 								parent=self.scene)
 
-	def recompute(self):
+	def compute(self):
 		self.m_conn = None
 		self.m_coords = None
 		total_len = 0
@@ -242,14 +256,17 @@ class MeridiansGrid(BaseAsset):
 					self.m_coords = np.vstack((self.m_coords, new_coords))
 				else:
 					self.m_coords = new_coords
-		
 
+	def recompute(self):
+		if self.requires_recompute:
+			rot_mat = transforms.rotAround(self.ecef_rads, pg.Z)
+			new_coords = rot_mat.dot(self.m_coords.T).T
+			self.visuals['meridians'].set_data(new_coords)
 
-	def _genParallel(self, lat_degs):
-		R = c.R_EARTH * np.cos(np.deg2rad(lat_degs))
-		z = c.R_EARTH * np.sin(np.deg2rad(lat_degs))
-		coords = polygons.generateCircle((0,0,z), R, (0,0,1))
-		return coords
+	def setCurrentECEFRotation(self, radians):
+		self.ecef_rads = radians
+		self.requires_recompute = True
+		self.recompute()
 
 	def _genMeridian(self, long_degs):
 		R = c.R_EARTH * np.cos(np.deg2rad(long_degs))
@@ -270,7 +287,7 @@ class MeridiansGrid(BaseAsset):
 	def _createOptHelp(self):
 		pass
 
-	def setDefaultOptions(self):
+	def _setDefaultOptions(self):
 		self._dflt_opts = {}
 		self._dflt_opts['antialias'] = True
 		self._dflt_opts['meridian_spacing'] = 30

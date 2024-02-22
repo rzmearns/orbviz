@@ -10,14 +10,18 @@ class BaseAsset(ABC):
 		pass
 
 	@abstractmethod
-	def redraw(self):
-		""" (Re)Draw onto the axes
-		 	Used after either a display style is changed, or recompute is called when the underlying geometry has been modified"""
+	def draw(self):
+		""" Draw asset onto the canvas"""
+		raise NotImplementedError
+
+	@abstractmethod
+	def compute(self):
+		"""compute the asset geometry"""
 		raise NotImplementedError
 
 	@abstractmethod
 	def recompute(self):
-		""" recompute the underlying geometry"""
+		""" recompute the asset geometry"""
 		raise NotImplementedError
 
 	@abstractmethod
@@ -26,6 +30,6 @@ class BaseAsset(ABC):
 		raise NotImplementedError
 	
 	@abstractmethod
-	def setDefaultOptions(self):
+	def _setDefaultOptions(self):
 		""" Set the default options for the visualiser {dict} """
 		raise NotImplementedError

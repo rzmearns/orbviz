@@ -22,7 +22,7 @@ class TimeSlider(QtWidgets.QWidget):
 		super().__init__(parent)
 
 		self.range = 2*math.pi
-		self.num_ticks = 4
+		self.num_ticks = 1440
 		self.range_per_tick = self.range/self.num_ticks
 		self.callback = None
 		layout = QtWidgets.QVBoxLayout()
