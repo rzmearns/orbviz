@@ -2,6 +2,8 @@ import numpy as np
 
 max_colours = 10
 
+def normaliseColour(rgb_tuple):
+	return [rgb_tuple[ii]/255 for ii in [0,1,2]]
 
 def getNumberedColour(num, type='bright'):
 	return{
