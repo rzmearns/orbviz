@@ -33,6 +33,7 @@ class MainWindow(QtWidgets.QMainWindow):
 	def _connectControls(self):
 		self._config_controls.eq_c_chooser.currentTextChanged.connect(
 			self._canvas_wrapper.assets['earth'].visuals['parallels'].setEquatorColour)
+		self._time_slider.add_connect(self._canvas_wrapper.assets['earth'].setCurrentECEFRotation)
 		
 
 	def closeEvent(self, event):

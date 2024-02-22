@@ -24,7 +24,7 @@ class TimeSlider(QtWidgets.QWidget):
 		self.range = 2*math.pi
 		self.num_ticks = 1440
 		self.range_per_tick = self.range/self.num_ticks
-		self.callback = None
+		self.callbacks = []
 		layout = QtWidgets.QVBoxLayout()
 		self.label = QtWidgets.QLabel("Rotation")
 		self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
@@ -39,11 +39,12 @@ class TimeSlider(QtWidgets.QWidget):
 		layout.addStretch(1)
 		self.setLayout(layout)
 
-	def connect(self, callback):
-		self.callback = callback
+	def add_connect(self, callback):
+		self.callbacks.append(callback)
 
 	def _run_callback(self):
-		if self.callback is not None:
-			self.callback(self.range_per_tick*self.slider.value())
+		if len(self.callbacks) > 0:
+			for callback in self.callbacks:
+				callback(self.range_per_tick*self.slider.value())
 		else:
-			print("Time Slider callback is not set")
+			print("No Time Slider callbacks are set")
