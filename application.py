@@ -15,7 +15,7 @@ class Application():
 		self.pyqt_app.create()
 		self.canvas_wrapper = canvaswrapper.CanvasWrapper()
 		self.buildScene()		
-		self.window = window.MainWindow(self.canvas_wrapper)
+		self.window = window.MainWindow(self.canvas_wrapper, "Sat Plot")
 
 	def buildScene(self):
 		self.canvas_wrapper.assets['earth'] = Earth(canvas=self.canvas_wrapper.canvas,

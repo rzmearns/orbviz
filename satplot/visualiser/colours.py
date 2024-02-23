@@ -5,6 +5,16 @@ max_colours = 10
 def normaliseColour(rgb_tuple):
 	return [rgb_tuple[ii]/255 for ii in [0,1,2]]
 
+def rgb2hex(rgb_tuple):
+	hex_str="#"
+	for ii in range(3):
+		if rgb_tuple[ii] == 0:
+			hex_str += "00"
+		else:
+			hex_str += hex(rgb_tuple[ii])[2:]
+
+	return hex_str
+
 def getNumberedColour(num, type='bright'):
 	return{
 		'bright': _brightColDict(num),

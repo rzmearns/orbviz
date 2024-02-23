@@ -11,7 +11,7 @@ from satplot.model.geometry import polygons
 
 import geopandas as gpd
 
-from vispy import scene
+from vispy import scene, color
 
 import numpy as np
 
@@ -26,6 +26,12 @@ class Earth(BaseAsset):
 		self.requires_recompute = False
 		self._setDefaultOptions()	
 		self.draw()
+
+		# These callbacks need to be set after draw() as the option dict is populated during draw()
+		self.opts['plot_meridians']['callback'] = self.visuals['meridians'].setMeridianVisibility
+		self.opts['plot_parallels']['callback'] = self.visuals['parallels'].setParallelsVisibility
+		self.opts['plot_equator']['callback'] = self.visuals['parallels'].setEquatorVisibility
+
 		self.axis_gizmo = axisInd.XYZAxis(scale=(c.R_EARTH+1500), parent=parent)
 	
 	def draw(self):
@@ -62,14 +68,14 @@ class Earth(BaseAsset):
 		self.visuals['earth'] = scene.visuals.Sphere(radius=c.R_EARTH,
 										method='latitude',
 										parent=self.parent,
-										color=colours.normaliseColour(self.opts['earth_sphere_colour']))
+										color=colours.normaliseColour(self.opts['earth_sphere_colour']['value']))
 
 	def addEarthAxis(self):
-		coords = np.zeros((2,3))
-		coords[0,2] = -1*(c.R_EARTH+1000)
-		coords[1,2] = (c.R_EARTH+1000)
-		self.visuals['earth_axis'] = scene.visuals.Line(coords,
-								 		color=colours.normaliseColour(self.opts['earth_axis_colour']),
+		self.coords = np.zeros((2,3))
+		self.coords[0,2] = -1*(c.R_EARTH+1000)
+		self.coords[1,2] = (c.R_EARTH+1000)
+		self.visuals['earth_axis'] = scene.visuals.Line(self.coords,
+								 		color=colours.normaliseColour(self.opts['earth_axis_colour']['value']),
 										parent=self.parent)
 
 	def addLandMass(self):
@@ -96,28 +102,53 @@ class Earth(BaseAsset):
 		self.data['landmass'] = all_coords
 
 		self.visuals['landmass'] = scene.visuals.Line(all_coords,
-													color=colours.normaliseColour(self.opts['landmass_colour']),
-													antialias=self.opts['antialias'],
+													color=colours.normaliseColour(self.opts['landmass_colour']['value']),
+													antialias=self.opts['antialias']['value'],
 													connect=conn,
 													parent=self.parent)
 	
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}
-		self._dflt_opts['antialias'] = True
-		self._dflt_opts['draw_earth_sphere'] = True
-		self._dflt_opts['earth_sphere_colour'] = (220,220,220)
-
-		self._dflt_opts['plot_earth_axis'] = True
-		self._dflt_opts['earth_axis_colour'] = (255,0,0)
-
-		self._dflt_opts['plot_parallels'] = True
-
-		self._dflt_opts['plot_equator'] = True
-
-		self._dflt_opts['plot_meridians'] = True
-
-		self._dflt_opts['plot_landmass'] = True
-		self._dflt_opts['landmass_colour'] = (0,0,0)
+		self._dflt_opts['antialias'] = {'value': True,
+								  		'type': 'boolean',
+										'help': '',
+												'callback': None}
+		self._dflt_opts['plot_earth_sphere'] = {'value': True,
+										  		'type': 'boolean',
+												'help': '',
+												'callback': self.setEarthSphereVisibility}
+		self._dflt_opts['earth_sphere_colour'] = {'value': (220,220,220),
+												'type': 'colour',
+												'help': '',
+												'callback': self.setEarthSphereColour}
+		self._dflt_opts['plot_earth_axis'] = {'value': True,
+										  		'type': 'boolean',
+												'help': '',
+												'callback': self.setEarthAxisVisibility}
+		self._dflt_opts['earth_axis_colour'] = {'value': (255,0,0),
+												'type': 'colour',
+												'help': '',
+												'callback': self.setEarthAxisColour}
+		self._dflt_opts['plot_parallels'] = {'value': True,
+										  		'type': 'boolean',
+												'help': '',
+												'callback': None}
+		self._dflt_opts['plot_equator'] = {'value': True,
+										  		'type': 'boolean',
+												'help': '',
+												'callback': None}
+		self._dflt_opts['plot_meridians'] = {'value': True,
+										  		'type': 'boolean',
+												'help': '',
+												'callback': None}
+		self._dflt_opts['plot_landmass'] = {'value': True,
+										  		'type': 'boolean',
+												'help': '',
+												'callback': self.setLandmassVisibility}
+		self._dflt_opts['landmass_colour'] = {'value': (0,0,0),
+												'type': 'colour',
+												'help': '',
+												'callback': self.setLandMassColour}
 
 		self.opts = self._dflt_opts.copy()
 		self._createOptHelp()
@@ -139,6 +170,39 @@ class Earth(BaseAsset):
 		
 		return coords
 	
+	def setEarthSphereColour(self, new_colour):
+		print("Bugged")
+		print("Not implemented")
+		# nnc = colours.normaliseColour(new_colour)
+		# annc = (nnc[0], nnc[1], nnc[2], 1)
+		# self.opts['earth_sphere_colour']['value'] = new_colour
+		# c = color.Color(color=nnc, alpha=1)
+		# print(c)
+		# print(self.opts['earth_sphere_colour']['value'])
+		# self.visuals['earth'].mesh.set_data(vertex_colors=colours.normaliseColour(new_colour))
+		# # self.visuals['earth'].mesh.mesh_data._face_colors_indexed_by_faces[:] = colours.normaliseColour(new_colour)
+		# # self.visuals['earth'].mesh.mesh_data_changed()
+		# # self.visuals['earth'].mesh.mesh_data.set_vertex_colors(nnc)
+		# # self.visuals['earth'].mesh.mesh_data_changed()
+		# self.visuals['earth'].mesh.set_data(color=c)
+		# self.visuals['earth'].mesh.update()
+
+	def setEarthAxisColour(self, new_colour):
+		self.opts['earth_axis_colour']['value'] = colours.normaliseColour(new_colour)
+		self.visuals['earth_axis'].set_data(color=colours.normaliseColour(new_colour))
+
+	def setLandMassColour(self, new_colour):
+		self.opts['landmass_colour']['value'] = colours.normaliseColour(new_colour)
+		self.visuals['landmass'].set_data(color=colours.normaliseColour(new_colour))
+
+	def setEarthAxisVisibility(self, state):
+		self.visuals['earth_axis'].visible = state
+
+	def setLandmassVisibility(self, state):
+		self.visuals['landmass'].visible = state
+
+	def setEarthSphereVisibility(self, state):
+		self.visuals['earth'].visible = state
 
 class ParallelsGrid(BaseAsset):
 	def __init__(self, parent_scene):
@@ -155,20 +219,20 @@ class ParallelsGrid(BaseAsset):
 	def draw(self):
 		self.visuals['equator'] = \
 			scene.visuals.Line(self.eq_coords,
-								color=colours.normaliseColour(self.opts['parallel_colour']),
-								antialias=self.opts['antialias'],
+								color=colours.normaliseColour(self.opts['parallel_colour']['value']),
+								antialias=self.opts['antialias']['value'],
 								parent=self.scene)
 		self.visuals['parallels'] = \
 			scene.visuals.Line(self.p_coords,
-								color=colours.normaliseColour(self.opts['parallel_colour']),
-								antialias=self.opts['antialias'],
+								color=colours.normaliseColour(self.opts['parallel_colour']['value']),
+								antialias=self.opts['antialias']['value'],
 								connect=self.p_conn,
 								parent=self.scene)
 
 	def compute(self):
 		total_len = 0
 		self.eq_coords = self._genParallel(0)
-		for ii in range(15, 90, self.opts['parallel_spacing']):
+		for ii in range(15, 90, self.opts['parallel_spacing']['value']):
 			new_coords = self._genParallel(ii)
 			poly_len = len(new_coords)
 			new_conn = np.array([np.arange(poly_len-1),np.arange(1,poly_len)]).T + total_len
@@ -181,7 +245,7 @@ class ParallelsGrid(BaseAsset):
 				self.p_coords = np.vstack((self.p_coords, new_coords))
 			else:
 				self.p_coords = new_coords
-		for ii in range(15, 90, self.opts['parallel_spacing']):
+		for ii in range(15, 90, self.opts['parallel_spacing']['value']):
 			new_coords = self._genParallel(-ii)
 			poly_len = len(new_coords)
 			new_conn = np.array([np.arange(poly_len-1),np.arange(1,poly_len)]).T + total_len
@@ -205,20 +269,48 @@ class ParallelsGrid(BaseAsset):
 	def _createOptHelp(self):
 		pass
 
-	def setEquatorColour(self, new_colour):
-		self.opts['equator_colour'] = new_colour
-		self.visuals['equator'].set_data(color=new_colour)
-
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}
-		self._dflt_opts['antialias'] = True
-		self._dflt_opts['equator_colour'] = (0,0,0)
-		self._dflt_opts['equator_width'] = 0.5
-		self._dflt_opts['parallel_spacing'] = 15
-		self._dflt_opts['parallel_colour'] = (0,0,0)
-		self._dflt_opts['parallel_width'] = 0.5
+		self._dflt_opts['antialias'] = {'value': True,
+										'type': 'boolean',
+										'help': '',
+										'callback': None}
+		self._dflt_opts['equator_colour'] = {'value': (0,0,0),
+											'type': 'colour',
+											'help': '',
+											'callback': self.setEquatorColour}
+		self._dflt_opts['equator_width'] = 	{'value': 0.5,
+											'type': 'number',
+											'help': '',
+											'callback': None}
+		self._dflt_opts['parallel_spacing'] = {'value': 15,
+											'type': 'number',
+											'help': '',
+											'callback': None}
+		self._dflt_opts['parallel_colour'] = {'value': (0,0,0),
+											'type': 'colour',
+											'help': '',
+											'callback': self.setParallelsColour}
+		self._dflt_opts['parallel_width'] = {'value': 0.5,
+											'type': 'number',
+											'help': '',
+											'callback': None}
 		self.opts = self._dflt_opts.copy()
 		self._createOptHelp()
+
+	def setParallelsVisibility(self, state):
+		self.visuals['parallels'].visible = state
+
+	def setEquatorVisibility(self, state):
+		self.visuals['equator'].visible = state
+
+	def setEquatorColour(self, new_colour):
+		self.opts['equator_colour']['value'] = colours.normaliseColour(new_colour)
+		self.visuals['equator'].set_data(color=colours.normaliseColour(new_colour))
+
+	def setParallelsColour(self, new_colour):
+		self.opts['parallel_colour']['value'] = colours.normaliseColour(new_colour)
+		self.visuals['parallels'].set_data(color=colours.normaliseColour(new_colour))
 
 class MeridiansGrid(BaseAsset):
 	def __init__(self, parent_scene):
@@ -234,8 +326,8 @@ class MeridiansGrid(BaseAsset):
 	def draw(self):
 		self.visuals['meridians'] = \
 			scene.visuals.Line(self.m_coords,
-						 		color=colours.normaliseColour(self.opts['meridian_colour']),
-								 antialias=self.opts['antialias'],
+						 		color=colours.normaliseColour(self.opts['meridian_colour']['value']),
+								 antialias=self.opts['antialias']['value'],
 								connect=self.m_conn,
 								parent=self.scene)
 
@@ -243,7 +335,7 @@ class MeridiansGrid(BaseAsset):
 		self.m_conn = None
 		self.m_coords = None
 		total_len = 0
-		for ii in range(0, 180, self.opts['meridian_spacing']):
+		for ii in range(0, 180, self.opts['meridian_spacing']['value']):
 				new_coords = self._genMeridian(ii)
 				poly_len = len(new_coords)
 				new_conn = np.array([np.arange(poly_len-1),np.arange(1,poly_len)]).T + total_len
@@ -289,9 +381,28 @@ class MeridiansGrid(BaseAsset):
 
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}
-		self._dflt_opts['antialias'] = True
-		self._dflt_opts['meridian_spacing'] = 30
-		self._dflt_opts['meridian_colour'] = (0,0,0)
-		self._dflt_opts['meridian_width'] = 0.5
+		self._dflt_opts['antialias'] = {'value': True,
+										'type': 'boolean',
+										'help': '',
+										'callback': None}
+		self._dflt_opts['meridian_spacing'] = {'value': 30,
+											'type': 'number',
+											'help': '',
+											'callback': None}
+		self._dflt_opts['meridian_colour'] = {'value': (0,0,0),
+											'type': 'colour',
+											'help': '',
+											'callback': self.setMeridiansColour}
+		self._dflt_opts['meridian_width'] = {'value': 0.5,
+											'type': 'number',
+											'help': '',
+											'callback': None}
 		self.opts = self._dflt_opts.copy()
 		self._createOptHelp()
+
+	def setMeridianVisibility(self, state):
+		self.visuals['meridians'].visible = state
+
+	def setMeridiansColour(self, new_colour):
+		self.opts['meridian_colour']['value'] = colours.normaliseColour(new_colour)
+		self.visuals['meridians'].set_data(color=colours.normaliseColour(new_colour))
