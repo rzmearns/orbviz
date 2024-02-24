@@ -1,3 +1,8 @@
+# Specific Project Directories #
+################################
+qt_tests/
+vispy_tests
+
 # Compiled source #
 ###################
 *.com
@@ -40,6 +45,7 @@ env/
 *.sql
 *.sqlite
 #*.json
+*.console
 
 # Caches #
 ######################
