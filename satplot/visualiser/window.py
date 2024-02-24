@@ -94,14 +94,15 @@ class MainWindow(QtWidgets.QMainWindow):
 		main_widget.setLayout(main_layout)
 		self.setCentralWidget(main_widget)
 
-		# Connect desired controls
-		self._connectControls()
+	# 	# Connect desired controls
+	# 	self._connectControls()
 
-	def _connectControls(self):
-		# self._config_controls.eq_c_chooser.currentColorChanged.connect(
-		# 	self._canvas_wrapper.assets['earth'].visuals['parallels'].setEquatorColour)
-		# self._config_controls.eq_c_chooser.add_connect(self._canvas_wrapper.assets['earth'].visuals['parallels'].setEquatorColour)
-		self._time_slider.add_connect(self._canvas_wrapper.assets['earth'].setCurrentECEFRotation)
+	# def _connectControls(self):
+	# 	# self._config_controls.eq_c_chooser.currentColorChanged.connect(
+	# 	# 	self._canvas_wrapper.assets['earth'].visuals['parallels'].setEquatorColour)
+	# 	# self._config_controls.eq_c_chooser.add_connect(self._canvas_wrapper.assets['earth'].visuals['parallels'].setEquatorColour)
+	# 	self._time_slider.add_connect(self._canvas_wrapper.assets['earth'].setCurrentECEFRotation)
+	# 	self._time_slider.add_connect(self._canvas_wrapper.assets['primary_orbit'].updateIndex)
 		
 	def printCol(self,val):
 		print(val)

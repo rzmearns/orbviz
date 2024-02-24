@@ -2,7 +2,7 @@ from vispy import scene
 
 from satplot.util import constants as c
 from satplot.visualiser.assets.earth import Earth
-
+from satplot.visualiser.assets.orbit import OrbitVisualiser
 
 class CanvasWrapper():
 	def __init__(self, w=800, h=600, keys='interactive', bgcolor='white'):
@@ -30,9 +30,16 @@ class CanvasWrapper():
 	def setCameraZoom(self, zoom):
 		self.view_box.camera.scale_factor = zoom
 
+	def setOrbitSource(self, orbit):
+		self.assets['primary_orbit'].setSource(orbit)
+
+	def updateIndex(self, index, datetime):
+		self.assets['primary_orbit'].updateIndex(index)
+		self.assets['earth'].setCurrentECEFRotation(datetime)
 
 	def buildScene(self):
 		self.assets['earth'] = Earth(canvas=self.canvas,
 									  		parent=self.view_box.scene)
+		self.assets['primary_orbit'] = OrbitVisualiser(canvas=self.canvas,
+									  		parent=self.view_box.scene)		
 		self.setCameraZoom(5*c.R_EARTH)
-

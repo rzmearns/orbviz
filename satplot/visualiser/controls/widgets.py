@@ -17,7 +17,7 @@ class TimeSlider(QtWidgets.QWidget):
 		self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
 		self.slider.setMinimum(0)
 		self.slider.setMaximum(self.num_ticks)
-		# self.slider.setTickPosition(QtWidgets.QSlider.TicksBelow)
+		self.slider.setTickPosition(QtWidgets.QSlider.TicksBelow)
 		self.slider.setTickInterval(1)
 		layout.addWidget(self.label)
 		layout.addWidget(self.slider)
@@ -26,13 +26,17 @@ class TimeSlider(QtWidgets.QWidget):
 		layout.addStretch(1)
 		self.setLayout(layout)
 
+	def setTicks(self, num_ticks):
+		self.num_ticks = num_ticks
+		self.slider.setMaximum(self.num_ticks-1)
+
 	def add_connect(self, callback):
 		self._callbacks.append(callback)
 
 	def _run_callbacks(self):
 		if len(self._callbacks) > 0:
 			for callback in self._callbacks:
-				callback(self.range_per_tick*self.slider.value())
+				callback(self.slider.value())
 		else:
 			print("No Time Slider callbacks are set")
 

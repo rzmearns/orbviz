@@ -7,10 +7,8 @@ from satplot.model.geometry import transformations as transforms
 from satplot.model.geometry import primgeom as pg
 from satplot.model.geometry import polygons
 
-import satplot.visualiser.controls.console as console
-
-
 import geopandas as gpd
+from skyfield.api import wgs84
 
 from vispy import scene, color
 
@@ -48,8 +46,11 @@ class Earth(BaseAsset):
 	def updateParentRef(self, new_parent):
 		self.parent = new_parent
 
-	def setCurrentECEFRotation(self, radians):
-		self.ecef_rads = radians
+	def setCurrentECEFRotation(self, curr_datetime):
+		topos = wgs84.latlon(0,0)
+		nullisland_curr = topos.at(curr_datetime).xyz.km
+		rot_rad = np.arctan2(nullisland_curr[1], nullisland_curr[0])
+		self.ecef_rads = rot_rad
 		self.requires_recompute = True
 		self.recompute()
 
@@ -203,7 +204,6 @@ class Earth(BaseAsset):
 		self.visuals['landmass'].visible = state
 
 	def setEarthSphereVisibility(self, state):
-		console.print2Console(f'Setting Earth Sphere Visibility to -> {state}')
 		self.visuals['earth'].visible = state
 
 class ParallelsGrid(BaseAsset):
