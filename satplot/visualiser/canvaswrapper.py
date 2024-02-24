@@ -1,5 +1,9 @@
 from vispy import scene
 
+from satplot.util import constants as c
+from satplot.visualiser.assets.earth import Earth
+
+
 class CanvasWrapper():
 	def __init__(self, w=800, h=600, keys='interactive', bgcolor='white'):
 		self.canvas = scene.SceneCanvas(size=(w,h),
@@ -25,3 +29,10 @@ class CanvasWrapper():
 
 	def setCameraZoom(self, zoom):
 		self.view_box.camera.scale_factor = zoom
+
+
+	def buildScene(self):
+		self.assets['earth'] = Earth(canvas=self.canvas,
+									  		parent=self.view_box.scene)
+		self.setCameraZoom(5*c.R_EARTH)
+

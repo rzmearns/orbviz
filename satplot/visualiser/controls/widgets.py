@@ -2,6 +2,7 @@ from PyQt5 import QtWidgets, QtCore
 import math
 import satplot.visualiser.colours as colours
 import datetime as dt
+import satplot.visualiser.controls.console as console
 
 class TimeSlider(QtWidgets.QWidget):
 	def __init__(self, parent: QtWidgets.QWidget=None) -> None:

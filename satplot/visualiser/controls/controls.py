@@ -3,25 +3,31 @@ from satplot.visualiser.controls import widgets
 from satplot.visualiser.assets import base
 import datetime as dt
 import string
+import satplot.visualiser.controls.console as console
 
 class OrbitConfigs(QtWidgets.QWidget):
 	def __init__(self, parent: QtWidgets.QWidget=None) -> None:
 		super().__init__(parent)
 		self.pane_groupbox = QtWidgets.QGroupBox('Orbit Configuration')
-		self.setFixedWidth(400)
-		self.setFixedHeight(300)
+		# self.setFixedWidth(400)
+		# self.setFixedHeight(500)
 		self.pane_layout = QtWidgets.QVBoxLayout(self)
 		self.config_layout = QtWidgets.QVBoxLayout(self)
 		self.pane_layout.setSpacing(10)
 
 		# Add widgets here
-		self.pane_layout.addWidget(widgets.DatetimeEntry("Period Start:", dt.datetime.now()))
-		self.pane_layout.addWidget(widgets.DatetimeEntry("Period End:", dt.datetime.now()))
+		self.period_start = widgets.DatetimeEntry("Period Start:", dt.datetime.now())
+		self.period_end = widgets.DatetimeEntry("Period End:", dt.datetime.now())
 		self.button_layout = QtWidgets.QHBoxLayout()
 		self.submit_button = QtWidgets.QPushButton('Recalculate')
 		self.prim_orbit_selector = widgets.FilePicker('Primary Orbit')
+		self.pointing_file_selector = widgets.FilePicker('Pointing File - Not Implemented')
+		self.suppl_orbit_selector = widgets.FilePicker('Supplementary Orbits')
 
+		self.pane_layout.addWidget(self.period_start)
+		self.pane_layout.addWidget(self.period_end)
 		self.pane_layout.addWidget(self.prim_orbit_selector)
+		self.pane_layout.addWidget(self.pointing_file_selector)
 
 		self.button_layout.addStretch()
 		self.button_layout.addWidget(self.submit_button)
@@ -39,15 +45,14 @@ class OrbitConfigs(QtWidgets.QWidget):
 
 		self.setLayout(self.config_layout)
 
-
 class OptionConfigs(QtWidgets.QWidget):
 	def __init__(self, asset_dict, parent: QtWidgets.QWidget=None) -> None:
 		super().__init__(parent)
 
 		self.la_dict = asset_dict
 		
-		self.pane_groupbox = QtWidgets.QGroupBox('Visual Options')
-		self.setFixedWidth(400)
+		self.pane_groupbox = QtWidgets.QGroupBox('Display Options')
+		# self.setFixedWidth(400)
 		self.pane_layout = QtWidgets.QVBoxLayout(self)
 		self.config_layout = QtWidgets.QVBoxLayout(self)
 		

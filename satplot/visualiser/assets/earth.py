@@ -7,6 +7,7 @@ from satplot.model.geometry import transformations as transforms
 from satplot.model.geometry import primgeom as pg
 from satplot.model.geometry import polygons
 
+import satplot.visualiser.controls.console as console
 
 
 import geopandas as gpd
@@ -202,6 +203,7 @@ class Earth(BaseAsset):
 		self.visuals['landmass'].visible = state
 
 	def setEarthSphereVisibility(self, state):
+		console.print2Console(f'Setting Earth Sphere Visibility to -> {state}')
 		self.visuals['earth'].visible = state
 
 class ParallelsGrid(BaseAsset):
