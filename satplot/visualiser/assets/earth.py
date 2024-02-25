@@ -115,6 +115,10 @@ class Earth(BaseAsset):
 								  		'type': 'boolean',
 										'help': '',
 												'callback': None}
+		self._dflt_opts['plot_earth'] = {'value': True,
+										  		'type': 'boolean',
+												'help': '',
+												'callback': self.setEarthAssetVisibility}
 		self._dflt_opts['plot_earth_sphere'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
@@ -171,7 +175,14 @@ class Earth(BaseAsset):
 		coords[:,2] = R * np.sin(lat)
 		
 		return coords
-	
+
+	def setEarthAssetVisibility(self, state):
+		self.setEarthAxisVisibility(state)
+		self.setLandmassVisibility(state)
+		self.setEarthSphereVisibility(state)
+		self.visuals['meridians'].setMeridiansAssetVisibility(state)
+		self.visuals['parallels'].setParallelsAssetVisibility(state)
+
 	def setEarthSphereColour(self, new_colour):
 		print("Bugged")
 		print("Not implemented")
@@ -300,6 +311,10 @@ class ParallelsGrid(BaseAsset):
 		self.opts = self._dflt_opts.copy()
 		self._createOptHelp()
 
+	def setParallelsAssetVisibility(self, state):
+		self.setParallelsVisibility(state)
+		self.setEquatorVisibility(state)
+
 	def setParallelsVisibility(self, state):
 		self.visuals['parallels'].visible = state
 
@@ -401,6 +416,9 @@ class MeridiansGrid(BaseAsset):
 											'callback': None}
 		self.opts = self._dflt_opts.copy()
 		self._createOptHelp()
+
+	def setMeridiansAssetVisibility(self, state):
+		self.setMeridianVisibility(state)
 
 	def setMeridianVisibility(self, state):
 		self.visuals['meridians'].visible = state

@@ -109,6 +109,10 @@ class OrbitVisualiser(BaseAsset):
 								  		'type': 'boolean',
 										'help': '',
 												'callback': None}
+		self._dflt_opts['plot_orbit'] = {'value': True,
+										  		'type': 'boolean',
+												'help': '',
+												'callback': self.setOrbitAssetVisibility}		
 		self._dflt_opts['orbital_length'] = {'value': 1,
 											'type': 'number',
 											'help': '',
@@ -163,6 +167,11 @@ class OrbitVisualiser(BaseAsset):
 		self.visuals['past'].set_data(color=colours.normaliseColour(new_colour))
 		self.visuals['future'].set_data(color=colours.normaliseColour(new_colour))
 		self.visuals['marker'].set_data(face_color=colours.normaliseColour(new_colour))
+
+	def setOrbitAssetVisibility(self, state):
+		self.setOrbitalPathFutureVisibility(state)
+		self.setOrbitalPathFutureVisibility(state)
+		self.setOrbitalMarkerVisibility(state)
 
 	def setOrbitalPathFutureVisibility(self, state):
 		self.visuals['future'].visible = state
