@@ -55,6 +55,8 @@ class Application():
 		console.send(f"\tNumber of steps in single orbit: {o.period_steps}")
 		console.send(f"Drawing Orbit...")
 		self.canvas_wrapper.setOrbitSource(o)
+		self.canvas_wrapper.setSunSource(o)
+		self.canvas_wrapper.setMoonSource(o)
 		curr_index = self.window._time_slider.slider.value()
 		self._updateIndex(curr_index)
 		

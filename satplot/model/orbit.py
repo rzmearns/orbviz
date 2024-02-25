@@ -194,8 +194,10 @@ class Orbit(object):
 		logger.info('Creating ephemeris for sun using timespan')
 		# Timescale for sun position calculation should use TDB, not UTC
 		# The resultant difference is likely very small
-		ephem = Ephem.from_body(Sun, astropyTime(self.timespan.asAstropy(scale='tdb')), attractor=Earth)
-		self.sun = np.asarray(ephem.rv()[0].to(u.km))
+		ephem_sun = Ephem.from_body(Sun, astropyTime(self.timespan.asAstropy(scale='tdb')), attractor=Earth)
+		self.sun = np.asarray(ephem_sun.rv()[0].to(u.km))
+		ephem_moon = Ephem.from_body(Moon, astropyTime(self.timespan.asAstropy(scale='tdb')), attractor=Earth)
+		self.moon = np.asarray(ephem_moon.rv()[0].to(u.km))
 
 	@classmethod	
 	def fromListOfPositions(cls, timespan, positions):
