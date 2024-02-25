@@ -44,6 +44,12 @@ class OrbitVisualiser(BaseAsset):
 	def sliceData(self):
 		self.data['past_coords'] = self.data['coords'][:self.data['curr_index']]
 		self.data['future_coords'] = self.data['coords'][self.data['curr_index']:]
+		future_len = len(self.data['future_coords'])
+		dash_size = self.opts['orbital_path_future_dash_size']['value']
+		padded_future_len = padded_future_len = future_len - future_len%(2*dash_size)
+		conn_picker = np.arange(padded_future_len).reshape(-1,dash_size*2)[:,:dash_size].reshape(1,-1)[0]
+		conn_picker[np.where(conn_picker < future_len)]
+		self.data['future_conn'] = np.array([np.arange(future_len-1),np.arange(1,future_len)]).T[conn_picker]
 
 	def setSource(self, source):
 		self.data['coords'] = source.pos
@@ -59,9 +65,11 @@ class OrbitVisualiser(BaseAsset):
 
 	def recompute(self):
 		if self.requires_recompute:
-			self.visuals['past'].set_data(self.data['past_coords'])
-			self.visuals['future'].set_data(self.data['future_coords'])
-			self.visuals['marker'].set_data(self.data['coords'][self.data['curr_index']].reshape(1,3))
+			self.visuals['past'].set_data(pos=self.data['past_coords'])
+			self.visuals['future'].set_data(pos=self.data['future_coords'], connect=self.data['future_conn'])
+			self.visuals['marker'].set_data(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
+								   			size=self.opts['orbital_position_marker_size']['value'],
+											face_color=colours.normaliseColour(self.opts['orbital_path_colour']['value']))
 
 			self.requires_recompute = False
 
@@ -78,11 +86,13 @@ class OrbitVisualiser(BaseAsset):
 													parent=self.parent)
 
 	def addOrbitalMarker(self):
-		self.visuals['marker'] = scene.visuals.Markers(parent=self.parent)
-		self.visuals['marker'].set_data(self.data['coords'][self.data['curr_index']].reshape(1,3),
+		self.visuals['marker'] = scene.visuals.Markers(parent=self.parent, scaling=True, antialias=0)
+		self.visuals['marker'].set_data(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
 								  		edge_width=0,
 										face_color=colours.normaliseColour(self.opts['orbital_path_colour']['value']),
-										size=10,
+										edge_color='white',
+										# edge_width=0,
+										size=self.opts['orbital_position_marker_size']['value'],
 										symbol='o')
 														# size=10,
 														# antialias=self.opts['antialias']['value'],
@@ -133,7 +143,11 @@ class OrbitVisualiser(BaseAsset):
 										  		'type': 'boolean',
 												'help': '',
 												'callback': self.setOrbitalMarkerVisibility}
-		self._dflt_opts['orbital_position_marker_size'] = {'value': 10,
+		self._dflt_opts['orbital_position_marker_size'] = {'value': 500,
+										  		'type': 'number',
+												'help': '',
+												'callback': None}
+		self._dflt_opts['orbital_path_future_dash_size'] = {'value': 3,
 										  		'type': 'number',
 												'help': '',
 												'callback': None}
