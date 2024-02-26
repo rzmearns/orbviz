@@ -5,6 +5,7 @@ consolefp = None
 
 def send(str):
 	print(str, file=consolefp)
+	# consolefp.flush()
 
 class EmittingConsoleStream(QtCore.QObject):
 	textWritten = QtCore.pyqtSignal(str)
@@ -32,9 +33,16 @@ class Console(QtWidgets.QWidget):
 		self.text_box.setReadOnly(True)
 
 	def writeOutput(self, text):
+		cursor = self.text_box.textCursor()
 		self.text_box.setTextColor(self.stdCol)
 		self.text_box.insertPlainText(text)
+		cursor.movePosition(QtGui.QTextCursor.End)
+		self.text_box.setTextCursor(cursor)
 
 	def writeErr(self, text):
+		cursor = self.text_box.textCursor()
 		self.text_box.setTextColor(self.errCol)
 		self.text_box.insertPlainText(text)
+		# TODO: add cursor to end
+		cursor.movePosition(QtGui.QTextCursor.End)
+		self.text_box.setTextCursor(cursor)
