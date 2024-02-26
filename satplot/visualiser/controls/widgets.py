@@ -120,6 +120,52 @@ class ToggleBox(QtWidgets.QWidget):
 		else:
 			print("No Toggle Box callbacks are set")
 
+class OptionBox(QtWidgets.QWidget):
+	def __init__(self, label, dflt_state=None, options_list=[], parent: QtWidgets.QWidget=None) -> None:
+		super().__init__(parent)
+		self._callbacks = []
+		self._curr_index = []
+		if len(options_list) > 0:
+			if options_list[0] != '':
+				options_list.insert(0,'')
+		vlayout = QtWidgets.QVBoxLayout()
+		hlayout1 = QtWidgets.QHBoxLayout()
+		hlayout2 = QtWidgets.QHBoxLayout()
+		vlayout.setSpacing(0)
+		hlayout1.setSpacing(0)
+		hlayout2.setSpacing(0)
+		hlayout1.setContentsMargins(0,1,0,1)
+		hlayout2.setContentsMargins(0,1,10,1)
+
+		self._label = QtWidgets.QLabel(label)
+		self._optionbox = QtWidgets.QComboBox()
+		for item in options_list:
+			self._optionbox.addItem(item)
+
+		hlayout1.addWidget(self._label)
+		hlayout1.addStretch()
+		hlayout2.addWidget(self._optionbox)
+		vlayout.addLayout(hlayout1)
+		vlayout.addLayout(hlayout2)
+		self.setLayout(vlayout)
+
+		self._optionbox.currentIndexChanged.connect((self._run_callbacks))
+
+	def currentIndex(self):
+		if self._curr_index > 0:
+			return self._curr_index-1
+		else:
+			return None
+
+	def add_connect(self, callback):
+		self._callbacks.append(callback)
+
+	def _run_callbacks(self, index):
+		self._curr_index = index
+		if len(self._callbacks) > 0:
+			for callback in self._callbacks:
+				callback(index)
+
 class FilePicker(QtWidgets.QWidget):
 	def __init__(self, label, dflt_file='', parent: QtWidgets.QWidget=None) -> None:
 		super().__init__(parent)
@@ -165,7 +211,7 @@ class FilePicker(QtWidgets.QWidget):
 			for callback in self._callbacks:
 				callback(self._checkbox.isChecked())
 		else:
-			print("No Toggle Box callbacks are set")
+			print("No FilePicker callbacks are set")
 
 class DatetimeEntry(QtWidgets.QWidget):
 	def __init__(self, label, dflt_datetime, parent: QtWidgets.QWidget=None) -> None:

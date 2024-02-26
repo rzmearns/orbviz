@@ -1,8 +1,8 @@
 
 import numpy as np
-
+import sys
 import logging
-
+from progressbar import progressbar
 import pickle
 
 from astropy import units as u
@@ -238,7 +238,7 @@ class Orbit(object):
 		return cls(timespan, sat_list, type='TLE')
 
 	@classmethod	
-	def multiFromTLE(cls, timespan, tle_path):
+	def multiFromTLE(cls, timespan, tle_path, fp=sys.stdout):
 		"""Create an orbit from an existing TLE or a list of historical TLEs
 				
 		Parameters
@@ -256,7 +256,7 @@ class Orbit(object):
 			lines = fp.readlines()
 		num_sats = int(len(lines)/3)
 		orbit_list = []
-		for ii in range(num_sats):
+		for ii in progressbar(range(num_sats)):
 			with open('temp.tle','w') as fp:
 				for jj in range(3):
 					fp.write(lines[ii*3+jj])

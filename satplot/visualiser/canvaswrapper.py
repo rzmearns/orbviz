@@ -49,6 +49,9 @@ class CanvasWrapper():
 
 	def setMoonSource(self, orbit):
 		self.assets['moon'].setSource(orbit)
+	
+	def setConstellationSource(self, orbits):
+		pass
 
 	def updateIndex(self, index, datetime):
 		self.assets['primary_orbit'].updateIndex(index)

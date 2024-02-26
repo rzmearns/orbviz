@@ -6,6 +6,10 @@ import string
 import satplot.visualiser.controls.console as console
 
 class OrbitConfigs(QtWidgets.QWidget):
+
+	constellation_options = ['Iridium NEXT']
+	constellation_files = ['./data/TLEs/iridiumNEXT_latest.tle']
+
 	def __init__(self, parent: QtWidgets.QWidget=None) -> None:
 		super().__init__(parent)
 		self.pane_groupbox = QtWidgets.QGroupBox('Orbit Configuration')
@@ -22,12 +26,15 @@ class OrbitConfigs(QtWidgets.QWidget):
 		self.submit_button = QtWidgets.QPushButton('Recalculate')
 		self.prim_orbit_selector = widgets.FilePicker('Primary Orbit','./data/TLEs/spirit_latest.tle')
 		self.pointing_file_selector = widgets.FilePicker('Pointing File - Not Implemented')
-		self.suppl_orbit_selector = widgets.FilePicker('Supplementary Orbits')
+		
+		self.suppl_constellation_selector = widgets.OptionBox('Supplementary Constellations',
+															options_list=OrbitConfigs.constellation_options)
 
 		self.pane_layout.addWidget(self.period_start)
 		self.pane_layout.addWidget(self.period_end)
 		self.pane_layout.addWidget(self.prim_orbit_selector)
 		self.pane_layout.addWidget(self.pointing_file_selector)
+		self.pane_layout.addWidget(self.suppl_constellation_selector)
 
 		self.button_layout.addStretch()
 		self.button_layout.addWidget(self.submit_button)
@@ -45,13 +52,16 @@ class OrbitConfigs(QtWidgets.QWidget):
 
 		self.setLayout(self.config_layout)
 
+	def getConstellationIndex(self):
+		return self.suppl_constellation_selector.currentIndex()
+
 class OptionConfigs(QtWidgets.QWidget):
 	def __init__(self, asset_dict, parent: QtWidgets.QWidget=None) -> None:
 		super().__init__(parent)
 
 		self.la_dict = asset_dict
 		
-		self.pane_groupbox = QtWidgets.QGroupBox('Display Options')
+		self.pane_groupbox = QtWidgets.QGroupBox('Visual Options')
 		# self.setFixedWidth(400)
 		self.pane_layout = QtWidgets.QVBoxLayout(self)
 		self.config_layout = QtWidgets.QVBoxLayout(self)

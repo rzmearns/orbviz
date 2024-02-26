@@ -45,17 +45,26 @@ class Application():
 		console.send(f"\tNumber Steps: {len(t)}")
 		console.send(f"\tLength of timestep: {t.time_step}")
 
-		self.window._time_slider.setTicks(len(t))
+		self.window._time_slider.setRange(period_start, period_end, len(t))
+		# self.window._time_slider.setTicks(len(t))
 
 		# TODO: Update text in time slider
 		console.send(f"Propagating orbit from {prim_orbit_TLE_path.split('/')[-1]} ...")
 		o = orbit.Orbit.fromTLE(t, prim_orbit_TLE_path)
-		# TODO: Set source for orbit visualiser
 		console.send(f"\tNumber of steps in single orbit: {o.period_steps}")
-		console.send(f"Drawing Orbit...")
 		self.canvas_wrapper.setOrbitSource(o)
 		self.canvas_wrapper.setSunSource(o)
 		self.canvas_wrapper.setMoonSource(o)
+
+		constellation_index = self.window.orbit_controls.getConstellationIndex()
+		if  constellation_index is not None:
+			constellation_file = self.window.orbit_controls.constellation_files[constellation_index]
+			console.send(f"Propagating constellation orbits from {constellation_file.split('/')[-1]} ...")
+			constellation_o = orbit.Orbit.multiFromTLE(t, constellation_file)
+			console.send(f"Loaded {len(constellation_o)} satellites from the {self.window.orbit_controls.constellation_options[constellation_index]} constellation.")
+			self.canvas_wrapper.setConstellationSource(constellation_o)
+
+		console.send(f"Drawing Orbit...")
 		curr_index = self.window._time_slider.slider.value()
 		self._updateIndex(curr_index)
 		
