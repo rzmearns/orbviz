@@ -30,8 +30,6 @@ class Earth(BaseAsset):
 		self.opts['plot_meridians']['callback'] = self.visuals['meridians'].setMeridianVisibility
 		self.opts['plot_parallels']['callback'] = self.visuals['parallels'].setParallelsVisibility
 		self.opts['plot_equator']['callback'] = self.visuals['parallels'].setEquatorVisibility
-
-		self.axis_gizmo = axisInd.XYZAxis(scale=(c.R_EARTH+1500), parent=parent)
 	
 	def draw(self):
 		self.addEarthSphere()
