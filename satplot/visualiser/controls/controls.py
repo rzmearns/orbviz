@@ -73,10 +73,7 @@ class OptionConfigs(QtWidgets.QWidget):
 		for key, asset in root_dict.items():
 			cb = widgets.CollapsibleSection(title=f"{key.capitalize()} Options")
 			w_dict = self._buildNestedOptionWidgetDict(asset, asset_key=key)
-			print()
-			pretty(w_dict)
 			for key, widget in dict(sorted(w_dict.items())).items():
-				print(key, widget)
 				cb.addWidget(widget)
 			root_layout.addWidget(cb)
 		return
@@ -85,13 +82,13 @@ class OptionConfigs(QtWidgets.QWidget):
 	def _buildNestedOptionWidgetDict(self, asset, asset_key=''):
 		# returns unsorted_dict
 		w_dict = {}
-		print(f"new root asset - {asset_key}")
+		# print(f"new root asset - {asset_key}")
 		if not isinstance(asset, base.BaseAsset):
 			# no options or nested assets with options
 			return w_dict
 		
 		if hasattr(asset, 'opts') and asset.opts is not None:
-			print(f"\t{asset_key} has options")
+			# print(f"\t{asset_key} has options")
 			w_opt_dict = self._buildOptionWidgetDict(asset.opts)
 		else:
 			w_opt_dict = None
@@ -99,8 +96,8 @@ class OptionConfigs(QtWidgets.QWidget):
 		w_dict.update(w_opt_dict)
 
 		if hasattr(asset, 'visuals'):
-			print(f"\t{asset_key} has visuals")
-			print(f"\titerating through {asset_key} visual assets")
+			# print(f"\t{asset_key} has visuals")
+			# print(f"\titerating through {asset_key} visual assets")
 			for sub_key, sub_asset in asset.visuals.items():
 				if not isinstance(sub_asset, base.BaseAsset):
 					continue

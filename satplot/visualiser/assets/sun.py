@@ -6,11 +6,17 @@ from satplot.visualiser.assets import axis_indicator as axisInd
 from satplot.model.geometry import transformations as transforms
 from satplot.model.geometry import primgeom as pg
 from satplot.model.geometry import polygons
+from satplot.model.geometry import polyhedra
 
 from satplot.visualiser.controls import console
 
 from vispy import scene
-from vispy.visuals.transforms import STTransform
+from vispy.visuals import transforms as vTransforms
+from vispy.scene import visuals as vVisuals
+from vispy.scene import visuals as vVisuals
+from vispy.visuals import filters as vFilters
+
+from scipy.spatial.transform import Rotation
 
 import numpy as np
 
@@ -30,8 +36,8 @@ class Sun(BaseAsset):
 	
 	def draw(self):
 		self.addSunSphere()
-		# self.addSunVector()
-		# self.addSunUmbra()
+		self.addSunVector()
+		self.addUmbra()
 
 	def compute():
 		pass
@@ -49,12 +55,27 @@ class Sun(BaseAsset):
 		self.recompute()
 
 	def recompute(self):
-		if self.requires_recompute:			
+		if self.requires_recompute:
+			# move the sun
 			sun_pos = self.opts['sun_distance']['value'] * pg.unitVector(self.data['curr_pos'])
-			self.visuals['sun'].transform = STTransform(translate=sun_pos)
-			# rot_mat = transforms.rotAround(self.ecef_rads, pg.Z)
-			# new_coords = rot_mat.dot(self.data['landmass'].T).T
-			# self.visuals['landmass'].set_data(new_coords)
+			self.visuals['sun'].transform = vTransforms.STTransform(translate=sun_pos)
+			# move umbra
+			umbra_dir = (-1*self.data['curr_pos']).reshape(1,3)
+			rot_mat = Rotation.align_vectors(self.data['umbra_start_axis'], umbra_dir)[0].as_matrix()			
+			t_mat1 = np.eye(4)
+			t_mat1[0:3,0:3] = rot_mat				
+			self.visuals['umbra'].transform = vTransforms.linear.MatrixTransform(t_mat1)
+			# move sun vector
+			sun_vec_start = (np.linalg.norm(sun_pos)-self.opts['sun_vector_length']['value'])*pg.unitVector(sun_pos)
+			arrow_head_point = (np.linalg.norm(sun_pos)-self.opts['sun_vector_length']['value']-500)*pg.unitVector(sun_pos)
+			sun_vec_end = sun_pos
+			t_mat2 = np.eye(4)
+			t_mat2[0:3,0:3] = -rot_mat			
+			t_mat2[3,0:3] = arrow_head_point
+			new_vec = np.vstack((sun_vec_start,
+								sun_vec_end))
+			self.visuals['vector_body'].set_data(new_vec)
+			self.visuals['vector_head'].transform = vTransforms.linear.MatrixTransform(t_mat2)
 
 			for key, visual in self.visuals.items():
 				if isinstance(visual,BaseAsset):
@@ -66,9 +87,42 @@ class Sun(BaseAsset):
 		self.visuals['sun'] = scene.visuals.Sphere(radius=self.opts['sun_sphere_radius']['value'],
 										method='latitude',
 										parent=self.parent,
-										color=colours.normaliseColour(self.opts['sun_sphere_colour']['value']))		
+										color=colours.normaliseColour(self.opts['sun_sphere_colour']['value']))
 
-	
+	def addUmbra(self):
+		self.data['umbra_start_axis'] = np.array((1,0,0)).reshape(1,3)
+		self.data['umbra_vertices'], self.data['umbra_faces'] = polyhedra.calcCylinderMesh((0,0,0),
+																					 	self.opts['umbra_dist']['value'],
+																						self.data['umbra_start_axis'],
+																						c.R_EARTH+50,
+																						axis_sample=2,
+																						theta_sample=30)
+		self.visuals['umbra'] = vVisuals.Mesh(self.data['umbra_vertices'],
+    											self.data['umbra_faces'],
+    											color=colours.normaliseColour(self.opts['umbra_colour']['value']),
+    											parent=self.parent)
+		self.visuals['umbra'].transform = vTransforms.STTransform(scale=(0.001,0.001,0.001))
+		alpha_filter = vFilters.Alpha(self.opts['umbra_alpha']['value'])
+		self.visuals['umbra'].attach(alpha_filter)
+
+	def addSunVector(self):
+		self.data['vector'] = np.asarray([[0,0,0,1],
+										[c.R_EARTH/4,0,0,1]])
+		self.visuals['vector_body'] = vVisuals.Line(self.data['vector'][:,0:3],
+												color=colours.normaliseColour(self.opts['sun_vector_colour']['value']),
+												width=self.opts['sun_vector_width']['value'],
+												parent=self.parent)
+		self.data['vector_head_vertices'], self.data['vector_head_faces'] = polyhedra.calcConeMesh((0,0,0),
+																					 	500,
+																						(1,0,0),
+																						45,
+																						axis_sample=2,
+																						theta_sample=30)		
+		self.visuals['vector_head'] = vVisuals.Mesh(self.data['vector_head_vertices'],
+    											self.data['vector_head_faces'],
+    											color=colours.normaliseColour(self.opts['sun_vector_colour']['value']),
+    											parent=self.parent)
+
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}
 		self._dflt_opts['antialias'] = {'value': True,
@@ -83,7 +137,7 @@ class Sun(BaseAsset):
 										  		'type': 'boolean',
 												'help': '',
 												'callback': self.setSunSphereVisibility}
-		self._dflt_opts['sun_sphere_colour'] = {'value': (255,255,0),
+		self._dflt_opts['sun_sphere_colour'] = {'value': (255,162,0),
 												'type': 'colour',
 												'help': '',
 												'callback': self.setSunSphereColour}
@@ -91,22 +145,34 @@ class Sun(BaseAsset):
 										  		'type': 'boolean',
 												'help': '',
 												'callback': self.setSunVectorVisibility}
-		self._dflt_opts['sun_vector_colour'] = {'value': (255,255,0),
+		self._dflt_opts['sun_vector_colour'] = {'value': (255,162,0),
 												'type': 'colour',
 												'help': '',
 												'callback': self.setSunVectorColour}
+		self._dflt_opts['sun_vector_width'] = {'value': 5,
+												'type': 'number',
+												'help': '',
+												'callback': None}
+		self._dflt_opts['sun_vector_length'] = {'value': c.R_EARTH/3,
+												'type': 'number',
+												'help': '',
+												'callback': None}		
 		self._dflt_opts['plot_umbra'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
 												'callback': self.setUmbraVisibility}
-		self._dflt_opts['umbra_colour'] = {'value': (255,0,0),
+		self._dflt_opts['umbra_colour'] = {'value': (10,10,10),
 												'type': 'colour',
 												'help': '',
 												'callback': self.setUmbraColour}
-		self._dflt_opts['umbra_alpha'] = {'value': 'number',
-										  		'type': 1,
+		self._dflt_opts['umbra_alpha'] = {'value': 0.5,
+										  		'type': 'number',
 												'help': '',
 												'callback': self.setUmbraAlpha}
+		self._dflt_opts['umbra_dist'] = {'value': 3*c.R_EARTH,
+										  		'type': 'number',
+												'help': '',
+												'callback': self.setUmbraAlpha}		
 		self._dflt_opts['sun_distance'] = {'value': 15000,
 										  		'type': 'number',
 												'help': '',
@@ -144,18 +210,12 @@ class Sun(BaseAsset):
 		# self.visuals['earth'].mesh.set_data(color=c)
 		# self.visuals['earth'].mesh.update()
 
-	def setUmbraColour(self, new_colour):
-		raise NotImplementedError
-		pass
-		# self.opts['earth_axis_colour']['value'] = colours.normaliseColour(new_colour)
-		# self.visuals['earth_axis'].set_data(color=colours.normaliseColour(new_colour))
+	def setUmbraColour(self, new_colour):		
+		self.opts['umbra_colour']['value'] = new_colour
+		self.visuals['umbra'].set_data(color=colours.normaliseColour(new_colour))
 
 	def setUmbraVisibility(self, state):
-		raise NotImplementedError
-
-	def setLandMassColour(self, new_colour):
-		self.opts['landmass_colour']['value'] = colours.normaliseColour(new_colour)
-		self.visuals['landmass'].set_data(color=colours.normaliseColour(new_colour))
+		self.visuals['umbra'].visible = state
 
 	def setSunSphereVisibility(self, state):
 		self.visuals['sun'].visible = state

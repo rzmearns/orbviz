@@ -15,8 +15,7 @@ class Application():
 	def __init__(self) -> None:
 		self.pyqt_app = app.use_app("pyqt5")
 		self.pyqt_app.create()
-		self.canvas_wrapper = canvaswrapper.CanvasWrapper()
-		self.canvas_wrapper.buildScene()		
+		self.canvas_wrapper = canvaswrapper.CanvasWrapper()		
 		self.window = window.MainWindow(self.canvas_wrapper, "Sat Plot")
 		self._connectControls()
 

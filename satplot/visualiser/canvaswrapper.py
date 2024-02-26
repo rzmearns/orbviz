@@ -5,6 +5,11 @@ from satplot.visualiser.assets.earth import Earth
 from satplot.visualiser.assets.orbit import OrbitVisualiser
 from satplot.visualiser.assets.sun import Sun
 from satplot.visualiser.assets.moon import Moon
+from satplot.visualiser.assets.gizmo import ViewBoxGizmo
+
+from satplot.visualiser.controls import console
+
+canvas = scene.SceneCanvas()
 
 class CanvasWrapper():
 	def __init__(self, w=800, h=600, keys='interactive', bgcolor='white'):
@@ -14,8 +19,12 @@ class CanvasWrapper():
 										show=True)
 		self.grid = self.canvas.central_widget.add_grid()
 		self.view_box = self.canvas.central_widget.add_view()
-		self.view_box.camera = 'turntable'
+		self.view_box.camera = scene.cameras.TurntableCamera(parent=self.view_box.scene,
+													   		fov=60,
+															name='Turntable')
 		self.assets = {}
+		self.buildScene()
+		self.canvas.events.mouse_move.connect(self.onMouseMove)
 
 	def setCameraMode(self, mode='turntable'):
 		allowed_cam_modes = ['turntable',
@@ -55,5 +64,16 @@ class CanvasWrapper():
 		self.assets['sun'] = Sun(canvas=self.canvas,
 						   					parent=self.view_box.scene)
 		self.assets['moon'] = Moon(canvas=self.canvas,
-						   					parent=self.view_box.scene)		
+						   					parent=self.view_box.scene)
+		# self.assets['ECI_gizmo'] = ViewBoxGizmo(canvas=self.canvas,
+		# 				   					parent=self.view_box.scene,
+		# 									translate=(c.R_EARTH,c.R_EARTH),
+		# 									scale=(2*c.R_EARTH,2*c.R_EARTH,2*c.R_EARTH,1))
 		self.setCameraZoom(5*c.R_EARTH)
+		# self.assets['ECI_gizmo'].attachCamera(self.view_box.camera)
+
+	@canvas.events.mouse_move.connect
+	def onMouseMove(self, event):
+		pass
+		# console.send("captured event")
+		# self.assets['ECI_gizmo'].onMouseMove(event)
