@@ -45,8 +45,8 @@ class Application():
 		console.send(f"\tNumber Steps: {len(t)}")
 		console.send(f"\tLength of timestep: {t.time_step}")
 
-		self.window._time_slider.setRange(period_start, period_end, len(t))
-		# self.window._time_slider.setTicks(len(t))
+		self.window._time_slider.setRange(t.start, t.end, len(t))
+		self.window._time_slider._curr_dt_picker.setDatetime(t.start)
 
 		# TODO: Update text in time slider
 		console.send(f"Propagating orbit from {prim_orbit_TLE_path.split('/')[-1]} ...")

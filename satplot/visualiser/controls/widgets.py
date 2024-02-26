@@ -7,24 +7,74 @@ import satplot.visualiser.controls.console as console
 class TimeSlider(QtWidgets.QWidget):
 	def __init__(self, parent: QtWidgets.QWidget=None) -> None:
 		super().__init__(parent)
-
+		self.start_dt = None
+		self.end_dt = None
 		self.range = 2*math.pi
+		self.range_delta = None
 		self.num_ticks = 1440
 		self.range_per_tick = self.range/self.num_ticks
 		self._callbacks = []
-		layout = QtWidgets.QVBoxLayout()
-		self.label = QtWidgets.QLabel("Rotation")
+		vlayout = QtWidgets.QVBoxLayout()
+		vlayout.setSpacing(0)
+		vlayout.setContentsMargins(2,1,2,1)
+		hlayout2 = QtWidgets.QHBoxLayout()
+		hlayout2.setSpacing(0)
+		hlayout2.setContentsMargins(2,1,2,1)
+		hlayout3 = QtWidgets.QHBoxLayout()
+		hlayout3.setSpacing(0)
+		hlayout3.setContentsMargins(2,1,2,1)
 		self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+		self._start_dt_label = QtWidgets.QLabel('-')
+		self._end_dt_label = QtWidgets.QLabel('-')
+		self._curr_dt_picker = self.SmallDatetimeEntry(self.start_dt)
+		self._curr_dt_picker.updated.connect(self.setIndex2Datetime)
+		self.setTimeLabels()
+
 		self.slider.setMinimum(0)
 		self.slider.setMaximum(self.num_ticks)
 		self.slider.setTickPosition(QtWidgets.QSlider.TicksBelow)
 		self.slider.setTickInterval(1)
-		layout.addWidget(self.label)
-		layout.addWidget(self.slider)
+		hlayout2.addWidget(self._start_dt_label)
+		hlayout2.addStretch()
+		hlayout2.addWidget(self._curr_dt_picker)
+		hlayout2.addStretch()
+		hlayout2.addWidget(self._end_dt_label)
+		hlayout3.addWidget(self.slider)
+		vlayout.addLayout(hlayout2)
+		vlayout.addLayout(hlayout3)
 		self.slider.valueChanged.connect(self._run_callbacks)
-		self.setLayout(layout)
-		layout.addStretch(1)
-		self.setLayout(layout)
+		self.setLayout(vlayout)
+
+	def setRange(self, start_dt, end_dt, num_ticks):
+		if start_dt > end_dt:
+			raise ValueError(f"Period End {end_dt} must be after Period Start {start_dt}")
+		self.start_dt = start_dt
+		self.end_dt = end_dt
+		self.range_delta = end_dt - start_dt
+		self.setTicks(num_ticks)
+		self.tick_delta = dt.timedelta(seconds=(self.range_delta.total_seconds()/num_ticks))
+		self.setTimeLabels()
+
+	def setTimeLabels(self):
+		if self.start_dt is not None:
+			self._start_dt_label.setText(self.start_dt.strftime("%Y-%m-%d   %H:%M:%S"))
+		else:
+			self._start_dt_label.setText('-')
+		if self.end_dt is not None:			
+			self._end_dt_label.setText(self.end_dt.strftime("%Y-%m-%d   %H:%M:%S"))
+		else:
+			self._end_dt_label.setText('-')
+
+	def setIndex2Datetime(self, datetime):
+		if datetime < self.start_dt:
+			prev_index = 0
+		elif datetime > self.end_dt:
+			prev_index = self.num_ticks
+		else:
+			prev_index = int(((datetime-self.start_dt)/self.tick_delta))
+		curr_datetime = self.start_dt + (prev_index*self.tick_delta)
+		self._curr_dt_picker.setDatetime(curr_datetime)
+		self.slider.setValue(prev_index)
 
 	def setTicks(self, num_ticks):
 		self.num_ticks = num_ticks
@@ -33,12 +83,97 @@ class TimeSlider(QtWidgets.QWidget):
 	def add_connect(self, callback):
 		self._callbacks.append(callback)
 
-	def _run_callbacks(self):
+	def _run_callbacks(self):		
+		self._curr_dt_picker.setDatetime(self.start_dt + (self.slider.value()*self.tick_delta))
 		if len(self._callbacks) > 0:
 			for callback in self._callbacks:
 				callback(self.slider.value())
 		else:
 			print("No Time Slider callbacks are set")
+
+	class SmallDatetimeEntry(QtWidgets.QWidget):
+		updated = QtCore.pyqtSignal(dt.datetime)
+
+		def __init__(self, dflt_datetime, parent: QtWidgets.QWidget=None) -> None:
+			super().__init__(parent)
+			self._callbacks = []
+			self.datetime = dflt_datetime
+			hlayout = QtWidgets.QHBoxLayout()
+			hlayout.setSpacing(0)
+			hlayout.setContentsMargins(2,1,2,1)
+			
+			self._mon_sp = QtWidgets.QLabel("-")
+			self._day_sp = QtWidgets.QLabel("-")
+			self._hr_sp = QtWidgets.QLabel("     ")
+			self._min_sp = QtWidgets.QLabel(":")
+			self._sec_sp = QtWidgets.QLabel(":")
+			self._yr_text_box = QtWidgets.QLineEdit('-')
+			self._mon_text_box = QtWidgets.QLineEdit('-')
+			self._day_text_box = QtWidgets.QLineEdit('-')
+			self._hr_text_box = QtWidgets.QLineEdit('-')
+			self._min_text_box = QtWidgets.QLineEdit('-')
+			self._sec_text_box = QtWidgets.QLineEdit('-')
+			
+			fixed_height = 20
+
+			self._yr_text_box.setFixedHeight(fixed_height)
+			self._yr_text_box.setFixedWidth(40)
+			self._mon_text_box.setFixedHeight(fixed_height)
+			self._mon_text_box.setFixedWidth(25)
+			self._day_text_box.setFixedHeight(fixed_height)
+			self._day_text_box.setFixedWidth(25)
+			self._hr_text_box.setFixedHeight(fixed_height)
+			self._hr_text_box.setFixedWidth(25)
+			self._min_text_box.setFixedHeight(fixed_height)
+			self._min_text_box.setFixedWidth(25)
+			self._sec_text_box.setFixedHeight(fixed_height)
+			self._sec_text_box.setFixedWidth(25)
+
+			hlayout.addStretch()
+			hlayout.addWidget(self._yr_text_box)
+			hlayout.addWidget(self._mon_sp)
+			hlayout.addWidget(self._mon_text_box)
+			hlayout.addWidget(self._day_sp)
+			hlayout.addWidget(self._day_text_box)
+			hlayout.addWidget(self._hr_sp)
+			hlayout.addWidget(self._hr_text_box)
+			hlayout.addWidget(self._min_sp)
+			hlayout.addWidget(self._min_text_box)
+			hlayout.addWidget(self._sec_sp)
+			hlayout.addWidget(self._sec_text_box)
+			hlayout.addStretch()
+
+			self._yr_text_box.editingFinished.connect(self.updateDatetime)
+			self._mon_text_box.editingFinished.connect(self.updateDatetime)
+			self._day_text_box.editingFinished.connect(self.updateDatetime)
+			self._hr_text_box.editingFinished.connect(self.updateDatetime)
+			self._min_text_box.editingFinished.connect(self.updateDatetime)
+			self._sec_text_box.editingFinished.connect(self.updateDatetime)
+
+			self.setLayout(hlayout)
+
+		def updateDatetime(self):
+			dt_str = f"{self._yr_text_box.text()}-"+ \
+			f"{self._mon_text_box.text()}-"+ \
+			f"{self._day_text_box.text()} "+ \
+			f"{self._hr_text_box.text()}:"+ \
+			f"{self._min_text_box.text()}:"+ \
+			f"{self._sec_text_box.text()}"
+			try:
+				self.datetime = dt.datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
+			except ValueError:
+				self.setDatetime(self.datetime)
+				return
+			self.updated.emit(self.datetime)
+
+		def setDatetime(self, datetime):
+			self.datetime = datetime
+			self._yr_text_box.setText(datetime.strftime("%Y"))
+			self._mon_text_box.setText(datetime.strftime("%m"))
+			self._day_text_box.setText(datetime.strftime("%d"))
+			self._hr_text_box.setText(datetime.strftime("%H"))
+			self._min_text_box.setText(datetime.strftime("%M"))
+			self._sec_text_box.setText(datetime.strftime("%S"))
 
 class ColourPicker(QtWidgets.QWidget):
 	def __init__(self, label, dflt_col, parent: QtWidgets.QWidget=None) -> None:
@@ -124,7 +259,7 @@ class OptionBox(QtWidgets.QWidget):
 	def __init__(self, label, dflt_state=None, options_list=[], parent: QtWidgets.QWidget=None) -> None:
 		super().__init__(parent)
 		self._callbacks = []
-		self._curr_index = []
+		self._curr_index = 0
 		if len(options_list) > 0:
 			if options_list[0] != '':
 				options_list.insert(0,'')
@@ -285,8 +420,22 @@ class DatetimeEntry(QtWidgets.QWidget):
 		f"{self._hr_text_box.text()}:"+ \
 		f"{self._min_text_box.text()}:"+ \
 		f"{self._sec_text_box.text()}"
+		try:
+			self.datetime = dt.datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
+		except ValueError:
+			self.setDatetime(self.datetime)
+			return
 		self.datetime = dt.datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
 		self._curr_dt.setText(self.datetime.strftime("%Y-%m-%d   %H:%M:%S"))
+
+	def setDatetime(self, datetime):
+		self.datetime = datetime
+		self._yr_text_box.setText(datetime.strftime("%Y"))
+		self._mon_text_box.setText(datetime.strftime("%m"))
+		self._day_text_box.setText(datetime.strftime("%d"))
+		self._hr_text_box.setText(datetime.strftime("%H"))
+		self._min_text_box.setText(datetime.strftime("%M"))
+		self._sec_text_box.setText(datetime.strftime("%S"))
 
 	def addConnect(self, callback):
 		self._callbacks.append(callback)
