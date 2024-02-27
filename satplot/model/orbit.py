@@ -24,6 +24,8 @@ import satplot.util.orbital_u as orbit_u
 import satplot.util.exceptions as exceptions
 import satplot.util.constants as consts
 
+import satplot.visualiser.controls.console as console
+
 logger = logging.getLogger(__name__)
 
 # TODO:
@@ -87,15 +89,15 @@ class Orbit(object):
 		if self.gen_type == 'TLE':
 			sat_list = args[1]
 			tle_dates = [sat.epoch.utc_datetime().astimezone(tz=self.timespan.timezone).replace(tzinfo=None) for sat in sat_list]
-			if self.timespan.start < tle_dates[0] - dt.timedelta(days=14):
-				logger.error("Timespan begins before provided TLEs (+14 days)")
-				raise exceptions.OutOfRange("Timespan begins before provided TLEs (+14 days)")
-			elif self.timespan.start > tle_dates[-1] + dt.timedelta(days=14):
-				logger.error("Timespan begins after provided TLEs (+14 days)")
-				raise exceptions.OutOfRange("Timespan begins after provided TLEs (+14 days)")
-			elif self.timespan.end > tle_dates[-1] + dt.timedelta(days=14):
-				logger.error("Timespan ends after provided TLEs (+14 days)")
-				raise exceptions.OutOfRange("Timespan ends after provided TLEs (+14 days)")
+			# if self.timespan.start < tle_dates[0] - dt.timedelta(days=14):
+			# 	logger.error("Timespan begins before provided TLEs (+14 days)")
+			# 	raise exceptions.OutOfRange("Timespan begins before provided TLEs (+14 days)")
+			# elif self.timespan.start > tle_dates[-1] + dt.timedelta(days=14):
+			# 	logger.error("Timespan begins after provided TLEs (+14 days)")
+			# 	raise exceptions.OutOfRange("Timespan begins after provided TLEs (+14 days)")
+			# elif self.timespan.end > tle_dates[-1] + dt.timedelta(days=14):
+			# 	logger.error("Timespan ends after provided TLEs (+14 days)")
+			# 	raise exceptions.OutOfRange("Timespan ends after provided TLEs (+14 days)")
 
 			# Find closest listed TLE to start date
 			sat_datetime, sat_index = list_u.get_closest(tle_dates, self.timespan.start)
@@ -257,6 +259,10 @@ class Orbit(object):
 		num_sats = int(len(lines)/3)
 		orbit_list = []
 		for ii in progressbar(range(num_sats)):
+			pc = ii/num_sats*100
+			bar_str = int(pc)*'='
+			space_str = (100-int(pc))*'  '
+			console.send(f'Loading {pc:.2f}% ({ii} of {num_sats}) |{bar_str}{space_str}|\r')
 			with open('temp.tle','w') as fp:
 				for jj in range(3):
 					fp.write(lines[ii*3+jj])
