@@ -87,6 +87,7 @@ class CanvasWrapper():
 
 	def setMakeNewVisualsFlag(self):
 		self.assets['constellation'].setFirstDraw()
+		self.assets['sun'].setFirstDraw()
 
 	def buildScene(self):
 		

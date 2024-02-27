@@ -29,21 +29,25 @@ class Sun(BaseAsset):
 		self.data = {}
 		self.ecef_rads = 0
 		self.requires_recompute = False
+		self.first_draw = True
 		self._setDefaultOptions()	
 		self.draw()
+		self.visuals['umbra'] = None
 
 		# These callbacks need to be set after draw() as the option dict is populated during draw()
 	
 	def draw(self):
 		self.addSunSphere()
 		self.addSunVector()
-		self.addUmbra()
 
 	def compute():
 		pass
 
 	def setSource(self, source):
 		self.data['pos'] = source.sun
+
+	def setFirstDraw(self):
+		self.first_draw = True
 
 	def updateParentRef(self, new_parent):
 		self.parent = new_parent
@@ -55,22 +59,30 @@ class Sun(BaseAsset):
 		self.recompute()
 
 	def recompute(self):
+		if self.first_draw:
+			if self.visuals['umbra'] is not None:
+				# Must do this to clear old visuals before creating a new one
+				# TODO: not clear if this is actually deleting or just removing the reference (memory leak?)
+				self.visuals['umbra'].parent = None
+			console.send("Adding umbra")
+			self.addUmbra()
+			self.first_draw = False
 		if self.requires_recompute:
 			# move the sun
 			sun_pos = self.opts['sun_distance']['value'] * pg.unitVector(self.data['curr_pos'])
 			self.visuals['sun'].transform = vTransforms.STTransform(translate=sun_pos)
 			# move umbra
 			umbra_dir = (-1*self.data['curr_pos']).reshape(1,3)
-			rot_mat = Rotation.align_vectors(self.data['umbra_start_axis'], umbra_dir)[0].as_matrix()			
+			rot_mat = Rotation.align_vectors(self.data['umbra_start_axis'], umbra_dir)[0].as_matrix()
 			t_mat1 = np.eye(4)
-			t_mat1[0:3,0:3] = rot_mat				
+			t_mat1[0:3,0:3] = rot_mat
 			self.visuals['umbra'].transform = vTransforms.linear.MatrixTransform(t_mat1)
 			# move sun vector
 			sun_vec_start = (np.linalg.norm(sun_pos)-self.opts['sun_vector_length']['value'])*pg.unitVector(sun_pos)
 			arrow_head_point = (np.linalg.norm(sun_pos)-self.opts['sun_vector_length']['value']-500)*pg.unitVector(sun_pos)
 			sun_vec_end = sun_pos
 			t_mat2 = np.eye(4)
-			t_mat2[0:3,0:3] = -rot_mat			
+			t_mat2[0:3,0:3] = -rot_mat
 			t_mat2[3,0:3] = arrow_head_point
 			new_vec = np.vstack((sun_vec_start,
 								sun_vec_end))
@@ -106,6 +118,7 @@ class Sun(BaseAsset):
 		self.visuals['umbra'].attach(alpha_filter)
 
 	def addSunVector(self):
+		self.data['vector_start_axis'] = np.array((1,0,0)).reshape(1,3)
 		self.data['vector'] = np.asarray([[0,0,0,1],
 										[c.R_EARTH/4,0,0,1]])
 		self.visuals['vector_body'] = vVisuals.Line(self.data['vector'][:,0:3],
@@ -149,7 +162,7 @@ class Sun(BaseAsset):
 												'type': 'colour',
 												'help': '',
 												'callback': self.setSunVectorColour}
-		self._dflt_opts['sun_vector_width'] = {'value': 5,
+		self._dflt_opts['sun_vector_width'] = {'value': 1,
 												'type': 'number',
 												'help': '',
 												'callback': None}
