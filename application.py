@@ -9,7 +9,7 @@ import satplot.model.timespan as timespan
 import satplot.model.orbit as orbit
 import sys
 import satplot.visualiser.controls.console as console
-
+import time
 use(gl='gl+')
 
 class Application():
@@ -80,7 +80,7 @@ class Application():
 		if self.c_index is not None:
 			self.canvas_wrapper.setConstellationSource(self.c_list, self.c_beam_angle)
 		self.canvas_wrapper.setMakeNewVisualsFlag()
-		console.send(f"Drawing Orbit...")
+		console.send(f"Drawing Assets...")
 		curr_index = self.window._time_slider.slider.value()
 		self._updateIndex(curr_index)
 		self.window.orbit_controls.submit_button.setEnabled(True)
@@ -126,7 +126,7 @@ class Application():
 			# 					timestep=f'{sample_period}S',
 			# 					timeperiod=f'{time_period}S')
 			console.send(f"\tDuration: {self.t.time_period}")
-			console.send(f"\tNumber Steps: {len(self.t)}")
+			console.send(f"\tNumber of steps: {len(self.t)}")
 			console.send(f"\tLength of timestep: {self.t.time_step}")
 
 
@@ -137,7 +137,7 @@ class Application():
 			if self.c_index is not None:
 				console.send(f"Propagating constellation orbits from {self.c_file.split('/')[-1]} ...")
 				self.c_list = orbit.Orbit.multiFromTLE(self.t, self.c_file, console.consolefp)
-				console.send(f"Loaded {len(self.c_list)} satellites from the {self.c_name} constellation.")
+				console.send(f"\tLoaded {len(self.c_list)} satellites from the {self.c_name} constellation.")
 			
 			console.send("Load Data Worker thread finished")
 			self.finished.emit(self.t, self.o, self.c_list)

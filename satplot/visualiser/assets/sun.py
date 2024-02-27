@@ -64,7 +64,6 @@ class Sun(BaseAsset):
 				# Must do this to clear old visuals before creating a new one
 				# TODO: not clear if this is actually deleting or just removing the reference (memory leak?)
 				self.visuals['umbra'].parent = None
-			console.send("Adding umbra")
 			self.addUmbra()
 			self.first_draw = False
 		if self.requires_recompute:

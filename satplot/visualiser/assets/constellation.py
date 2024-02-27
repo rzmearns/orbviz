@@ -7,6 +7,7 @@ import satplot.model.geometry.polyhedra as polyhedra
 import satplot.model.geometry.primgeom as pg
 
 from scipy.spatial.transform import Rotation
+import scipy.special as sc
 
 from vispy import scene
 from vispy.visuals import transforms as vTransforms
@@ -14,6 +15,9 @@ from vispy.scene import visuals as vVisuals
 from vispy.visuals import filters as vFilters
 
 import numpy as np
+
+import warnings
+warnings.filterwarnings("ignore", message="Optimal rotation is not uniquely or poorly defined for the given sets of vectors.")
 
 class Constellation(BaseAsset):
 	def __init__(self, canvas=None, parent=None):
@@ -39,18 +43,12 @@ class Constellation(BaseAsset):
 		self.data['beam_angle_deg'] = beam_angle
 		print(f"beam_angle {self.data['beam_angle_deg']}")
 		if len(source_list) > 1:
-			console.send(f"Set {len(source_list)} satellites in constellation")
-			console.send(f"{source_list[0].pos.shape}")
 			self.data['coords'] = np.zeros((len(source_list),len(source_list[0].pos),3))
 			for ii in range(len(source_list)):
 				self.data['coords'][ii,:,:] = source_list[ii].pos
 			self.data['num_sats'] = len(source_list)
-			console.send(f"half beam angle: {beam_angle/2}")
-			console.send(f"vector_length: {np.linalg.norm(source_list[0].pos[0,:])}")
 			self.data['beam_height'] = self.calcBeamHeight(beam_angle/2, np.linalg.norm(source_list[0].pos[0,:]))
-			console.send(f"beam_height: {self.data['beam_height']}")
 		else:
-			console.send("Set 1 satellite in constellation")
 			self.data['coords'] = np.zeros((len(source_list[0].pos),3))
 			self.data['coords'][:,:] = source_list[0].pos
 			self.data['num_sats'] = 1
@@ -86,6 +84,9 @@ class Constellation(BaseAsset):
 				instance_transforms = []
 				for ii in range(self.data['num_sats']):
 					beam_axis = -1 * pg.unitVector(self.data['coords'][ii,self.data['curr_index'],:]).reshape(1,3)
+					# olderr = sc.seterr(singular='raise')
+					# with raises(sc.SpecialFunctionError):
+					# _ = sc.seterr(**olderr)
 					instance_transforms.append(np.linalg.inv(Rotation.align_vectors(self.data['start_beam_vec'],
 																beam_axis)[0].as_matrix()))
 				instance_transforms = np.asarray(instance_transforms)
@@ -124,7 +125,6 @@ class Constellation(BaseAsset):
 											symbol='o')
 
 	def addBeams(self):
-		console.send('Adding constellation beams')
 		self.data['start_beam_vec'] = np.array((0,0,1)).reshape(1,3)
 		instance_colours = np.tile(colours.normaliseColour(self.opts['constellation_colour']['value']),(self.data['num_sats'],1))
 		if self.data['num_sats'] > 1:

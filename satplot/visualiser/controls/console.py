@@ -8,7 +8,8 @@ printable = string.ascii_letters + string.digits + string.punctuation + ' '
 
 
 def send(str):
-	print(str, file=consolefp)
+	if consolefp is not None:
+		print(str, file=consolefp)
 
 def hex_escape(s):
     return ''.join(c if c in printable else r'\x{0:02x}'.format(ord(c)) for c in s)

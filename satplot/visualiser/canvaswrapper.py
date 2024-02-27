@@ -73,16 +73,21 @@ class CanvasWrapper():
 
 	def updateIndex(self, index, datetime):
 		if self.is_asset_instantiated['primary_orbit']:
+			console.send("\tDrawing orbit")
 			self.assets['primary_orbit'].updateIndex(index)
 		if self.is_asset_instantiated['earth']:
+			console.send("\tDrawing earth")
 			self.assets['earth'].setCurrentECEFRotation(datetime)
 		if self.is_asset_instantiated['moon']:
+			console.send("\tDrawing moon")
 			self.assets['moon'].updateIndex(index)
 		if self.is_asset_instantiated['constellation']:
+			console.send("\tDrawing constellation")
 			self.assets['constellation'].updateIndex(index)
 
 		# Sun must be last so that umbra doesn't occlude objects
 		if self.is_asset_instantiated['sun']:
+			console.send("\tDrawing sun")
 			self.assets['sun'].updateIndex(index)
 
 	def setMakeNewVisualsFlag(self):
