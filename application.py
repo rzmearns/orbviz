@@ -2,14 +2,14 @@ from vispy import app, use
 from satplot.visualiser import canvaswrapper
 from satplot.visualiser import window
 
+from PyQt5 import QtWidgets, QtCore
+
 import numpy as np
 import satplot.model.timespan as timespan
 import satplot.model.orbit as orbit
-
+import sys
 import satplot.visualiser.controls.console as console
 
-t = None
-o = None
 use(gl='gl+')
 
 class Application():
@@ -19,6 +19,8 @@ class Application():
 		self.canvas_wrapper = canvaswrapper.CanvasWrapper()		
 		self.window = window.MainWindow(self.canvas_wrapper, "Sat Plot")
 		self._connectControls()
+		self.load_data_worker = None
+		self.worker_thread = None
 
 	def run(self):
 		self.window.show()
@@ -29,57 +31,120 @@ class Application():
 		self.window._time_slider.add_connect(self._updateIndex)
 
 	def _loadData(self):
-		global t
-		global o
-		period_start = self.window.orbit_controls.period_start.datetime
-		period_start.replace(microsecond=0)
-		period_end = self.window.orbit_controls.period_end.datetime
-		period_end.replace(microsecond=0)
-		prim_orbit_TLE_path = self.window.orbit_controls.prim_orbit_selector.path
-		# TODO: calculate time period from end
-		# TODO: auto calculate step size
-		time_period = int((period_end - period_start).total_seconds())
-		sample_period = time_period/300
-		console.send(f"Creating Timespan from {period_start} -> {period_end} ...")
-		# t = timespan.TimeSpan(self.window.orbit_controls.period_start.datetime,
-		# 					timestep='30S',
-		# 					timeperiod='90M')
-		t = timespan.TimeSpan(self.window.orbit_controls.period_start.datetime,
-							timestep=f'{sample_period}S',
-							timeperiod=f'{time_period}S')
-		console.send(f"\tDuration: {t.time_period}")
-		console.send(f"\tNumber Steps: {len(t)}")
-		console.send(f"\tLength of timestep: {t.time_step}")
+		self.period_start = self.window.orbit_controls.period_start.datetime
+		self.period_end = self.window.orbit_controls.period_end.datetime
+		self.prim_orbit_TLE_path = self.window.orbit_controls.prim_orbit_selector.path
+		self.c_index = self.window.orbit_controls.getConstellationIndex()		
+		if self.c_index is not None:
+			self.c_file = self.window.orbit_controls.constellation_files[self.c_index]
+			self.c_name = self.window.orbit_controls.constellation_options[self.c_index]
+			self.c_beam_angle = self.window.orbit_controls.constellation_beam_angles[self.c_index]
+		else:
+			self.c_file = None
+			self.c_name = None
+			self.c_beam_angle = None
+		# Create worker
+		print(f"worker thread: {self.worker_thread}")
+		self.worker_thread = QtCore.QThread()
+		print(f"worker thread: {self.worker_thread}")
+		self.load_data_worker = self.LoadDataWorker(self.period_start, 
+										 		self.period_end, 
+												self.prim_orbit_TLE_path,
+												c_index = self.c_index,
+												c_file = self.c_file,
+												c_name = self.c_name,
+												file=sys.stdout)		
+		# Move to new thread and setup signals
+		self.load_data_worker.moveToThread(self.worker_thread)
+		self.worker_thread.started.connect(self.load_data_worker.run)
+		self.worker_thread.finished.connect(self.worker_thread.deleteLater)
+		self.load_data_worker.finished.connect(self._cleanUpWorkerThread)
+		self.load_data_worker.finished.connect(self._updateDataSources)
+		self.load_data_worker.finished.connect(self.load_data_worker.deleteLater)
+		
+		# make load data button inactive
+		self.window.orbit_controls.submit_button.setEnabled(False)
+		self.worker_thread.start()	
 
-		self.window._time_slider.setRange(t.start, t.end, len(t))
-		self.window._time_slider._curr_dt_picker.setDatetime(t.start)
-
-		# TODO: Update text in time slider
-		console.send(f"Propagating orbit from {prim_orbit_TLE_path.split('/')[-1]} ...")
-		o = orbit.Orbit.fromTLE(t, prim_orbit_TLE_path)
-		console.send(f"\tNumber of steps in single orbit: {o.period_steps}")
-		self.canvas_wrapper.setOrbitSource(o)
-		self.canvas_wrapper.setSunSource(o)
-		self.canvas_wrapper.setMoonSource(o)
-
-		constellation_index = self.window.orbit_controls.getConstellationIndex()
-		if  constellation_index is not None:
-			constellation_file = self.window.orbit_controls.constellation_files[constellation_index]
-			constellation_name = self.window.orbit_controls.constellation_options[constellation_index]
-			constellation_beam_angle = self.window.orbit_controls.constellation_beam_angles[constellation_index]
-			console.send(f"Propagating constellation orbits from {constellation_file.split('/')[-1]} ...")
-			constellation_o_list = orbit.Orbit.multiFromTLE(t, constellation_file)
-			console.send(f"Loaded {len(constellation_o_list)} satellites from the {constellation_name} constellation.")
-			self.canvas_wrapper.setConstellationSource(constellation_o_list, constellation_beam_angle)
-
+	# attach to worker thread done
+	def _updateDataSources(self, t, o, c_list):
+		self.t = t
+		self.o = o
+		self.c_list = c_list
+		self.window._time_slider.setRange(self.t.start, self.t.end, len(self.t))
+		self.window._time_slider._curr_dt_picker.setDatetime(self.t.start)
+		
+		self.canvas_wrapper.setOrbitSource(self.o)
+		self.canvas_wrapper.setSunSource(self.o)
+		self.canvas_wrapper.setMoonSource(self.o)
+		if self.c_index is not None:
+			self.canvas_wrapper.setConstellationSource(self.c_list, self.c_beam_angle)
 		self.canvas_wrapper.setMakeNewVisualsFlag()
-
 		console.send(f"Drawing Orbit...")
 		curr_index = self.window._time_slider.slider.value()
 		self._updateIndex(curr_index)
-		
+		self.window.orbit_controls.submit_button.setEnabled(True)
+
 	def _updateIndex(self, index):
-		self.canvas_wrapper.updateIndex(index, t.asSkyfield(index))
+		self.canvas_wrapper.updateIndex(index, self.t.asSkyfield(index))
+
+	def _cleanUpWorkerThread(self):
+		self.worker_thread.quit()
+		self.worker_thread.deleteLater()
+		self.worker_thread = None
+
+	class LoadDataWorker(QtCore.QObject):
+		finished = QtCore.pyqtSignal(timespan.TimeSpan, orbit.Orbit, list)
+
+		def __init__(self, period_start, period_end, prim_orbit_TLE_path,
+			   		 c_index = None, c_file=None, c_name=None, file=None, *args, **kwargs):
+			super().__init__(*args, **kwargs)
+			self.period_start = period_start
+			self.period_end = period_end
+			self.prim_orbit_TLE_path = prim_orbit_TLE_path
+			self.t = None
+			self.o = None
+			self.c_index = c_index
+			self.c_file = c_file
+			self.c_name = c_name
+			self.c_list = []
+			self.file = file
+
+		def run(self):
+			console.send("Started Load Data Worker thread")
+			self.period_start.replace(microsecond=0)
+			self. period_end.replace(microsecond=0)			
+			# TODO: calculate time period from end
+			# TODO: auto calculate step size
+			time_period = int((self.period_end - self.period_start).total_seconds())
+			sample_period = time_period/300
+			console.send(f"Creating Timespan from {self.period_start} -> {self.period_end} ...")
+			self.t = timespan.TimeSpan(self.period_start,
+								timestep='30S',
+								timeperiod='90M')
+			# self.t = timespan.TimeSpan(self.period_start,
+			# 					timestep=f'{sample_period}S',
+			# 					timeperiod=f'{time_period}S')
+			console.send(f"\tDuration: {self.t.time_period}")
+			console.send(f"\tNumber Steps: {len(self.t)}")
+			console.send(f"\tLength of timestep: {self.t.time_step}")
+
+
+			console.send(f"Propagating orbit from {self.prim_orbit_TLE_path.split('/')[-1]} ...")
+			self.o = orbit.Orbit.fromTLE(self.t, self.prim_orbit_TLE_path)
+			console.send(f"\tNumber of steps in single orbit: {self.o.period_steps}")
+			
+			if self.c_index is not None:
+				console.send(f"Propagating constellation orbits from {self.c_file.split('/')[-1]} ...")
+				self.c_list = orbit.Orbit.multiFromTLE(self.t, self.c_file, console.consolefp)
+				console.send(f"Loaded {len(self.c_list)} satellites from the {self.c_name} constellation.")
+			
+			console.send("Load Data Worker thread finished")
+			self.finished.emit(self.t, self.o, self.c_list)
+
+		def stop(self):
+			self._is
+
 
 if __name__ == '__main__':
 	application = Application()
