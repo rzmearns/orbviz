@@ -44,12 +44,17 @@ def calcConePoints(apex, height, axis, apex_angle_deg, axis_sample=3, theta_samp
 	t = np.linspace(0,height,axis_sample)
 	theta = np.linspace(0, 2*np.pi, theta_sample)
 
+	print(f"t:{t}")
+	print(f"theta:{theta}")
+	print(f"phi:{phi}")
+
 	R = height*np.tan(phi)
 	coords = t[0]*np.outer(np.cos(theta),e1) + t[0]*np.outer(np.sin(theta),e2)
 
 	for ii in range(1,axis_sample):
 		R = t[ii]*np.tan(phi)
-		new_coords = t[ii]*np.outer(np.cos(theta),e1) + t[ii]*np.outer(np.sin(theta),e2)
+		print(f"R:{R}, t[ii]:{t[ii]}")
+		new_coords = R*np.outer(np.cos(theta),e1) + R*np.outer(np.sin(theta),e2)
 		coords = np.vstack((coords,(t[ii]*e3)+new_coords))
 
 	return np.unique(coords,axis=0)

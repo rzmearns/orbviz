@@ -276,6 +276,8 @@ class OptionBox(QtWidgets.QWidget):
 		self._optionbox = QtWidgets.QComboBox()
 		for item in options_list:
 			self._optionbox.addItem(item)
+		self._optionbox.setFocusPolicy(QtCore.Qt.StrongFocus)
+
 
 		hlayout1.addWidget(self._label)
 		hlayout1.addStretch()

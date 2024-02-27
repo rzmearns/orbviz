@@ -7,8 +7,12 @@ import satplot.visualiser.controls.console as console
 
 class OrbitConfigs(QtWidgets.QWidget):
 
-	constellation_options = ['Iridium NEXT']
-	constellation_files = ['./data/TLEs/iridiumNEXT_latest.tle']
+	constellation_options = ['Iridium NEXT', 'Iridium SMALL', 'Thuraya', 'Swift']
+	constellation_files = ['./data/TLEs/iridiumNEXT_latest.tle',
+							'./data/TLEs/iridiumSMALL_latest.tle',
+							'./data/TLEs/thuraya_latest.tle',
+							'./data/TLEs/swift_latest.tle']
+	constellation_beam_angles = [125.8, 125.8, 15, 0.1]
 
 	def __init__(self, parent: QtWidgets.QWidget=None) -> None:
 		super().__init__(parent)

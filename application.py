@@ -1,4 +1,4 @@
-from vispy import app
+from vispy import app, use
 from satplot.visualiser import canvaswrapper
 from satplot.visualiser import window
 
@@ -10,6 +10,7 @@ import satplot.visualiser.controls.console as console
 
 t = None
 o = None
+use(gl='gl+')
 
 class Application():
 	def __init__(self) -> None:
@@ -37,10 +38,15 @@ class Application():
 		prim_orbit_TLE_path = self.window.orbit_controls.prim_orbit_selector.path
 		# TODO: calculate time period from end
 		# TODO: auto calculate step size
+		time_period = int((period_end - period_start).total_seconds())
+		sample_period = time_period/300
 		console.send(f"Creating Timespan from {period_start} -> {period_end} ...")
+		# t = timespan.TimeSpan(self.window.orbit_controls.period_start.datetime,
+		# 					timestep='30S',
+		# 					timeperiod='90M')
 		t = timespan.TimeSpan(self.window.orbit_controls.period_start.datetime,
-							timestep='30S',
-							timeperiod='90M')
+							timestep=f'{sample_period}S',
+							timeperiod=f'{time_period}S')
 		console.send(f"\tDuration: {t.time_period}")
 		console.send(f"\tNumber Steps: {len(t)}")
 		console.send(f"\tLength of timestep: {t.time_step}")
@@ -59,10 +65,14 @@ class Application():
 		constellation_index = self.window.orbit_controls.getConstellationIndex()
 		if  constellation_index is not None:
 			constellation_file = self.window.orbit_controls.constellation_files[constellation_index]
+			constellation_name = self.window.orbit_controls.constellation_options[constellation_index]
+			constellation_beam_angle = self.window.orbit_controls.constellation_beam_angles[constellation_index]
 			console.send(f"Propagating constellation orbits from {constellation_file.split('/')[-1]} ...")
-			constellation_o = orbit.Orbit.multiFromTLE(t, constellation_file)
-			console.send(f"Loaded {len(constellation_o)} satellites from the {self.window.orbit_controls.constellation_options[constellation_index]} constellation.")
-			self.canvas_wrapper.setConstellationSource(constellation_o)
+			constellation_o_list = orbit.Orbit.multiFromTLE(t, constellation_file)
+			console.send(f"Loaded {len(constellation_o_list)} satellites from the {constellation_name} constellation.")
+			self.canvas_wrapper.setConstellationSource(constellation_o_list, constellation_beam_angle)
+
+		self.canvas_wrapper.setMakeNewVisualsFlag()
 
 		console.send(f"Drawing Orbit...")
 		curr_index = self.window._time_slider.slider.value()
