@@ -16,9 +16,6 @@ from vispy.visuals import filters as vFilters
 
 import numpy as np
 
-import warnings
-warnings.filterwarnings("ignore", message="Optimal rotation is not uniquely or poorly defined for the given sets of vectors.")
-
 class Constellation(BaseAsset):
 	def __init__(self, canvas=None, parent=None):
 		self.parent = parent
