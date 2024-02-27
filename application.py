@@ -9,7 +9,10 @@ import satplot.model.timespan as timespan
 import satplot.model.orbit as orbit
 import sys
 import satplot.visualiser.controls.console as console
-import time
+
+import warnings
+warnings.filterwarnings("ignore", message="Optimal rotation is not uniquely or poorly defined for the given sets of vectors.")
+
 use(gl='gl+')
 
 class Application():
@@ -77,6 +80,7 @@ class Application():
 		self.canvas_wrapper.setOrbitSource(self.o)
 		self.canvas_wrapper.setSunSource(self.o)
 		self.canvas_wrapper.setMoonSource(self.o)
+		self.canvas_wrapper.setEarthSource()
 		if self.c_index is not None:
 			self.canvas_wrapper.setConstellationSource(self.c_list, self.c_beam_angle)
 		self.canvas_wrapper.setMakeNewVisualsFlag()

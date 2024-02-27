@@ -5,6 +5,7 @@ from satplot.visualiser.assets.earth import Earth
 from satplot.visualiser.assets.orbit import OrbitVisualiser
 from satplot.visualiser.assets.sun import Sun
 from satplot.visualiser.assets.moon import Moon
+from satplot.visualiser.assets.spacecraft import SpacecraftVisualiser
 from satplot.visualiser.assets.constellation import Constellation
 from satplot.visualiser.assets.gizmo import ViewBoxGizmo
 
@@ -50,6 +51,9 @@ class CanvasWrapper():
 	def setOrbitSource(self, orbit):
 		self.assets['primary_orbit'].setSource(orbit)
 		self.is_asset_instantiated['primary_orbit'] = True
+		self.assets['spacecraft'].setSource(orbit)
+		self.is_asset_instantiated['spacecraft'] = True
+
 
 	def setSunSource(self, orbit):
 		self.assets['sun'].setSource(orbit)
@@ -69,25 +73,24 @@ class CanvasWrapper():
 		self.is_asset_instantiated['moon'] = False
 		self.is_asset_instantiated['constellation'] = False
 		self.is_asset_instantiated['earth'] = False
+		self.is_asset_instantiated['spacecraft'] = False
 		self.is_asset_instantiated['ECI_gizmo'] = False
 
 	def updateIndex(self, index, datetime):
 		if self.is_asset_instantiated['primary_orbit']:
-			console.send("\tDrawing orbit")
 			self.assets['primary_orbit'].updateIndex(index)
 		if self.is_asset_instantiated['earth']:
-			console.send("\tDrawing earth")
 			self.assets['earth'].setCurrentECEFRotation(datetime)
 		if self.is_asset_instantiated['moon']:
-			console.send("\tDrawing moon")
 			self.assets['moon'].updateIndex(index)
 		if self.is_asset_instantiated['constellation']:
-			console.send("\tDrawing constellation")
 			self.assets['constellation'].updateIndex(index)
+		if self.is_asset_instantiated['spacecraft']:
+			self.assets['spacecraft'].updateIndex(index)
+
 
 		# Sun must be last so that umbra doesn't occlude objects
 		if self.is_asset_instantiated['sun']:
-			console.send("\tDrawing sun")
 			self.assets['sun'].updateIndex(index)
 
 	def setMakeNewVisualsFlag(self):
@@ -108,8 +111,12 @@ class CanvasWrapper():
 		self.assets['constellation'] = Constellation(canvas=self.canvas,
 											parent=self.view_box.scene)	
 	
+		self.assets['spacecraft'] = SpacecraftVisualiser(canvas=self.canvas,
+											parent=self.view_box.scene)
+
 		self.assets['sun'] = Sun(canvas=self.canvas,
 											parent=self.view_box.scene)
+
 
 		# if self.is_asset_instantiated['ECI_gizmo']:
 		# self.assets['ECI_gizmo'] = ViewBoxGizmo(canvas=self.canvas,
