@@ -94,6 +94,7 @@ class OrbitVisualiser(BaseAsset):
 										# edge_width=0,
 										size=self.opts['orbital_position_marker_size']['value'],
 										symbol='o')
+		self.visuals['marker'].visible = False
 														# size=10,
 														# antialias=self.opts['antialias']['value'],
 	   													# face_color=colours.normaliseColour(self.opts['orbital_path_colour']['value']),
@@ -170,7 +171,7 @@ class OrbitVisualiser(BaseAsset):
 
 	def setOrbitAssetVisibility(self, state):
 		self.setOrbitalPathFutureVisibility(state)
-		self.setOrbitalPathFutureVisibility(state)
+		self.setOrbitalPathPastVisibility(state)
 		self.setOrbitalMarkerVisibility(state)
 
 	def setOrbitalPathFutureVisibility(self, state):

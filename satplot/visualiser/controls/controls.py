@@ -24,12 +24,12 @@ class OrbitConfigs(QtWidgets.QWidget):
 		self.pane_layout.setSpacing(10)
 
 		# Add widgets here
-		self.period_start = widgets.DatetimeEntry("Period Start:", dt.datetime(2024,2,6,0,0,0))
+		self.period_start = widgets.DatetimeEntry("Period Start:", dt.datetime(2024,2,23,3,7,31))
 		self.period_end = widgets.DatetimeEntry("Period End:", dt.datetime.now())
 		self.button_layout = QtWidgets.QHBoxLayout()
 		self.submit_button = QtWidgets.QPushButton('Recalculate')
 		self.prim_orbit_selector = widgets.FilePicker('Primary Orbit','./data/TLEs/spirit_latest.tle')
-		self.pointing_file_selector = widgets.FilePicker('Pointing File - Not Implemented')
+		self.pointing_file_selector = widgets.FilePicker('Pointing File','./data/pointing/20240223-030000_quaternion.csv')
 		
 		self.suppl_constellation_selector = widgets.OptionBox('Supplementary Constellations',
 															options_list=OrbitConfigs.constellation_options)

@@ -48,11 +48,12 @@ class CanvasWrapper():
 	def setEarthSource(self):
 		self.is_asset_instantiated['earth'] = True
 
-	def setOrbitSource(self, orbit):
+	def setOrbitSource(self, orbit, pointing=None):
 		self.assets['primary_orbit'].setSource(orbit)
 		self.is_asset_instantiated['primary_orbit'] = True
-		self.assets['spacecraft'].setSource(orbit)
-		self.is_asset_instantiated['spacecraft'] = True
+		if pointing is not None:
+			self.assets['spacecraft'].setSource(orbit, pointing)
+			self.is_asset_instantiated['spacecraft'] = True
 
 
 	def setSunSource(self, orbit):

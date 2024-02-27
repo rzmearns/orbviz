@@ -219,7 +219,6 @@ class ColourPicker(QtWidgets.QWidget):
 		self.curr_hex = colours.rgb2hex(self.curr_rgb)
 		self._colour_box.setStyleSheet(f"background-color: {self.curr_hex}")
 		# self._colour_box.setStyleSheet(f"onClicked: forceActiveFocus()")
-		print(self._colour_box.styleSheet())
 		if len(self._callbacks) > 0:
 			for callback in self._callbacks:
 				callback(self.curr_rgb)
@@ -321,6 +320,7 @@ class FilePicker(QtWidgets.QWidget):
 		self._file_text_box = QtWidgets.QLineEdit(self.path)
 		self._dialog_button = QtWidgets.QPushButton('...')
 		self._dialog_button.clicked.connect(self.openFilenameDialog)
+		self._file_text_box.textChanged.connect(self.setPath)
 		self._dialog_button.setFixedWidth(25)
 
 
@@ -332,6 +332,9 @@ class FilePicker(QtWidgets.QWidget):
 		vlayout.addLayout(hlayout1)
 		vlayout.addLayout(hlayout2)
 		self.setLayout(vlayout)
+
+	def setPath(self):
+		self.path = self._file_text_box.text()
 
 	def openFilenameDialog(self):
 		options = QtWidgets.QFileDialog.Options()

@@ -182,7 +182,7 @@ class Constellation(BaseAsset):
 										  		'type': 'boolean',
 												'help': '',
 												'callback': self.setConstellationMarkersVisibility}
-		self._dflt_opts['constellation_position_marker_size'] = {'value': 500,
+		self._dflt_opts['constellation_position_marker_size'] = {'value': 250,
 										  		'type': 'number',
 												'help': '',
 												'callback': None}
