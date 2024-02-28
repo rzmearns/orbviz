@@ -146,7 +146,11 @@ class Application():
 			
 			if self.p_file is not None and self.p_file != '':
 				console.send(f"Loading pointing from {self.p_file.split('/')[-1]}")
-				pointing_q = np.genfromtxt(self.p_file, delimiter=',', usecols=(1,2,3,4),skip_header=1)
+				pointing_w = np.genfromtxt(self.p_file, delimiter=',', usecols=(1),skip_header=1).reshape(-1,1)
+				pointing_x = np.genfromtxt(self.p_file, delimiter=',', usecols=(2),skip_header=1).reshape(-1,1)
+				pointing_y = np.genfromtxt(self.p_file, delimiter=',', usecols=(3),skip_header=1).reshape(-1,1)
+				pointing_z = np.genfromtxt(self.p_file, delimiter=',', usecols=(4),skip_header=1).reshape(-1,1)
+				pointing_q = np.hstack((pointing_x,pointing_y,pointing_z,pointing_w))
 				pointing_dates = np.genfromtxt(self.p_file, delimiter=',', usecols=(0),skip_header=1, converters={0:self.date_parser})
 
 				total_secs = lambda x: x.total_seconds()

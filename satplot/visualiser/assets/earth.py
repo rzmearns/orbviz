@@ -25,7 +25,6 @@ class Earth(BaseAsset):
 		self.requires_recompute = False
 		self._setDefaultOptions()	
 		self.draw()
-
 		# These callbacks need to be set after draw() as the option dict is populated during draw()
 		self.opts['plot_meridians']['callback'] = self.visuals['meridians'].setMeridianVisibility
 		self.opts['plot_parallels']['callback'] = self.visuals['parallels'].setParallelsVisibility

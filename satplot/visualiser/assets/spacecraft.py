@@ -8,6 +8,7 @@ from satplot.model.geometry import primgeom as pg
 from satplot.model.geometry import polygons
 
 import satplot.visualiser.controls.console as console
+import satplot.visualiser.assets.sensors as sensors
 from scipy.spatial.transform import Rotation
 
 import geopandas as gpd
@@ -18,13 +19,16 @@ from vispy.visuals import transforms as vTransforms
 import numpy as np
 
 class SpacecraftVisualiser(BaseAsset):
-	def __init__(self, canvas=None, parent=None):
-		self.parent = parent
-		self.canvas = canvas
-		
+	def __init__(self, canvas=None, parent=None,  sc_sens_suite=None):
+	
 		self.visuals = {}
 		self.data = {}
 		self.requires_recompute = False
+
+		self.parent = parent
+		self.canvas = canvas
+		self.data['sc_sens_suite_dict'] = sc_sens_suite
+
 		self._setDefaultOptions()	
 		self._initDummyData()
 		self.draw()
@@ -32,6 +36,8 @@ class SpacecraftVisualiser(BaseAsset):
 	def draw(self):
 		self.addOrbitalMarker()
 		self.addBodyFrame()
+		if self.data['sc_sens_suite_dict'] is not None:
+			self.addSensorSuite()
 
 	def compute(self):
 		pass
@@ -58,28 +64,32 @@ class SpacecraftVisualiser(BaseAsset):
 								   			size=self.opts['spacecraft_point_size']['value'],
 											face_color=colours.normaliseColour(self.opts['spacecraft_point_colour']['value']))
 			#TODO: This check could be done better
-			print(self.data['curr_index'])
 			if np.any(np.isnan(self.data['pointing'][self.data['curr_index'],:])):
 				non_nan_found = False
 				for ii in range(self.data['curr_index'], len(self.data['pointing'])):
 					if np.all(np.isnan(self.data['pointing'][ii,:])==False):
 						non_nan_found = True
-						rotation = Rotation.from_quat(self.data['pointing'][ii,:].reshape(-1,4)).as_matrix()
+						quat = self.data['pointing'][ii,:].reshape(-1,4)
+						rotation = Rotation.from_quat(quat).as_matrix()
 						break				
 				if not non_nan_found:
 					for ii in range(self.data['curr_index'], -1, -1):
 						if np.all(np.isnan(self.data['pointing'][ii,:])==False):
-							rotation = Rotation.from_quat(self.data['pointing'][ii,:].reshape(-1,4)).as_matrix()
+							quat = self.data['pointing'][ii,:].reshape(-1,4)
+							rotation = Rotation.from_quat().as_matrix(quat)
 				self.visuals['body_frame'].setTemporaryGizmoXColour((255,0,255))
 				self.visuals['body_frame'].setTemporaryGizmoYColour((255,0,255))
 				self.visuals['body_frame'].setTemporaryGizmoZColour((255,0,255))
 			else:
-				rotation = Rotation.from_quat(self.data['pointing'][self.data['curr_index']].reshape(-1,4)).as_matrix()
+				quat = self.data['pointing'][self.data['curr_index']].reshape(-1,4)
+				rotation = Rotation.from_quat(quat).as_matrix()
 				self.visuals['body_frame'].restoreGizmoColours()
 			# rotation = Rotation.align_vectors(np.array((0,0,1)).reshape(1,3),
 			# 									-self.data['coords'][self.data['curr_index']].reshape(1,3))[0].as_matrix()
 			self.visuals['body_frame'].setTransform(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
 										   			rotation=rotation)
+			self.visuals['sensor_suite'].setTransform(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
+										   			quat=quat)
 			self.requires_recompute = False
 
 	def addOrbitalMarker(self):
@@ -93,6 +103,9 @@ class SpacecraftVisualiser(BaseAsset):
 
 	def addBodyFrame(self):
 		self.visuals['body_frame'] = gizmo.BodyGizmo(parent=self.parent, scale=700, width=3)
+
+	def addSensorSuite(self):
+		self.visuals['sensor_suite'] = sensors.SensorSuite(self.data['sc_sens_suite_dict'], parent=self.parent)
 
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}

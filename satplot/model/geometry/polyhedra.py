@@ -49,14 +49,54 @@ def calcConePoints(apex, height, axis, apex_angle_deg, axis_sample=3, theta_samp
 
 	for ii in range(1,axis_sample):
 		R = t[ii]*np.tan(phi)
-		print(f"R:{R}, t[ii]:{t[ii]}")
 		new_coords = R*np.outer(np.cos(theta),e1) + R*np.outer(np.sin(theta),e2)
 		coords = np.vstack((coords,(t[ii]*e3)+new_coords))
 
-	return np.unique(coords,axis=0)
+	return np.unique(coords+apex,axis=0)
 
 def calcConeMesh(apex, height, axis, apex_angle_deg, axis_sample=3, theta_sample=30):
 	coords = calcConePoints(apex, height, axis, apex_angle_deg, axis_sample=axis_sample, theta_sample=theta_sample)
+	hull = scipy.spatial.ConvexHull(coords)
+
+	vertices = hull.points
+	faces = hull.simplices
+
+	return vertices.astype('float32'), faces.astype(dtype='uint32')
+
+def calcSquarePyramidPoints(apex, height, axis, x_angle_deg, y_angle_deg, axis_sample=3):
+	# Z direction is along axis of pyramid,
+	# X direction is the cross section height
+	# Y direction is the cross section width
+	phi = np.deg2rad(x_angle_deg/2)
+	alpha = np.deg2rad(y_angle_deg/2)
+
+	apex = np.asarray(apex)
+	e3 = pg.unitVector(np.asarray(axis))
+
+	not_e3 = np.array([1,0,0])
+	if(e3 == not_e3).all():
+		not_e3 = np.array([0,1,0])
+	e1 = pg.unitVector(np.cross(e3, not_e3))
+	e2 = pg.unitVector(np.cross(e3, e1))
+
+	t = np.linspace(0,height,axis_sample)
+
+	R_x = t[0]*np.tan(phi)
+	R_y = t[0]*np.tan(alpha)
+	x_l = np.array((1,-1,-1,1))
+	y_l = np.array((1,1,-1,-1))
+	coords = np.outer(R_x*x_l,e1) + np.outer(R_y*y_l,e2)
+
+	for ii in range(1,axis_sample):
+		R_x = t[ii]*np.tan(phi)
+		R_y = t[ii]*np.tan(alpha)
+		new_coords = np.outer(R_x*x_l,e1) + np.outer(R_y*y_l,e2)
+		coords = np.vstack((coords,(t[ii]*e3)+new_coords))
+
+	return np.unique(coords+apex, axis=0)
+
+def calcSquarePyramidMesh(apex, height, axis, x_angle_deg, y_angle_deg, axis_sample=3):
+	coords = calcSquarePyramidPoints(apex, height, axis, x_angle_deg, y_angle_deg, axis_sample=axis_sample)
 	hull = scipy.spatial.ConvexHull(coords)
 
 	vertices = hull.points
@@ -110,7 +150,6 @@ def calcCylinderPoints(end_point, height, axis, radius, axis_sample=3, theta_sam
 	e1 = pg.unitVector(np.cross(e3, not_e3))
 	e2 = pg.unitVector(np.cross(e3, e1))
 
-	print(0,height,axis_sample)
 	t = np.linspace(0,height,axis_sample)
 	theta = np.linspace(0, 2*np.pi, theta_sample)
 

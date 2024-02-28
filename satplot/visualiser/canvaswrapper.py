@@ -10,6 +10,7 @@ from satplot.visualiser.assets.constellation import Constellation
 from satplot.visualiser.assets.gizmo import ViewBoxGizmo
 
 from satplot.visualiser.controls import console
+import json
 
 canvas = scene.SceneCanvas()
 
@@ -29,6 +30,9 @@ class CanvasWrapper():
 		self.initAssetInstantiatedFlags()
 		self.buildScene()
 		self.canvas.events.mouse_move.connect(self.onMouseMove)
+		self.assets['earth'].setEarthAssetVisibility(False)
+		self.assets['sun'].setSunAssetVisibility(False)
+		self.assets['moon'].setMoonAssetVisibility(False)
 
 	def setCameraMode(self, mode='turntable'):
 		allowed_cam_modes = ['turntable',
@@ -112,8 +116,11 @@ class CanvasWrapper():
 		self.assets['constellation'] = Constellation(canvas=self.canvas,
 											parent=self.view_box.scene)	
 	
+		with open('./data/spacecraft/spirit.json') as fp:
+			sc_sens_dict = json.load(fp)
+
 		self.assets['spacecraft'] = SpacecraftVisualiser(canvas=self.canvas,
-											parent=self.view_box.scene)
+											parent=self.view_box.scene, sc_sens_suite=sc_sens_dict)
 
 		self.assets['sun'] = Sun(canvas=self.canvas,
 											parent=self.view_box.scene)
