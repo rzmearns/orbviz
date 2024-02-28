@@ -38,7 +38,7 @@ class Constellation(BaseAsset):
 		
 	def setSource(self, source_list, beam_angle):
 		self.data['beam_angle_deg'] = beam_angle
-		print(f"beam_angle {self.data['beam_angle_deg']}")
+		# print(f"beam_angle {self.data['beam_angle_deg']}")
 		if len(source_list) > 1:
 			self.data['coords'] = np.zeros((len(source_list),len(source_list[0].pos),3))
 			for ii in range(len(source_list)):
@@ -141,8 +141,6 @@ class Constellation(BaseAsset):
 			instance_transforms = Rotation.align_vectors(self.data['start_beam_vec'],
 																beam_axis)[0].as_matrix()
 		
-		print(f"instance_transforms shape: {instance_transforms.shape}")
-		print(f"instance_positions shape: {instance_positions.shape}")
 		if self.data['num_sats'] > 1:
 			vertices, faces = polyhedra.calcConeMesh((0,0,0),
 													self.data['beam_height'],
