@@ -203,8 +203,12 @@ class Sun(BaseAsset):
 		pass
 	
 	def setSunAssetVisibility(self, state):
-		self.setSunSphereVisibility(state)
-		self.setUmbraVisibility(state)
+		if self.visuals['sun'] is not None:
+			self.setSunSphereVisibility(state)
+		if self.visuals['umbra'] is not None:			
+			self.setUmbraVisibility(state)
+		if self.visuals['vector_body'] is not None:
+			self.setSunVectorVisibility(state)
 
 	def setSunSphereColour(self, new_colour):
 		raise NotImplementedError('Bugged')
@@ -236,7 +240,8 @@ class Sun(BaseAsset):
 		raise NotImplementedError
 
 	def setSunVectorVisibility(self, state):
-		raise NotImplementedError
+		self.visuals['vector_body'].visible = state
+		self.visuals['vector_head'].visible = state
 
 	def setSunVectorColour(self, new_colour):
 		raise NotImplementedError
