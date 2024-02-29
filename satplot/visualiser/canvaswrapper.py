@@ -11,8 +11,7 @@ from satplot.visualiser.assets.gizmo import ViewBoxGizmo
 
 from satplot.visualiser.controls import console
 import json
-
-canvas = scene.SceneCanvas()
+import numpy as np
 
 class CanvasWrapper():
 	def __init__(self, w=800, h=600, keys='interactive', bgcolor='white'):
@@ -20,19 +19,22 @@ class CanvasWrapper():
 								  		keys=keys,
 										bgcolor=bgcolor,
 										show=True)
+		self.canvas.events.key_press.connect(self.onKeyPress)
+		self.canvas.events.mouse_move.connect(self.onMouseMove)
+		self.canvas.events.mouse_wheel.connect(self.onMouseScroll)
 		self.grid = self.canvas.central_widget.add_grid()
 		self.view_box = self.canvas.central_widget.add_view()
 		self.view_box.camera = scene.cameras.TurntableCamera(parent=self.view_box.scene,
 													   		fov=60,
+															center=(0,0,0),
 															name='Turntable')
 		self.is_asset_instantiated = {}
 		self.assets = {}
 		self.initAssetInstantiatedFlags()
 		self.buildScene()
-		self.canvas.events.mouse_move.connect(self.onMouseMove)
-		self.assets['earth'].setEarthAssetVisibility(False)
-		self.assets['sun'].setSunAssetVisibility(False)
-		self.assets['moon'].setMoonAssetVisibility(False)
+		# self.assets['earth'].setEarthAssetVisibility(False)
+		# self.assets['sun'].setSunAssetVisibility(False)
+		# self.assets['moon'].setMoonAssetVisibility(False)
 
 	def setCameraMode(self, mode='turntable'):
 		allowed_cam_modes = ['turntable',
@@ -134,8 +136,24 @@ class CanvasWrapper():
 		self.setCameraZoom(5*c.R_EARTH)
 		# self.assets['ECI_gizmo'].attachCamera(self.view_box.camera)
 
-	@canvas.events.mouse_move.connect
 	def onMouseMove(self, event):
 		pass
 		# console.send("captured event")
 		# self.assets['ECI_gizmo'].onMouseMove(event)
+
+	def onMouseScroll(self, event):
+		# print(self.view_box.camera.scale_factor)
+		pass
+		
+	def onKeyPress(self, event):
+		if event.key == "Home":
+			self.view_box.camera.center = (0,0,0)
+			self.setCameraZoom(5*c.R_EARTH)
+			self.canvas.update()
+
+		if event.key == "End":
+			if self.is_asset_instantiated['spacecraft']:
+				sc_pos = tuple(self.assets['spacecraft'].data['coords'][self.assets['spacecraft'].data['curr_index']])
+				self.view_box.camera.center = sc_pos
+				self.setCameraZoom(2200)
+				self.canvas.update()
