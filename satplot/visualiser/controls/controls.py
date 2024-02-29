@@ -83,7 +83,6 @@ class OptionConfigs(QtWidgets.QWidget):
 		self.setLayout(self.config_layout)
 	
 	def buildWidgetPane(self, root_dict, root_layout):
-		print(f"iterating through canvas assets")
 		for key, asset in root_dict.items():
 			cb = widgets.CollapsibleSection(title=f"{key.capitalize()} Options")
 			w_dict = self._buildNestedOptionWidgetDict(asset, asset_key=key)
@@ -110,8 +109,6 @@ class OptionConfigs(QtWidgets.QWidget):
 		w_dict.update(w_opt_dict)
 
 		if hasattr(asset, 'visuals'):
-			# print(f"\t{asset_key} has visuals")
-			# print(f"\titerating through {asset_key} visual assets")
 			for sub_key, sub_asset in asset.visuals.items():
 				if not isinstance(sub_asset, base.BaseAsset):
 					continue
@@ -140,14 +137,19 @@ class OptionConfigs(QtWidgets.QWidget):
 											opt_dict['value'])
 				widget.add_connect(opt_dict['callback'])
 			if opt_dict['type'] == 'number':
-				pass
+				continue
 			w_key = opt_key.split('_')
 			if len(w_key) > 0:
 				if w_key[0] == 'plot':
 					w_key = '_'.join(w_key[1:])
 				else:
 					w_key = '_'.join(w_key)
-			w_dict[w_key] = widget
+			try:
+				w_dict[w_key] = widget
+			except UnboundLocalError:
+				print(f"UnboundLocalError when generating options widget for {w_key}")
+				raise UnboundLocalError
+
 
 		return w_dict
 
