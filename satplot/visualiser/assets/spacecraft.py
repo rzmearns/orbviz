@@ -76,7 +76,8 @@ class SpacecraftVisualiser(BaseAsset):
 					for ii in range(self.data['curr_index'], -1, -1):
 						if np.all(np.isnan(self.data['pointing'][ii,:])==False):
 							quat = self.data['pointing'][ii,:].reshape(-1,4)
-							rotation = Rotation.from_quat().as_matrix(quat)
+							rotation = Rotation.from_quat(quat).as_matrix()
+							break
 				self.visuals['body_frame'].setTemporaryGizmoXColour((255,0,255))
 				self.visuals['body_frame'].setTemporaryGizmoYColour((255,0,255))
 				self.visuals['body_frame'].setTemporaryGizmoZColour((255,0,255))
