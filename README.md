@@ -8,6 +8,11 @@ Execute the following in the root directory of the repo
 
 `python3 application.py`
 
+If the program doesn't show the Earth on initial startup, try running with reduced GL support
+
+`python3 application.py --nogl+`
+
+This may cause the program to lag if rendering large constellations.
 
 Demos
 -----
