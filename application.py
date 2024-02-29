@@ -8,8 +8,10 @@ import numpy as np
 import satplot.model.timespan as timespan
 import satplot.model.orbit as orbit
 import sys
+import argparse
 import datetime as dt
 import satplot.visualiser.controls.console as console
+import satplot
 
 import warnings
 warnings.filterwarnings("ignore", message="Optimal rotation is not uniquely or poorly defined for the given sets of vectors.")
@@ -201,8 +203,17 @@ class Application():
 			return d.replace(microsecond=0)
 
 if __name__ == '__main__':
+
+	parser = argparse.ArgumentParser(
+						prog='SatPlot',
+						description='Visualisation software for satellites; including orbits and pointing.')
+	parser.add_argument('--nogl+', action='store_true', dest='nogl_plus')
+	args = parser.parse_args()
+	if args.nogl_plus:
+		satplot.gl_plus = False
+	else:
+		satplot.gl_plus = True
 	application = Application()
-	# application.canvas_wrapper.canvas.measure_fps()
 	application.run()
 
 
