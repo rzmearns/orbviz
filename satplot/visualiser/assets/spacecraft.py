@@ -134,6 +134,10 @@ class SpacecraftVisualiser(BaseAsset):
 												'type': 'boolean',
 												'help': '',
 												'callback': self.setBodyFrameVisibility}
+		self._dflt_opts['plot_sensor_suite'] = {'value': True,
+												'type': 'boolean',
+												'help': '',
+												'callback': self.setSensorSuiteVisibility}
 
 		self.opts = self._dflt_opts.copy()
 		self._createOptHelp()
@@ -148,6 +152,10 @@ class SpacecraftVisualiser(BaseAsset):
 	def setSpacecraftAssetVisibility(self, state):
 		self.setOrbitalMarkerVisibility(state)
 		self.setBodyFrameVisibility(state)
+		self.setSensorSuiteVisibility(state)
+
+	def setSensorSuiteVisibility(self, state):
+		self.visuals['sensor_suite'].setVisibility(state)
 
 	def setOrbitalMarkerVisibility(self, state):
 		self.visuals['marker'].visible = state

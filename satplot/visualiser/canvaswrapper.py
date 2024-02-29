@@ -60,6 +60,14 @@ class CanvasWrapper():
 		if pointing is not None:
 			self.assets['spacecraft'].setSource(orbit, pointing)
 			self.is_asset_instantiated['spacecraft'] = True
+		elif self.is_asset_instantiated['spacecraft']:
+			# No pointing on this recalculate, but there is a spacecraft asset
+			print("No spacecraft now")
+			self.is_asset_instantiated['spacecraft'] = False
+			self.assets['spacecraft'].setSpacecraftAssetVisibility(False)
+			self.assets['primary_orbit'].setOrbitalMarkerVisibility(True)
+		else:
+			self.assets['primary_orbit'].setOrbitalMarkerVisibility(True)
 
 
 	def setSunSource(self, orbit):

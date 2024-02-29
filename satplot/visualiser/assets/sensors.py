@@ -57,7 +57,8 @@ class SensorSuite(BaseAsset):
 			sensor.setTransform(pos=pos, rotation=rotation, quat=quat)
 
 	def setVisibility(self, state):
-		pass
+		for sens_name, sensor in self.visuals.items():
+			sensor.setSensorAssetVisibility(state)
 		# self.visuals['gizmo'].visible = state
 
 	def _setDefaultOptions(self):

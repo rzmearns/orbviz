@@ -82,7 +82,10 @@ class Application():
 		self.window._time_slider.setRange(self.t.start, self.t.end, len(self.t))
 		self.window._time_slider._curr_dt_picker.setDatetime(self.t.start)
 		
-		self.canvas_wrapper.setOrbitSource(self.o, pointing=pointing_q)
+		if len(pointing_q) > 0:
+			self.canvas_wrapper.setOrbitSource(self.o, pointing=pointing_q)
+		else:
+			self.canvas_wrapper.setOrbitSource(self.o, pointing=None)
 		self.canvas_wrapper.setSunSource(self.o)
 		self.canvas_wrapper.setMoonSource(self.o)
 		self.canvas_wrapper.setEarthSource()
@@ -144,6 +147,7 @@ class Application():
 			self.o = orbit.Orbit.fromTLE(self.t, self.prim_orbit_TLE_path)
 			console.send(f"\tNumber of steps in single orbit: {self.o.period_steps}")
 			
+			self.pointing_q = np.array(())
 			if self.p_file is not None and self.p_file != '':
 				console.send(f"Loading pointing from {self.p_file.split('/')[-1]}")
 				pointing_w = np.genfromtxt(self.p_file, delimiter=',', usecols=(1),skip_header=1).reshape(-1,1)
