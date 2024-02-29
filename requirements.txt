@@ -1,0 +1,10 @@
+wheel
+vispy
+astropy
+scipy
+geopandas
+skyfield
+PyQt5
+progressbar
+poliastro
+pyopengl

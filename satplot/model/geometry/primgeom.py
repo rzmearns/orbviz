@@ -3,7 +3,6 @@ import scipy.spatial
 import math
 import warnings
 import logging
-import satplot.model.geometry.printgeom as printgeom
 import satplot.util.exceptions as exceptions
 # warnings.filterwarnings('error',message='divide by zero')
 # warnings.filterwarnings('error',message='invalid value')
@@ -55,6 +54,16 @@ def randUnitVector():
 	'''
 	v = np.random.normal(size=3)
 	return v / np.linalg.norm(v)
+
+def generateONBasisFromPointNormal(point, normal):
+	e3 = unitVector(np.asarray(normal))
+	not_e3 = np.array([1,0,0])
+	if(e3 == not_e3).all():
+		not_e3 = np.array([0,1,0])
+	e1 = unitVector(np.cross(e3, not_e3))
+	e2 = unitVector(np.cross(e3, e1))
+
+	return e1,e2,e3
 
 
 def angleBetween(v1, v2, units="rad"):
