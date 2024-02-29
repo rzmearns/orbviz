@@ -3,7 +3,6 @@ import scipy.spatial
 import math
 import warnings
 import logging
-import satplot.model.geometry.printgeom as printgeom
 import satplot.util.exceptions as exceptions
 # warnings.filterwarnings('error',message='divide by zero')
 # warnings.filterwarnings('error',message='invalid value')
