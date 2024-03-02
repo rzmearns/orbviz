@@ -33,7 +33,6 @@ class BaseAsset(ABC):
 				asset.attachToParentView()
 		for visual in self.visuals.values():
 			if visual is not None and not isinstance(visual, list):
-				print(f"visual type: {type(visual)}")
 				visual.parent = self.data['v_parent']
 			elif visual is not None:
 				for el in visual:
