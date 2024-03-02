@@ -12,7 +12,7 @@ class OrbitConfigs(QtWidgets.QWidget):
 							'./data/TLEs/iridiumSMALL_latest.tle',
 							'./data/TLEs/thuraya_latest.tle',
 							'./data/TLEs/swift_latest.tle']
-	constellation_beam_angles = [125.8, 125.8, 15, 0.1]
+	constellation_beam_angles = [125.8, 125.8, 15.0, 0.1]
 
 	def __init__(self, parent: QtWidgets.QWidget=None) -> None:
 		super().__init__(parent)
