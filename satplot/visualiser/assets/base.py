@@ -48,10 +48,13 @@ class BaseAsset(ABC):
 
 	def setVisibility(self, state):
 		'''Sets the visibility of this asset and all sub-assets'''
-		if state:
-			self.attachToParentView()
-		else:
-			self.detachFromParentView()
+		for asset in self.assets.values():
+			asset.setVisibility(state)
+		for visual in self.visuals.values():
+			visual.visible = state
+
+	def setFirstDrawFlag(self):
+		self.first_draw = True
 
 	@abstractmethod
 	def _initData(self):
@@ -77,6 +80,12 @@ class BaseAsset(ABC):
 	@abstractmethod
 	def recompute(self):
 		'''Recompute the asset geometry; apply to sub assets and visuals
+			
+			Should include the following check at the beginning of the function
+			if self.first_draw:
+				...
+				self.first_draw = False
+
 			Should include the following iteration in the overriding method
 			for asset in self.assets.values():
 				asset.recompute() 
