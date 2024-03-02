@@ -100,8 +100,8 @@ class BaseAsset(ABC):
 	def _printVisuals(self):
 		k,v = self._listVisuals()
 		print(f"{self.__name__} asset has visuals:")
-		for ii, item in enumerate(l):
-			print(f"\t{k}-> ref:{v}")
+		for ii, key in enumerate(k):
+			print(f"\t{key}-> ref:{v[ii]}")
 
 	def _listAssets(self):
 		keys = [key for key in self.assets.keys()]
@@ -111,5 +111,5 @@ class BaseAsset(ABC):
 	def _printAssets(self):
 		k,v = self._listAssets()
 		print(f"{self.__name__} asset has sub assets:")
-		for ii, item in enumerate(l):
-			print(f"\t{k}-> ref:{v}")
+		for ii, key in enumerate(k):
+			print(f"\t{key}-> ref:{v[ii]}")
