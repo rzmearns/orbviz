@@ -102,7 +102,6 @@ class Sun(BaseAsset):
 		if self.requires_recompute:
 			# move the sun
 			sun_pos = self.opts['sun_distance']['value'] * pg.unitVector(self.data['curr_pos'])
-
 			self.visuals['sun_sphere'].transform = vTransforms.STTransform(translate=sun_pos)
 			
 			# move umbra
@@ -193,6 +192,15 @@ class Sun(BaseAsset):
 		self.opts = self._dflt_opts.copy()
 
 	#----- OPTIONS CALLBACKS -----#	
+	def setSunSphereVisibility(self, state):
+		self.visuals['sun_sphere'].visible = state
+
+	def setSunDistance(self, distance):
+		raise NotImplementedError
+
+	def setSunSphereRadius(self, radius):
+		raise NotImplementedError
+
 	def setSunSphereColour(self, new_colour):
 		raise NotImplementedError('Bugged')
 		# nnc = colours.normaliseColour(new_colour)
@@ -209,15 +217,15 @@ class Sun(BaseAsset):
 		# self.visuals['earth'].mesh.set_data(color=c)
 		# self.visuals['earth'].mesh.update()
 
+	def setUmbraAlpha(self, alpha):
+		raise NotImplementedError
+
 	def setUmbraColour(self, new_colour):		
 		self.opts['umbra_colour']['value'] = new_colour
 		self.visuals['umbra'].set_data(color=colours.normaliseColour(new_colour))
 
 	def setUmbraVisibility(self, state):
 		self.visuals['umbra'].visible = state
-
-	def setSunSphereVisibility(self, state):
-		self.visuals['sun'].visible = state
 
 	def setAntialias(self, state):
 		raise NotImplementedError
@@ -229,11 +237,4 @@ class Sun(BaseAsset):
 	def setSunVectorColour(self, new_colour):
 		raise NotImplementedError
 
-	def setUmbraAlpha(self, alpha):
-		raise NotImplementedError
 
-	def setSunDistance(self, distance):
-		raise NotImplementedError
-
-	def setSunSphereRadius(self, radius):
-		raise NotImplementedError

@@ -47,6 +47,8 @@ class Moon(BaseAsset):
 		self.recompute()
 
 	def recompute(self):
+		if self.first_draw:
+			self.first_draw = False
 		if self.requires_recompute:			
 			moon_pos = self.opts['moon_distance']['value'] * pg.unitVector(self.data['curr_pos'])
 			self.visuals['moon'].transform = STTransform(translate=moon_pos)

@@ -108,6 +108,8 @@ class Earth(BaseAsset):
 		self.recompute()
 
 	def recompute(self):
+		if self.first_draw:
+			self.first_draw = False
 		if self.requires_recompute:
 			rot_mat = transforms.rotAround(self.data['ecef_rads'], pg.Z)
 			new_coords = rot_mat.dot(self.data['landmass'].T).T
@@ -199,7 +201,7 @@ class Earth(BaseAsset):
 		self.visuals['landmass'].visible = state
 
 	def setEarthSphereVisibility(self, state):
-		self.visuals['earth'].visible = state
+		self.visuals['earth_sphere'].visible = state
 
 	#----- HELPER FUNCTIONS -----#
 	def _convertShapeFilePolys(self, poly):
