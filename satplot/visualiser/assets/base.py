@@ -29,16 +29,26 @@ class BaseAsset(ABC):
 	def attachToParentView(self):
 		'''Sets all nested vispy visuals to use the stored parent'''
 		for asset in self.assets.values():
-			asset.attachToParentView()
+			if asset is not None:
+				asset.attachToParentView()
 		for visual in self.visuals.values():
-			visual.parent = self.data['v_parent']
+			if visual is not None and not isinstance(visual, list):
+				print(f"visual type: {type(visual)}")
+				visual.parent = self.data['v_parent']
+			elif visual is not None:
+				for el in visual:
+					el.parent = self.data['v_parent']
 
 	def detachFromParentView(self):
 		'''Sets all nested vispy visuals to use no parent -> stops rendering'''
 		for asset in self.assets.values():
 			asset.detachFromParentView()
 		for visual in self.visuals.values():
-			visual.parent = None
+			if visual is not None and not isinstance(visual, list):
+				visual.parent = None
+			elif visual is not None:
+				for el in visual:
+					el.parent = None
 
 	def setParentView(self, view):
 		'''Stores the v_parent to the vispy view to use'''
@@ -55,6 +65,8 @@ class BaseAsset(ABC):
 
 	def setFirstDrawFlag(self):
 		self.first_draw = True
+		for asset in self.assets.values():
+			asset.setFirstDrawFlag()
 
 	@abstractmethod
 	def _initData(self):
@@ -64,7 +76,8 @@ class BaseAsset(ABC):
 
 	@abstractmethod
 	def _instantiateAssets(self):
-		'''Create sub assets'''
+		'''Create sub assets
+			pass desired parent to asset at instantiation'''
 		raise NotImplementedError
 	
 	@abstractmethod
