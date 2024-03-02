@@ -4,6 +4,7 @@ from satplot.visualiser.assets.base import BaseAsset
 from satplot.visualiser.controls import console
 
 from satplot.model.geometry import primgeom as pg
+import satplot.model.orbit as orbit
 
 from vispy import scene
 from vispy.visuals.transforms import STTransform
@@ -11,29 +12,33 @@ from vispy.visuals.transforms import STTransform
 import numpy as np
 
 class Moon(BaseAsset):
-	def __init__(self, canvas=None, parent=None):
-		self.parent = parent
-		self.canvas = canvas
+	def __init__(self, v_parent=None):
+		super().__init__(v_parent)
+
+		self._setDefaultOptions()
+		self._initData()
+		self._instantiateAssets()
+		self._createVisuals()
 		
-		self.visuals = {}
-		self.data = {}
-		self.requires_recompute = False
-		self._setDefaultOptions()	
-		self.draw()
-
-		# These callbacks need to be set after draw() as the option dict is populated during draw()
+		self.attachToParentView()
 	
-	def draw(self):
-		self.addMoonSphere()
+	def _initData(self):
+		self.data['curr_pos'] = None
+		self.data['pos'] = None
 
-	def compute():
+	def setSource(self, *args, **kwargs):
+		if type(args[0]) is not orbit.Orbit:
+			raise TypeError
+		self.data['pos'] = args[0].moon
+
+	def _instantiateAssets(self):
 		pass
 
-	def setSource(self, source):
-		self.data['pos'] = source.moon
-
-	def updateParentRef(self, new_parent):
-		self.parent = new_parent
+	def _createVisuals(self):
+		self.visuals['moon'] = scene.visuals.Sphere(radius=self.opts['moon_sphere_radius']['value'],
+												method='latitude',
+												color=colours.normaliseColour(self.opts['moon_sphere_colour']['value']),
+												parent=None)
 
 	def updateIndex(self, new_index):
 		self.data['curr_index'] = new_index
@@ -46,18 +51,10 @@ class Moon(BaseAsset):
 			moon_pos = self.opts['moon_distance']['value'] * pg.unitVector(self.data['curr_pos'])
 			self.visuals['moon'].transform = STTransform(translate=moon_pos)
 
-			for key, visual in self.visuals.items():
-				if isinstance(visual,BaseAsset):
-					pass
+			for asset in self.assets.values():
+				asset.recompute()
 
 			self.requires_recompute = False
-
-	def addMoonSphere(self):
-		self.visuals['moon'] = scene.visuals.Sphere(radius=self.opts['moon_sphere_radius']['value'],
-										method='latitude',
-										parent=self.parent,
-										color=colours.normaliseColour(self.opts['moon_sphere_colour']['value']))		
-
 	
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}
@@ -68,11 +65,7 @@ class Moon(BaseAsset):
 		self._dflt_opts['plot_moon'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
-												'callback': self.setMoonAssetVisibility}
-		self._dflt_opts['plot_moon_sphere'] = {'value': True,
-										  		'type': 'boolean',
-												'help': '',
-												'callback': self.setMoonSphereVisibility}
+												'callback': self.setVisibility}
 		self._dflt_opts['moon_sphere_colour'] = {'value': (61,61,61),
 												'type': 'colour',
 												'help': '',
@@ -93,14 +86,8 @@ class Moon(BaseAsset):
 		# moon radius calculated using 6deg angular size
 
 		self.opts = self._dflt_opts.copy()
-		self._createOptHelp()
-
-	def _createOptHelp(self):
-		pass
 	
-	def setMoonAssetVisibility(self, state):
-		self.setMoonSphereVisibility(state)
-
+	#----- OPTIONS CALLBACKS -----#
 	def setMoonSphereColour(self, new_colour):
 		raise NotImplementedError('Bugged')
 		# nnc = colours.normaliseColour(new_colour)
@@ -116,9 +103,6 @@ class Moon(BaseAsset):
 		# # self.visuals['earth'].mesh.mesh_data_changed()
 		# self.visuals['earth'].mesh.set_data(color=c)
 		# self.visuals['earth'].mesh.update()
-
-	def setMoonSphereVisibility(self, state):
-		self.visuals['moon'].visible = state
 
 	def setAntialias(self, state):
 		raise NotImplementedError
