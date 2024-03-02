@@ -5,6 +5,7 @@ from satplot.visualiser.assets.base import BaseAsset
 import satplot.visualiser.controls.console as console
 import satplot.model.geometry.polyhedra as polyhedra
 import satplot.model.geometry.primgeom as pg
+import satplot.model.orbit as orbit
 
 from scipy.spatial.transform import Rotation
 import scipy.special as sc
@@ -19,59 +20,74 @@ import numpy as np
 import satplot
 
 class Constellation(BaseAsset):
-	def __init__(self, canvas=None, parent=None):
-		self.parent = parent
-		self.canvas = canvas
-		
-		self.visuals = {}
-		self.data = {}
-		self.requires_recompute = False
-		self.first_draw = True
+	def __init__(self, v_parent=None):
+		super().__init__(v_parent)
+		print(f"constellation parent:{self.data['v_parent']}")
 		self._setDefaultOptions()
-		self.visuals['markers']	= None
-		self.visuals['beams'] = None
-		self._initDummyData()
-		self.draw()
+		self._initData()
+		self._instantiateAssets()
+		print(f"{self.assets['beams']}")
+		self._createVisuals()
+		
+		self.attachToParentView()
 
-	def compute(self):
-		pass
-
-	def _initDummyData(self):
+	def _initData(self):
 		self.data['coords'] = np.zeros((4,3))
 		self.data['curr_index'] = 2
+		self.data['beam_angle_deg'] = 0
+		self.data['num_sats'] = 0
+		self.data['beam_height'] = 0
 		
-	def setSource(self, source_list, beam_angle):
-		self.data['beam_angle_deg'] = beam_angle
-		if len(source_list) > 1:
-			self.data['coords'] = np.zeros((len(source_list),len(source_list[0].pos),3))
-			for ii in range(len(source_list)):
-				self.data['coords'][ii,:,:] = source_list[ii].pos
-			self.data['num_sats'] = len(source_list)
-			self.data['beam_height'] = self.calcBeamHeight(beam_angle/2, np.linalg.norm(source_list[0].pos[0,:]))
+	def setSource(self, *args, **kwargs):
+		# args[0] = [orbits]
+		# args[1] = beam angle
+		if type(args[0]) is not list:
+			raise TypeError
+		for el in args[0]:
+			if type(el) is not orbit.Orbit:
+				raise TypeError
+			
+		self.data['beam_angle_deg'] = args[1]
+		self.data['num_sats'] = len(args[0])
+		if self.data['num_sats'] > 1:
+			self.data['coords'] = np.zeros((self.data['num_sats'],len(args[0][0].pos),3))
+			for ii in range(self.data['num_sats']):
+				self.data['coords'][ii,:,:] = args[0][ii].pos
+			self.data['num_sats'] = self.data['num_sats']
+			self.data['beam_height'] = self._calcBeamHeight(self.data['beam_angle_deg']/2,
+												   			np.linalg.norm(args[0][0].pos[0,:]))
 		else:
-			self.data['coords'] = np.zeros((len(source_list[0].pos),3))
-			self.data['coords'][:,:] = source_list[0].pos
+			self.data['coords'] = np.zeros((len(args[0][0].pos),3))
+			self.data['coords'][:,:] = args[0][0].pos
 			self.data['num_sats'] = 1
-			self.data['beam_height'] = self.calcBeamHeight(beam_angle/2, np.linalg.norm(source_list[0].pos[0,:]))
+			self.data['beam_height'] = self._calcBeamHeight(self.data['beam_angle_deg']/2,
+												   			np.linalg.norm(args[0][0].pos[0,:]))
 
-		self.visuals['beams'].setSource(self.data['num_sats'],
+		self.assets['beams'].setSource(self.data['num_sats'],
 								  		self.data['coords'],
 										self.data['curr_index'],
 										self.data['beam_height'],
 										self.data['beam_angle_deg'])
 
-	def updateParentRef(self, new_parent):
-		self.parent = new_parent
+	def _instantiateAssets(self):
+		if satplot.gl_plus:
+			self.assets['beams'] = InstancedConstellationBeams(v_parent=self.data['v_parent'])
+		else:
+			self.assets['beams'] = ConstellationBeams(v_parent=self.data['v_parent'])
 
-	def updateIndex(self, new_index):
-		self.data['curr_index'] = new_index
-		self.visuals['beams'].updateIndex(new_index)
+	def _createVisuals(self):
+		self.visuals['markers'] = scene.visuals.Markers(scaling=True,
+														edge_color='white',
+														symbol='o',
+														antialias=0,
+														parent=None)
+
+	def updateIndex(self, index):
+		self.data['curr_index'] = index
+		for asset in self.assets.values():
+			asset.updateIndex(index)
 		self.requires_recompute = True
 		self.recompute()
-
-	def setFirstDraw(self):
-		self.first_draw = True
-		self.visuals['beams'].setFirstDraw(True)
 
 	def recompute(self):
 		if self.first_draw:
@@ -79,22 +95,8 @@ class Constellation(BaseAsset):
 				# Must do this to clear old visuals before creating a new one
 				# TODO: not clear if this is actually deleting or just removing the reference (memory leak?)
 				self.visuals['markers'].parent = None
-				self.visuals['beams'].parent = None
-			self.addOrbitalMarkers()
-			if satplot.gl_plus:
-				self.visuals['beams'] = InstancedConstellationBeams(dflt_col=(0,255,0),
-																	parent=self.parent)
-				self.visuals['beams'].setSource(self.data['num_sats'],
-								self.data['coords'],
-								self.data['curr_index'],
-								self.data['beam_height'],
-								self.data['beam_angle_deg'])
-			else:
-				self.visuals['beams'].setSource(self.data['num_sats'],
-								self.data['coords'],
-								self.data['curr_index'],
-								self.data['beam_height'],
-								self.data['beam_angle_deg'])
+			self._createVisuals()
+			self.attachToParentView()
 			self.first_draw = False
 
 		if self.requires_recompute:
@@ -106,68 +108,10 @@ class Constellation(BaseAsset):
 				self.visuals['markers'].set_data(pos=self.data['coords'][self.data['curr_index'],:].reshape(-1,3),
 												size=self.opts['constellation_position_marker_size']['value'],
 												face_color=colours.normaliseColour(self.opts['constellation_colour']['value']))
-			self.visuals['beams'].recompute()
+			
+			for asset in self.assets.values():
+				asset.recompute()
 			self.requires_recompute = False
-
-	def draw(self):
-		if satplot.gl_plus:
-			self.visuals['beams'] = InstancedConstellationBeams(dflt_col=(0,255,0),
-													parent=self.parent)
-		else:
-			self.visuals['beams'] = ConstellationBeams(dflt_col=(0,255,0),
-													parent=self.parent)
-		self.first_draw = False
-
-	def addOrbitalMarkers(self):
-		self.visuals['markers'] = scene.visuals.Markers(parent=self.parent, scaling=True, antialias=0)
-		if self.data['num_sats'] > 1:
-			self.visuals['markers'].set_data(pos=self.data['coords'][:,self.data['curr_index'],:].reshape(-1,3),
-											edge_width=0,
-											face_color=colours.normaliseColour(self.opts['constellation_colour']['value']),
-											edge_color='white',
-											size=self.opts['constellation_position_marker_size']['value'],
-											symbol='o')
-		else:
-			self.visuals['markers'].set_data(pos=self.data['coords'][self.data['curr_index'],:].reshape(-1,3),
-											edge_width=0,
-											face_color=colours.normaliseColour(self.opts['constellation_colour']['value']),
-											edge_color='white',
-											size=self.opts['constellation_position_marker_size']['value'],
-											symbol='o')
-
-	def addBeams(self):
-		self.data['start_beam_vec'] = np.array((0,0,1)).reshape(1,3)
-		instance_colours = np.tile(colours.normaliseColour(self.opts['constellation_colour']['value']),(self.data['num_sats'],1))
-		if self.data['num_sats'] > 1:
-			instance_positions = self.data['coords'][:,self.data['curr_index'],:].reshape(-1,3)
-		else:
-			instance_positions = self.data['coords'][self.data['curr_index'],:].reshape(-1,3)
-		
-		if self.data['num_sats'] > 1:
-			instance_transforms = []
-			for ii in range(self.data['num_sats']):
-				beam_axis = -1 * pg.unitVector(self.data['coords'][ii,self.data['curr_index'],:]).reshape(1,3)
-				instance_transforms.append(Rotation.align_vectors(self.data['start_beam_vec'],
-																beam_axis)[0].as_matrix())
-			instance_transforms = np.asarray(instance_transforms)
-		else:
-			beam_axis = -1 * pg.unitVector(self.data['coords'][self.data['curr_index'],:]).reshape(1,3)
-			instance_transforms = Rotation.align_vectors(self.data['start_beam_vec'],
-																beam_axis)[0].as_matrix()
-		
-		vertices, faces = polyhedra.calcConeMesh((0,0,0),
-												self.data['beam_height'],
-												self.data['start_beam_vec'],
-												self.data['beam_angle_deg'],
-												theta_sample = 60)
-		self.visuals['beams'] = vVisuals.Mesh(vertices,
-													faces,
-													instance_colors=instance_colours,
-													instance_positions=instance_positions,
-													instance_transforms=instance_transforms,
-													parent=self.parent)
-		alpha_filter = vFilters.Alpha(self.opts['beams_alpha']['value'])
-		self.visuals['beams'].attach(alpha_filter)
 	
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}
@@ -219,76 +163,61 @@ class Constellation(BaseAsset):
 	def setBeamsAlpha(self, alpha):
 		raise NotImplementedError
 	
-	def calcBeamHeight(self, half_beam_angle, vector_length):
+	def _calcBeamHeight(self, half_beam_angle, vector_length):
 		phi = np.deg2rad(half_beam_angle)
 		altitude = vector_length - c.R_EARTH
 		beam_height = (np.cos(phi)**2 * (vector_length))
 		return beam_height
 	
 class InstancedConstellationBeams(BaseAsset):
-	def __init__(self, dflt_col=(0,255,0), canvas=None, parent=None):
-		self.parent = parent
-		self.canvas = canvas
-		
-		self.visuals = {}
-		self.data = {}
-		self.requires_recompute = False
-		self.first_draw = True
+	def __init__(self, v_parent=None):
+		super().__init__(v_parent)
 		self._setDefaultOptions()
-		self.opts['beams_colour']['value'] = dflt_col
+		self._initData()
+		self._instantiateAssets()
+		# Can't create instanced mesh until source set
 		self.visuals['beams'] = None
-		self.draw()
+		self.attachToParentView()
 
-	def setSource(self, num_sats, coords, curr_index, beam_height, beam_angle_deg,):
+	def _initData(self):
+		self.data['coords'] = None
+		self.data['curr_index'] = 0
+		self.data['num_sats'] = 0
 		self.data['start_beam_vec'] = np.array((0,0,1)).reshape(1,3)
-		self.data['num_sats'] = num_sats
-		self.data['coords'] = coords
-		self.data['curr_index'] = curr_index
-		self.data['beam_height'] = beam_height
-		self.data['beam_angle_deg'] = beam_angle_deg
 
-	def draw(self):
+	def setSource(self, *args, **kwargs):
+		# args[0] = num_sats
+		# args[1] = coords
+		# args[2] = curr_index
+		# args[3] = beam_height
+		# args[4] = beam_angle_deg
+		
+		if type(args[0]) is not int:
+			raise TypeError(f"args[0]:num_sats is not an int -> {args[0]}")
+		self.data['num_sats'] = args[0]
+
+		if type(args[1]) is not np.ndarray:
+			raise TypeError(f"args[1]:coords is not an ndarray -> {args[1]}")
+		self.data['coords'] = args[1]
+
+		if type(args[2]) is not int:
+			raise TypeError(f"args[2]:curr_index is not an int -> {args[2]}")
+		self.data['curr_index'] = args[2]
+
+		if type(args[3]) is not float and type(args[3]) is not np.float64:
+			print(type(args[3]))
+			raise TypeError(f"args[3]:beam_height is not a float -> {args[3]}")
+		self.data['beam_height'] = args[3]
+
+		if type(args[4]) is not float and type(args[4]) is not np.float64:
+			print(type(args[4]))
+			raise TypeError(f"args[4]:beam_angle_deg is not a float -> {args[4]}")
+		self.data['beam_angle_deg'] = args[4]
+
+	def _instantiateAssets(self):
 		pass
 
-	def compute(self):
-		pass
-
-	def recompute(self):
-		if self.first_draw:
-			if self.visuals['beams'] is not None:
-				self.visuals['beams'].parent = None
-			self.addInstancedBeams()
-			self.first_draw = False
-		
-		if self.requires_recompute:
-			if self.data['num_sats'] > 1:
-				instance_transforms = []
-				for ii in range(self.data['num_sats']):
-					beam_axis = -1 * pg.unitVector(self.data['coords'][ii,self.data['curr_index'],:]).reshape(1,3)
-					instance_transforms.append(np.linalg.inv(Rotation.align_vectors(self.data['start_beam_vec'],
-																beam_axis)[0].as_matrix()))
-				instance_transforms = np.asarray(instance_transforms)
-				instance_positions = self.data['coords'][:,self.data['curr_index'],:].reshape(-1,3)
-			else:
-				beam_axis = -1 * pg.unitVector(self.data['coords'][self.data['curr_index'],:]).reshape(1,3)
-				instance_transforms = np.linalg.inv(Rotation.align_vectors(self.data['start_beam_vec'],
-																beam_axis)[0].as_matrix())
-				instance_positions = self.data['coords'][self.data['curr_index'],:].reshape(-1,3)				
-
-			self.visuals['beams'].instance_transforms = instance_transforms
-			self.visuals['beams'].instance_positions = instance_positions
-			self.requires_recompute = False
-
-	def setFirstDraw(self, state):
-		self.first_draw = state
-
-	def updateIndex(self, new_index):
-		self.data['curr_index'] = new_index
-		self.requires_recompute = True
-		self.recompute()
-
-	def addInstancedBeams(self):
-		
+	def _createVisuals(self):
 		instance_colours = np.tile(colours.normaliseColour(self.opts['beams_colour']['value']),(self.data['num_sats'],1))
 		if self.data['num_sats'] > 1:
 			instance_positions = self.data['coords'][:,self.data['curr_index'],:].reshape(-1,3)
@@ -317,9 +246,44 @@ class InstancedConstellationBeams(BaseAsset):
 													instance_colors=instance_colours,
 													instance_positions=instance_positions,
 													instance_transforms=instance_transforms,
-													parent=self.parent)
+													parent=None)
 		alpha_filter = vFilters.Alpha(self.opts['beams_alpha']['value'])
-		self.visuals['beams'].attach(alpha_filter)		
+		self.visuals['beams'].attach(alpha_filter)
+		print("Created beams")
+
+	def updateIndex(self, index):
+		self.data['curr_index'] = index
+		for asset in self.assets.values():
+			asset.updateIndex(index)
+		self.requires_recompute = True
+		self.recompute()
+
+	def recompute(self):
+		if self.first_draw:
+			if self.visuals['beams'] is not None:
+				self.visuals['beams'].parent = None
+			self._createVisuals()
+			self.attachToParentView()
+			self.first_draw = False
+		
+		if self.requires_recompute:
+			if self.data['num_sats'] > 1:
+				instance_transforms = []
+				for ii in range(self.data['num_sats']):
+					beam_axis = -1 * pg.unitVector(self.data['coords'][ii,self.data['curr_index'],:]).reshape(1,3)
+					instance_transforms.append(np.linalg.inv(Rotation.align_vectors(self.data['start_beam_vec'],
+																beam_axis)[0].as_matrix()))
+				instance_transforms = np.asarray(instance_transforms)
+				instance_positions = self.data['coords'][:,self.data['curr_index'],:].reshape(-1,3)
+			else:
+				beam_axis = -1 * pg.unitVector(self.data['coords'][self.data['curr_index'],:]).reshape(1,3)
+				instance_transforms = np.linalg.inv(Rotation.align_vectors(self.data['start_beam_vec'],
+																beam_axis)[0].as_matrix())
+				instance_positions = self.data['coords'][self.data['curr_index'],:].reshape(-1,3)				
+
+			self.visuals['beams'].instance_transforms = instance_transforms
+			self.visuals['beams'].instance_positions = instance_positions
+			self.requires_recompute = False
 
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}
@@ -332,11 +296,8 @@ class InstancedConstellationBeams(BaseAsset):
 										'help': '',
 										'callback': self.setBeamsColour}
 		self.opts = self._dflt_opts.copy()
-		self._createOptHelp()
 
-	def _createOptHelp(self):
-		pass
-
+	#----- OPTIONS CALLBACKS -----#	
 	def setBeamsColour(self, new_colour):
 		self.opts['beams_colour']['value'] = colours.normaliseColour(new_colour)
 		self.visuals['beams'].set_data(face_color=colours.normaliseColour(new_colour))		
@@ -348,78 +309,54 @@ class InstancedConstellationBeams(BaseAsset):
 		self.visuals['beams'].visible = False
 
 class ConstellationBeams(BaseAsset):
-	def __init__(self, dflt_col=(0,255,0), canvas=None, parent=None):
-		self.parent = parent
-		self.canvas = canvas
-		
-		self.visuals = {}
-		self.data = {}
-		self.requires_recompute = False
-		self.first_draw = True
+	def __init__(self, v_parent=None):
+		super().__init__(v_parent)
 		self._setDefaultOptions()
-		self.opts['beams_colour']['value'] = dflt_col
+		self._initData()
+		self._instantiateAssets()
+		# Can't create instanced mesh until source set
 		self.visuals['beams'] = None
-		self.draw()
+		self.attachToParentView()
 
-	def setSource(self, num_sats, coords, curr_index, beam_height, beam_angle_deg,):
-		self.data['start_beam_vec'] = np.array((0,0,1)).reshape(1,3)
-		self.data['num_sats'] = num_sats
-		self.data['coords'] = coords
-		self.data['curr_index'] = curr_index
-		self.data['beam_height'] = beam_height
-		self.data['beam_angle_deg'] = beam_angle_deg
+	def _initData(self):
+		self.data['coords'] = None
+		self.data['curr_index'] = 0
+		self.data['num_sats'] = 0
+		self.data['start_beam_vec'] = np.array((0,0,1)).reshape(1,3)		
 
-	def draw(self):
-		pass
-
-	def compute(self):
-		pass
-
-	def recompute(self):
-		if self.first_draw:
-			if self.visuals['beams'] is not None:
-				for ii in range(len(self.visuals['beams'])):
-					self.visuals['beams'][ii].parent = None
-			self.addBeams()
-			self.first_draw = False
+	def setSource(self, *args, **kwargs):
+		# args[0] = num_sats
+		# args[1] = coords
+		# args[2] = curr_index
+		# args[3] = beam_height
+		# args[4] = beam_angle_deg
 		
-		if self.requires_recompute:
-			if self.data['num_sats'] > 1:
-				instance_transforms = []
-				instance_positions = []
-				print(f"coords:{self.data['coords'].shape}")
-				for ii in range(self.data['num_sats']):
-					beam_axis = -1 * pg.unitVector(self.data['coords'][ii,self.data['curr_index'],:]).reshape(1,3)
-					instance_transforms.append((Rotation.align_vectors(self.data['start_beam_vec'],
-																beam_axis)[0].as_matrix()))
-				instance_transforms = np.asarray(instance_transforms)
-				instance_positions = self.data['coords'][:,self.data['curr_index'],:].reshape(-1,3)
-			else:
-				beam_axis = -1 * pg.unitVector(self.data['coords'][self.data['curr_index'],:]).reshape(1,3)
-				instance_transforms = (Rotation.align_vectors(self.data['start_beam_vec'],
-																beam_axis)[0].as_matrix())
-				instance_positions = self.data['coords'][self.data['curr_index'],:].reshape(-1,3)				
+		if type(args[0]) is not int:
+			raise TypeError(f"args[0]:num_sats is not an int -> {args[0]}")
+		self.data['num_sats'] = args[0]
 
-			for ii in range(self.data['num_sats']):
-				T = np.eye(4)
-				print(f"T:{instance_transforms.shape}")
-				print(f"O:{instance_positions.shape}")
-				T[0:3,0:3] = instance_transforms[ii,:,:]
-				T[3,0:3] = instance_positions[ii,:]
-				transform = vTransforms.linear.MatrixTransform(T)
-				self.visuals['beams'][ii].transform = transform
-			
-			self.requires_recompute = False
+		if type(args[1]) is not np.ndarray:
+			raise TypeError(f"args[1]:coords is not an ndarray -> {args[1]}")
+		self.data['coords'] = args[1]
 
-	def setFirstDraw(self, state):
-		self.first_draw = state
+		if type(args[2]) is not int:
+			raise TypeError(f"args[2]:curr_index is not an int -> {args[2]}")
+		self.data['curr_index'] = args[2]
 
-	def updateIndex(self, new_index):
-		self.data['curr_index'] = new_index
-		self.requires_recompute = True
-		self.recompute()
+		if type(args[3]) is not float and type(args[3]) is not np.float64:
+			print(type(args[3]))
+			raise TypeError(f"args[3]:beam_height is not a float -> {args[3]}")
+		self.data['beam_height'] = args[3]
 
-	def addBeams(self):
+		if type(args[4]) is not float and type(args[4]) is not np.float64:
+			print(type(args[4]))
+			raise TypeError(f"args[4]:beam_angle_deg is not a float -> {args[4]}")
+		self.data['beam_angle_deg'] = args[4]
+
+	def _instantiateAssets(self):
+		pass
+
+	def _createVisuals(self):
 		self.visuals['beams'] = []
 		instance_colours = np.tile(colours.normaliseColour(self.opts['beams_colour']['value']),(self.data['num_sats'],1))
 		if self.data['num_sats'] > 1:
@@ -448,8 +385,7 @@ class ConstellationBeams(BaseAsset):
 			self.visuals['beams'].append(vVisuals.Mesh(vertices,
 													faces,
 													color=instance_colours[ii,:],
-
-													parent=self.parent))
+													parent=None))
 			T = np.eye(4)
 			T[0:3,0:3] = instance_transforms[ii]
 			T[3,0:3] = instance_positions[ii]
@@ -458,7 +394,49 @@ class ConstellationBeams(BaseAsset):
 			except:
 				print(f"T:{T}")
 			self.visuals['beams'][ii].transform = transform
-			self.visuals['beams'][ii].attach(alpha_filter)		
+			self.visuals['beams'][ii].attach(alpha_filter)			
+
+	def updateIndex(self, index):
+		self.data['curr_index'] = index
+		for asset in self.assets.values():
+			asset.updateIndex(index)
+		self.requires_recompute = True
+		self.recompute()
+
+	def recompute(self):
+		if self.first_draw:
+			if self.visuals['beams'] is not None:
+				for ii in range(len(self.visuals['beams'])):
+					self.visuals['beams'][ii].parent = None
+			self._createVisuals()
+			self.attachToParentView()
+			self.first_draw = False
+		
+		if self.requires_recompute:
+			if self.data['num_sats'] > 1:
+				instance_transforms = []
+				instance_positions = []
+				for ii in range(self.data['num_sats']):
+					beam_axis = -1 * pg.unitVector(self.data['coords'][ii,self.data['curr_index'],:]).reshape(1,3)
+					instance_transforms.append((Rotation.align_vectors(self.data['start_beam_vec'],
+																beam_axis)[0].as_matrix()))
+				instance_transforms = np.asarray(instance_transforms)
+				instance_positions = self.data['coords'][:,self.data['curr_index'],:].reshape(-1,3)
+			else:
+				beam_axis = -1 * pg.unitVector(self.data['coords'][self.data['curr_index'],:]).reshape(1,3)
+				instance_transforms = (Rotation.align_vectors(self.data['start_beam_vec'],
+																beam_axis)[0].as_matrix())
+				instance_positions = self.data['coords'][self.data['curr_index'],:].reshape(-1,3)				
+
+			for ii in range(self.data['num_sats']):
+				T = np.eye(4)
+				T[0:3,0:3] = instance_transforms[ii,:,:]
+				T[3,0:3] = instance_positions[ii,:]
+				transform = vTransforms.linear.MatrixTransform(T)
+				self.visuals['beams'][ii].transform = transform
+			
+			self.requires_recompute = False
+
 
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}
@@ -471,11 +449,8 @@ class ConstellationBeams(BaseAsset):
 										'help': '',
 										'callback': self.setBeamsColour}
 		self.opts = self._dflt_opts.copy()
-		self._createOptHelp()
 
-	def _createOptHelp(self):
-		pass
-
+	#----- OPTIONS CALLBACKS -----#	
 	def setBeamsColour(self, new_colour):
 		self.opts['beams_colour']['value'] = colours.normaliseColour(new_colour)
 		for ii in range(self.data['num_sats']):
