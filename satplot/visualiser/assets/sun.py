@@ -70,6 +70,7 @@ class Sun(BaseAsset):
 		self.visuals['umbra'].transform = vTransforms.STTransform(scale=(0.001,0.001,0.001))		
 		alpha_filter = vFilters.Alpha(self.opts['umbra_alpha']['value'])
 		self.visuals['umbra'].attach(alpha_filter)
+		print("Created Umbra")
 
 		# Sun Vector
 		self.visuals['vector_body'] = vVisuals.Line(self.data['vector'][:,0:3],
@@ -98,6 +99,12 @@ class Sun(BaseAsset):
 
 	def recompute(self):
 		if self.first_draw:
+			if self.visuals['umbra'] is not None:
+				# Must do this to clear old visuals before creating a new one
+				# TODO: not clear if this is actually deleting or just removing the reference (memory leak?)
+				self.visuals['umbra'].parent = None
+			self._createVisuals()
+			self.attachToParentView()			
 			self.first_draw = False
 		if self.requires_recompute:
 			# move the sun
