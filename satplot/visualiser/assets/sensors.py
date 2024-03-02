@@ -2,7 +2,7 @@
 import numpy as np
 import satplot.util.constants as c
 import satplot.visualiser.colours as colours
-from satplot.visualiser.assets.base import BaseAsset
+from satplot.visualiser.assets.base import SimpleAsset
 from satplot.visualiser.controls import console
 
 import satplot.model.geometry.polyhedra as polyhedra
@@ -13,138 +13,123 @@ import vispy.visuals.filters as vFilters
 
 from scipy.spatial.transform import Rotation
 
-class SensorSuite(BaseAsset):
-	def __init__(self, sens_suite_dict, canvas=None, parent=None):
-
+class SensorSuite(SimpleAsset):
+	def __init__(self, sens_suite_dict, v_parent=None):
+		super().__init__(v_parent)
 		
-		self.visuals = {}
-		self.data = {}
-		self.requires_recompute = False
-
-		self.parent = parent
-		self.data['sens_suite_dict'] = sens_suite_dict
 		self._setDefaultOptions()
-		self.draw()
-
+		self._initData()
 		
-	def compute(self):
+		self.setSource(sens_suite_dict)
+		self._instantiateAssets()
+		self._createVisuals()	
+		self.attachToParentView()
+		
+	def _initData(self):
+		pass
+		
+	def setSource(self, *args, **kwargs):
+		self.data['sens_suite_dict'] = args[0]
+
+	def _instantiateAssets(self):
 		pass
 
-	def draw(self):
-		for ii in range(len(self.data['sens_suite_dict']['spacecraft']['sensors'].keys())):
-			
+	def _createVisuals(self):
+		for ii in range(len(self.data['sens_suite_dict']['spacecraft']['sensors'].keys())):			
 			sens_name = list(self.data['sens_suite_dict']['spacecraft']['sensors'].keys())[ii]
 			sens_dict = list(self.data['sens_suite_dict']['spacecraft']['sensors'].values())[ii]
-			print(f"Creating sensor {sens_name}")
 			if sens_dict['shape'] == 'cone':
-				self.visuals[sens_name] = Sensor.cone(sens_name, sens_dict, parent=self.parent)
+				self.assets[sens_name] = Sensor.cone(sens_name, sens_dict, parent=self.data['v_parent'])
 			elif sens_dict['shape'] == 'square_pyramid':
-				self.visuals[sens_name] = Sensor.squarePyramid(sens_name, sens_dict, parent=self.parent)
+				self.assets[sens_name] = Sensor.squarePyramid(sens_name, sens_dict, parent=self.data['v_parent'])
 			self.opts[f'plot_{sens_name}'] = {'value': True,
 											'type': 'boolean',
 											'help': '',
-											'callback': self.visuals[sens_name].setSensorAssetVisibility}
-
-	def recompute(self):
-		pass
+											'callback': self.assets[sens_name].setVisibility}
 
 	def setTransform(self, pos=(0,0,0), rotation=None, quat=None):
 		if rotation is None and quat is None:
 			raise ValueError("Rotation and quaternion passed sensor suite cannot both be None")
 		if rotation is not None and quat is not None:
 			raise ValueError("Both rotation and quaternion passed to sensor suite, don't know which one to use")
-		for sens_name, sensor in self.visuals.items():
-			sensor.setTransform(pos=pos, rotation=rotation, quat=quat)
-
-	def setVisibility(self, state):
-		for sens_name, sensor in self.visuals.items():
-			sensor.setSensorAssetVisibility(state)
-		# self.visuals['gizmo'].visible = state
+		for asset in self.assets.values():
+			asset.setTransform(pos=pos, rotation=rotation, quat=quat)
 
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}
-
 		self.opts = self._dflt_opts.copy()
-		self._createOptHelp()
 
-	def _createOptHelp(self):
-		pass
-
-	def setSensorSuiteAssetVisibility(self, state):
-		raise NotImplementedError
-
-class Sensor(BaseAsset):
+class Sensor(SimpleAsset):
 	def __init__(self, sensor_name, mesh_verts, mesh_faces,
-			  			bf_quat, colour, sens_type=None, parent=None, *args, **kwargs):
-
-		self.type = sens_type
-		print(self.type)
-		if self.type is None:
-			raise ValueError('Sensor() should not be called directly, use one of the constructor methods')
-		
-		self.visuals = {}
-		self.data = {}
-		self.requires_recompute = False
+			  			bf_quat, colour, sens_type=None, v_parent=None, *args, **kwargs):
+		super().__init__(v_parent)
 		self._setDefaultOptions()
-
-		print(f"sensor parent passed to init:{parent}")
-		self.parent = parent
-		print(f"sensor parent set in init:{self.parent}")
-		self.name = sensor_name
-		self.type = type
-		self.data['sensor_cone_vertices'] = mesh_verts
-		self.data['sensor_cone_faces'] = mesh_faces
-		self.data['bf_quat'] = bf_quat
-		print(f"sensor:{self.name} body frame quat {self.data['bf_quat']}")
-		self.opts['sensor_cone_colour']['value'] = colour
-
-		self.draw()
+		self._initData()
 		
-	def compute(self):
-		pass
+		self.data['type'] = sens_type
+		if self.data['type'] is None:
+			raise ValueError('Sensor() should not be called directly, use one of the constructor methods')		
 
-	def draw(self):
-		self.addSensorCone()
+		self.setSource(sensor_name, mesh_verts, mesh_faces, bf_quat, colour)
+
+		self._instantiateAssets()
+		self._createVisuals()
 		self.setTransform()
+		self.attachToParentView()
+		
+	def _initData(self):
+		self.data['type'] = None
+		self.data['name'] = None
+		self.data['vertices'] = None
+		self.data['faces'] = None
+		self.data['bf_quat'] = None
 
-	def recompute(self):
+	def setSource(self, *args, **kwargs):
+		self.data['name'] = args[0]
+		self.data['mesh_vertices'] = args[1]
+		self.data['mesh_faces'] = args[2]
+		self.data['bf_quat'] = args[3]
+		self.opts['sensor_cone_colour']['value'] = args[4]
+
+	def _instantiateAssets(self):
 		pass
 
-	def addSensorCone(self):
-		self.visuals['sensor_cone'] = vVisuals.Mesh(self.data['sensor_cone_vertices'],
-    											self.data['sensor_cone_faces'],
+	def _createVisuals(self):
+		self.visuals['sensor_cone'] = vVisuals.Mesh(self.data['mesh_vertices'],
+    											self.data['mesh_faces'],
     											color=colours.normaliseColour(self.opts['sensor_cone_colour']['value']),
-    											parent=self.parent)
+    											parent=None)
 		self.setTransform(rotation=Rotation.from_quat(self.data['bf_quat']).as_matrix().reshape(3,3))
-		print(f"sensor parent:{self.parent}")
 		wireframe_filter = vFilters.WireframeFilter(width=1)
 		alpha_filter = vFilters.Alpha(self.opts['sensor_cone_alpha']['value'])
 		self.visuals['sensor_cone'].attach(alpha_filter)
 		self.visuals['sensor_cone'].attach(wireframe_filter)
 
 	def setTransform(self, pos=(0,0,0), rotation=None, quat=None):
+		print(f"sensor:{self.data['name']} parent {self.data['v_parent']}")
+		print(f"\tmesh parent: {self.visuals['sensor_cone'].parent}")
+		print(f"\tmesh visible: {self.visuals['sensor_cone'].visible}")
 		T = np.eye(4)
 		if quat is not None:
 			rotation = Rotation.from_quat(self.data['bf_quat']) * Rotation.from_quat(quat)
 			rot_mat = rotation.as_matrix()
-			print(f"sensor:{self.name} body frame quat {self.data['bf_quat']}")
-			print(f"sensor:{self.name} sc quat {quat}")
-			print(f"sensor:{self.name} net quat {rotation.as_quat}")
-			print("")
+			# print(f"sensor:{self.data['name']} body frame quat {self.data['bf_quat']}")
+			# print(f"sensor:{self.data['name']} sc quat {quat}")
+			# print(f"sensor:{self.data['name']} net quat {rotation.as_quat}")
+			# print("")
 			# rotation = Rotation.from_quat(new_quat).as_matrix()[0]
 		elif rotation is not None:
 			rot_mat = np.eye(3)
 		else:
 			rotation = Rotation.from_quat(self.data['bf_quat'])
 			rot_mat = rotation.as_matrix()
-			print(f"sensor:{self.name} body frame quat {self.data['bf_quat']}")
+			# print(f"sensor:{self.data['name']} body frame quat {self.data['bf_quat']}")
 		T[0:3,0:3] = rot_mat
 		T[3,0:3] = np.asarray(pos).reshape(-1,3)
 		self.visuals['sensor_cone'].transform = vTransforms.linear.MatrixTransform(T)
 
-	def setVisibility(self, state):
-		pass
-		# self.visuals['gizmo'].visible = state
+		for asset in self.assets.values():
+			asset.setTransform(pos=pos, rotation=rotation, quat=quat)
 
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}
@@ -159,8 +144,8 @@ class Sensor(BaseAsset):
 												'callback': self.setSensorConeAlpha}
 
 		self.opts = self._dflt_opts.copy()
-		self._createOptHelp()
 
+	#----- OPTIONS CALLBACKS -----#
 	def setSensorConeColour(self, new_colour):		
 		self.opts['sensor_cone_colour']['value'] = new_colour
 		self.visuals['sensor_cone'].set_data(color=colours.normaliseColour(new_colour))
@@ -168,15 +153,9 @@ class Sensor(BaseAsset):
 	def setSensorConeAlpha(self, alpha):
 		raise NotImplementedError
 
-	def _createOptHelp(self):
-		pass
 
-	def setSensorAssetVisibility(self, state):
-		self.visuals['sensor_cone'].visible = state
-	
 	@classmethod
 	def cone(cls, sensor_name, sensor_dict, parent=None):
-		print(f"sensor parent passed to constructor:{parent}")
 		mesh_verts, mesh_faces  = polyhedra.calcConeMesh((0,0,0),
 								  		sensor_dict['range'],
 										(1,0,0),
@@ -184,11 +163,10 @@ class Sensor(BaseAsset):
 		
 		bf_quat = np.asarray([float(x) for x in sensor_dict['bf_quat'].replace('(','').replace(')','').split(',')]).reshape(1,4)
 		colour = [int(x) for x in sensor_dict['colour'].replace('(','').replace(')','').split(',')]
-		return cls(sensor_name, mesh_verts, mesh_faces, bf_quat, colour, sens_type='cone', parent=parent)
+		return cls(sensor_name, mesh_verts, mesh_faces, bf_quat, colour, sens_type='cone', v_parent=parent)
 
 	@classmethod
 	def squarePyramid(cls, sensor_name, sensor_dict, parent=None):
-		print(f"sensor parent passed to constructor:{parent}")
 		mesh_verts, mesh_faces  = polyhedra.calcSquarePyramidMesh((0,0,0),
 								  		sensor_dict['range'],
 										(1,0,0),
@@ -198,4 +176,5 @@ class Sensor(BaseAsset):
 		
 		bf_quat = np.asarray([float(x) for x in sensor_dict['bf_quat'].replace('(','').replace(')','').split(',')]).reshape(1,4)
 		colour = [int(x) for x in sensor_dict['colour'].replace('(','').replace(')','').split(',')]
-		return cls(sensor_name, mesh_verts, mesh_faces, bf_quat, colour, sens_type='square_pyramid', parent=parent)
+		return cls(sensor_name, mesh_verts, mesh_faces, bf_quat, colour, sens_type='square_pyramid', v_parent=parent)
+

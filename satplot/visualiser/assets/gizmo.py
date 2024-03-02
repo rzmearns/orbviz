@@ -2,47 +2,45 @@
 import numpy as np
 import satplot.util.constants as c
 import satplot.visualiser.colours as colours
-from satplot.visualiser.assets.base import BaseAsset
+from satplot.visualiser.assets.base import BaseAsset, SimpleAsset
 from satplot.visualiser.controls import console
 
 
 from vispy import scene
 from vispy.visuals import transforms as vTransforms
 
-class BodyGizmo(BaseAsset):
-	def __init__(self, canvas=None, parent=None, scale=1, width=1):
-		self.parent = parent
-		self.canvas = canvas
-		
-		self.visuals = {}
-		self.scale = scale
-		self.requires_recompute = False
-		self._setDefaultOptions()	
-		self.draw()
+class BodyGizmo(SimpleAsset):
+	def __init__(self, v_parent=None, scale=1, width=1):
+		super().__init__(v_parent)
+						
+		self._setDefaultOptions()
+		self._initData()
+		self.setSource(scale, width)
+		self._instantiateAssets()
+		self._createVisuals()				
+		self.attachToParentView()
 
-		self.visuals['gizmo'] = scene.visuals.XYZAxis(parent=self.parent, width=width)
-		scale_vec = self.scale*np.ones((1,3))
+	def _initData(self):
+		pass
+		
+	def setSource(self, *args, **kwargs):
+		self.opts['gizmo_scale']['value'] = args[0]
+		self.opts['gizmo_width']['value'] = args[1]
+
+	def _instantiateAssets(self):
+		pass
+
+	def _createVisuals(self):
+		self.visuals['gizmo'] = scene.visuals.XYZAxis(width=self.opts['gizmo_width']['value'],
+														parent=None)
+		scale_vec = self.opts['gizmo_scale']['value']*np.ones((1,3))
 		self.visuals['gizmo'].transform = vTransforms.STTransform(scale=scale_vec).as_matrix()
-		# a = scene.visuals.XYZAxis().col
-
-		
-	def compute(self):
-		pass
-
-	def draw(self):
-		pass
-
-	def recompute(self):
-		pass
 
 	def setTransform(self, pos=(0,0,0), rotation=np.eye(3)):
 		T = np.eye(4)
-		T[0:3,0:3] = self.scale*rotation
+		T[0:3,0:3] = self.opts['gizmo_scale']['value']*rotation
 		T[3,0:3] = np.asarray(pos).reshape(-1,3)
 		self.visuals['gizmo'].transform = vTransforms.linear.MatrixTransform(T)
-
-	def setVisibility(self, state):
-		self.visuals['gizmo'].visible = state
 
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}
@@ -59,16 +57,18 @@ class BodyGizmo(BaseAsset):
 												'type': 'colour',
 												'help': '',
 												'callback': self.setGizmoZColour}
+		self._dflt_opts['gizmo_width'] = {'value': 1,
+										  		'type': 'number',
+												'help': '',
+												'callback': None}
+		self._dflt_opts['gizmo_scale'] = {'value': 1,
+										  		'type': 'number',
+												'help': '',
+												'callback': None}
 
 		self.opts = self._dflt_opts.copy()
-		self._createOptHelp()
 
-	def _createOptHelp(self):
-		pass
-
-	def setGizmoAssetVisibility(self, state):
-		raise NotImplementedError
-	
+	#----- OPTIONS CALLBACKS -----#
 	def setGizmoXColour(self, colour):
 		old_colour_arr = self.visuals['gizmo'].color
 		old_colour_arr[0,0:3] = np.asarray(colours.normaliseColour(colour))
