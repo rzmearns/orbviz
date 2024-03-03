@@ -20,8 +20,8 @@ import numpy as np
 import satplot
 
 class Constellation(BaseAsset):
-	def __init__(self, v_parent=None):
-		super().__init__(v_parent)
+	def __init__(self, name=None, v_parent=None):
+		super().__init__(name, v_parent)
 		print(f"constellation parent:{self.data['v_parent']}")
 		self._setDefaultOptions()
 		self._initData()
@@ -32,6 +32,8 @@ class Constellation(BaseAsset):
 		self.attachToParentView()
 
 	def _initData(self):
+		if self.data['name'] is None:
+			self.data['name'] = 'Constellation'
 		self.data['coords'] = np.zeros((4,3))
 		self.data['curr_index'] = 2
 		self.data['beam_angle_deg'] = 0
@@ -71,9 +73,9 @@ class Constellation(BaseAsset):
 
 	def _instantiateAssets(self):
 		if satplot.gl_plus:
-			self.assets['beams'] = InstancedConstellationBeams(v_parent=self.data['v_parent'])
+			self.assets['beams'] = InstancedConstellationBeams(name=f'{self.data["name"]}_beams', v_parent=self.data['v_parent'])
 		else:
-			self.assets['beams'] = ConstellationBeams(v_parent=self.data['v_parent'])
+			self.assets['beams'] = ConstellationBeams(name=f'{self.data["name"]}_beams', v_parent=self.data['v_parent'])
 
 	def _createVisuals(self):
 		self.visuals['markers'] = scene.visuals.Markers(scaling=True,
@@ -170,8 +172,8 @@ class Constellation(BaseAsset):
 		return beam_height
 	
 class InstancedConstellationBeams(BaseAsset):
-	def __init__(self, v_parent=None):
-		super().__init__(v_parent)
+	def __init__(self, name=None, v_parent=None):
+		super().__init__(name, v_parent)
 		self._setDefaultOptions()
 		self._initData()
 		self._instantiateAssets()
@@ -180,6 +182,8 @@ class InstancedConstellationBeams(BaseAsset):
 		self.attachToParentView()
 
 	def _initData(self):
+		if self.data['name'] is None:
+			self.data['name'] = 'ConstellationBeams'
 		self.data['coords'] = None
 		self.data['curr_index'] = 0
 		self.data['num_sats'] = 0
@@ -309,8 +313,8 @@ class InstancedConstellationBeams(BaseAsset):
 		self.visuals['beams'].visible = False
 
 class ConstellationBeams(BaseAsset):
-	def __init__(self, v_parent=None):
-		super().__init__(v_parent)
+	def __init__(self, name=None, v_parent=None):
+		super().__init__(name, v_parent)
 		self._setDefaultOptions()
 		self._initData()
 		self._instantiateAssets()
@@ -319,6 +323,8 @@ class ConstellationBeams(BaseAsset):
 		self.attachToParentView()
 
 	def _initData(self):
+		if self.data['name'] is None:
+			self.data['name'] = 'ConstellationBeams'
 		self.data['coords'] = None
 		self.data['curr_index'] = 0
 		self.data['num_sats'] = 0

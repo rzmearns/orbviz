@@ -14,7 +14,7 @@ import vispy.visuals.filters as vFilters
 from scipy.spatial.transform import Rotation
 
 class SensorSuite(SimpleAsset):
-	def __init__(self, sens_suite_dict, v_parent=None):
+	def __init__(self, sens_suite_dict, name=None, v_parent=None):
 		super().__init__(v_parent)
 		
 		self._setDefaultOptions()
@@ -26,7 +26,8 @@ class SensorSuite(SimpleAsset):
 		self.attachToParentView()
 		
 	def _initData(self):
-		pass
+		if self.data['name'] is None:
+			self.data['name'] = 'SensorSuite'
 		
 	def setSource(self, *args, **kwargs):
 		self.data['sens_suite_dict'] = args[0]
@@ -65,7 +66,6 @@ class Sensor(SimpleAsset):
 		super().__init__(v_parent)
 		self._setDefaultOptions()
 		self._initData()
-		
 		self.data['type'] = sens_type
 		if self.data['type'] is None:
 			raise ValueError('Sensor() should not be called directly, use one of the constructor methods')		
@@ -106,9 +106,7 @@ class Sensor(SimpleAsset):
 		self.visuals['sensor_cone'].attach(wireframe_filter)
 
 	def setTransform(self, pos=(0,0,0), rotation=None, quat=None):
-		print(f"sensor:{self.data['name']} parent {self.data['v_parent']}")
-		print(f"\tmesh parent: {self.visuals['sensor_cone'].parent}")
-		print(f"\tmesh visible: {self.visuals['sensor_cone'].visible}")
+		
 		T = np.eye(4)
 		if quat is not None:
 			rotation = Rotation.from_quat(self.data['bf_quat']) * Rotation.from_quat(quat)

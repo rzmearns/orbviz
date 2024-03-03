@@ -12,8 +12,8 @@ from vispy.visuals.transforms import STTransform
 import numpy as np
 
 class Moon(BaseAsset):
-	def __init__(self, v_parent=None):
-		super().__init__(v_parent)
+	def __init__(self, name=None, v_parent=None):
+		super().__init__(name, v_parent)
 
 		self._setDefaultOptions()
 		self._initData()
@@ -23,6 +23,8 @@ class Moon(BaseAsset):
 		self.attachToParentView()
 	
 	def _initData(self):
+		if self.data['name'] is None:
+			self.data['name'] = 'Moon'		
 		self.data['curr_pos'] = None
 		self.data['pos'] = None
 

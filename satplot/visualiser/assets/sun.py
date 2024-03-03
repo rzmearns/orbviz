@@ -21,10 +21,10 @@ from scipy.spatial.transform import Rotation
 import numpy as np
 
 class Sun(BaseAsset):
-	def __init__(self, v_parent=None):
-		super().__init__(v_parent)
+	def __init__(self, name=None, v_parent=None):
+		super().__init__(name, v_parent)
 
-		self._setDefaultOptions()	
+		self._setDefaultOptions()
 		self._initData()
 		self._instantiateAssets()
 		self._createVisuals()		
@@ -32,6 +32,8 @@ class Sun(BaseAsset):
 		self.attachToParentView()
 	
 	def _initData(self):
+		if self.data['name'] is None:
+			self.data['name'] = 'Sun'
 		self.data['umbra_start_axis'] = np.array((1,0,0)).reshape(1,3)
 		self.data['umbra_vertices'], self.data['umbra_faces'] = \
 						polyhedra.calcCylinderMesh((0,0,0),

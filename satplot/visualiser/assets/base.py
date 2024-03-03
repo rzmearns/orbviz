@@ -6,13 +6,14 @@ class BaseAsset(ABC):
 	# name_str: str
 
 	@abstractmethod
-	def __init__(self, v_parent=None):
+	def __init__(self, name=None, v_parent=None):
 		# dict storing vispy visuals to be drawn as part of this asset
 		self.visuals = {}
 		# dict storing satplot child assets
 		self.assets = {}
 		# dict storing crucial data for this asset
 		self.data = {}
+		self.data['name'] = name
 		self.data['v_parent'] = v_parent
 		self.data['curr_index'] = None
 
@@ -143,22 +144,26 @@ class BaseAsset(ABC):
 		for ii, key in enumerate(k):
 			print(f"\t{key}-> ref:{v[ii]}")
 
-
-from abc import ABC, abstractmethod
-
+	def _printParent(self,visual_key=None, asset_key=None):
+		print(f"asset {self.data['name']} parent scene:{self.data['v_parent']}")
+		if visual_key is not None:
+			print(f"\tvisual {visual_key} parent scene:{self.visuals[visual_key].parent}")
+		if asset_key is not None:
+			print(f"\tasset {asset_key} parent scene:{self.assets[asset_key].data['v_parent']}")
 
 class SimpleAsset(ABC):
 
 	# name_str: str
 
 	@abstractmethod
-	def __init__(self, v_parent=None):
+	def __init__(self, name=None, v_parent=None):
 		# dict storing vispy visuals to be drawn as part of this asset
 		self.visuals = {}
 		# dict storing satplot child assets
 		self.assets = {}
 		# dict storing crucial data for this asset
 		self.data = {}
+		self.data['name'] = None
 		self.data['v_parent'] = v_parent
 		self.data['curr_index'] = None
 
@@ -265,3 +270,10 @@ class SimpleAsset(ABC):
 		print(f"{self.__name__} asset has child assets:")
 		for ii, key in enumerate(k):
 			print(f"\t{key}-> ref:{v[ii]}")
+
+	def _printParent(self,visual_key=None, asset_key=None):
+		print(f"asset {self.data['name']} parent scene:{self.data['v_parent']}")
+		if visual_key is not None:
+			print(f"\tvisual {visual_key} parent scene:{self.visuals[visual_key].parent}")
+		if asset_key is not None:
+			print(f"\tasset {asset_key} parent scene:{self.assets[asset_key].data['v_parent']}")

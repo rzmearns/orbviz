@@ -16,8 +16,8 @@ from vispy import scene, color
 import numpy as np
 
 class Earth(BaseAsset):
-	def __init__(self, v_parent=None):
-		super().__init__(v_parent)
+	def __init__(self, name=None, v_parent=None):
+		super().__init__(name, v_parent)
 						
 		self._setDefaultOptions()
 		self._initData()
@@ -31,6 +31,8 @@ class Earth(BaseAsset):
 		self.attachToParentView()
 
 	def _initData(self):
+		if self.data['name'] is None:
+			self.data['name'] = 'Earth'		
 		self.data['ecef_rads'] = 0
 		self.data['datetimes'] = None
 		# earth axis data
@@ -77,8 +79,8 @@ class Earth(BaseAsset):
 			asset.setSource(self.data['datetimes'])
 
 	def _instantiateAssets(self):
-		self.assets['parallels'] = ParallelsGrid(self.data['v_parent'])
-		self.assets['meridians'] = MeridiansGrid(self.data['v_parent'])
+		self.assets['parallels'] = ParallelsGrid(v_parent=self.data['v_parent'])
+		self.assets['meridians'] = MeridiansGrid(v_parent=self.data['v_parent'])
 
 	def _createVisuals(self):
 		# Earth Sphere
@@ -220,17 +222,21 @@ class Earth(BaseAsset):
 
 
 class ParallelsGrid(BaseAsset):
-	def __init__(self, v_parent=None):
-		super().__init__(v_parent)
-
+	def __init__(self,name=None, v_parent=None):
+		super().__init__(name, v_parent)
+		self._printParent()
 		self._setDefaultOptions()
 		self._initData()
+		self._printParent()
 		self._instantiateAssets()
 		self._createVisuals()
 
 		self.attachToParentView()
+		self._printParent()
 
 	def _initData(self):
+		if self.data['name'] is None:
+			self.data['name'] = 'Parallels'		
 		self.data['init_eq_coords'] = self._genParallel(0)
 		self.data['init_p_coords'] = None
 		self.data['p_conn'] = None
@@ -343,8 +349,8 @@ class ParallelsGrid(BaseAsset):
 	
 
 class MeridiansGrid(BaseAsset):
-	def __init__(self, v_parent=None):
-		super().__init__(v_parent)
+	def __init__(self, name=None, v_parent=None):
+		super().__init__(name, v_parent)
 
 		self._setDefaultOptions()
 		self._initData()
@@ -354,6 +360,8 @@ class MeridiansGrid(BaseAsset):
 		self.attachToParentView()
 
 	def _initData(self):
+		if self.data['name'] is None:
+			self.data['name'] = 'Meridians'		
 		self.data['init_m_coords'] = None
 		self.data['m_conn'] = None
 		total_len = 0

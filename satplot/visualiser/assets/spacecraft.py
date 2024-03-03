@@ -20,11 +20,12 @@ from vispy.visuals import transforms as vTransforms
 import numpy as np
 
 class SpacecraftVisualiser(BaseAsset):
-	def __init__(self, v_parent=None, sens_suites=None):
+	def __init__(self, name=None, v_parent=None, sens_suites=None):
 		super().__init__(v_parent)
 						
 		self._setDefaultOptions()
 		self._initData()
+				
 
 		if sens_suites is not None and type(sens_suites) is not dict:
 			raise TypeError(f"sens_suites is not a dict -> {sens_suites}")
@@ -38,6 +39,8 @@ class SpacecraftVisualiser(BaseAsset):
 
 
 	def _initData(self):
+		if self.data['name'] is None:
+			self.data['name'] = 'Spacecraft'
 		self.data['sens_suites'] = []
 		self.data['num_sens_suites'] = 0
 		self.data['coords'] = np.zeros((4,3))
@@ -63,6 +66,7 @@ class SpacecraftVisualiser(BaseAsset):
 													v_parent=self.data['v_parent'])
 		for key, value in self.data['sens_suites'].items():
 			self.assets[f'sensor_suite_{key}'] = sensors.SensorSuite(value,
+																	name=key,
 													 				v_parent=self.data['v_parent'])
 		self._addIndividualSensorSuitePlotOptions()
 

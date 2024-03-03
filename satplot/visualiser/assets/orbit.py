@@ -18,10 +18,10 @@ from vispy import scene, color
 import numpy as np
 
 class OrbitVisualiser(BaseAsset):
-	def __init__(self, v_parent=None):
-		super().__init__(v_parent)
+	def __init__(self, name=None, v_parent=None):
+		super().__init__(name, v_parent)
 
-		self._setDefaultOptions()	
+		self._setDefaultOptions()
 		self._initData()
 		self._instantiateAssets()
 		self._createVisuals()
@@ -29,6 +29,8 @@ class OrbitVisualiser(BaseAsset):
 		self.attachToParentView()
 	
 	def _initData(self):
+		if self.data['name'] is None:
+			self.data['name'] = 'Primary Orbit'
 		self.data['past'] = None
 		self.data['future'] = None
 		self.data['past_coords'] = None
