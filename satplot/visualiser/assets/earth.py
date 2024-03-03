@@ -1,6 +1,6 @@
 import satplot.util.constants as c
 import satplot.visualiser.colours as colours
-from satplot.visualiser.assets.base import BaseAsset
+from satplot.visualiser.assets.base import BaseAsset, SimpleAsset
 from satplot.visualiser.assets import axis_indicator as axisInd
 
 from satplot.model.geometry import transformations as transforms
@@ -12,6 +12,7 @@ import geopandas as gpd
 from skyfield.api import wgs84
 
 from vispy import scene, color
+from vispy.visuals import transforms as vTransforms
 
 import numpy as np
 
@@ -118,8 +119,10 @@ class Earth(BaseAsset):
 			rot_mat = transforms.rotAround(self.data['ecef_rads'], pg.Z)
 			new_coords = rot_mat.dot(self.data['landmass'].T).T
 			self.visuals['landmass'].set_data(new_coords)
+			rot_mat2 = transforms.rotAround(self.data['ecef_rads'], -pg.Z)
 			for asset in self.assets.values():
-				asset.recompute()
+				asset.setTransform(rotation=rot_mat2)
+			
 
 			self.requires_recompute = False
 	
@@ -223,7 +226,7 @@ class Earth(BaseAsset):
 		return coords
 
 
-class ParallelsGrid(BaseAsset):
+class ParallelsGrid(SimpleAsset):
 	def __init__(self,name=None, v_parent=None):
 		super().__init__(name, v_parent)
 		self._printParent()
@@ -285,12 +288,7 @@ class ParallelsGrid(BaseAsset):
 								connect=self.data['p_conn'],
 								parent=None)
 
-	def recompute(self):
-		# Nothing needed for this asset
-		pass
-
-	def updateIndex(self, index):
-		# Nothing needed for this asset
+	def setTransform(self, pos=(0,0,0), rotation=np.eye(3)):
 		pass
 
 	def _setDefaultOptions(self):
@@ -350,7 +348,7 @@ class ParallelsGrid(BaseAsset):
 		return coords
 	
 
-class MeridiansGrid(BaseAsset):
+class MeridiansGrid(SimpleAsset):
 	def __init__(self, name=None, v_parent=None):
 		super().__init__(name, v_parent)
 
@@ -381,16 +379,8 @@ class MeridiansGrid(BaseAsset):
 			else:
 				self.data['init_m_coords'] = new_coords
 
-		# rotation data
-		self.data['nullisland_topos'] = wgs84.latlon(0,0)
-
 	def setSource(self, *args, **kwargs):		
-		if type(args[0]) is not np.ndarray:
-			# args[0] assumed to be (N,1)ndarray of skyfield times
-			raise TypeError
-		self.data['datetimes'] = args[0]
-		for asset in self.assets.values():
-			asset.setSource(self.data['datetimes'])
+		pass
 
 	def _instantiateAssets(self):
 		# No sub assets
@@ -404,20 +394,13 @@ class MeridiansGrid(BaseAsset):
 								connect=self.data['m_conn'],
 								parent=None)
 
-	def updateIndex(self, index):
-		self.data['curr_index'] = index
-		nullisland_curr = self.data['nullisland_topos'].at(self.data['datetimes'][self.data['curr_index']]).xyz.km
-		rot_rad = np.arctan2(nullisland_curr[1], nullisland_curr[0])
-		self.data['curr_ecef_rad'] = rot_rad
-		for asset in self.assets.values():
-			asset.updateIndex(index)
-		self.requires_recompute = True
+		self.setTransform()
 
-	def recompute(self):
-		if self.requires_recompute:
-			rot_mat = transforms.rotAround(self.data['curr_ecef_rad'], pg.Z)
-			new_coords = rot_mat.dot(self.data['init_m_coords'].T).T
-			self.visuals['meridians'].set_data(new_coords)
+	def setTransform(self, pos=(0,0,0), rotation=np.eye(3)):
+		T = np.eye(4)
+		T[0:3,0:3] = rotation
+		T[3,0:3] = np.asarray(pos).reshape(-1,3)
+		self.visuals['meridians'].transform = vTransforms.linear.MatrixTransform(T)
 
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}

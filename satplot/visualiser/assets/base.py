@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-
+import numpy as np
 
 class BaseAsset(ABC):
 
@@ -241,7 +241,7 @@ class SimpleAsset(ABC):
 		raise NotImplementedError
 
 	@abstractmethod
-	def setTransform(self):
+	def setTransform(self, pos=(0,0,0), rotation=np.eye(3)):
 		'''Directly set the linear transform to be applied to the child assets and visuals
 
 			Should include the following iteration in the overriding method
