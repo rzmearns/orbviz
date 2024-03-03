@@ -110,11 +110,13 @@ class CanvasWrapper():
 		self.assets['moon'] = Moon(v_parent=self.view_box.scene)
 		self.assets['constellation'] = Constellation(v_parent=self.view_box.scene)	
 	
-		# with open('./data/spacecraft/spirit.json') as fp:
-		# 	sc_sens_dict = json.load(fp)
+		with open('./data/spacecraft/spirit.json') as fp:
+			sc_sens_dict = json.load(fp)
 
-		# self.assets['spacecraft'] = SpacecraftVisualiser(canvas=self.canvas,
-		# 									parent=self.view_box.scene, sc_sens_suite=sc_sens_dict)
+		sens_suites={}
+		sens_suites['loris'] = sc_sens_dict
+
+		self.assets['spacecraft'] = SpacecraftVisualiser(v_parent=self.view_box.scene, sens_suites=sens_suites)
 
 		self.assets['sun'] = Sun(v_parent=self.view_box.scene)
 
