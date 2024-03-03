@@ -10,8 +10,8 @@ from vispy import scene
 from vispy.visuals import transforms as vTransforms
 
 class BodyGizmo(SimpleAsset):
-	def __init__(self, v_parent=None, scale=1, width=1):
-		super().__init__(v_parent)
+	def __init__(self, name=None, v_parent=None, scale=1, width=1):
+		super().__init__(name, v_parent)
 						
 		self._setDefaultOptions()
 		self._initData()
@@ -21,6 +21,8 @@ class BodyGizmo(SimpleAsset):
 		self.attachToParentView()
 
 	def _initData(self):
+		if self.data['name'] is None:
+			self.data['name'] = 'body_frame_gizmo'
 		pass
 		
 	def setSource(self, *args, **kwargs):

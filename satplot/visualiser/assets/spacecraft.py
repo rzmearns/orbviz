@@ -21,11 +21,9 @@ import numpy as np
 
 class SpacecraftVisualiser(BaseAsset):
 	def __init__(self, name=None, v_parent=None, sens_suites=None):
-		super().__init__(v_parent)
-						
+		super().__init__(name, v_parent)		
 		self._setDefaultOptions()
 		self._initData()
-				
 
 		if sens_suites is not None and type(sens_suites) is not dict:
 			raise TypeError(f"sens_suites is not a dict -> {sens_suites}")
@@ -36,7 +34,6 @@ class SpacecraftVisualiser(BaseAsset):
 		self._createVisuals()
 
 		self.attachToParentView()
-
 
 	def _initData(self):
 		if self.data['name'] is None:
@@ -84,7 +81,6 @@ class SpacecraftVisualiser(BaseAsset):
 	# Use BaseAsset.updateIndex()
 
 	def recompute(self):
-		print(self.assets)
 		if self.first_draw:
 			self.first_draw = False
 		if self.requires_recompute:

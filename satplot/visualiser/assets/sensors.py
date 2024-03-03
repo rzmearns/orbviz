@@ -15,16 +15,15 @@ from scipy.spatial.transform import Rotation
 
 class SensorSuite(SimpleAsset):
 	def __init__(self, sens_suite_dict, name=None, v_parent=None):
-		super().__init__(v_parent)
+		super().__init__(name, v_parent)
 		
 		self._setDefaultOptions()
 		self._initData()
-		
 		self.setSource(sens_suite_dict)
 		self._instantiateAssets()
 		self._createVisuals()	
 		self.attachToParentView()
-		
+
 	def _initData(self):
 		if self.data['name'] is None:
 			self.data['name'] = 'SensorSuite'
@@ -63,7 +62,7 @@ class SensorSuite(SimpleAsset):
 class Sensor(SimpleAsset):
 	def __init__(self, sensor_name, mesh_verts, mesh_faces,
 			  			bf_quat, colour, sens_type=None, v_parent=None, *args, **kwargs):
-		super().__init__(v_parent)
+		super().__init__(sensor_name, v_parent)
 		self._setDefaultOptions()
 		self._initData()
 		self.data['type'] = sens_type
@@ -79,7 +78,8 @@ class Sensor(SimpleAsset):
 		
 	def _initData(self):
 		self.data['type'] = None
-		self.data['name'] = None
+		if self.data['name'] is None:
+			self.data['name'] = 'Sensor'
 		self.data['vertices'] = None
 		self.data['faces'] = None
 		self.data['bf_quat'] = None
