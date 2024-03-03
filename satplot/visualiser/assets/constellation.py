@@ -84,12 +84,7 @@ class Constellation(BaseAsset):
 														antialias=0,
 														parent=None)
 
-	def updateIndex(self, index):
-		self.data['curr_index'] = index
-		for asset in self.assets.values():
-			asset.updateIndex(index)
-		self.requires_recompute = True
-		self.recompute()
+	# Use BaseAsset.updateIndex()
 
 	def recompute(self):
 		if self.first_draw:
@@ -255,12 +250,7 @@ class InstancedConstellationBeams(BaseAsset):
 		self.visuals['beams'].attach(alpha_filter)
 		print("Created beams")
 
-	def updateIndex(self, index):
-		self.data['curr_index'] = index
-		for asset in self.assets.values():
-			asset.updateIndex(index)
-		self.requires_recompute = True
-		self.recompute()
+	# Use BaseAsset.updateIndex()
 
 	def recompute(self):
 		if self.first_draw:
@@ -402,12 +392,7 @@ class ConstellationBeams(BaseAsset):
 			self.visuals['beams'][ii].transform = transform
 			self.visuals['beams'][ii].attach(alpha_filter)			
 
-	def updateIndex(self, index):
-		self.data['curr_index'] = index
-		for asset in self.assets.values():
-			asset.updateIndex(index)
-		self.requires_recompute = True
-		self.recompute()
+	# Use BaseAsset.updateIndex()
 
 	def recompute(self):
 		if self.first_draw:

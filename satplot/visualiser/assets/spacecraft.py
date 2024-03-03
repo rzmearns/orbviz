@@ -81,6 +81,8 @@ class SpacecraftVisualiser(BaseAsset):
 										size=self.opts['spacecraft_point_size']['value'],
 										symbol='o')	
 
+	# Use BaseAsset.updateIndex()
+
 	def recompute(self):
 		print(self.assets)
 		if self.first_draw:

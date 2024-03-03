@@ -91,11 +91,13 @@ class Sun(BaseAsset):
 		
 		self.data['pos'] = args[0].sun
 
+	# Override BaseAsset.updateIndex()
 	def updateIndex(self, index):
 		self.data['curr_index'] = index
 		self.data['curr_pos'] = self.data['pos'][self.data['curr_index']]
 		for asset in self.assets.values():
-			asset.updateIndex(index)		
+			if isinstance(asset,BaseAsset):			
+				asset.updateIndex(index)		
 		self.requires_recompute = True
 		self.recompute()
 

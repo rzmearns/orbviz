@@ -99,13 +99,15 @@ class Earth(BaseAsset):
 													connect=self.data['landmass_conn'],
 													parent=None)
 
+	# Override BaseAsset.updateIndex()
 	def updateIndex(self, index):
 		self.data['curr_index'] = index
 		nullisland_curr = self.data['nullisland_topos'].at(self.data['datetimes'][self.data['curr_index']]).xyz.km
 		rot_rad = np.arctan2(nullisland_curr[1], nullisland_curr[0])
 		self.data['ecef_rads'] = rot_rad
 		for asset in self.assets.values():
-			asset.updateIndex(index)
+			if isinstance(asset,BaseAsset):
+				asset.updateIndex(index)
 		self.requires_recompute = True
 		self.recompute()
 

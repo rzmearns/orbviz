@@ -42,9 +42,13 @@ class Moon(BaseAsset):
 												color=colours.normaliseColour(self.opts['moon_sphere_colour']['value']),
 												parent=None)
 
-	def updateIndex(self, new_index):
-		self.data['curr_index'] = new_index
+	# Override BaseAsset.updateIndex()
+	def updateIndex(self, index):
+		self.data['curr_index'] = index
 		self.data['curr_pos'] = self.data['pos'][self.data['curr_index']]
+		for asset in self.assets.values():
+			if isinstance(asset,BaseAsset):
+				asset.updateIndex(index)		
 		self.requires_recompute = True
 		self.recompute()
 

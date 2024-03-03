@@ -69,12 +69,13 @@ class OrbitVisualiser(BaseAsset):
 										size=self.opts['orbital_position_marker_size']['value'],
 										symbol='o')
 
+	# Override BaseAsset.updateIndex()
 	def updateIndex(self, index):
 		self.data['curr_index'] = index
 		self._sliceData()
 		for asset in self.assets.values():
-			asset.updateIndex(index)
-
+			if isinstance(asset,BaseAsset):
+				asset.updateIndex(index)
 		self.requires_recompute = True
 		self.recompute()
 
