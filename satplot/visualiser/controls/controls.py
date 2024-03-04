@@ -12,7 +12,7 @@ class OrbitConfigs(QtWidgets.QWidget):
 							'./data/TLEs/iridiumSMALL_latest.tle',
 							'./data/TLEs/thuraya_latest.tle',
 							'./data/TLEs/swift_latest.tle']
-	constellation_beam_angles = [125.8, 125.8, 15, 0.1]
+	constellation_beam_angles = [125.8, 125.8, 15.0, 0.1]
 
 	def __init__(self, parent: QtWidgets.QWidget=None) -> None:
 		super().__init__(parent)
@@ -96,7 +96,7 @@ class OptionConfigs(QtWidgets.QWidget):
 		# returns unsorted_dict
 		w_dict = {}
 		# print(f"new root asset - {asset_key}")
-		if not isinstance(asset, base.BaseAsset):
+		if not isinstance(asset, base.BaseAsset) and not isinstance(asset, base.SimpleAsset):
 			# no options or nested assets with options
 			return w_dict
 		
@@ -108,14 +108,14 @@ class OptionConfigs(QtWidgets.QWidget):
 
 		w_dict.update(w_opt_dict)
 
-		if hasattr(asset, 'visuals'):
-			for sub_key, sub_asset in asset.visuals.items():
-				if not isinstance(sub_asset, base.BaseAsset):
+		if hasattr(asset, 'assets'):
+			for sub_key, sub_asset in asset.assets.items():
+				if not isinstance(sub_asset, base.BaseAsset) and not isinstance(sub_asset, base.SimpleAsset):
 					continue
 				sub_w_dict = self._buildNestedOptionWidgetDict(sub_asset, asset_key=sub_key)
 				cb = widgets.CollapsibleSection(title=f"{sub_key.capitalize()} Options")
 				for sub_w_key, widget in dict(sorted(sub_w_dict.items())).items():
-					# print(f"\t{key}")
+					# print(f"\t{sub_w_key}")
 					cb.addWidget(widget)
 				if sub_key not in w_dict.keys():
 					w_dict[sub_key] = cb

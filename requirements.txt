@@ -6,5 +6,5 @@ geopandas
 skyfield
 PyQt5
 progressbar
-poliastro
+hapsira
 pyopengl

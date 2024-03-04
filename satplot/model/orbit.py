@@ -7,9 +7,9 @@ import pickle
 
 from astropy import units as u
 
-from poliastro.bodies import Earth, Mars, Sun, Moon
-from poliastro.twobody import Orbit as poliastroOrbit
-from poliastro.ephem import Ephem
+from hapsira.bodies import Earth, Mars, Sun, Moon
+from hapsira.twobody import Orbit as hapsiraOrbit
+from hapsira.ephem import Ephem
 
 from sgp4.api import Satrec, WGS72
 from astropy.time import Time as astropyTime
@@ -168,7 +168,7 @@ class Orbit(object):
 			mean_nu = kwargs.get('mean_nu') * u.deg
 			
 			logger.info("Creating analytical orbit")
-			self.orb = poliastroOrbit.from_classical(body, a, ecc, inc, raan, argp, mean_nu)
+			self.orb = hapsiraOrbit.from_classical(body, a, ecc, inc, raan, argp, mean_nu)
 
 			logger.info("Creating ephemeris for orbit, using timespan")
 			self.ephem = Ephem.from_orbit(self.orb, self.timespan.asAstropy())

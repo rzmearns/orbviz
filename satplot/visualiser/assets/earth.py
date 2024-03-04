@@ -1,83 +1,47 @@
 import satplot.util.constants as c
 import satplot.visualiser.colours as colours
-from satplot.visualiser.assets.base import BaseAsset
+from satplot.visualiser.assets.base import BaseAsset, SimpleAsset
 from satplot.visualiser.assets import axis_indicator as axisInd
 
 from satplot.model.geometry import transformations as transforms
 from satplot.model.geometry import primgeom as pg
 from satplot.model.geometry import polygons
+import satplot.model.timespan as timespan
 
 import geopandas as gpd
 from skyfield.api import wgs84
 
 from vispy import scene, color
+from vispy.visuals import transforms as vTransforms
 
 import numpy as np
 
 class Earth(BaseAsset):
-	def __init__(self, canvas=None, parent=None):
-		self.parent = parent
-		self.canvas = canvas
-		
-		self.visuals = {}
-		self.data = {}
-		self.ecef_rads = 0
-		self.requires_recompute = False
-		self._setDefaultOptions()	
-		self.draw()
-		# These callbacks need to be set after draw() as the option dict is populated during draw()
-		self.opts['plot_meridians']['callback'] = self.visuals['meridians'].setMeridianVisibility
-		self.opts['plot_parallels']['callback'] = self.visuals['parallels'].setParallelsVisibility
-		self.opts['plot_equator']['callback'] = self.visuals['parallels'].setEquatorVisibility
-	
-	def draw(self):
-		self.addEarthSphere()
-		self.addEarthAxis()
-		self.addLandMass()
-		self.visuals['parallels'] = ParallelsGrid(self.parent)
-		self.visuals['meridians'] = MeridiansGrid(self.parent)
+	def __init__(self, name=None, v_parent=None):
+		super().__init__(name, v_parent)
+						
+		self._setDefaultOptions()
+		self._initData()
+		self._instantiateAssets()
+		self._createVisuals()
+		# These callbacks need to be set after asset creation as the option dict is populated during draw()
+		self.opts['plot_meridians']['callback'] = self.assets['meridians'].setVisibility
+		self.opts['plot_parallels']['callback'] = self.assets['parallels'].setVisibility
+		self.opts['plot_equator']['callback'] = self.assets['parallels'].setVisibility
 
-	def compute():
-		pass
+		self.attachToParentView()
 
-	def updateParentRef(self, new_parent):
-		self.parent = new_parent
+	def _initData(self):
+		if self.data['name'] is None:
+			self.data['name'] = 'Earth'		
+		self.data['ecef_rads'] = 0
+		self.data['datetimes'] = None
+		# earth axis data
+		self.data['ea_coords'] = np.zeros((2,3))
+		self.data['ea_coords'][0,2] = -1*(c.R_EARTH+1000)
+		self.data['ea_coords'][1,2] = (c.R_EARTH+1000)
 
-	def setCurrentECEFRotation(self, curr_datetime):
-		topos = wgs84.latlon(0,0)
-		nullisland_curr = topos.at(curr_datetime).xyz.km
-		rot_rad = np.arctan2(nullisland_curr[1], nullisland_curr[0])
-		self.ecef_rads = rot_rad
-		self.requires_recompute = True
-		self.recompute()
-
-	def recompute(self):
-		if self.requires_recompute:
-			rot_mat = transforms.rotAround(self.ecef_rads, pg.Z)
-			new_coords = rot_mat.dot(self.data['landmass'].T).T
-			self.visuals['landmass'].set_data(new_coords)
-
-			for key, visual in self.visuals.items():
-				if isinstance(visual,BaseAsset):
-					visual.setCurrentECEFRotation(self.ecef_rads)
-
-			self.requires_recompute = False
-
-	def addEarthSphere(self):
-		self.visuals['earth'] = scene.visuals.Sphere(radius=c.R_EARTH,
-										method='latitude',
-										parent=self.parent,
-										color=colours.normaliseColour(self.opts['earth_sphere_colour']['value']))
-
-	def addEarthAxis(self):
-		self.coords = np.zeros((2,3))
-		self.coords[0,2] = -1*(c.R_EARTH+1000)
-		self.coords[1,2] = (c.R_EARTH+1000)
-		self.visuals['earth_axis'] = scene.visuals.Line(self.coords,
-								 		color=colours.normaliseColour(self.opts['earth_axis_colour']['value']),
-										parent=self.parent)
-
-	def addLandMass(self):
+		# landmass data
 		gdf = gpd.read_file('data/land_boundaries/ne_110m_land.shp')
 		conn = None
 		total_len = 0
@@ -97,14 +61,70 @@ class Earth(BaseAsset):
 					all_coords = np.vstack((all_coords, coords))
 				else:
 					all_coords = coords
-
 		self.data['landmass'] = all_coords
+		self.data['landmass_conn'] = conn
 
-		self.visuals['landmass'] = scene.visuals.Line(all_coords,
+		# rotation data
+		self.data['nullisland_topos'] = wgs84.latlon(0,0)
+
+	def setSource(self, *args, **kwargs):		
+		if type(args[0]) is not timespan.TimeSpan:
+			# args[0] assumed to be timespan
+			raise TypeError
+		# TODO: add capability to produce array of skyfields)
+		times = []
+		for ii in range(len(args[0])):
+			times.append(args[0].asSkyfield(ii))
+		self.data['datetimes'] = np.asarray(times)
+		for asset in self.assets.values():
+			asset.setSource(self.data['datetimes'])
+
+	def _instantiateAssets(self):
+		self.assets['parallels'] = ParallelsGrid(v_parent=self.data['v_parent'])
+		self.assets['meridians'] = MeridiansGrid(v_parent=self.data['v_parent'])
+
+	def _createVisuals(self):
+		# Earth Sphere
+		self.visuals['earth_sphere'] = scene.visuals.Sphere(radius=c.R_EARTH,
+								method='latitude',
+								parent=None,
+								color=colours.normaliseColour(self.opts['earth_sphere_colour']['value']))
+		# Earth Axis
+		self.visuals['earth_axis'] = scene.visuals.Line(self.data['ea_coords'],
+								 		color=colours.normaliseColour(self.opts['earth_axis_colour']['value']),
+										parent=None)
+		# Landmass
+		self.visuals['landmass'] = scene.visuals.Line(self.data['landmass'],
 													color=colours.normaliseColour(self.opts['landmass_colour']['value']),
 													antialias=self.opts['antialias']['value'],
-													connect=conn,
-													parent=self.parent)
+													connect=self.data['landmass_conn'],
+													parent=None)
+
+	# Override BaseAsset.updateIndex()
+	def updateIndex(self, index):
+		self.data['curr_index'] = index
+		nullisland_curr = self.data['nullisland_topos'].at(self.data['datetimes'][self.data['curr_index']]).xyz.km
+		rot_rad = np.arctan2(nullisland_curr[1], nullisland_curr[0])
+		self.data['ecef_rads'] = rot_rad
+		for asset in self.assets.values():
+			if isinstance(asset,BaseAsset):
+				asset.updateIndex(index)
+		self.requires_recompute = True
+		self.recompute()
+
+	def recompute(self):
+		if self.first_draw:
+			self.first_draw = False
+		if self.requires_recompute:
+			rot_mat = transforms.rotAround(self.data['ecef_rads'], pg.Z)
+			new_coords = rot_mat.dot(self.data['landmass'].T).T
+			self.visuals['landmass'].set_data(new_coords)
+			rot_mat2 = transforms.rotAround(self.data['ecef_rads'], -pg.Z)
+			for asset in self.assets.values():
+				asset.setTransform(rotation=rot_mat2)
+			
+
+			self.requires_recompute = False
 	
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}
@@ -115,7 +135,7 @@ class Earth(BaseAsset):
 		self._dflt_opts['plot_earth'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
-												'callback': self.setEarthAssetVisibility}
+												'callback': self.setVisibility}
 		self._dflt_opts['plot_earth_sphere'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
@@ -154,32 +174,8 @@ class Earth(BaseAsset):
 												'callback': self.setLandMassColour}
 
 		self.opts = self._dflt_opts.copy()
-		self._createOptHelp()
 
-	def _createOptHelp(self):
-		pass
-	
-	def _convertShapeFilePolys(self, poly):
-		xy_coords = poly.exterior.coords.xy
-		lon = np.array(xy_coords[0])
-		lat = np.array(xy_coords[1])
-		lon = lon * np.pi/180
-		lat = lat * np.pi/180
-		R = c.R_EARTH
-		coords = np.zeros((len(lon),3))
-		coords[:,0] = R * np.cos(lat) * np.cos(lon)
-		coords[:,1] = R * np.cos(lat) * np.sin(lon)
-		coords[:,2] = R * np.sin(lat)
-		
-		return coords
-
-	def setEarthAssetVisibility(self, state):
-		self.setEarthAxisVisibility(state)
-		self.setLandmassVisibility(state)
-		self.setEarthSphereVisibility(state)
-		self.visuals['meridians'].setMeridiansAssetVisibility(state)
-		self.visuals['parallels'].setParallelsAssetVisibility(state)
-
+	#----- OPTIONS CALLBACKS -----#
 	def setEarthSphereColour(self, new_colour):
 		print("Bugged")
 		print("Not implemented")
@@ -212,71 +208,87 @@ class Earth(BaseAsset):
 		self.visuals['landmass'].visible = state
 
 	def setEarthSphereVisibility(self, state):
-		self.visuals['earth'].visible = state
+		self.visuals['earth_sphere'].visible = state
 
-class ParallelsGrid(BaseAsset):
-	def __init__(self, parent_scene):
-		self.scene = parent_scene
-		self.visuals = {}
-		self.requires_recompute = True
-		self.eq_coords = None
-		self.p_conn = None
-		self.p_coords = None
+	#----- HELPER FUNCTIONS -----#
+	def _convertShapeFilePolys(self, poly):
+		xy_coords = poly.exterior.coords.xy
+		lon = np.array(xy_coords[0])
+		lat = np.array(xy_coords[1])
+		lon = lon * np.pi/180
+		lat = lat * np.pi/180
+		R = c.R_EARTH
+		coords = np.zeros((len(lon),3))
+		coords[:,0] = R * np.cos(lat) * np.cos(lon)
+		coords[:,1] = R * np.cos(lat) * np.sin(lon)
+		coords[:,2] = R * np.sin(lat)
+		
+		return coords
+
+
+class ParallelsGrid(SimpleAsset):
+	def __init__(self,name=None, v_parent=None):
+		super().__init__(name, v_parent)
+		self._printParent()
 		self._setDefaultOptions()
-		self.compute()
-		self.draw()
+		self._initData()
+		self._printParent()
+		self._instantiateAssets()
+		self._createVisuals()
 
-	def draw(self):
-		self.visuals['equator'] = \
-			scene.visuals.Line(self.eq_coords,
-								color=colours.normaliseColour(self.opts['parallel_colour']['value']),
-								antialias=self.opts['antialias']['value'],
-								parent=self.scene)
-		self.visuals['parallels'] = \
-			scene.visuals.Line(self.p_coords,
-								color=colours.normaliseColour(self.opts['parallel_colour']['value']),
-								antialias=self.opts['antialias']['value'],
-								connect=self.p_conn,
-								parent=self.scene)
+		self.attachToParentView()
+		self._printParent()
 
-	def compute(self):
+	def _initData(self):
+		if self.data['name'] is None:
+			self.data['name'] = 'Parallels'		
+		self.data['init_eq_coords'] = self._genParallel(0)
+		self.data['init_p_coords'] = None
+		self.data['p_conn'] = None
 		total_len = 0
-		self.eq_coords = self._genParallel(0)
 		for ii in range(15, 90, self.opts['parallel_spacing']['value']):
 			new_coords = self._genParallel(ii)
 			poly_len = len(new_coords)
 			new_conn = np.array([np.arange(poly_len-1),np.arange(1,poly_len)]).T + total_len
-			if self.p_conn is not None:
-				self.p_conn = np.vstack((self.p_conn, new_conn))
+			if self.data['p_conn'] is not None:
+				self.data['p_conn'] = np.vstack((self.data['p_conn'], new_conn))
 			else:
-				self.p_conn = new_conn
+				self.data['p_conn'] = new_conn
 			total_len += poly_len
-			if self.p_coords is not None:
-				self.p_coords = np.vstack((self.p_coords, new_coords))
+			if self.data['init_p_coords'] is not None:
+				self.data['init_p_coords'] = np.vstack((self.data['init_p_coords'], new_coords))
 			else:
-				self.p_coords = new_coords
+				self.data['init_p_coords'] = new_coords
 		for ii in range(15, 90, self.opts['parallel_spacing']['value']):
 			new_coords = self._genParallel(-ii)
 			poly_len = len(new_coords)
 			new_conn = np.array([np.arange(poly_len-1),np.arange(1,poly_len)]).T + total_len
-			self.p_conn = np.vstack((self.p_conn,new_conn))
+			self.data['p_conn'] = np.vstack((self.data['p_conn'],new_conn))
 			total_len += poly_len
-			self.p_coords = np.vstack((self.p_coords, new_coords))
+			self.data['init_p_coords'] = np.vstack((self.data['init_p_coords'], new_coords))
 
-	def recompute(self):
-		# Nothing needed for this asset
+	def setSource(self, *args, **kwargs):
+		# No updating, so no source
 		pass
 
-	def setCurrentECEFRotation(self, radians):
+	def _instantiateAssets(self):
+		# No sub assets
 		pass
 
-	def _genParallel(self, lat_degs):
-		R = c.R_EARTH * np.cos(np.deg2rad(lat_degs))
-		z = c.R_EARTH * np.sin(np.deg2rad(lat_degs))
-		coords = polygons.generateCircle((0,0,z), R, (0,0,1))
-		return coords
+	def _createVisuals(self):
+		self.visuals['equator'] = \
+			scene.visuals.Line(self.data['init_eq_coords'],
+								color=colours.normaliseColour(self.opts['parallel_colour']['value']),
+								antialias=self.opts['antialias']['value'],
+								parent=None)
+		self.visuals['parallels'] = \
+			scene.visuals.Line(self.data['init_p_coords'],
+								color=colours.normaliseColour(self.opts['parallel_colour']['value']),
+								antialias=self.opts['antialias']['value'],
+								connect=self.data['p_conn'],
+								parent=None)
 
-	def _createOptHelp(self):
+	def setTransform(self, pos=(0,0,0), rotation=np.eye(3)):
 		pass
 
 	def _setDefaultOptions(self):
@@ -306,17 +318,19 @@ class ParallelsGrid(BaseAsset):
 											'help': '',
 											'callback': None}
 		self.opts = self._dflt_opts.copy()
-		self._createOptHelp()
-
-	def setParallelsAssetVisibility(self, state):
-		self.setParallelsVisibility(state)
-		self.setEquatorVisibility(state)
-
+	
+	#----- OPTIONS CALLBACKS -----#
 	def setParallelsVisibility(self, state):
-		self.visuals['parallels'].visible = state
+		if state:
+			self.visuals['parallels'].parent = self.data['v_parent']
+		else:
+			self.visuals['parallels'].parent = None
 
 	def setEquatorVisibility(self, state):
-		self.visuals['equator'].visible = state
+		if state:
+			self.visuals['equator'].parent = self.data['v_parent']
+		else:
+			self.visuals['equator'].parent = None
 
 	def setEquatorColour(self, new_colour):
 		self.opts['equator_colour']['value'] = colours.normaliseColour(new_colour)
@@ -326,72 +340,67 @@ class ParallelsGrid(BaseAsset):
 		self.opts['parallel_colour']['value'] = colours.normaliseColour(new_colour)
 		self.visuals['parallels'].set_data(color=colours.normaliseColour(new_colour))
 
-class MeridiansGrid(BaseAsset):
-	def __init__(self, parent_scene):
-		self.scene = parent_scene
-		self.visuals = {}
-		self.requires_recompute = True		
-		self.m_conn = None
-		self.m_coords = None
+	#----- HELPER FUNCTIONS -----#
+	def _genParallel(self, lat_degs):
+		R = c.R_EARTH * np.cos(np.deg2rad(lat_degs))
+		z = c.R_EARTH * np.sin(np.deg2rad(lat_degs))
+		coords = polygons.generateCircle((0,0,z), R, (0,0,1))
+		return coords
+	
+
+class MeridiansGrid(SimpleAsset):
+	def __init__(self, name=None, v_parent=None):
+		super().__init__(name, v_parent)
+
 		self._setDefaultOptions()
-		self.compute()
-		self.draw()
+		self._initData()
+		self._instantiateAssets()
+		self._createVisuals()
 
-	def draw(self):
-		self.visuals['meridians'] = \
-			scene.visuals.Line(self.m_coords,
-						 		color=colours.normaliseColour(self.opts['meridian_colour']['value']),
-								 antialias=self.opts['antialias']['value'],
-								connect=self.m_conn,
-								parent=self.scene)
+		self.attachToParentView()
 
-	def compute(self):
-		self.m_conn = None
-		self.m_coords = None
+	def _initData(self):
+		if self.data['name'] is None:
+			self.data['name'] = 'Meridians'		
+		self.data['init_m_coords'] = None
+		self.data['m_conn'] = None
 		total_len = 0
 		for ii in range(0, 180, self.opts['meridian_spacing']['value']):
-				new_coords = self._genMeridian(ii)
-				poly_len = len(new_coords)
-				new_conn = np.array([np.arange(poly_len-1),np.arange(1,poly_len)]).T + total_len
-				if self.m_conn is not None:
-					self.m_conn = np.vstack((self.m_conn,new_conn))
-				else:
-					self.m_conn = new_conn
-				total_len += poly_len
-				if self.m_coords is not None:
-					self.m_coords = np.vstack((self.m_coords, new_coords))
-				else:
-					self.m_coords = new_coords
+			new_coords = self._genMeridian(ii)
+			poly_len = len(new_coords)
+			new_conn = np.array([np.arange(poly_len-1),np.arange(1,poly_len)]).T + total_len
+			if self.data['m_conn'] is not None:
+				self.data['m_conn'] = np.vstack((self.data['m_conn'],new_conn))
+			else:
+				self.data['m_conn'] = new_conn
+			total_len += poly_len
+			if self.data['init_m_coords'] is not None:
+				self.data['init_m_coords'] = np.vstack((self.data['init_m_coords'], new_coords))
+			else:
+				self.data['init_m_coords'] = new_coords
 
-	def recompute(self):
-		if self.requires_recompute:
-			rot_mat = transforms.rotAround(self.ecef_rads, pg.Z)
-			new_coords = rot_mat.dot(self.m_coords.T).T
-			self.visuals['meridians'].set_data(new_coords)
-
-	def setCurrentECEFRotation(self, radians):
-		self.ecef_rads = radians
-		self.requires_recompute = True
-		self.recompute()
-
-	def _genMeridian(self, long_degs):
-		R = c.R_EARTH * np.cos(np.deg2rad(long_degs))
-		coords = polygons.generateCircle((0,0,0), R, (0,0,1))
-
-		theta = np.linspace(0, 2.0*np.pi, 180)
-		R = c.R_EARTH
-		coords = np.zeros((180,3))
-		coords[:,0] = R*np.cos(theta)
-		coords[:,1] = np.zeros(180)
-		coords[:,2] = R*np.sin(theta)
-		
-		rot_mat = transforms.rotAround(np.deg2rad(long_degs), pg.Z)
-		coords = rot_mat.dot(coords.T).T
-
-		return coords
-
-	def _createOptHelp(self):
+	def setSource(self, *args, **kwargs):		
 		pass
+
+	def _instantiateAssets(self):
+		# No sub assets
+		pass
+
+	def _createVisuals(self):
+		self.visuals['meridians'] = \
+			scene.visuals.Line(self.data['init_m_coords'],
+						 		color=colours.normaliseColour(self.opts['meridian_colour']['value']),
+								 antialias=self.opts['antialias']['value'],
+								connect=self.data['m_conn'],
+								parent=None)
+
+		self.setTransform()
+
+	def setTransform(self, pos=(0,0,0), rotation=np.eye(3)):
+		T = np.eye(4)
+		T[0:3,0:3] = rotation
+		T[3,0:3] = np.asarray(pos).reshape(-1,3)
+		self.visuals['meridians'].transform = vTransforms.linear.MatrixTransform(T)
 
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}
@@ -412,14 +421,32 @@ class MeridiansGrid(BaseAsset):
 											'help': '',
 											'callback': None}
 		self.opts = self._dflt_opts.copy()
-		self._createOptHelp()
 
-	def setMeridiansAssetVisibility(self, state):
-		self.setMeridianVisibility(state)
+	#----- OPTIONS CALLBACKS -----#
 
 	def setMeridianVisibility(self, state):
-		self.visuals['meridians'].visible = state
+		if state:
+			self.visuals['meridians'].parent = self.data['v_parent']
+		else:
+			self.visuals['meridians'].parent = None
 
 	def setMeridiansColour(self, new_colour):
 		self.opts['meridian_colour']['value'] = colours.normaliseColour(new_colour)
 		self.visuals['meridians'].set_data(color=colours.normaliseColour(new_colour))
+
+	#----- HELPER FUNCTIONS -----#
+	def _genMeridian(self, long_degs):
+		R = c.R_EARTH * np.cos(np.deg2rad(long_degs))
+		coords = polygons.generateCircle((0,0,0), R, (0,0,1))
+
+		theta = np.linspace(0, 2.0*np.pi, 180)
+		R = c.R_EARTH
+		coords = np.zeros((180,3))
+		coords[:,0] = R*np.cos(theta)
+		coords[:,1] = np.zeros(180)
+		coords[:,2] = R*np.sin(theta)
+		
+		rot_mat = transforms.rotAround(np.deg2rad(long_degs), pg.Z)
+		coords = rot_mat.dot(coords.T).T
+
+		return coords

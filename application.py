@@ -50,10 +50,9 @@ class Application():
 			self.c_name = None
 			self.c_beam_angle = None
 		self.pointing_file = self.window.orbit_controls.pointing_file_selector.path
+		
 		# Create worker
-		print(f"worker thread: {self.worker_thread}")
 		self.worker_thread = QtCore.QThread()
-		print(f"worker thread: {self.worker_thread}")
 		self.load_data_worker = self.LoadDataWorker(self.period_start, 
 										 		self.period_end, 
 												self.prim_orbit_TLE_path,
@@ -85,21 +84,29 @@ class Application():
 		self.window._time_slider._curr_dt_picker.setDatetime(self.t.start)
 		
 		if len(pointing_q) > 0:
-			self.canvas_wrapper.setOrbitSource(self.o, pointing=pointing_q)
+			pointing=pointing_q
 		else:
-			self.canvas_wrapper.setOrbitSource(self.o, pointing=None)
-		self.canvas_wrapper.setSunSource(self.o)
-		self.canvas_wrapper.setMoonSource(self.o)
-		self.canvas_wrapper.setEarthSource()
+			pointing = None
+		
 		if self.c_index is not None:
-			self.canvas_wrapper.setConstellationSource(self.c_list, self.c_beam_angle)
-		self.canvas_wrapper.setMakeNewVisualsFlag()
+			c_list = self.c_list
+			c_beam_angle = self.c_beam_angle
+		else:
+			c_list = None
+			c_beam_angle = None
+		
+		self.canvas_wrapper.setSource(self.t,
+										self.o,
+										pointing,
+										c_list,
+										c_beam_angle)
+		self.canvas_wrapper.setFirstDrawFlags()
 		console.send(f"Drawing Assets...")
 		curr_index = self.window._time_slider.slider.value()
 		self._updateIndex(curr_index)
 
 	def _updateIndex(self, index):
-		self.canvas_wrapper.updateIndex(index, self.t.asSkyfield(index))
+		self.canvas_wrapper.updateIndex(index)
 
 	def _cleanUpWorkerThread(self):
 		self.worker_thread.quit()

@@ -6,6 +6,7 @@ from satplot.visualiser.assets import axis_indicator as axisInd
 from satplot.model.geometry import transformations as transforms
 from satplot.model.geometry import primgeom as pg
 from satplot.model.geometry import polygons
+import satplot.model.orbit as orbit
 
 import satplot.visualiser.controls.console as console
 
@@ -17,53 +18,70 @@ from vispy import scene, color
 import numpy as np
 
 class OrbitVisualiser(BaseAsset):
-	def __init__(self, canvas=None, parent=None):
-		self.parent = parent
-		self.canvas = canvas
+	def __init__(self, name=None, v_parent=None):
+		super().__init__(name, v_parent)
+
+		self._setDefaultOptions()
+		self._initData()
+		self._instantiateAssets()
+		self._createVisuals()
 		
-		self.visuals = {}
-		self.data = {}
-		self.requires_recompute = False
-		self._setDefaultOptions()	
-		self._initDummyData()
-		self.draw()
+		self.attachToParentView()
 	
-	def draw(self):
-		self.addOrbitalMarker()
-		self.addOrbitalPath()
-
-	def compute(self):
-		pass
-
-	def _initDummyData(self):
+	def _initData(self):
+		if self.data['name'] is None:
+			self.data['name'] = 'Primary Orbit'
+		self.data['past'] = None
+		self.data['future'] = None
+		self.data['past_coords'] = None
+		self.data['future_coords'] = None
+		self.data['future_conn'] = None
 		self.data['coords'] = np.zeros((4,3))
 		self.data['curr_index'] = 2
-		self.sliceData()
+		self._sliceData()
+
+	def setSource(self, *args, **kwargs):
+		if type(args[0]) is not orbit.Orbit:
+			raise TypeError		
+		self.data['coords'] = args[0].pos
+
+	def _instantiateAssets(self):
+		# no sub assets
+		pass
 		
+	def _createVisuals(self):
+		self.visuals['past'] = scene.visuals.Line(self.data['past_coords'],
+													color=colours.normaliseColour(self.opts['orbital_path_colour']['value']),
+													antialias=self.opts['antialias']['value'],
+													parent=None)
+		self.visuals['future'] = scene.visuals.Line(self.data['future_coords'],
+													color=colours.normaliseColour(self.opts['orbital_path_colour']['value']),
+													antialias=self.opts['antialias']['value'],
+													parent=None)
 
-	def sliceData(self):
-		self.data['past_coords'] = self.data['coords'][:self.data['curr_index']]
-		self.data['future_coords'] = self.data['coords'][self.data['curr_index']:]
-		future_len = len(self.data['future_coords'])
-		dash_size = self.opts['orbital_path_future_dash_size']['value']
-		padded_future_len = padded_future_len = future_len - future_len%(2*dash_size)
-		conn_picker = np.arange(padded_future_len).reshape(-1,dash_size*2)[:,:dash_size].reshape(1,-1)[0]
-		conn_picker[np.where(conn_picker < future_len)]
-		self.data['future_conn'] = np.array([np.arange(future_len-1),np.arange(1,future_len)]).T[conn_picker]
+		self.visuals['marker'] = scene.visuals.Markers(parent=None,
+												 		scaling=True,
+														antialias=0)
+		self.visuals['marker'].set_data(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
+								  		edge_width=0,
+										face_color=colours.normaliseColour(self.opts['orbital_path_colour']['value']),
+										edge_color='white',
+										size=self.opts['orbital_position_marker_size']['value'],
+										symbol='o')
 
-	def setSource(self, source):
-		self.data['coords'] = source.pos
-
-	def updateParentRef(self, new_parent):
-		self.parent = new_parent
-
-	def updateIndex(self, new_index):
-		self.data['curr_index'] = new_index
-		self.sliceData()
+	# Override BaseAsset.updateIndex()
+	def updateIndex(self, index):
+		self.data['curr_index'] = index
+		self._sliceData()
+		for asset in self.assets.values():
+			if isinstance(asset,BaseAsset):
+				asset.updateIndex(index)
 		self.requires_recompute = True
 		self.recompute()
 
 	def recompute(self):
+		if self.first_draw:
+			self.first_draw = False
 		if self.requires_recompute:
 			self.visuals['past'].set_data(pos=self.data['past_coords'])
 			self.visuals['future'].set_data(pos=self.data['future_coords'], connect=self.data['future_conn'])
@@ -71,38 +89,10 @@ class OrbitVisualiser(BaseAsset):
 								   			size=self.opts['orbital_position_marker_size']['value'],
 											face_color=colours.normaliseColour(self.opts['orbital_path_colour']['value']))
 
+			for asset in self.assets.values():
+				asset.recompute()
+
 			self.requires_recompute = False
-
-	def addOrbitalPath(self):
-		self.visuals['past'] = scene.visuals.Line(self.data['past_coords'],
-													color=colours.normaliseColour(self.opts['orbital_path_colour']['value']),
-													antialias=self.opts['antialias']['value'],
-													# connect=conn,
-													parent=self.parent)
-		self.visuals['future'] = scene.visuals.Line(self.data['future_coords'],
-													color=colours.normaliseColour(self.opts['orbital_path_colour']['value']),
-													antialias=self.opts['antialias']['value'],
-													# connect=conn,
-													parent=self.parent)
-
-	def addOrbitalMarker(self):
-		self.visuals['marker'] = scene.visuals.Markers(parent=self.parent, scaling=True, antialias=0)
-		self.visuals['marker'].set_data(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
-								  		edge_width=0,
-										face_color=colours.normaliseColour(self.opts['orbital_path_colour']['value']),
-										edge_color='white',
-										# edge_width=0,
-										size=self.opts['orbital_position_marker_size']['value'],
-										symbol='o')
-		self.visuals['marker'].visible = False
-														# size=10,
-														# antialias=self.opts['antialias']['value'],
-	   													# face_color=colours.normaliseColour(self.opts['orbital_path_colour']['value']),
-														# edge_color='white',
-														# edge_width=0,
-														# scaling=True,
-														# spherical=True,
-														# parent=self.parent)
 
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}
@@ -113,7 +103,7 @@ class OrbitVisualiser(BaseAsset):
 		self._dflt_opts['plot_orbit'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
-												'callback': self.setOrbitAssetVisibility}		
+												'callback': self.setVisibility}		
 		self._dflt_opts['orbital_length'] = {'value': 1,
 											'type': 'number',
 											'help': '',
@@ -121,7 +111,7 @@ class OrbitVisualiser(BaseAsset):
 		self._dflt_opts['orbital_path_colour'] = {'value': (0,0,255),
 												'type': 'colour',
 												'help': '',
-												'callback': self.setPrimOrbitColour}
+												'callback': self.setOrbitColour}
 		self._dflt_opts['orbital_path_width'] = {'value': 1,
 											'type': 'number',
 											'help': '',
@@ -158,21 +148,13 @@ class OrbitVisualiser(BaseAsset):
 												'callback': None}
 
 		self.opts = self._dflt_opts.copy()
-		self._createOptHelp()
 
-	def _createOptHelp(self):
-		pass
-	
-	def setPrimOrbitColour(self, new_colour):
+	#----- OPTIONS CALLBACKS -----#	
+	def setOrbitColour(self, new_colour):
 		self.opts['orbital_path_colour']['value'] = colours.normaliseColour(new_colour)
 		self.visuals['past'].set_data(color=colours.normaliseColour(new_colour))
 		self.visuals['future'].set_data(color=colours.normaliseColour(new_colour))
 		self.visuals['marker'].set_data(face_color=colours.normaliseColour(new_colour))
-
-	def setOrbitAssetVisibility(self, state):
-		self.setOrbitalPathFutureVisibility(state)
-		self.setOrbitalPathPastVisibility(state)
-		self.setOrbitalMarkerVisibility(state)
 
 	def setOrbitalPathFutureVisibility(self, state):
 		self.visuals['future'].visible = state
@@ -182,3 +164,15 @@ class OrbitVisualiser(BaseAsset):
 
 	def setOrbitalMarkerVisibility(self, state):
 		self.visuals['marker'].visible = state
+
+
+	#----- HELPER FUNCTIONS -----#
+	def _sliceData(self):
+		self.data['past_coords'] = self.data['coords'][:self.data['curr_index']]
+		self.data['future_coords'] = self.data['coords'][self.data['curr_index']:]
+		future_len = len(self.data['future_coords'])
+		dash_size = self.opts['orbital_path_future_dash_size']['value']
+		padded_future_len = padded_future_len = future_len - future_len%(2*dash_size)
+		conn_picker = np.arange(padded_future_len).reshape(-1,dash_size*2)[:,:dash_size].reshape(1,-1)[0]
+		conn_picker[np.where(conn_picker < future_len)]
+		self.data['future_conn'] = np.array([np.arange(future_len-1),np.arange(1,future_len)]).T[conn_picker]
