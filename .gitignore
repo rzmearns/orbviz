@@ -2,6 +2,7 @@
 ################################
 qt_tests/
 vispy_tests
+resources/
 
 # Compiled source #
 ###################

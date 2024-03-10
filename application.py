@@ -22,11 +22,17 @@ class Application():
 	def __init__(self) -> None:
 		self.pyqt_app = app.use_app("pyqt5")
 		self.pyqt_app.create()
+
+		self._buildActionDict()
+
 		self.canvas_wrapper = canvaswrapper.CanvasWrapper()		
-		self.window = window.MainWindow(self.canvas_wrapper, "Sat Plot")
+		self.window = window.MainWindow(self.canvas_wrapper, title="Sat Plot", action_dict=self.action_dict)
+
 		self._connectControls()
 		self.load_data_worker = None
-		self.worker_thread = None
+		self.load_worker_thread = None
+		self.save_worker = None
+		self.save_worker_thread = None
 
 	def run(self):
 		self.window.show()
@@ -35,6 +41,12 @@ class Application():
 	def _connectControls(self):
 		self.window.orbit_controls.submit_button.clicked.connect(self._loadData)
 		self.window._time_slider.add_connect(self._updateIndex)
+
+		self.action_dict['save']['callback'] = self._save
+		# self.window.toolBar.addButtons()
+
+	def _saveState(self):
+		console.send(f'Saving State')
 
 	def _loadData(self):
 		self.period_start = self.window.orbit_controls.period_start.datetime
@@ -52,7 +64,7 @@ class Application():
 		self.pointing_file = self.window.orbit_controls.pointing_file_selector.path
 		
 		# Create worker
-		self.worker_thread = QtCore.QThread()
+		self.load_worker_thread = QtCore.QThread()
 		self.load_data_worker = self.LoadDataWorker(self.period_start, 
 										 		self.period_end, 
 												self.prim_orbit_TLE_path,
@@ -61,9 +73,9 @@ class Application():
 												c_name = self.c_name,
 												p_file = self.pointing_file)	
 		# Move to new thread and setup signals
-		self.load_data_worker.moveToThread(self.worker_thread)
-		self.worker_thread.started.connect(self.load_data_worker.run)
-		self.worker_thread.finished.connect(self.worker_thread.deleteLater)
+		self.load_data_worker.moveToThread(self.load_worker_thread)
+		self.load_worker_thread.started.connect(self.load_data_worker.run)
+		self.load_worker_thread.finished.connect(self.load_worker_thread.deleteLater)
 		self.load_data_worker.finished.connect(self._cleanUpWorkerThread)
 		self.load_data_worker.finished.connect(self._updateDataSources)
 		self.load_data_worker.finished.connect(self.load_data_worker.deleteLater)
@@ -73,7 +85,7 @@ class Application():
 
 		# make load data button inactive
 		self.window.orbit_controls.submit_button.setEnabled(False)
-		self.worker_thread.start()	
+		self.load_worker_thread.start()	
 
 	# attach to worker thread done
 	def _updateDataSources(self, t, o, c_list, pointing_q):
@@ -108,11 +120,25 @@ class Application():
 	def _updateIndex(self, index):
 		self.canvas_wrapper.updateIndex(index)
 
-	def _cleanUpWorkerThread(self):
-		self.worker_thread.quit()
-		self.worker_thread.deleteLater()
-		self.worker_thread = None
+	def _cleanUpLoadWorkerThread(self):
+		self.load_worker_thread.quit()
+		self.load_worker_thread.deleteLater()
+		self.load_worker_thread = None
 		self.window.orbit_controls.submit_button.setEnabled(True)
+
+	def _cleanUpSaveWorkerThread(self):
+		self.save_worker_thread.quit()
+		self.save_worker_thread.deleteLater()
+		self.save_worker_thread = None
+
+	def _buildActionDict(self):
+		self.action_dict = {}
+		self.action_dict['save'] = {'tooltip': 'Save SatPlot state',
+								'menu_item': 'Save State',
+								'button_icon': 'resources.icons/disk-black.png',
+								'hotkey': None,
+								'callback': None,
+								'contexts': ['main-window']}
 
 	class LoadDataWorker(QtCore.QObject):
 		finished = QtCore.pyqtSignal(timespan.TimeSpan, orbit.Orbit, list, np.ndarray)

@@ -3,10 +3,14 @@ from PyQt5 import QtWidgets, QtCore
 from satplot.visualiser.controls import controls, widgets
 from satplot.visualiser import canvaswrapper
 import satplot.visualiser.controls.console as console
+
 class MainWindow(QtWidgets.QMainWindow):
 	closing = QtCore.pyqtSignal()
 
-	def __init__(self, canvas_wrapper: canvaswrapper.CanvasWrapper, title="", *args, **kwargs):
+	def __init__(self, canvas_wrapper: canvaswrapper.CanvasWrapper,
+			  			action_dict=None,
+						title="",
+						*args, **kwargs):
 		super().__init__(*args, **kwargs)
 		main_widget = QtWidgets.QWidget()
 		main_layout = QtWidgets.QVBoxLayout()
@@ -93,6 +97,8 @@ class MainWindow(QtWidgets.QMainWindow):
 		main_layout.addWidget(window_vsplitter)
 		main_widget.setLayout(main_layout)
 		self.setCentralWidget(main_widget)
+
+		# self.toolbar = controls.Toolbar(self, action_dict)
 
 	# 	# Connect desired controls
 	# 	self._connectControls()

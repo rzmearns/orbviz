@@ -153,6 +153,35 @@ class OptionConfigs(QtWidgets.QWidget):
 
 		return w_dict
 
+class Toolbar(QtWidgets.QWidget):
+	def __init__(self, parent_window, action_dict, context=None):
+		super().__init__()
+		self.window = parent_window
+		self.action_dict = action_dict
+		self.context = context
+		if self.context is None:
+			context = 'main-window'
+		self.toolbar = QtWidgets.QToolBar("My main toolbar")
+
+		self.toolbar.setIconSize(QtGui.QSize(16,16))
+
+		self.button_dict = {}
+
+	def addButtons(self):
+		for key, action in self.action_dict.items():
+			if 	self.context in action['contexts']:
+				self.button_dict[key] = QtWidgets.QAction(QtGui.QIcon(action['button_icon']))
+				self.button_dict[key].setStatusTip(action['tooltip'])
+				self.button_dict[key].setCheckable(True)
+				self.button_dict[key].triggered.connect(action['callback'])
+
+				self.toolbar.addAction(self.button_dict[key])
+
+	def addToWindow(self):
+		self.window.addToolBar(self.toolbar)
+
+
+
 def pretty(d, indent=0):
    for key, value in d.items():
       print('\t' * indent + str(key))
