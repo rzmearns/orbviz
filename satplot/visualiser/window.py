@@ -1,5 +1,6 @@
 import sys
 from PyQt5 import QtWidgets, QtCore
+import satplot
 from satplot.visualiser.controls import controls, widgets
 from satplot.visualiser import canvaswrapper
 import satplot.visualiser.controls.console as console
@@ -8,12 +9,15 @@ class MainWindow(QtWidgets.QMainWindow):
 	closing = QtCore.pyqtSignal()
 
 	def __init__(self, canvas_wrapper: canvaswrapper.CanvasWrapper,
-			  			action_dict=None,
 						title="",
+			  			action_dict=None,
 						*args, **kwargs):
 		super().__init__(*args, **kwargs)
+		print(f"{action_dict=}")
 		main_widget = QtWidgets.QWidget()
 		main_layout = QtWidgets.QVBoxLayout()
+		self.toolbar = controls.Toolbar(self, action_dict)
+		self.menubar = controls.Menubar(self, action_dict)
 
 		opt_vsplitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
 		opt_vsplitter.setObjectName('opt_vsplitter')
@@ -81,7 +85,8 @@ class MainWindow(QtWidgets.QMainWindow):
 		# Prep console area
 		self._console = console.Console()
 		console.consolefp = console.EmittingConsoleStream(textWritten=self._console.writeOutput)
-		sys.stderr = console.EmittingConsoleStream(textWritten=self._console.writeErr)
+		if not satplot.debug:
+			sys.stderr = console.EmittingConsoleStream(textWritten=self._console.writeErr)
 		# Build main layout
 		'''
 		# | ###
@@ -98,7 +103,7 @@ class MainWindow(QtWidgets.QMainWindow):
 		main_widget.setLayout(main_layout)
 		self.setCentralWidget(main_widget)
 
-		# self.toolbar = controls.Toolbar(self, action_dict)
+		
 
 	# 	# Connect desired controls
 	# 	self._connectControls()

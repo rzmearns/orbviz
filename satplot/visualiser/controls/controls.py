@@ -160,26 +160,54 @@ class Toolbar(QtWidgets.QWidget):
 		self.action_dict = action_dict
 		self.context = context
 		if self.context is None:
-			context = 'main-window'
+			self.context = 'main-window'
 		self.toolbar = QtWidgets.QToolBar("My main toolbar")
 
-		self.toolbar.setIconSize(QtGui.QSize(16,16))
+		self.toolbar.setIconSize(QtCore.QSize(16,16))
 
 		self.button_dict = {}
+
+		self.addToWindow()
 
 	def addButtons(self):
 		for key, action in self.action_dict.items():
 			if 	self.context in action['contexts']:
-				self.button_dict[key] = QtWidgets.QAction(QtGui.QIcon(action['button_icon']))
+				self.button_dict[key] = QtWidgets.QAction(QtGui.QIcon(action['button_icon']), action['tooltip'], self)
 				self.button_dict[key].setStatusTip(action['tooltip'])
-				self.button_dict[key].setCheckable(True)
-				self.button_dict[key].triggered.connect(action['callback'])
+				self.button_dict[key].setCheckable(action['toggleable'])
+				if action['callback'] is not None:
+					self.button_dict[key].triggered.connect(action['callback'])
 
 				self.toolbar.addAction(self.button_dict[key])
 
 	def addToWindow(self):
 		self.window.addToolBar(self.toolbar)
 
+
+class Menubar(QtWidgets.QWidget):
+	def __init__(self, parent_window, action_dict, context=None):
+		super().__init__()
+		self.window = parent_window
+		self.action_dict = action_dict
+		self.context = context
+		if self.context is None:
+			self.context = 'main-window'
+		self.menubar = self.window.menuBar()
+		self.menus = {}
+		self.button_dict = {}
+
+	def addMenuItems(self):
+		for key, action in self.action_dict.items():
+			if self.context in action['contexts']:
+				if action['containing_menu'] not in self.menus.keys():
+					self.menus[action['containing_menu']] = self.menubar.addMenu(action['containing_menu'].capitalize())				
+				self.button_dict[key] = QtWidgets.QAction(QtGui.QIcon(action['button_icon']), action['tooltip'], self)
+				self.button_dict[key].setStatusTip(action['tooltip'])
+				self.button_dict[key].setCheckable(action['toggleable'])
+				if action['callback'] is not None:
+					self.button_dict[key].triggered.connect(action['callback'])
+
+				self.menus[action['containing_menu']].addAction(self.button_dict[key])
 
 
 def pretty(d, indent=0):

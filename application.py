@@ -13,6 +13,8 @@ import datetime as dt
 import satplot.visualiser.controls.console as console
 import satplot
 
+import json
+
 import warnings
 warnings.filterwarnings("ignore", message="Optimal rotation is not uniquely or poorly defined for the given sets of vectors.")
 
@@ -42,11 +44,16 @@ class Application():
 		self.window.orbit_controls.submit_button.clicked.connect(self._loadData)
 		self.window._time_slider.add_connect(self._updateIndex)
 
-		self.action_dict['save']['callback'] = self._save
-		# self.window.toolBar.addButtons()
+		self.action_dict['save']['callback'] = self._saveState
+		self.action_dict['load']['callback'] = self._loadState
+		self.window.toolbar.addButtons()
+		self.window.menubar.addMenuItems()
 
 	def _saveState(self):
 		console.send(f'Saving State')
+
+	def _loadState(self):
+		console.send(f"loading state")
 
 	def _loadData(self):
 		self.period_start = self.window.orbit_controls.period_start.datetime
@@ -132,13 +139,15 @@ class Application():
 		self.save_worker_thread = None
 
 	def _buildActionDict(self):
-		self.action_dict = {}
-		self.action_dict['save'] = {'tooltip': 'Save SatPlot state',
-								'menu_item': 'Save State',
-								'button_icon': 'resources.icons/disk-black.png',
-								'hotkey': None,
-								'callback': None,
-								'contexts': ['main-window']}
+		with open('resources/actions/main-window.json','r') as fp:
+			self.action_dict = json.load(fp)
+		# self.action_dict['save'] = {'tooltip': 'Save SatPlot state',
+		# 						'menu_item': 'Save State',
+		# 						'button_icon': 'resources/icons/disk-black.png',
+		# 						'hotkey': None,
+		# 						'callback': None,
+		# 						'toggleable': False,
+		# 						'contexts': ['main-window']}
 
 	class LoadDataWorker(QtCore.QObject):
 		finished = QtCore.pyqtSignal(timespan.TimeSpan, orbit.Orbit, list, np.ndarray)
@@ -241,11 +250,16 @@ if __name__ == '__main__':
 						prog='SatPlot',
 						description='Visualisation software for satellites; including orbits and pointing.')
 	parser.add_argument('--nogl+', action='store_true', dest='nogl_plus')
+	parser.add_argument('--debug', action='store_true', dest='debug')
 	args = parser.parse_args()
 	if args.nogl_plus:
 		satplot.gl_plus = False
 	else:
 		satplot.gl_plus = True
+	if args.debug:
+		satplot.debug = True
+	else:
+		satplot.debug = False
 	application = Application()
 	application.run()
 
