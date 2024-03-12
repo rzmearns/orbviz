@@ -46,8 +46,14 @@ class Application():
 
 		self.action_dict['save']['callback'] = self._saveState
 		self.action_dict['load']['callback'] = self._loadState
-		self.window.toolbar.addButtons()
-		self.window.menubar.addMenuItems()
+		self.action_dict['context-main']['callback'] = self.window.changeToMainPage
+		self.action_dict['context-3D']['callback'] = self.window.changeTo3DHistory
+		self.action_dict['center-earth']['callback'] = self.canvas_wrapper.centerCameraEarth
+		self.action_dict['center-spacecraft']['callback'] = self.canvas_wrapper.centerCameraSpacecraft
+		for toolbar in self.window.toolbars.values():
+			toolbar.addButtons()
+		for menubar in self.window.menubars.values():
+			menubar.addMenuItems()
 
 	def _saveState(self):
 		console.send(f'Saving State')
@@ -83,10 +89,10 @@ class Application():
 		self.load_data_worker.moveToThread(self.load_worker_thread)
 		self.load_worker_thread.started.connect(self.load_data_worker.run)
 		self.load_worker_thread.finished.connect(self.load_worker_thread.deleteLater)
-		self.load_data_worker.finished.connect(self._cleanUpWorkerThread)
+		self.load_data_worker.finished.connect(self._cleanUpLoadWorkerThread)
 		self.load_data_worker.finished.connect(self._updateDataSources)
 		self.load_data_worker.finished.connect(self.load_data_worker.deleteLater)
-		self.load_data_worker.error.connect(self._cleanUpWorkerThread)
+		self.load_data_worker.error.connect(self._cleanUpLoadWorkerThread)
 		self.load_data_worker.error.connect(self.load_data_worker.deleteLater)
 
 
