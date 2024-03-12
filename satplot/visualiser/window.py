@@ -1,15 +1,27 @@
 import sys
 from PyQt5 import QtWidgets, QtCore
+import satplot
 from satplot.visualiser.controls import controls, widgets
 from satplot.visualiser import canvaswrapper
 import satplot.visualiser.controls.console as console
+
 class MainWindow(QtWidgets.QMainWindow):
 	closing = QtCore.pyqtSignal()
 
-	def __init__(self, canvas_wrapper: canvaswrapper.CanvasWrapper, title="", *args, **kwargs):
+	def __init__(self, canvas_wrapper: canvaswrapper.CanvasWrapper,
+						title="",
+			  			action_dict=None,
+						*args, **kwargs):
 		super().__init__(*args, **kwargs)
+		print(f"{action_dict=}")
 		main_widget = QtWidgets.QWidget()
 		main_layout = QtWidgets.QVBoxLayout()
+		self.toolbars = {}
+		self.menubars = {}
+		self.toolbars['main-window'] = controls.Toolbar(self, action_dict, context='main-window')
+		self.toolbars['3D-history'] = controls.Toolbar(self, action_dict, context='3D-history')
+		self.menubars['main-window'] = controls.Menubar(self, action_dict, context='main-window')
+		self.menubars['3D-history'] = controls.Menubar(self, action_dict, context='3D-history')
 
 		opt_vsplitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
 		opt_vsplitter.setObjectName('opt_vsplitter')
@@ -77,7 +89,8 @@ class MainWindow(QtWidgets.QMainWindow):
 		# Prep console area
 		self._console = console.Console()
 		console.consolefp = console.EmittingConsoleStream(textWritten=self._console.writeOutput)
-		sys.stderr = console.EmittingConsoleStream(textWritten=self._console.writeErr)
+		if not satplot.debug:
+			sys.stderr = console.EmittingConsoleStream(textWritten=self._console.writeErr)
 		# Build main layout
 		'''
 		# | ###
@@ -94,6 +107,10 @@ class MainWindow(QtWidgets.QMainWindow):
 		main_widget.setLayout(main_layout)
 		self.setCentralWidget(main_widget)
 
+		self._changePage('main-window')
+
+		
+
 	# 	# Connect desired controls
 	# 	self._connectControls()
 
@@ -103,7 +120,26 @@ class MainWindow(QtWidgets.QMainWindow):
 	# 	# self._config_controls.eq_c_chooser.add_connect(self._canvas_wrapper.assets['earth'].visuals['parallels'].setEquatorColour)
 	# 	self._time_slider.add_connect(self._canvas_wrapper.assets['earth'].setCurrentECEFRotation)
 	# 	self._time_slider.add_connect(self._canvas_wrapper.assets['primary_orbit'].updateIndex)
+
+	def _changePage(self, new_page_key):
+		console.send(f'Changing context to {new_page_key}')
+		# process deselects first, need to clear parent pointer to menubar, otherwise menubar gets deleted
+		for page_key in self.toolbars.keys():
+			if page_key != new_page_key:
+				self.toolbars[page_key].setActiveState(False)
+				self.menubars[page_key].setActiveState(False)
 		
+		for page_key in self.toolbars.keys():
+			if page_key == new_page_key:
+				self.toolbars[page_key].setActiveState(True)
+				self.menubars[page_key].setActiveState(True)
+
+	def changeToMainPage(self):		
+		self._changePage('main-window')
+
+	def changeTo3DHistory(self):
+		self._changePage('3D-history')
+
 	def printCol(self,val):
 		print(val)
 

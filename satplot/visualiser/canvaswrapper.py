@@ -129,6 +129,18 @@ class CanvasWrapper():
 		self.setCameraZoom(5*c.R_EARTH)
 		# self.assets['ECI_gizmo'].attachCamera(self.view_box.camera)
 
+	def centerCameraSpacecraft(self):
+		if self.is_asset_instantiated['spacecraft']:
+			sc_pos = tuple(self.assets['spacecraft'].data['coords'][self.assets['spacecraft'].data['curr_index']])
+			self.view_box.camera.center = sc_pos
+			self.setCameraZoom(2200)
+			self.canvas.update()
+
+	def centerCameraEarth(self):
+		self.view_box.camera.center = (0,0,0)
+		self.setCameraZoom(5*c.R_EARTH)
+		self.canvas.update()
+
 	def onMouseMove(self, event):
 		pass
 		# console.send("captured event")
@@ -140,13 +152,7 @@ class CanvasWrapper():
 		
 	def onKeyPress(self, event):
 		if event.key == "Home":
-			self.view_box.camera.center = (0,0,0)
-			self.setCameraZoom(5*c.R_EARTH)
-			self.canvas.update()
+			self.centerCameraEarth()
 
 		if event.key == "End":
-			if self.is_asset_instantiated['spacecraft']:
-				sc_pos = tuple(self.assets['spacecraft'].data['coords'][self.assets['spacecraft'].data['curr_index']])
-				self.view_box.camera.center = sc_pos
-				self.setCameraZoom(2200)
-				self.canvas.update()
+			self.centerCameraSpacecraft()
