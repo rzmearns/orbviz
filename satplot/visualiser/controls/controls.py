@@ -159,6 +159,7 @@ class Toolbar(QtWidgets.QWidget):
 		self.window = parent_window
 		self.action_dict = action_dict
 		self.context = context
+		print(f'toolbar context: {self.context}')
 		if self.context is None:
 			self.context = 'main-window'
 		self.toolbar = QtWidgets.QToolBar("My main toolbar")
@@ -168,10 +169,24 @@ class Toolbar(QtWidgets.QWidget):
 		self.button_dict = {}
 
 		self.addToWindow()
+		print(f'toolbar context: {self.context}')
 
 	def addButtons(self):
+		# Process 'all' actions first
 		for key, action in self.action_dict.items():
-			if 	self.context in action['contexts']:
+			if 'all' in action['contexts']:
+				self.button_dict[key] = QtWidgets.QAction(QtGui.QIcon(action['button_icon']), action['tooltip'], self)
+				self.button_dict[key].setStatusTip(action['tooltip'])
+				self.button_dict[key].setCheckable(action['toggleable'])
+				if action['callback'] is not None:
+					self.button_dict[key].triggered.connect(action['callback'])
+
+				self.toolbar.addAction(self.button_dict[key])
+
+		self.toolbar.addSeparator()
+
+		for key, action in self.action_dict.items():
+			if self.context in action['contexts'] and 'all' not in action['contexts']:
 				self.button_dict[key] = QtWidgets.QAction(QtGui.QIcon(action['button_icon']), action['tooltip'], self)
 				self.button_dict[key].setStatusTip(action['tooltip'])
 				self.button_dict[key].setCheckable(action['toggleable'])
@@ -183,6 +198,10 @@ class Toolbar(QtWidgets.QWidget):
 	def addToWindow(self):
 		self.window.addToolBar(self.toolbar)
 
+	def setActiveState(self, state):
+		console.send(f'\tsetting {self.context} toolbar state to {state}')
+		self.toolbar.toggleViewAction().setChecked(not state)
+		self.toolbar.toggleViewAction().trigger()
 
 class Menubar(QtWidgets.QWidget):
 	def __init__(self, parent_window, action_dict, context=None):
@@ -192,23 +211,43 @@ class Menubar(QtWidgets.QWidget):
 		self.context = context
 		if self.context is None:
 			self.context = 'main-window'
-		self.menubar = self.window.menuBar()
+		self.menubar = QtWidgets.QMenuBar()
 		self.menus = {}
 		self.button_dict = {}
 
 	def addMenuItems(self):
+		# Process 'all' actions first
 		for key, action in self.action_dict.items():
-			if self.context in action['contexts']:
+			if 'all' in action['contexts']:
 				if action['containing_menu'] not in self.menus.keys():
-					self.menus[action['containing_menu']] = self.menubar.addMenu(action['containing_menu'].capitalize())				
+					console.send(f'adding {action["containing_menu"]} menu to {self.context} menubar')
+					self.menus[action['containing_menu']] = self.menubar.addMenu(action['containing_menu'].capitalize())
 				self.button_dict[key] = QtWidgets.QAction(QtGui.QIcon(action['button_icon']), action['tooltip'], self)
 				self.button_dict[key].setStatusTip(action['tooltip'])
 				self.button_dict[key].setCheckable(action['toggleable'])
 				if action['callback'] is not None:
 					self.button_dict[key].triggered.connect(action['callback'])
-
 				self.menus[action['containing_menu']].addAction(self.button_dict[key])
 
+		# Process context specific actions
+		for key, action in self.action_dict.items():
+			if self.context in action['contexts']:
+				if action['containing_menu'] not in self.menus.keys():
+					console.send(f'adding {action["containing_menu"]} menu to {self.context} menubar')
+					self.menus[action['containing_menu']] = self.menubar.addMenu(action['containing_menu'].capitalize())
+				self.button_dict[key] = QtWidgets.QAction(QtGui.QIcon(action['button_icon']), action['tooltip'], self)
+				self.button_dict[key].setStatusTip(action['tooltip'])
+				self.button_dict[key].setCheckable(action['toggleable'])
+				if action['callback'] is not None:
+					self.button_dict[key].triggered.connect(action['callback'])
+				self.menus[action['containing_menu']].addAction(self.button_dict[key])
+
+	def setActiveState(self, state):
+		console.send(f'\tsetting {self.context} menubar state to {state}')
+		if state:
+			self.window.setMenuBar(self.menubar)
+		else:	
+			self.menubar.setParent(None)
 
 def pretty(d, indent=0):
    for key, value in d.items():

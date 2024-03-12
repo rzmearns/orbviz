@@ -16,8 +16,12 @@ class MainWindow(QtWidgets.QMainWindow):
 		print(f"{action_dict=}")
 		main_widget = QtWidgets.QWidget()
 		main_layout = QtWidgets.QVBoxLayout()
-		self.toolbar = controls.Toolbar(self, action_dict)
-		self.menubar = controls.Menubar(self, action_dict)
+		self.toolbars = {}
+		self.menubars = {}
+		self.toolbars['main-window'] = controls.Toolbar(self, action_dict, context='main-window')
+		self.toolbars['3D-history'] = controls.Toolbar(self, action_dict, context='3D-history')
+		self.menubars['main-window'] = controls.Menubar(self, action_dict, context='main-window')
+		self.menubars['3D-history'] = controls.Menubar(self, action_dict, context='3D-history')
 
 		opt_vsplitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
 		opt_vsplitter.setObjectName('opt_vsplitter')
@@ -103,6 +107,8 @@ class MainWindow(QtWidgets.QMainWindow):
 		main_widget.setLayout(main_layout)
 		self.setCentralWidget(main_widget)
 
+		self._changePage('main-window')
+
 		
 
 	# 	# Connect desired controls
@@ -114,7 +120,26 @@ class MainWindow(QtWidgets.QMainWindow):
 	# 	# self._config_controls.eq_c_chooser.add_connect(self._canvas_wrapper.assets['earth'].visuals['parallels'].setEquatorColour)
 	# 	self._time_slider.add_connect(self._canvas_wrapper.assets['earth'].setCurrentECEFRotation)
 	# 	self._time_slider.add_connect(self._canvas_wrapper.assets['primary_orbit'].updateIndex)
+
+	def _changePage(self, new_page_key):
+		console.send(f'Changing context to {new_page_key}')
+		# process deselects first, need to clear parent pointer to menubar, otherwise menubar gets deleted
+		for page_key in self.toolbars.keys():
+			if page_key != new_page_key:
+				self.toolbars[page_key].setActiveState(False)
+				self.menubars[page_key].setActiveState(False)
 		
+		for page_key in self.toolbars.keys():
+			if page_key == new_page_key:
+				self.toolbars[page_key].setActiveState(True)
+				self.menubars[page_key].setActiveState(True)
+
+	def changeToMainPage(self):		
+		self._changePage('main-window')
+
+	def changeTo3DHistory(self):
+		self._changePage('3D-history')
+
 	def printCol(self,val):
 		print(val)
 
