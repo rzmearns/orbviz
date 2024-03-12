@@ -1,5 +1,5 @@
 from vispy import app, use
-from satplot.visualiser import canvaswrapper
+from satplot.visualiser import canvaswrappers
 from satplot.visualiser import window
 
 from PyQt5 import QtWidgets, QtCore
@@ -27,7 +27,7 @@ class Application():
 
 		self._buildActionDict()
 
-		self.canvas_wrapper = canvaswrapper.CanvasWrapper()		
+		self.canvas_wrapper = canvaswrappers.History3D()		
 		self.window = window.MainWindow(self.canvas_wrapper, title="Sat Plot", action_dict=self.action_dict)
 
 		self._connectControls()
@@ -41,13 +41,11 @@ class Application():
 		self.pyqt_app.run()
 
 	def _connectControls(self):
-		self.window.orbit_controls.submit_button.clicked.connect(self._loadData)
-		self.window._time_slider.add_connect(self._updateIndex)
+		self.window.history3D.orbit_controls.submit_button.clicked.connect(self._loadData)
+		self.window.history3D._time_slider.add_connect(self._updateIndex)
 
 		self.action_dict['save']['callback'] = self._saveState
 		self.action_dict['load']['callback'] = self._loadState
-		self.action_dict['context-main']['callback'] = self.window.changeToMainPage
-		self.action_dict['context-3D']['callback'] = self.window.changeTo3DHistory
 		self.action_dict['center-earth']['callback'] = self.canvas_wrapper.centerCameraEarth
 		self.action_dict['center-spacecraft']['callback'] = self.canvas_wrapper.centerCameraSpacecraft
 		for toolbar in self.window.toolbars.values():
@@ -147,13 +145,6 @@ class Application():
 	def _buildActionDict(self):
 		with open('resources/actions/main-window.json','r') as fp:
 			self.action_dict = json.load(fp)
-		# self.action_dict['save'] = {'tooltip': 'Save SatPlot state',
-		# 						'menu_item': 'Save State',
-		# 						'button_icon': 'resources/icons/disk-black.png',
-		# 						'hotkey': None,
-		# 						'callback': None,
-		# 						'toggleable': False,
-		# 						'contexts': ['main-window']}
 
 	class LoadDataWorker(QtCore.QObject):
 		finished = QtCore.pyqtSignal(timespan.TimeSpan, orbit.Orbit, list, np.ndarray)

@@ -13,7 +13,7 @@ from satplot.visualiser.controls import console
 import json
 import numpy as np
 
-class CanvasWrapper():
+class History3D():
 	def __init__(self, w=800, h=600, keys='interactive', bgcolor='white'):
 		self.canvas = scene.SceneCanvas(size=(w,h),
 								  		keys=keys,
