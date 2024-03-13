@@ -16,12 +16,26 @@ class MainWindow(QtWidgets.QMainWindow):
 		print(f"{action_dict=}")
 		main_widget = QtWidgets.QWidget()
 		main_layout = QtWidgets.QVBoxLayout()
+		console_vsplitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
+		console_vsplitter.setObjectName('window_vsplitter')
+		console_vsplitter.setStyleSheet('''
+					QSplitter#window_vsplitter::handle {
+								background-color: #DCDCDC;
+								padding: 2px;
+							}
+					QSplitter#window_vsplitter::handle:vertical {
+								height: 1px;
+								color: #ff0000;
+							}								  
+							''')
+
 		self.toolbars = {}
 		self.menubars = {}
 		self.context_dict = {}
 		self.context_tabs = QtWidgets.QTabWidget()
 		
 
+		# Build context panes
 		self.toolbars['3d-history'] = controls.Toolbar(self, action_dict, context='3d-history')
 		self.menubars['3d-history'] = controls.Menubar(self, action_dict, context='3d-history')
 		self.context_dict['3d-history'] = history3d.History3DContext('3d-history')
@@ -39,12 +53,33 @@ class MainWindow(QtWidgets.QMainWindow):
 
 		self.context_tabs.currentChanged.connect(self._changeToolbarsToContext)
 
-		self.setWindowTitle(title)
+		
 
-		main_layout.addWidget(self.context_tabs)
+		# Prep console area
+		self._console = console.Console()
+		console.consolefp = console.EmittingConsoleStream(textWritten=self._console.writeOutput)
+		if not satplot.debug:
+			sys.stderr = console.EmittingConsoleStream(textWritten=self._console.writeErr)
+
+		# Build main layout
+		'''
+		# | ###
+		- | ###
+		# | ###
+		#######
+		-------
+		#######
+		'''
+		console_vsplitter.addWidget(self.context_tabs)
+		console_vsplitter.addWidget(self._console)
+
+		main_layout.addWidget(console_vsplitter)
+		main_layout.setContentsMargins(0, 0, 0, 0)
 		main_widget.setLayout(main_layout)
 		self.setCentralWidget(main_widget)
 
+
+		self.setWindowTitle(title)
 		self._changeToolbarsToContext(0)
 
 	def _changeToolbarsToContext(self, new_context_index):

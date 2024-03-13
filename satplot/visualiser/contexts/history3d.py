@@ -48,13 +48,7 @@ class History3DContext(BaseContext):
 							''')
 		content_widget = QtWidgets.QWidget()
 		content_vlayout = QtWidgets.QVBoxLayout()
-		window_vsplitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
-		window_vsplitter.setObjectName('window_vsplitter')
-		window_vsplitter.setStyleSheet('''
-					QSplitter#window_vsplitter::handle {
-								background-color: #DCDCDC;
-							}
-							''')
+
 
 		# Prep controls area
 		self.orbit_controls = controls.OrbitConfigs()
@@ -93,27 +87,10 @@ class History3DContext(BaseContext):
 		content_vlayout.addWidget(self._time_slider)
 		content_widget.setLayout(content_vlayout)
 
-		# Prep console area
-		self._console = console.Console()
-		console.consolefp = console.EmittingConsoleStream(textWritten=self._console.writeOutput)
-		if not satplot.debug:
-			sys.stderr = console.EmittingConsoleStream(textWritten=self._console.writeErr)
-		# Build main layout
-		'''
-		# | ###
-		- | ###
-		# | ###
-		#######
-		-------
-		#######
-		'''
-		window_vsplitter.addWidget(content_widget)
-		window_vsplitter.addWidget(self._console)
-
 		self.widget = QtWidgets.QWidget()
 		self.layout = QtWidgets.QHBoxLayout(self.widget)
 		self.layout.setContentsMargins(0, 0, 0, 0)
-		self.layout.addWidget(window_vsplitter)
+		self.layout.addWidget(content_widget)
 
 	def connectControls(self):
 		self.orbit_controls.submit_button.clicked.connect(self._loadData)
@@ -190,6 +167,10 @@ class History3DContext(BaseContext):
 
 	def saveState(self):
 		pass
+
+	def _cleanUpLoadWorkerThread(self):
+		self.orbit_controls.submit_button.setEnabled(True)
+		return super()._cleanUpLoadWorkerThread()
 
 	class LoadDataWorker(QtCore.QObject):
 		finished = QtCore.pyqtSignal(timespan.TimeSpan, orbit.Orbit, list, np.ndarray)
