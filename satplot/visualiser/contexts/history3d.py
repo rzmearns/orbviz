@@ -2,7 +2,7 @@ import satplot
 import satplot.model.timespan as timespan
 import satplot.model.orbit as orbit
 from satplot.visualiser import canvaswrappers
-from satplot.visualiser.contexts.base import BaseContext
+from satplot.visualiser.contexts.base import (BaseContext, BaseDataWorker, BaseControls)
 import satplot.visualiser.controls.console as console
 from satplot.visualiser.controls import controls, widgets
 
@@ -31,14 +31,8 @@ class History3DContext(BaseContext):
 
 		self.controls = None
 		self.canvas_wrapper = canvaswrappers.History3D()
+		self.controls = self.Controls(self.canvas_wrapper)
 
-		opt_vsplitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
-		opt_vsplitter.setObjectName('opt_vsplitter')
-		opt_vsplitter.setStyleSheet('''
-					QSplitter#opt_vsplitter::handle {
-								background-color: #DCDCDC;
-							}
-							''')
 		disp_hsplitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
 		disp_hsplitter.setObjectName('disp_hsplitter')
 		disp_hsplitter.setStyleSheet('''
@@ -48,71 +42,52 @@ class History3DContext(BaseContext):
 							''')
 		content_widget = QtWidgets.QWidget()
 		content_vlayout = QtWidgets.QVBoxLayout()
-
-
-		# Prep controls area
-		self.orbit_controls = controls.OrbitConfigs()
-		self._config_controls = controls.OptionConfigs(self.canvas_wrapper.assets)
-		# Build config area layout
-		'''
-		#
-		-
-		#
-		'''
-		opt_vsplitter.addWidget(self.orbit_controls)
-		opt_vsplitter.addWidget(self._config_controls)
-
-		# Prep canvas area
 		
 		# Build display area layout
 		'''
 		# | ###
-		- | ###
+		# | ###
 		# | ###
 		'''
-		disp_hsplitter.addWidget(opt_vsplitter)
+		disp_hsplitter.addWidget(self.controls.config_tabs)
 		disp_hsplitter.addWidget(self.canvas_wrapper.canvas.native)
 
-		# Prep time slider area
-		self._time_slider = widgets.TimeSlider()
-		self._time_slider.setFixedHeight(50)
 		# Build area down to bottom of time slider
 		'''
 		# | ###
-		- | ###
+		# | ###
 		# | ###
 		#######
 		'''
 		content_vlayout.addWidget(disp_hsplitter)
-		content_vlayout.addWidget(self._time_slider)
+		content_vlayout.addWidget(self.controls.time_slider)
 		content_widget.setLayout(content_vlayout)
 
-		self.widget = QtWidgets.QWidget()
-		self.layout = QtWidgets.QHBoxLayout(self.widget)
 		self.layout.setContentsMargins(0, 0, 0, 0)
 		self.layout.addWidget(content_widget)
 
 	def connectControls(self):
-		self.orbit_controls.submit_button.clicked.connect(self._loadData)
-		self._time_slider.add_connect(self._updateIndex)
+		self.controls.orbit_controls.submit_button.clicked.connect(self._loadData)
+		self.controls.time_slider.add_connect(self._updateIndex)
 
 	def _loadData(self):
 		console.send('Started Data Load')
-		self.data['period_start'] = self.orbit_controls.period_start.datetime
-		self.data['period_end'] = self.orbit_controls.period_end.datetime
-		self.data['prim_orbit_TLE_path'] = self.orbit_controls.prim_orbit_selector.path
-		self.data['constellation_index'] = self.orbit_controls.getConstellationIndex()
+		self.data['period_start'] = self.controls.orbit_controls.period_start.datetime
+		self.data['period_end'] = self.controls.orbit_controls.period_end.datetime
+		self.data['prim_orbit_TLE_path'] = self.controls.orbit_controls.prim_orbit_selector.path
+		self.data['constellation_index'] = self.controls.orbit_controls.getConstellationIndex()
 		if self.data['constellation_index'] is not None:
-			self.data['constellation_file'] = self.orbit_controls.constellation_files[self.data['constellation_index']]
-			self.data['constellation_name'] = self.orbit_controls.constellation_options[self.data['constellation_index']]
-			self.data['constellation_beam_angle'] = self.orbit_controls.constellation_beam_angles[self.data['constellation_index']]
+			self.data['constellation_file'] = self.controls.orbit_controls.constellation_files[self.data['constellation_index']]
+			self.data['constellation_name'] = self.controls.orbit_controls.constellation_options[self.data['constellation_index']]
+			self.data['constellation_beam_angle'] = self.controls.orbit_controls.constellation_beam_angles[self.data['constellation_index']]
 		else:
 			self.data['constellation_file'] = None
 			self.data['constellation_name'] = None
 			self.data['constellation_beam_angle'] = None
-		self.data['pointing_file'] = self.orbit_controls.pointing_file_selector.path
+		self.data['pointing_file'] = self.controls.orbit_controls.pointing_file_selector.path
 		
 		# Create worker
+		console.send(f'Constellation index {self.data["constellation_index"]}')
 		console.send('Creating loadDataWorker')
 		self.load_worker = self.LoadDataWorker(self.data['period_start'], 
 										 		self.data['period_end'], 
@@ -122,7 +97,7 @@ class History3DContext(BaseContext):
 												c_name = self.data['constellation_name'],
 												p_file = self.data['pointing_file'])
 
-		self.orbit_controls.submit_button.setEnabled(False)
+		self.controls.orbit_controls.submit_button.setEnabled(False)
 		self.load_worker.finished.connect(self._updateDataSources)
 		console.send(f'Calling super._loadData()')
 		self._setUpLoadWorkerThread()
@@ -132,23 +107,28 @@ class History3DContext(BaseContext):
 	def _updateDataSources(self, t, o, c_list, pointing_q):
 		self.data['timespan'] = t
 		self.data['orbit'] = o		
-		self._time_slider.setRange(self.data['timespan'].start,
+		self.controls.time_slider.setRange(self.data['timespan'].start,
 									  		self.data['timespan'].end,
 											len(self.data['timespan']))
-		self._time_slider._curr_dt_picker.setDatetime(self.data['timespan'].start)
+		self.controls.time_slider._curr_dt_picker.setDatetime(self.data['timespan'].start)
 		
 		if len(pointing_q) > 0:
 			self.data['pointing']=pointing_q
 		else:
 			self.data['pointing'] = None
 		
-		# if self.c_index is not None:
-		# 	self.data['constellation_list'] = c_list
-		# 	self.data['constellation_beam_angle'] = self.c_beam_angle
-		# else:
-		self.data['constellation_list'] = None
-		self.data['constellation_beam_angle'] = None
-		
+		if self.data['constellation_index'] is not None:
+			self.data['constellation_list'] = c_list
+		else:
+			self.data['constellation_list'] = None
+
+		console.send(f'Constellation index: {self.data["constellation_index"]}')
+		if self.data['constellation_list'] is not None:
+			console.send(f'Length Constellation list: {len(self.data["constellation_list"])}')
+		else:
+			console.send(f'Length Constellation list: {self.data["constellation_list"]}')
+		console.send(f'Constellation beam_angle: {self.data["constellation_beam_angle"]}')
+
 		self.canvas_wrapper.setSource(self.data['timespan'],
 										self.data['orbit'],
 										self.data['pointing'],
@@ -156,7 +136,7 @@ class History3DContext(BaseContext):
 										self.data['constellation_beam_angle'])
 		self.canvas_wrapper.setFirstDrawFlags()
 		console.send(f"Drawing {self.data['name']} Assets...")
-		curr_index = self._time_slider.slider.value()
+		curr_index = self.controls.time_slider.slider.value()
 		self._updateIndex(curr_index)
 
 	def _updateIndex(self, index):
@@ -169,10 +149,10 @@ class History3DContext(BaseContext):
 		pass
 
 	def _cleanUpLoadWorkerThread(self):
-		self.orbit_controls.submit_button.setEnabled(True)
+		self.controls.orbit_controls.submit_button.setEnabled(True)
 		return super()._cleanUpLoadWorkerThread()
 
-	class LoadDataWorker(QtCore.QObject):
+	class LoadDataWorker(BaseDataWorker):
 		finished = QtCore.pyqtSignal(timespan.TimeSpan, orbit.Orbit, list, np.ndarray)
 		error = QtCore.pyqtSignal()
 
@@ -264,4 +244,19 @@ class History3DContext(BaseContext):
 		def date_parser(self, d_bytes):
 			s = d_bytes.decode('utf-8')
 			d = dt.datetime.strptime(s,"%Y-%m-%d %H:%M:%S.%f")
-			return d.replace(microsecond=0)			
+			return d.replace(microsecond=0)
+		
+	class Controls(BaseControls):
+		def __init__(self, canvas_wrapper):
+			# Prep config widgets
+			self.orbit_controls = controls.OrbitConfigs()
+			self.config_controls = controls.OptionConfigs(canvas_wrapper.assets)
+			
+			# Wrap config widgets in tabs
+			self.config_tabs = QtWidgets.QTabWidget()
+			self.config_tabs.addTab(self.orbit_controls, 'Orbit')
+			self.config_tabs.addTab(self.config_controls, 'Visual Options')
+
+			# Prep time slider
+			self.time_slider = widgets.TimeSlider()
+			self.time_slider.setFixedHeight(50)

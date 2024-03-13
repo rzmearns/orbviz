@@ -77,3 +77,10 @@ class BaseDataWorker(QtCore.QObject):
 	@abstractmethod
 	def run(self):
 		raise NotImplementedError()
+	
+class BaseControls:
+	@abstractmethod
+	def __init__(self, *args, **kwargs):
+
+		# dict storing config state for this context
+		self.state = {}
