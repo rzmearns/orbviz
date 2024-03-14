@@ -13,6 +13,9 @@ import satplot.visualiser.controls.console as console
 import satplot
 
 import json
+import pickle
+import dill
+import datetime as dt
 
 import warnings
 warnings.filterwarnings("ignore", message="Optimal rotation is not uniquely or poorly defined for the given sets of vectors.")
@@ -30,6 +33,7 @@ class Application():
 		self.load_worker_thread = None
 		self.save_worker = None
 		self.save_worker_thread = None
+		self.save_file = None
 
 	def run(self):
 		self.window.show()
@@ -43,14 +47,48 @@ class Application():
 			context.controls.menubar.addMenuItems()	
 
 	def _connectAllContextControls(self, context):
-		context.controls.action_dict['save']['callback'] = self._saveState
+		context.controls.action_dict['save']['callback'] = self.save
+		context.controls.action_dict['save-as']['callback'] = self.saveAs
 		context.controls.action_dict['load']['callback'] = self._loadState
 
+	def save(self):
+		if self.save_file is not None:
+			self._saveState()
+		else:
+			self.saveAs()
+
+	def saveAs(self):
+		dflt_save_file = f'satplot-state_{dt.datetime.now().strftime("%y%m%d-%H%M%S")}.pickle'
+		save_file = self._openFileDialog('SatPlot Save...', 'data/saves/', dflt_save_file)
+		if save_file is not '':
+			self.save_file = save_file
+			self._saveState()
+
 	def _saveState(self):
-		console.send(f'Saving State - Not Implemented')
+		console.send(f'Saving State to {self.save_file}')
+		state = self.window.serialiseContexts()
+		with open(self.save_file, 'wb') as picklefp:
+			pickle.dump(state, picklefp)
 
 	def _loadState(self):
 		console.send(f"loading state - Not Implemented")
+
+	def _openFileDialog(self, caption, dir, dflt_filename, save=True):
+		options = QtWidgets.QFileDialog.Options()
+		options |= QtWidgets.QFileDialog.DontUseNativeDialog
+		if save:
+			filename, _ = QtWidgets.QFileDialog.getSaveFileName(None, 
+																caption,
+																f'{dir}{dflt_filename}',
+																"pickles (*.pickle)",
+																options=options)
+		else:		
+			filename, _ = QtWidgets.QFileDialog.getOpenFileName(None, 
+																caption,
+																f'{dir}{dflt_filename}',
+																"pickles (*.pickle)",
+																options=options)			
+		return filename
 
 
 if __name__ == '__main__':

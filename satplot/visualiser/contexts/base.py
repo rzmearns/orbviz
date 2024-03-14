@@ -64,6 +64,10 @@ class BaseContext(ABC):
 		self.load_worker_thread = None
 		self.load_worker = None
 
+	def prepSerialisation(self):
+		state = {}
+		state['data'] = self.data
+		return state
 
 
 class BaseDataWorker(QtCore.QObject):

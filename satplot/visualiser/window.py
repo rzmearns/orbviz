@@ -107,6 +107,13 @@ class MainWindow(QtWidgets.QMainWindow):
 	def printCol(self,val):
 		print(val)
 
+	def serialiseContexts(self):
+		state = {}
+		for context_key, context in self.context_dict.items():
+			state[context_key] = context.prepSerialisation()
+
+		return state
+
 	def __del__(self):
 		sys.stderr = sys.__stderr__
 
