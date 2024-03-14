@@ -3,17 +3,15 @@ from PyQt5 import QtWidgets, QtCore
 import satplot
 from satplot.visualiser.controls import controls, widgets
 from satplot.visualiser import canvaswrappers
-from satplot.visualiser.contexts import (history3d)
+from satplot.visualiser.contexts import (history3d, blank)
 import satplot.visualiser.controls.console as console
 
 class MainWindow(QtWidgets.QMainWindow):
 	closing = QtCore.pyqtSignal()
 
 	def __init__(self,	title="",
-			  			action_dict=None,
 						*args, **kwargs):
 		super().__init__(*args, **kwargs)
-		print(f"{action_dict=}")
 		main_widget = QtWidgets.QWidget()
 		main_layout = QtWidgets.QVBoxLayout()
 		console_vsplitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
@@ -36,14 +34,19 @@ class MainWindow(QtWidgets.QMainWindow):
 		
 
 		# Build context panes
-		self.toolbars['3d-history'] = controls.Toolbar(self, action_dict, context='3d-history')
-		self.menubars['3d-history'] = controls.Menubar(self, action_dict, context='3d-history')
-		self.context_dict['3d-history'] = history3d.History3DContext('3d-history')
+		self.context_dict['3d-history'] = history3d.History3DContext('3d-history', self)
+		self.toolbars['3d-history'] = self.context_dict['3d-history'].controls.toolbar
+		self.menubars['3d-history'] = self.context_dict['3d-history'].controls.menubar
 		self.context_tabs.addTab(self.context_dict['3d-history'].widget, '3D History')
 
-		self.toolbars['blank'] = controls.Toolbar(self, action_dict, context='blank')
-		self.menubars['blank'] = controls.Menubar(self, action_dict, context='blank')
-		self.context_tabs.addTab(QtWidgets.QWidget(), 'Blank')
+		self.context_dict['blank'] = blank.BlankContext('blank', self)
+		self.toolbars['blank'] = self.context_dict['blank'].controls.toolbar
+		self.menubars['blank'] = self.context_dict['blank'].controls.menubar
+		self.context_tabs.addTab(self.context_dict['blank'].widget, 'Blank')
+
+		# self.toolbars['blank'] = self.context_dict['blank'].controls.toolbar
+		# self.menubars['blank'] = self.context_dict['blank'].controls.menubar
+		# self.context_tabs.addTab(QtWidgets.QWidget(), 'Blank')
 
 		# check toolbar/menubar indices are the same
 		for ii, key in enumerate(self.toolbars.keys()):

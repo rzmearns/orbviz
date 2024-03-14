@@ -13,9 +13,9 @@ import datetime as dt
 from PyQt5 import QtWidgets, QtCore
 
 class History3DContext(BaseContext):
-	def __init__(self, name):
+	def __init__(self, name, parent_window):
 		super().__init__(name)
-
+		self.window = parent_window
 		self.data['timespan'] = None
 		self.data['orbit'] = None
 		self.data['period_start'] = None
@@ -31,7 +31,7 @@ class History3DContext(BaseContext):
 
 		self.controls = None
 		self.canvas_wrapper = canvaswrappers.History3D()
-		self.controls = self.Controls(self.canvas_wrapper)
+		self.controls = self.Controls(self, self.canvas_wrapper)
 
 		disp_hsplitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
 		disp_hsplitter.setObjectName('disp_hsplitter')
@@ -69,6 +69,8 @@ class History3DContext(BaseContext):
 	def connectControls(self):
 		self.controls.orbit_controls.submit_button.clicked.connect(self._loadData)
 		self.controls.time_slider.add_connect(self._updateIndex)
+		self.controls.action_dict['center-earth']['callback'] = self.window.context_dict['3d-history'].canvas_wrapper.centerCameraEarth
+		self.controls.action_dict['center-spacecraft']['callback'] = self.window.context_dict['3d-history'].canvas_wrapper.centerCameraSpacecraft
 
 	def _loadData(self):
 		console.send('Started Data Load')
@@ -247,7 +249,10 @@ class History3DContext(BaseContext):
 			return d.replace(microsecond=0)
 		
 	class Controls(BaseControls):
-		def __init__(self, canvas_wrapper):
+		def __init__(self, parent_context, canvas_wrapper):
+			self.context = parent_context
+			super().__init__(self.context.data['name'])
+			print(f'{self.context_name=}')
 			# Prep config widgets
 			self.orbit_controls = controls.OrbitConfigs()
 			self.config_controls = controls.OptionConfigs(canvas_wrapper.assets)
@@ -260,3 +265,7 @@ class History3DContext(BaseContext):
 			# Prep time slider
 			self.time_slider = widgets.TimeSlider()
 			self.time_slider.setFixedHeight(50)
+
+			# Prep toolbars
+			self.toolbar = controls.Toolbar(self.context.window, self.action_dict, context_name=self.context.data['name'])
+			self.menubar = controls.Menubar(self.context.window, self.action_dict, context_name=self.context.data['name'])

@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 from PyQt5 import QtWidgets, QtCore
+import json
 
 class BaseContext(ABC):
 
@@ -80,7 +81,18 @@ class BaseDataWorker(QtCore.QObject):
 	
 class BaseControls:
 	@abstractmethod
-	def __init__(self, *args, **kwargs):
-
+	def __init__(self, context_name, *args, **kwargs):
+		self.context_name = context_name
 		# dict storing config state for this context
 		self.state = {}
+		self._buildActionDict()
+
+	def _buildActionDict(self):
+		with open(f'resources/actions/all.json','r') as fp:
+			all_action_dict = json.load(fp)
+		with open(f'resources/actions/{self.context_name}.json','r') as fp:
+			context_action_dict = json.load(fp)
+		# print(f'{all_action_dict=}')
+		# print(f'{context_action_dict=}')
+		self.action_dict = {**all_action_dict, **context_action_dict}
+		# print(f'{self.action_dict=}')

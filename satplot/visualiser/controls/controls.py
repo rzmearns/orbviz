@@ -154,14 +154,14 @@ class OptionConfigs(QtWidgets.QWidget):
 		return w_dict
 
 class Toolbar(QtWidgets.QWidget):
-	def __init__(self, parent_window, action_dict, context=None):
+	def __init__(self, parent_window, action_dict, context_name=None):
 		super().__init__()
 		self.window = parent_window
 		self.action_dict = action_dict
-		self.context = context
-		print(f'toolbar context: {self.context}')
-		if self.context is None:
-			self.context = 'main-window'
+		self.context_name = context_name
+		print(f'toolbar context: {self.context_name}')
+		if self.context_name is None:
+			self.context_name = 'main-window'
 		self.toolbar = QtWidgets.QToolBar("My main toolbar")
 
 		self.toolbar.setIconSize(QtCore.QSize(16,16))
@@ -186,7 +186,7 @@ class Toolbar(QtWidgets.QWidget):
 		self.toolbar.addSeparator()
 
 		for key, action in self.action_dict.items():
-			if self.context in action['contexts'] and 'all' not in action['contexts'] and action['button_icon'] is not None:
+			if self.context_name in action['contexts'] and 'all' not in action['contexts'] and action['button_icon'] is not None:
 				self.button_dict[key] = QtWidgets.QAction(QtGui.QIcon(action['button_icon']), action['tooltip'], self)
 				self.button_dict[key].setStatusTip(action['tooltip'])
 				self.button_dict[key].setCheckable(action['toggleable'])
@@ -204,13 +204,13 @@ class Toolbar(QtWidgets.QWidget):
 		self.toolbar.toggleViewAction().trigger()
 
 class Menubar(QtWidgets.QWidget):
-	def __init__(self, parent_window, action_dict, context=None):
+	def __init__(self, parent_window, action_dict, context_name=None):
 		super().__init__()
 		self.window = parent_window
 		self.action_dict = action_dict
-		self.context = context
-		if self.context is None:
-			self.context = 'main-window'
+		self.context_name = context_name
+		if self.context_name is None:
+			self.context_name = 'main-window'
 		self.menubar = QtWidgets.QMenuBar()
 		self.menus = {}
 		self.button_dict = {}
@@ -231,7 +231,7 @@ class Menubar(QtWidgets.QWidget):
 
 		# Process context specific actions
 		for key, action in self.action_dict.items():
-			if self.context in action['contexts']:
+			if self.context_name in action['contexts']:
 				if action['containing_menu'] not in self.menus.keys():
 					# console.send(f'adding {action["containing_menu"]} menu to {self.context} menubar')
 					self.menus[action['containing_menu']] = self.menubar.addMenu(action['containing_menu'].capitalize())

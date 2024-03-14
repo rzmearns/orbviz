@@ -23,10 +23,7 @@ class Application():
 	def __init__(self) -> None:
 		self.pyqt_app = app.use_app("pyqt5")
 		self.pyqt_app.create()
-
-		self._buildActionDict()
-
-		self.window = window.MainWindow(title="Sat Plot", action_dict=self.action_dict)
+		self.window = window.MainWindow(title="Sat Plot")
 
 		self._connectControls()
 		self.load_data_worker = None
@@ -41,25 +38,19 @@ class Application():
 	def _connectControls(self):
 		for context_key, context in self.window.context_dict.items():
 			context.connectControls()
+			self._connectAllContextControls(context)
+			context.controls.toolbar.addButtons()
+			context.controls.menubar.addMenuItems()	
 
-		self.action_dict['save']['callback'] = self._saveState
-		self.action_dict['load']['callback'] = self._loadState
-		self.action_dict['center-earth']['callback'] = self.window.context_dict['3d-history'].canvas_wrapper.centerCameraEarth
-		self.action_dict['center-spacecraft']['callback'] = self.window.context_dict['3d-history'].canvas_wrapper.centerCameraSpacecraft
-		for toolbar in self.window.toolbars.values():
-			toolbar.addButtons()
-		for menubar in self.window.menubars.values():
-			menubar.addMenuItems()
+	def _connectAllContextControls(self, context):
+		context.controls.action_dict['save']['callback'] = self._saveState
+		context.controls.action_dict['load']['callback'] = self._loadState
 
 	def _saveState(self):
 		console.send(f'Saving State')
 
 	def _loadState(self):
 		console.send(f"loading state")
-
-	def _buildActionDict(self):
-		with open('resources/actions/main-window.json','r') as fp:
-			self.action_dict = json.load(fp)
 
 
 if __name__ == '__main__':
