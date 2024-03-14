@@ -532,3 +532,28 @@ class CollapsibleSection(QtWidgets.QWidget):
 				self._button.setArrowType(QtCore.Qt.RightArrow)
 			else:
 				self._button.setArrowType(QtCore.Qt.DownArrow)
+
+
+def embedWidgetsInHBoxLayout(w_list, margin=5):
+	"""Embed a list of widgets into a layout to give it a frame"""
+	result = QtWidgets.QWidget()
+	layout = QtWidgets.QHBoxLayout(result)
+	layout.setContentsMargins(margin, margin, margin, margin)
+	if isinstance(w_list, list):
+		for w in w_list:
+			layout.addWidget(w)
+	else:
+		layout.addWidget(w_list)
+	return result
+
+def embedWidgetsInVBoxLayout(w_list, margin=5):
+	"""Embed a list of widgets into a layout to give it a frame"""
+	result = QtWidgets.QWidget()
+	layout = QtWidgets.QVBoxLayout(result)
+	layout.setContentsMargins(margin, margin, margin, margin)
+	if isinstance(w_list, list):
+		for w in w_list:
+			layout.addWidget(w)
+	else:
+		layout.addWidget(w_list)
+	return result
