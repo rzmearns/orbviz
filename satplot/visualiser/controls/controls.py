@@ -19,8 +19,8 @@ class OrbitConfigs(QtWidgets.QWidget):
 		self.pane_groupbox = QtWidgets.QGroupBox('Orbit Configuration')
 		# self.setFixedWidth(400)
 		# self.setFixedHeight(500)
-		self.pane_layout = QtWidgets.QVBoxLayout(self)
-		self.config_layout = QtWidgets.QVBoxLayout(self)
+		self.pane_layout = QtWidgets.QVBoxLayout()
+		self.config_layout = QtWidgets.QVBoxLayout()
 		self.pane_layout.setSpacing(10)
 
 		# Add widgets here
@@ -52,9 +52,10 @@ class OrbitConfigs(QtWidgets.QWidget):
 		self.scroll_area.setWidget(self.pane_groupbox)
 		self.scroll_area.setWidgetResizable(True)
 		self.config_layout = QtWidgets.QVBoxLayout(self)
+		self.config_layout.setObjectName('Orbit config layout')
 		self.config_layout.addWidget(self.scroll_area)
 
-		self.setLayout(self.config_layout)
+		# self.setLayout(self.config_layout)
 
 	def getConstellationIndex(self):
 		return self.suppl_constellation_selector.currentIndex()
@@ -67,8 +68,8 @@ class OptionConfigs(QtWidgets.QWidget):
 		
 		self.pane_groupbox = QtWidgets.QGroupBox('Visual Options')
 		# self.setFixedWidth(400)
-		self.pane_layout = QtWidgets.QVBoxLayout(self)
-		self.config_layout = QtWidgets.QVBoxLayout(self)
+		self.pane_layout = QtWidgets.QVBoxLayout()
+		self.config_layout = QtWidgets.QVBoxLayout()
 		
 		self.buildWidgetPane(self.la_dict, self.pane_layout)
 		self.pane_layout.addStretch()
@@ -151,6 +152,7 @@ class OptionConfigs(QtWidgets.QWidget):
 		return w_dict
 
 class Toolbar(QtWidgets.QWidget):
+	# TODO: this should be in widgets, not controls	
 	def __init__(self, parent_window, action_dict, context_name=None):
 		super().__init__()
 		self.window = parent_window
@@ -198,6 +200,7 @@ class Toolbar(QtWidgets.QWidget):
 		self.toolbar.toggleViewAction().trigger()
 
 class Menubar(QtWidgets.QWidget):
+	# TODO: this should be in widgets, not controls
 	def __init__(self, parent_window, action_dict, context_name=None):
 		super().__init__()
 		self.window = parent_window
