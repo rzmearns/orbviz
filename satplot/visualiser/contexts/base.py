@@ -45,7 +45,6 @@ class BaseContext(ABC):
 			ensure that load_worker has been created before calling this function
 			ensure that any slots are connected before calling
 			call using super()._loadData()'''
-		# console.send('inside super')
 		if self.load_worker is None:
 			raise ValueError('Must create load_worker before calling super()._loadData()')
 		self.load_worker_thread = QtCore.QThread()
@@ -92,7 +91,4 @@ class BaseControls:
 			all_action_dict = json.load(fp)
 		with open(f'resources/actions/{self.context_name}.json','r') as fp:
 			context_action_dict = json.load(fp)
-		# print(f'{all_action_dict=}')
-		# print(f'{context_action_dict=}')
 		self.action_dict = {**all_action_dict, **context_action_dict}
-		# print(f'{self.action_dict=}')

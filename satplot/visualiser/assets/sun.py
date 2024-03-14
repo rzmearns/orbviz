@@ -72,7 +72,6 @@ class Sun(BaseAsset):
 		self.visuals['umbra'].transform = vTransforms.STTransform(scale=(0.001,0.001,0.001))		
 		alpha_filter = vFilters.Alpha(self.opts['umbra_alpha']['value'])
 		self.visuals['umbra'].attach(alpha_filter)
-		print("Created Umbra")
 
 		# Sun Vector
 		self.visuals['vector_body'] = vVisuals.Line(self.data['vector'][:,0:3],

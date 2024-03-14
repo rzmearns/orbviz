@@ -252,7 +252,6 @@ class History3DContext(BaseContext):
 		def __init__(self, parent_context, canvas_wrapper):
 			self.context = parent_context
 			super().__init__(self.context.data['name'])
-			print(f'{self.context_name=}')
 			# Prep config widgets
 			self.orbit_controls = controls.OrbitConfigs()
 			self.config_controls = controls.OptionConfigs(canvas_wrapper.assets)

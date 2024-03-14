@@ -47,10 +47,10 @@ class Application():
 		context.controls.action_dict['load']['callback'] = self._loadState
 
 	def _saveState(self):
-		console.send(f'Saving State')
+		console.send(f'Saving State - Not Implemented')
 
 	def _loadState(self):
-		console.send(f"loading state")
+		console.send(f"loading state - Not Implemented")
 
 
 if __name__ == '__main__':

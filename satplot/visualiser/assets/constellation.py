@@ -22,11 +22,9 @@ import satplot
 class Constellation(BaseAsset):
 	def __init__(self, name=None, v_parent=None):
 		super().__init__(name, v_parent)
-		print(f"constellation parent:{self.data['v_parent']}")
 		self._setDefaultOptions()
 		self._initData()
 		self._instantiateAssets()
-		print(f"{self.assets['beams']}")
 		self._createVisuals()
 		
 		self.attachToParentView()

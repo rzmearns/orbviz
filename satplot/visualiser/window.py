@@ -87,7 +87,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
 	def _changeToolbarsToContext(self, new_context_index):
 		new_context_key = list(self.toolbars.keys())[new_context_index]
-		console.send(f'Changing context to {new_context_key}')
 		# process deselects first in order to clear parent pointer to menubar, otherwise menubar gets deleted (workaround for pyqt5)
 		for context_key in self.toolbars.keys():
 			if context_key != new_context_key:

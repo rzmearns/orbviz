@@ -1,6 +1,6 @@
 
 ## Application
-	
+	* can't set colour of meshes
 
 ## 3D History
 	* constellation not being cleared when no constellation set after one is initially drawn
