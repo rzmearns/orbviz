@@ -87,6 +87,7 @@ class History3DContext(BaseContext):
 			self.data['constellation_name'] = None
 			self.data['constellation_beam_angle'] = None
 		self.data['pointing_file'] = self.controls.orbit_controls.pointing_file_selector.path
+		self.data['pointing_invert_transform'] = self.controls.orbit_controls.pointing_file_inv_toggle.isChecked()
 		
 		# Create worker
 		console.send(f'Constellation index {self.data["constellation_index"]}')
@@ -134,6 +135,7 @@ class History3DContext(BaseContext):
 		self.canvas_wrapper.setSource(self.data['timespan'],
 										self.data['orbit'],
 										self.data['pointing'],
+										self.data['pointing_invert_transform'],
 										self.data['constellation_list'],
 										self.data['constellation_beam_angle'])
 		self.canvas_wrapper.setFirstDrawFlags()
@@ -155,6 +157,7 @@ class History3DContext(BaseContext):
 		self.canvas_wrapper.setSource(self.data['timespan'],
 										self.data['orbit'],
 										self.data['pointing'],
+										self.data['pointing_invert_transform'],
 										self.data['constellation_list'],
 										self.data['constellation_beam_angle'])
 		self.canvas_wrapper.setFirstDrawFlags()
@@ -198,14 +201,14 @@ class History3DContext(BaseContext):
 			# TODO: calculate time period from end
 			# TODO: auto calculate step size
 			time_period = int((self.period_end - self.period_start).total_seconds())
-			timestep=30
+			timestep=3
 			console.send(f"Creating Timespan from {self.period_start} -> {self.period_end} ...")
-			self.t = timespan.TimeSpan(self.period_start,
-								timestep=f'{timestep}S',
-								timeperiod='90M')
 			# self.t = timespan.TimeSpan(self.period_start,
 			# 					timestep=f'{timestep}S',
-			# 					timeperiod=f'{time_period}S')
+			# 					timeperiod='90M')
+			self.t = timespan.TimeSpan(self.period_start,
+								timestep=f'{timestep}S',
+								timeperiod=f'{time_period}S')
 			console.send(f"\tDuration: {self.t.time_period}")
 			console.send(f"\tNumber of steps: {len(self.t)}")
 			console.send(f"\tLength of timestep: {self.t.time_step}")
@@ -239,7 +242,7 @@ class History3DContext(BaseContext):
 				
 				pointing_start_index = np.where(pointing_dates==self.period_start)[0]
 				if len(pointing_start_index) == 0:
-					print(f"ERROR: pointing file does not contain the selected start time", file=sys.stderr)
+					print(f"ERROR: pointing file does not contain the selected start time {self.period_start}", file=sys.stderr)
 					self.error.emit()
 					return
 				pointing_start_index = pointing_start_index[0]
@@ -263,8 +266,10 @@ class History3DContext(BaseContext):
 			self.finished.emit(self.t, self.o, self.c_list, self.pointing_q)
 
 		def date_parser(self, d_bytes):
+			d_bytes = d_bytes[:d_bytes.index(b'.')+4]
 			s = d_bytes.decode('utf-8')
 			d = dt.datetime.strptime(s,"%Y-%m-%d %H:%M:%S.%f")
+			print(d)
 			return d.replace(microsecond=0)
 		
 	class Controls(BaseControls):
@@ -297,6 +302,7 @@ class History3DContext(BaseContext):
 			state['time_slider']['end_dt'] = self.time_slider.end_dt
 			state['time_slider']['num_ticks'] = self.time_slider.num_ticks
 			state['time_slider']['curr_index'] = self.time_slider.getValue()
+			state['pointing']['pointing_invert_transform'] = self.orbit_controls.pointing_file_inv_toggle.isChecked()
 			return state
 
 		def deSerialise(self, state):

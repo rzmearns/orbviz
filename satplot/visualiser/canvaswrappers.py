@@ -48,7 +48,7 @@ class History3D():
 	def setCameraZoom(self, zoom):
 		self.view_box.camera.scale_factor = zoom
 
-	def setSource(self, timespan, orbit, pointing=None, c_list=None, c_beam_angle=None):
+	def setSource(self, timespan, orbit, pointing=None, pointing_invert_transform=False, c_list=None, c_beam_angle=None):
 		self.assets['earth'].setSource(timespan)
 		self.is_asset_instantiated['earth'] = True
 		self.assets['moon'].setSource(orbit)
@@ -57,7 +57,7 @@ class History3D():
 		self.assets['primary_orbit'].setSource(orbit)
 		self.is_asset_instantiated['primary_orbit'] = True
 		if pointing is not None:
-			self.assets['spacecraft'].setSource(orbit, pointing)
+			self.assets['spacecraft'].setSource(orbit, pointing, pointing_invert_transform)
 			self.is_asset_instantiated['spacecraft'] = True
 		elif self.is_asset_instantiated['spacecraft']:
 			# No pointing on this recalculate, but there is a spacecraft asset

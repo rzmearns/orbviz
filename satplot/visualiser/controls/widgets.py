@@ -1,4 +1,4 @@
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore, QtGui
 import math
 import satplot.visualiser.colours as colours
 import datetime as dt
@@ -309,7 +309,7 @@ class OptionBox(QtWidgets.QWidget):
 				callback(index)
 
 class FilePicker(QtWidgets.QWidget):
-	def __init__(self, label, dflt_file='', parent: QtWidgets.QWidget=None) -> None:
+	def __init__(self, label, dflt_file='', dflt_dir=None, save=False, parent: QtWidgets.QWidget=None) -> None:
 		super().__init__(parent)
 		self._callbacks = []
 		self.path = dflt_file
@@ -325,6 +325,10 @@ class FilePicker(QtWidgets.QWidget):
 		self._label = QtWidgets.QLabel(label)
 		self._file_text_box = QtWidgets.QLineEdit(self.path)
 		self._dialog_button = QtWidgets.QPushButton('...')
+		self.caption = f'Pick {label}'
+		self.dflt_dir = dflt_dir
+		self.dflt_filename = dflt_file
+		self.dialog_save = save
 		self._dialog_button.clicked.connect(self.openFilenameDialog)
 		self._file_text_box.textChanged.connect(self.setPath)
 		self._dialog_button.setFixedWidth(25)
@@ -345,7 +349,19 @@ class FilePicker(QtWidgets.QWidget):
 	def openFilenameDialog(self):
 		options = QtWidgets.QFileDialog.Options()
 		options |= QtWidgets.QFileDialog.DontUseNativeDialog
-		filename, _ = QtWidgets.QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","All Files (*);;Python Files (*.py)", options=options)
+		if self.dialog_save:
+			filename, _ = QtWidgets.QFileDialog.getSaveFileName(self,
+													   			self.caption,
+																f'{self.dflt_dir}{self.dflt_filename}',
+																"All Files (*)",
+																options=options)
+		else:
+			filename, _ = QtWidgets.QFileDialog.getOpenFileName(self,
+													   			self.caption,
+																f'{self.dflt_dir}{self.dflt_filename}',
+																"All Files (*)",
+																options=options)
+			print(filename)
 		self.path = filename
 		self._file_text_box.setText(self.path)
 
@@ -539,6 +555,43 @@ class CollapsibleSection(QtWidgets.QWidget):
 			else:
 				self._button.setArrowType(QtCore.Qt.DownArrow)
 
+class Switch(QtWidgets.QPushButton):
+	toggle = QtCore.pyqtSignal(bool)
+	def __init__(self, parent = None):
+		super().__init__(parent)
+		self.setCheckable(True)
+		self.setMinimumWidth(66)
+		self.setMinimumHeight(22)
+
+	def paintEvent(self, event):
+		on_colour = QtGui.QColor(36,160,237)
+		off_colour = QtCore.Qt.gray
+		bg_colour = on_colour if self.isChecked() else off_colour
+		sw_colour = QtCore.Qt.lightGray
+		radius = 10
+		width = 25
+		center = self.rect().center()
+
+		painter = QtGui.QPainter(self)
+		painter.setRenderHint(QtGui.QPainter.Antialiasing)
+		painter.translate(center)
+		painter.setBrush(bg_colour)
+
+		pen = QtGui.QPen(bg_colour)
+		pen.setWidth(2)
+		painter.setPen(pen)
+
+		bg_rect = QtCore.QRect(-width, -radius, 2*width, 2*radius)
+		painter.drawRoundedRect(bg_rect, radius, radius)
+		painter.setBrush(QtGui.QBrush(sw_colour))
+		sw_rect = QtCore.QRect(-radius, -radius, 2*radius, 2*radius)
+
+		if self.isChecked():
+			sw_rect.moveTo(width-2*radius,-radius)
+		else:
+			sw_rect.moveTo(-width,-radius)
+
+		painter.drawRoundedRect(sw_rect, radius, radius)
 
 def embedWidgetsInHBoxLayout(w_list, margin=5):
 	"""Embed a list of widgets into a layout to give it a frame"""

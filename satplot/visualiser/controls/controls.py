@@ -28,9 +28,17 @@ class OrbitConfigs(QtWidgets.QWidget):
 		self.period_end = widgets.DatetimeEntry("Period End:", dt.datetime.now())
 		self.button_layout = QtWidgets.QHBoxLayout()
 		self.submit_button = QtWidgets.QPushButton('Recalculate')
-		self.prim_orbit_selector = widgets.FilePicker('Primary Orbit','./data/TLEs/spirit_latest.tle')
-		self.pointing_file_selector = widgets.FilePicker('Pointing File','./data/pointing/20240223-030000_quaternion.csv')
-		
+		self.prim_orbit_selector = widgets.FilePicker('Primary Orbit',
+															dflt_file='spirit_latest.tle',
+															dflt_dir='data/TLEs/',
+															save=False)
+		self.pointing_file_selector = widgets.FilePicker('Pointing File',
+												   			dflt_file='20240223-030000_quaternion.csv',
+															dflt_dir='data/pointing/',
+															save=False)
+		self.pointing_file_inv_toggle = widgets.Switch()
+		self.pointing_file_inv_off_label = QtWidgets.QLabel('BF->ECI')
+		self.pointing_file_inv_on_label = QtWidgets.QLabel('ECI->BF')
 		self.suppl_constellation_selector = widgets.OptionBox('Supplementary Constellations',
 															options_list=OrbitConfigs.constellation_options)
 
@@ -38,6 +46,14 @@ class OrbitConfigs(QtWidgets.QWidget):
 		self.pane_layout.addWidget(self.period_end)
 		self.pane_layout.addWidget(self.prim_orbit_selector)
 		self.pane_layout.addWidget(self.pointing_file_selector)
+		self.frame_inv_layout = QtWidgets.QHBoxLayout()
+		self.frame_inv_layout.addStretch()
+		self.frame_inv_layout.addWidget(self.pointing_file_inv_off_label)
+		self.frame_inv_layout.addWidget(self.pointing_file_inv_toggle)
+		self.frame_inv_layout.addWidget(self.pointing_file_inv_on_label)
+		self.frame_inv_layout.setContentsMargins(0,0,0,0)
+		self.frame_inv_layout.setSpacing(0)
+		self.pane_layout.addLayout(self.frame_inv_layout)
 		self.pane_layout.addWidget(self.suppl_constellation_selector)
 
 		self.button_layout.addStretch()

@@ -48,6 +48,9 @@ class SpacecraftVisualiser(BaseAsset):
 	def setSource(self, *args, **kwargs):
 		# args[0] orbit
 		# args[1] pointing
+		# args[2] pointing frame transformation direction
+			# True = ECI->BF
+			# False = BF->ECI
 		if type(args[0]) is not orbit.Orbit:
 			raise TypeError(f"args[0]:orbit is not a satplot Orbit -> {args[0]}")
 		self.data['coords'] = args[0].pos
@@ -55,6 +58,7 @@ class SpacecraftVisualiser(BaseAsset):
 		if type(args[1]) is not np.ndarray:
 			raise TypeError(f"args[1]:pointing is not an ndarray -> {args[1]}")
 		self.data['pointing'] = args[1]
+		self.data['pointing_invert_transform'] = args[2]
 
 
 	def _instantiateAssets(self):
@@ -76,7 +80,7 @@ class SpacecraftVisualiser(BaseAsset):
 										face_color=colours.normaliseColour(self.opts['spacecraft_point_colour']['value']),
 										edge_color='white',
 										size=self.opts['spacecraft_point_size']['value'],
-										symbol='o')	
+										symbol='o')
 
 	# Use BaseAsset.updateIndex()
 
@@ -112,7 +116,10 @@ class SpacecraftVisualiser(BaseAsset):
 				self.assets['body_frame'].setTemporaryGizmoZColour((255,0,255))
 			else:
 				quat = self.data['pointing'][self.data['curr_index']].reshape(-1,4)
-				rotation = Rotation.from_quat(quat).as_matrix()
+				if self.data['pointing_invert_transform']:
+					rotation = Rotation.from_quat(quat).inv().as_matrix()
+				else:
+					rotation = Rotation.from_quat(quat).as_matrix()
 				self.assets['body_frame'].restoreGizmoColours()
 			# rotation = Rotation.align_vectors(np.array((0,0,1)).reshape(1,3),
 			# 									-self.data['coords'][self.data['curr_index']].reshape(1,3))[0].as_matrix()
