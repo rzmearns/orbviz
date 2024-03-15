@@ -141,6 +141,22 @@ class History3D():
 		self.setCameraZoom(5*c.R_EARTH)
 		self.canvas.update()
 
+	def prepSerialisation(self):
+		state = {}
+		state['cam-center'] = self.view_box.camera.center
+		state['cam-zoom'] = self.view_box.camera.scale_factor
+		state['cam-az'] = self.view_box.camera.azimuth
+		state['cam-el'] = self.view_box.camera.elevation
+		state['cam-roll'] = self.view_box.camera.roll
+		return state
+
+	def deSerialise(self, state):
+		self.view_box.camera.center = state['cam-center']
+		self.view_box.camera.scale_factor = state['cam-zoom']
+		self.view_box.camera.azimuth = state['cam-az']
+		self.view_box.camera.elevation = state['cam-el']
+		self.view_box.camera.roll = state['cam-roll']
+
 	def onMouseMove(self, event):
 		pass
 		# console.send("captured event")

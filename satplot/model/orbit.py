@@ -102,7 +102,7 @@ class Orbit(object):
 			# Find closest listed TLE to start date
 			sat_datetime, sat_index = list_u.get_closest(tle_dates, self.timespan.start)
 			sat = sat_list[sat_index]
-			self.sat = sat_list[0]
+			# self.sat = sat_list[0]
 			
 			if len(sat_list) > 1:
 				# Prepare next TLE epoch for compare
@@ -145,7 +145,7 @@ class Orbit(object):
 			a = kwargs.get('a')
 			ts = load.timescale(builtin=True)
 			sat = EarthSatellite.from_satrec(satrec, ts)
-			self.sat = sat
+			# self.sat = sat
 
 			self.pos = np.empty((self.timespan.num_steps, 3))
 			self.vel = np.empty((self.timespan.num_steps, 3))
@@ -519,26 +519,26 @@ class Orbit(object):
 			logger.error("{} cannot be used to index an orbital velocity".format(time))
 			raise ValueError("{} cannot be used to index an orbital velocity".format(time))
 
-	def save(self):
-		if self.gen_type == 'TLE':
-			file_name = f'orbit_TLE_{self.sat.model.satnum}_{self.sat.jdsatepoch}.pickle'
+	# def save(self):
+	# 	if self.gen_type == 'TLE':
+	# 		file_name = f'orbit_TLE_{self.sat.model.satnum}_{self.sat.jdsatepoch}.pickle'
 
-		elif self.gen_type == 'ANALYTICAL':			
-			start = self.timespan.start.strftime('%s')
-			step = self.timespan.time_step.days * 86400 + self.timespan.time_step.seconds
-			period = self.timespan.time_period.days * 86400 + self.timespan.time_period.seconds
-			file_name = f'orbit_ANLT_{start}_{step}_{period}_{self.orb.epoch}_{self.orb.a}_{self.orb.ecc}_{self.orb.inc}_{self.orb.raan}_{self.orb.argp}_{self.orb.nu}.pickle'
+	# 	elif self.gen_type == 'ANALYTICAL':			
+	# 		start = self.timespan.start.strftime('%s')
+	# 		step = self.timespan.time_step.days * 86400 + self.timespan.time_step.seconds
+	# 		period = self.timespan.time_period.days * 86400 + self.timespan.time_period.seconds
+	# 		file_name = f'orbit_ANLT_{start}_{step}_{period}_{self.orb.epoch}_{self.orb.a}_{self.orb.ecc}_{self.orb.inc}_{self.orb.raan}_{self.orb.argp}_{self.orb.nu}.pickle'
 
-		elif self.gen_type == 'FAKE_TLE':
-			file_name = f'orbit_FAKETLE_{self.sat.model.satnum}_{self.sat.jdsatepoch}_{self.sat.ecco}_{self.sat.inclo}_{self.sat.nodeo}_{self.sat.argpo}_{self.sat.mo}.pickle'
+	# 	elif self.gen_type == 'FAKE_TLE':
+	# 		file_name = f'orbit_FAKETLE_{self.sat.model.satnum}_{self.sat.jdsatepoch}_{self.sat.ecco}_{self.sat.inclo}_{self.sat.nodeo}_{self.sat.argpo}_{self.sat.mo}.pickle'
 		
-		elif self.gen_type == 'FILE':
-			file_name = f'orbit_genfrom_{self.filename}.pickle'
+	# 	elif self.gen_type == 'FILE':
+	# 		file_name = f'orbit_genfrom_{self.filename}.pickle'
 
-		elif self.gen_type == 'POS_LIST':
-			file_name = 'pos_list'
+	# 	elif self.gen_type == 'POS_LIST':
+	# 		file_name = 'pos_list'
 
-		with open(f'data/orbits/{file_name}', 'wb') as fp:
-			pickle.dump(self, fp)
+	# 	with open(f'data/orbits/{file_name}', 'wb') as fp:
+	# 		pickle.dump(self, fp)
 
-		return file_name
+	# 	return file_name

@@ -55,6 +55,12 @@ class TimeSlider(QtWidgets.QWidget):
 		self.tick_delta = dt.timedelta(seconds=(self.range_delta.total_seconds()/num_ticks))
 		self.setTimeLabels()
 
+	def getValue(self):
+		return self.slider.value()
+
+	def setValue(self, value):
+		self.slider.setValue(value)
+
 	def setTimeLabels(self):
 		if self.start_dt is not None:
 			self._start_dt_label.setText(self.start_dt.strftime("%Y-%m-%d   %H:%M:%S"))

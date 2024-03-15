@@ -229,15 +229,11 @@ class Earth(BaseAsset):
 class ParallelsGrid(SimpleAsset):
 	def __init__(self,name=None, v_parent=None):
 		super().__init__(name, v_parent)
-		self._printParent()
 		self._setDefaultOptions()
 		self._initData()
-		self._printParent()
 		self._instantiateAssets()
 		self._createVisuals()
-
 		self.attachToParentView()
-		self._printParent()
 
 	def _initData(self):
 		if self.data['name'] is None:

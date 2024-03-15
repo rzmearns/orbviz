@@ -19,8 +19,8 @@ class OrbitConfigs(QtWidgets.QWidget):
 		self.pane_groupbox = QtWidgets.QGroupBox('Orbit Configuration')
 		# self.setFixedWidth(400)
 		# self.setFixedHeight(500)
-		self.pane_layout = QtWidgets.QVBoxLayout(self)
-		self.config_layout = QtWidgets.QVBoxLayout(self)
+		self.pane_layout = QtWidgets.QVBoxLayout()
+		self.config_layout = QtWidgets.QVBoxLayout()
 		self.pane_layout.setSpacing(10)
 
 		# Add widgets here
@@ -52,12 +52,17 @@ class OrbitConfigs(QtWidgets.QWidget):
 		self.scroll_area.setWidget(self.pane_groupbox)
 		self.scroll_area.setWidgetResizable(True)
 		self.config_layout = QtWidgets.QVBoxLayout(self)
+		self.config_layout.setObjectName('Orbit config layout')
 		self.config_layout.addWidget(self.scroll_area)
 
-		self.setLayout(self.config_layout)
+		# self.setLayout(self.config_layout)
 
 	def getConstellationIndex(self):
 		return self.suppl_constellation_selector.currentIndex()
+
+	def prepSerialisation(self):
+		state = {}
+		return state
 
 class OptionConfigs(QtWidgets.QWidget):
 	def __init__(self, asset_dict, parent: QtWidgets.QWidget=None) -> None:
@@ -67,8 +72,8 @@ class OptionConfigs(QtWidgets.QWidget):
 		
 		self.pane_groupbox = QtWidgets.QGroupBox('Visual Options')
 		# self.setFixedWidth(400)
-		self.pane_layout = QtWidgets.QVBoxLayout(self)
-		self.config_layout = QtWidgets.QVBoxLayout(self)
+		self.pane_layout = QtWidgets.QVBoxLayout()
+		self.config_layout = QtWidgets.QVBoxLayout()
 		
 		self.buildWidgetPane(self.la_dict, self.pane_layout)
 		self.pane_layout.addStretch()
@@ -95,13 +100,11 @@ class OptionConfigs(QtWidgets.QWidget):
 	def _buildNestedOptionWidgetDict(self, asset, asset_key=''):
 		# returns unsorted_dict
 		w_dict = {}
-		# print(f"new root asset - {asset_key}")
 		if not isinstance(asset, base.BaseAsset) and not isinstance(asset, base.SimpleAsset):
 			# no options or nested assets with options
 			return w_dict
 		
 		if hasattr(asset, 'opts') and asset.opts is not None:
-			# print(f"\t{asset_key} has options")
 			w_opt_dict = self._buildOptionWidgetDict(asset.opts)
 		else:
 			w_opt_dict = None
@@ -115,7 +118,6 @@ class OptionConfigs(QtWidgets.QWidget):
 				sub_w_dict = self._buildNestedOptionWidgetDict(sub_asset, asset_key=sub_key)
 				cb = widgets.CollapsibleSection(title=f"{sub_key.capitalize()} Options")
 				for sub_w_key, widget in dict(sorted(sub_w_dict.items())).items():
-					# print(f"\t{sub_w_key}")
 					cb.addWidget(widget)
 				if sub_key not in w_dict.keys():
 					w_dict[sub_key] = cb
@@ -154,22 +156,21 @@ class OptionConfigs(QtWidgets.QWidget):
 		return w_dict
 
 class Toolbar(QtWidgets.QWidget):
+	# TODO: this should be in widgets, not controls	
 	def __init__(self, parent_window, action_dict, context_name=None):
 		super().__init__()
 		self.window = parent_window
 		self.action_dict = action_dict
 		self.context_name = context_name
-		print(f'toolbar context: {self.context_name}')
 		if self.context_name is None:
 			self.context_name = 'main-window'
-		self.toolbar = QtWidgets.QToolBar("My main toolbar")
+		self.toolbar = QtWidgets.QToolBar("Toolbar")
 
 		self.toolbar.setIconSize(QtCore.QSize(16,16))
 
 		self.button_dict = {}
 
 		self.addToWindow()
-		# print(f'toolbar context: {self.context}')
 
 	def addButtons(self):
 		# Process 'all' actions first
@@ -199,11 +200,11 @@ class Toolbar(QtWidgets.QWidget):
 		self.window.addToolBar(self.toolbar)
 
 	def setActiveState(self, state):
-		# console.send(f'\tsetting {self.context} toolbar state to {state}')
 		self.toolbar.toggleViewAction().setChecked(not state)
 		self.toolbar.toggleViewAction().trigger()
 
 class Menubar(QtWidgets.QWidget):
+	# TODO: this should be in widgets, not controls
 	def __init__(self, parent_window, action_dict, context_name=None):
 		super().__init__()
 		self.window = parent_window
@@ -220,7 +221,6 @@ class Menubar(QtWidgets.QWidget):
 		for key, action in self.action_dict.items():
 			if 'all' in action['contexts']:
 				if action['containing_menu'] not in self.menus.keys():
-					# console.send(f'adding {action["containing_menu"]} menu to {self.context} menubar')
 					self.menus[action['containing_menu']] = self.menubar.addMenu(action['containing_menu'].capitalize())
 				self.button_dict[key] = QtWidgets.QAction(QtGui.QIcon(action['button_icon']), action['menu_item'], self)
 				self.button_dict[key].setStatusTip(action['tooltip'])
@@ -233,7 +233,6 @@ class Menubar(QtWidgets.QWidget):
 		for key, action in self.action_dict.items():
 			if self.context_name in action['contexts']:
 				if action['containing_menu'] not in self.menus.keys():
-					# console.send(f'adding {action["containing_menu"]} menu to {self.context} menubar')
 					self.menus[action['containing_menu']] = self.menubar.addMenu(action['containing_menu'].capitalize())
 				self.button_dict[key] = QtWidgets.QAction(QtGui.QIcon(action['button_icon']), action['menu_item'], self)
 				self.button_dict[key].setStatusTip(action['tooltip'])
@@ -243,7 +242,6 @@ class Menubar(QtWidgets.QWidget):
 				self.menus[action['containing_menu']].addAction(self.button_dict[key])
 
 	def setActiveState(self, state):
-		# console.send(f'\tsetting {self.context} menubar state to {state}')
 		if state:
 			self.window.setMenuBar(self.menubar)
 		else:	
