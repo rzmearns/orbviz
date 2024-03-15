@@ -69,6 +69,8 @@ class BaseContext(ABC):
 		state['data'] = self.data
 		return state
 
+	def deSerialise(self, state):
+		pass
 
 class BaseDataWorker(QtCore.QObject):
 	finished = QtCore.pyqtSignal()

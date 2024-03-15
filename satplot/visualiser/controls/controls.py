@@ -60,6 +60,10 @@ class OrbitConfigs(QtWidgets.QWidget):
 	def getConstellationIndex(self):
 		return self.suppl_constellation_selector.currentIndex()
 
+	def prepSerialisation(self):
+		state = {}
+		return state
+
 class OptionConfigs(QtWidgets.QWidget):
 	def __init__(self, asset_dict, parent: QtWidgets.QWidget=None) -> None:
 		super().__init__(parent)

@@ -29,23 +29,23 @@ class MainWindow(QtWidgets.QMainWindow):
 
 		self.toolbars = {}
 		self.menubars = {}
-		self.context_dict = {}
+		self.contexts_dict = {}
 		self.context_tabs = QtWidgets.QTabWidget()
 		
 
 		# Build context panes
-		self.context_dict['3d-history'] = history3d.History3DContext('3d-history', self)
-		self.toolbars['3d-history'] = self.context_dict['3d-history'].controls.toolbar
-		self.menubars['3d-history'] = self.context_dict['3d-history'].controls.menubar
-		self.context_tabs.addTab(self.context_dict['3d-history'].widget, '3D History')
+		self.contexts_dict['3d-history'] = history3d.History3DContext('3d-history', self)
+		self.toolbars['3d-history'] = self.contexts_dict['3d-history'].controls.toolbar
+		self.menubars['3d-history'] = self.contexts_dict['3d-history'].controls.menubar
+		self.context_tabs.addTab(self.contexts_dict['3d-history'].widget, '3D History')
 
-		self.context_dict['blank'] = blank.BlankContext('blank', self)
-		self.toolbars['blank'] = self.context_dict['blank'].controls.toolbar
-		self.menubars['blank'] = self.context_dict['blank'].controls.menubar
-		self.context_tabs.addTab(self.context_dict['blank'].widget, 'Blank')
+		self.contexts_dict['blank'] = blank.BlankContext('blank', self)
+		self.toolbars['blank'] = self.contexts_dict['blank'].controls.toolbar
+		self.menubars['blank'] = self.contexts_dict['blank'].controls.menubar
+		self.context_tabs.addTab(self.contexts_dict['blank'].widget, 'Blank')
 
-		# self.toolbars['blank'] = self.context_dict['blank'].controls.toolbar
-		# self.menubars['blank'] = self.context_dict['blank'].controls.menubar
+		# self.toolbars['blank'] = self.contexts_dict['blank'].controls.toolbar
+		# self.menubars['blank'] = self.contexts_dict['blank'].controls.menubar
 		# self.context_tabs.addTab(QtWidgets.QWidget(), 'Blank')
 
 		# check toolbar/menubar indices are the same
@@ -109,10 +109,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
 	def serialiseContexts(self):
 		state = {}
-		for context_key, context in self.context_dict.items():
+		for context_key, context in self.contexts_dict.items():
 			state[context_key] = context.prepSerialisation()
 
 		return state
+
+	def deserialiseContexts(self, state):
+		for context_key, context_dict in state.items():
+			self.contexts_dict[context_key].deSerialise(context_dict)
 
 	def __del__(self):
 		sys.stderr = sys.__stderr__

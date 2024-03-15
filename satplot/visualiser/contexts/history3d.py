@@ -69,8 +69,8 @@ class History3DContext(BaseContext):
 	def connectControls(self):
 		self.controls.orbit_controls.submit_button.clicked.connect(self._loadData)
 		self.controls.time_slider.add_connect(self._updateIndex)
-		self.controls.action_dict['center-earth']['callback'] = self.window.context_dict['3d-history'].canvas_wrapper.centerCameraEarth
-		self.controls.action_dict['center-spacecraft']['callback'] = self.window.context_dict['3d-history'].canvas_wrapper.centerCameraSpacecraft
+		self.controls.action_dict['center-earth']['callback'] = self.canvas_wrapper.centerCameraEarth
+		self.controls.action_dict['center-spacecraft']['callback'] = self.canvas_wrapper.centerCameraSpacecraft
 
 	def _loadData(self):
 		console.send('Started Data Load')
@@ -149,6 +149,25 @@ class History3DContext(BaseContext):
 
 	def saveState(self):
 		pass
+
+	def deSerialise(self, state_dict):
+		self.data = state_dict['data']
+		self.canvas_wrapper.setSource(self.data['timespan'],
+										self.data['orbit'],
+										self.data['pointing'],
+										self.data['constellation_list'],
+										self.data['constellation_beam_angle'])
+		self.canvas_wrapper.setFirstDrawFlags()
+		console.send(f"Drawing {self.data['name']} Assets...")
+		self.controls.deSerialise(state_dict['controls'])
+		self.canvas_wrapper.deSerialise(state_dict['camera'])
+
+	def prepSerialisation(self):
+		state = {}
+		state['data'] = self.data
+		state['controls'] = self.controls.prepSerialisation()
+		state['camera'] = self.canvas_wrapper.prepSerialisation()
+		return state
 
 	def _cleanUpLoadWorkerThread(self):
 		self.controls.orbit_controls.submit_button.setEnabled(True)
@@ -268,3 +287,20 @@ class History3DContext(BaseContext):
 			# Prep toolbars
 			self.toolbar = controls.Toolbar(self.context.window, self.action_dict, context_name=self.context.data['name'])
 			self.menubar = controls.Menubar(self.context.window, self.action_dict, context_name=self.context.data['name'])
+
+		def prepSerialisation(self):
+			state = {}
+			# state['orbit_controls'] = self.orbit_controls.prepSerialisation()
+			# state['config_controls'] = self.config_controls.prepSerialisation()
+			state['time_slider'] = {}
+			state['time_slider']['start_dt'] = self.time_slider.start_dt
+			state['time_slider']['end_dt'] = self.time_slider.end_dt
+			state['time_slider']['num_ticks'] = self.time_slider.num_ticks
+			state['time_slider']['curr_index'] = self.time_slider.getValue()
+			return state
+
+		def deSerialise(self, state):
+			self.time_slider.setRange(state['time_slider']['start_dt'],
+							 			state['time_slider']['end_dt'],
+										state['time_slider']['num_ticks'])
+			self.time_slider.setValue(state['time_slider']['curr_index'])
