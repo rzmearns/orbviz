@@ -315,7 +315,7 @@ class FilePicker(QtWidgets.QWidget):
 	def __init__(self, label, dflt_file='', dflt_dir=None, save=False, parent: QtWidgets.QWidget=None) -> None:
 		super().__init__(parent)
 		self._callbacks = []
-		self.path = dflt_file
+		self.path = f'{dflt_dir}{dflt_file}'
 		vlayout = QtWidgets.QVBoxLayout()
 		hlayout1 = QtWidgets.QHBoxLayout()
 		hlayout2 = QtWidgets.QHBoxLayout()
