@@ -278,7 +278,7 @@ class OptionBox(QtWidgets.QWidget):
 		hlayout2.setContentsMargins(0,1,10,1)
 
 		self._label = QtWidgets.QLabel(label)
-		self._optionbox = QtWidgets.QComboBox()
+		self._optionbox = NonScrollingComboBox()
 		for item in options_list:
 			self._optionbox.addItem(item)
 		self._optionbox.setFocusPolicy(QtCore.Qt.StrongFocus)
@@ -298,6 +298,9 @@ class OptionBox(QtWidgets.QWidget):
 			return self._curr_index-1
 		else:
 			return None
+
+	def setContainingScrollWidget(self, scrollWidget):
+		self._optionbox.setContainingScrollWidget(scrollWidget)
 
 	def add_connect(self, callback):
 		self._callbacks.append(callback)
@@ -592,6 +595,22 @@ class Switch(QtWidgets.QPushButton):
 			sw_rect.moveTo(-width,-radius)
 
 		painter.drawRoundedRect(sw_rect, radius, radius)
+
+class NonScrollingComboBox(QtWidgets.QComboBox):
+	def __init__(self, scrollWidget=None, *args, **kwargs):
+		super(NonScrollingComboBox, self).__init__(*args, **kwargs)  
+		self.scrollWidget=scrollWidget
+		self.setFocusPolicy(QtCore.Qt.StrongFocus)
+
+	def setContainingScrollWidget(self, scrollwidget):
+		self.scrollWidget = scrollwidget
+
+	def wheelEvent(self, *args, **kwargs):
+		if self.view().isVisible():
+		# self.hasFocus():
+			return QtWidgets.QComboBox.wheelEvent(self, *args, **kwargs)
+		elif self.scrollWidget is not None:
+			return self.scrollWidget.wheelEvent(*args, **kwargs)
 
 def embedWidgetsInHBoxLayout(w_list, margin=5):
 	"""Embed a list of widgets into a layout to give it a frame"""

@@ -67,6 +67,7 @@ class OrbitConfigs(QtWidgets.QWidget):
 		self.scroll_area = QtWidgets.QScrollArea()
 		self.scroll_area.setWidget(self.pane_groupbox)
 		self.scroll_area.setWidgetResizable(True)
+		self.suppl_constellation_selector.setContainingScrollWidget(self.scroll_area)
 		self.config_layout = QtWidgets.QVBoxLayout(self)
 		self.config_layout.setObjectName('Orbit config layout')
 		self.config_layout.addWidget(self.scroll_area)
