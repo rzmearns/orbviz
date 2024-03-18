@@ -20,6 +20,7 @@ class History3DContext(BaseContext):
 		self.data['orbit'] = None
 		self.data['period_start'] = None
 		self.data['period_end'] = None
+		self.data['sampling_period'] = None
 		self.data['prim_orbit_TLE_path'] = None
 		self.data['constellation_list'] = None
 		self.data['constellation_index'] = None
@@ -76,24 +77,37 @@ class History3DContext(BaseContext):
 		console.send('Started Data Load')
 		self.data['period_start'] = self.controls.orbit_controls.period_start.datetime
 		self.data['period_end'] = self.controls.orbit_controls.period_end.datetime
+		self.data['sampling_period'] = self.controls.orbit_controls.sampling_period.period
 		self.data['prim_orbit_TLE_path'] = self.controls.orbit_controls.prim_orbit_selector.path
-		self.data['constellation_index'] = self.controls.orbit_controls.getConstellationIndex()
-		if self.data['constellation_index'] is not None:
+		if self.controls.orbit_controls.suppl_constellation_selector.isEnabled():
+			self.data['constellation_index'] = self.controls.orbit_controls.getConstellationIndex()			
 			self.data['constellation_file'] = self.controls.orbit_controls.constellation_files[self.data['constellation_index']]
 			self.data['constellation_name'] = self.controls.orbit_controls.constellation_options[self.data['constellation_index']]
 			self.data['constellation_beam_angle'] = self.controls.orbit_controls.constellation_beam_angles[self.data['constellation_index']]
 		else:
+			self.data['constellation_index'] = None
 			self.data['constellation_file'] = None
 			self.data['constellation_name'] = None
 			self.data['constellation_beam_angle'] = None
-		self.data['pointing_file'] = self.controls.orbit_controls.pointing_file_selector.path
-		self.data['pointing_invert_transform'] = self.controls.orbit_controls.pointing_file_inv_toggle.isChecked()
+
+		if self.controls.orbit_controls.pointing_file_controls.isEnabled():
+			self.data['pointing_file'] = self.controls.orbit_controls.pointing_file_controls._pointing_file_selector.path
+			self.data['pointing_invert_transform'] = self.controls.orbit_controls.pointing_file_controls.pointing_file_inv_toggle.isChecked()
+			if self.controls.orbit_controls.pointing_file_controls.pointingFileDefinesPeriod():
+				pointing_dates,q = readPointingData(self.data['pointing_file'])
+				self.data['period_start'] = pointing_dates[0]
+				self.data['period_end'] = pointing_dates[-1]
+				self.data['sampling_period'] = (pointing_dates[1]-pointing_dates[0]).total_seconds()
+		else:
+			self.data['pointing_file'] = None
+			self.data['pointing_invert_transform'] = None
 		
 		# Create worker
 		console.send(f'Constellation index {self.data["constellation_index"]}')
 		console.send('Creating loadDataWorker')
 		self.load_worker = self.LoadDataWorker(self.data['period_start'], 
-										 		self.data['period_end'], 
+										 		self.data['period_end'],
+												self.data['sampling_period'],
 												self.data['prim_orbit_TLE_path'],
 												c_index = self.data['constellation_index'],
 												c_file = self.data['constellation_file'],
@@ -102,10 +116,15 @@ class History3DContext(BaseContext):
 
 		self.controls.orbit_controls.submit_button.setEnabled(False)
 		self.load_worker.finished.connect(self._updateDataSources)
+		self.load_worker.finished.connect(self._updateControls)
 		console.send(f'Calling super._loadData()')
 		self._setUpLoadWorkerThread()
 		console.send(f'Starting thread')
 		self.load_worker_thread.start()
+
+	def _updateControls(self, *args, **kwargs):
+		self.controls.orbit_controls.period_start.setDatetime(self.data['period_start'])
+		self.controls.orbit_controls.period_end.setDatetime(self.data['period_end'])
 
 	def _updateDataSources(self, t, o, c_list, pointing_q):
 		self.data['timespan'] = t
@@ -180,11 +199,12 @@ class History3DContext(BaseContext):
 		finished = QtCore.pyqtSignal(timespan.TimeSpan, orbit.Orbit, list, np.ndarray)
 		error = QtCore.pyqtSignal()
 
-		def __init__(self, period_start, period_end, prim_orbit_TLE_path,
+		def __init__(self, period_start, period_end, sampling_period, prim_orbit_TLE_path,
 			   		 c_index = None, c_file=None, c_name=None, p_file=None, *args, **kwargs):
 			super().__init__(*args, **kwargs)
 			self.period_start = period_start
 			self.period_end = period_end
+			self.timestep = sampling_period
 			self.prim_orbit_TLE_path = prim_orbit_TLE_path
 			self.t = None
 			self.o = None
@@ -193,21 +213,16 @@ class History3DContext(BaseContext):
 			self.c_name = c_name
 			self.c_list = []
 			self.p_file = p_file
+			self.pointing_q = None
 
 		def run(self):
 			console.send("Started Load Data Worker thread")
 			self.period_start.replace(microsecond=0)
 			self. period_end.replace(microsecond=0)			
-			# TODO: calculate time period from end
-			# TODO: auto calculate step size
 			time_period = int((self.period_end - self.period_start).total_seconds())
-			timestep=3
 			console.send(f"Creating Timespan from {self.period_start} -> {self.period_end} ...")
-			# self.t = timespan.TimeSpan(self.period_start,
-			# 					timestep=f'{timestep}S',
-			# 					timeperiod='90M')
 			self.t = timespan.TimeSpan(self.period_start,
-								timestep=f'{timestep}S',
+								timestep=f'{self.timestep}S',
 								timeperiod=f'{time_period}S')
 			console.send(f"\tDuration: {self.t.time_period}")
 			console.send(f"\tNumber of steps: {len(self.t)}")
@@ -221,12 +236,7 @@ class History3DContext(BaseContext):
 			self.pointing_q = np.array(())
 			if self.p_file is not None and self.p_file != '':
 				console.send(f"Loading pointing from {self.p_file.split('/')[-1]}")
-				pointing_w = np.genfromtxt(self.p_file, delimiter=',', usecols=(1),skip_header=1).reshape(-1,1)
-				pointing_x = np.genfromtxt(self.p_file, delimiter=',', usecols=(2),skip_header=1).reshape(-1,1)
-				pointing_y = np.genfromtxt(self.p_file, delimiter=',', usecols=(3),skip_header=1).reshape(-1,1)
-				pointing_z = np.genfromtxt(self.p_file, delimiter=',', usecols=(4),skip_header=1).reshape(-1,1)
-				pointing_q = np.hstack((pointing_x,pointing_y,pointing_z,pointing_w))
-				pointing_dates = np.genfromtxt(self.p_file, delimiter=',', usecols=(0),skip_header=1, converters={0:self.date_parser})
+				pointing_dates, pointing_q = readPointingData(self.p_file)
 
 				total_secs = lambda x: x.total_seconds()
 				total_secs = np.vectorize(total_secs)
@@ -235,7 +245,7 @@ class History3DContext(BaseContext):
 				if len(different_sample_periods) != 0:
 					print(f"WARNING: pointing samples are not taken at regular intervals - {pointing_dates[different_sample_periods]}", file=sys.stderr)
 
-				if sample_periods[0] != timestep:
+				if sample_periods[0] != self.timestep:
 					print(f"ERROR: pointing file sampling period do not match the selected visualiser sampling period", file=sys.stderr)
 					self.error.emit()
 					return
@@ -265,12 +275,7 @@ class History3DContext(BaseContext):
 			console.send("Load Data Worker thread finished")
 			self.finished.emit(self.t, self.o, self.c_list, self.pointing_q)
 
-		def date_parser(self, d_bytes):
-			d_bytes = d_bytes[:d_bytes.index(b'.')+4]
-			s = d_bytes.decode('utf-8')
-			d = dt.datetime.strptime(s,"%Y-%m-%d %H:%M:%S.%f")
-			print(d)
-			return d.replace(microsecond=0)
+
 		
 	class Controls(BaseControls):
 		def __init__(self, parent_context, canvas_wrapper):
@@ -310,3 +315,21 @@ class History3DContext(BaseContext):
 							 			state['time_slider']['end_dt'],
 										state['time_slider']['num_ticks'])
 			self.time_slider.setValue(state['time_slider']['curr_index'])
+
+def readPointingData(p_file):
+	pointing_q = np.array(())
+	pointing_w = np.genfromtxt(p_file, delimiter=',', usecols=(1),skip_header=1).reshape(-1,1)
+	pointing_x = np.genfromtxt(p_file, delimiter=',', usecols=(2),skip_header=1).reshape(-1,1)
+	pointing_y = np.genfromtxt(p_file, delimiter=',', usecols=(3),skip_header=1).reshape(-1,1)
+	pointing_z = np.genfromtxt(p_file, delimiter=',', usecols=(4),skip_header=1).reshape(-1,1)
+	pointing_q = np.hstack((pointing_x,pointing_y,pointing_z,pointing_w))
+	pointing_dates = np.genfromtxt(p_file, delimiter=',', usecols=(0),skip_header=1, converters={0:date_parser})
+
+	return pointing_dates, pointing_q
+
+def date_parser(d_bytes):
+	d_bytes = d_bytes[:d_bytes.index(b'.')+4]
+	s = d_bytes.decode('utf-8')
+	d = dt.datetime.strptime(s,"%Y-%m-%d %H:%M:%S.%f")
+	print(d)
+	return d.replace(microsecond=0)

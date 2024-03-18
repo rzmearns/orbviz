@@ -26,34 +26,23 @@ class OrbitConfigs(QtWidgets.QWidget):
 		# Add widgets here
 		self.period_start = widgets.DatetimeEntry("Period Start:", dt.datetime(2024,2,23,3,7,31))
 		self.period_end = widgets.DatetimeEntry("Period End:", dt.datetime.now())
+		self.sampling_period = widgets.PeriodBox("Sampling Period:", 30)
 		self.button_layout = QtWidgets.QHBoxLayout()
 		self.submit_button = QtWidgets.QPushButton('Recalculate')
 		self.prim_orbit_selector = widgets.FilePicker('Primary Orbit',
 															dflt_file='spirit_latest.tle',
 															dflt_dir='data/TLEs/',
 															save=False)
-		self.pointing_file_selector = widgets.FilePicker('Pointing File',
-												   			dflt_file='20240223-030000_quaternion.csv',
-															dflt_dir='data/pointing/',
-															save=False)
-		self.pointing_file_inv_toggle = widgets.Switch()
-		self.pointing_file_inv_off_label = QtWidgets.QLabel('BF->ECI')
-		self.pointing_file_inv_on_label = QtWidgets.QLabel('ECI->BF')
-		self.suppl_constellation_selector = widgets.OptionBox('Supplementary Constellations',
-															options_list=OrbitConfigs.constellation_options)
+		self.pointing_file_controls = PointingFileControls()
+		
+		self.suppl_constellation_selector = ConstellationControls()
 
 		self.pane_layout.addWidget(self.period_start)
 		self.pane_layout.addWidget(self.period_end)
+		self.pane_layout.addWidget(self.sampling_period)
 		self.pane_layout.addWidget(self.prim_orbit_selector)
-		self.pane_layout.addWidget(self.pointing_file_selector)
-		self.frame_inv_layout = QtWidgets.QHBoxLayout()
-		self.frame_inv_layout.addStretch()
-		self.frame_inv_layout.addWidget(self.pointing_file_inv_off_label)
-		self.frame_inv_layout.addWidget(self.pointing_file_inv_toggle)
-		self.frame_inv_layout.addWidget(self.pointing_file_inv_on_label)
-		self.frame_inv_layout.setContentsMargins(0,0,0,0)
-		self.frame_inv_layout.setSpacing(0)
-		self.pane_layout.addLayout(self.frame_inv_layout)
+		self.pane_layout.addWidget(self.pointing_file_controls)
+
 		self.pane_layout.addWidget(self.suppl_constellation_selector)
 
 		self.button_layout.addStretch()
@@ -80,6 +69,124 @@ class OrbitConfigs(QtWidgets.QWidget):
 	def prepSerialisation(self):
 		state = {}
 		return state
+
+class PointingFileControls(QtWidgets.QWidget):
+	def __init__(self, *args, **kwargs):
+		super().__init__()
+		vlayout = QtWidgets.QVBoxLayout()
+
+		glayout = QtWidgets.QGridLayout()
+		glayout.setVerticalSpacing(1)
+		self._label_font = QtGui.QFont()
+		self._label_font.setWeight(QtGui.QFont.Medium)
+		self._label = QtWidgets.QLabel('Pointing File')
+		self._label.setFont(self._label_font)
+		glayout.addWidget(self._label,0,0,1,-1)
+		glayout.setContentsMargins(0,0,0,0)
+
+		self._en_label = QtWidgets.QLabel('Enable:')
+		self._enable = QtWidgets.QCheckBox()
+		self._enable_list = []
+		glayout.addWidget(self._en_label,1,0)
+		glayout.addWidget(self._enable,1,2)
+
+		self._pointing_file_selector = widgets.FilePicker(None,
+												   			dflt_file='20240223-030000_quaternion.csv',
+															dflt_dir='data/pointing/',
+															save=False,
+															margins=[0,0,0,0])
+		glayout.addWidget(self._pointing_file_selector,2,0,1,-1)
+		
+		self.pointing_file_inv_toggle = widgets.Switch()
+		self.pointing_file_inv_toggle.setChecked(True)
+		self.pointing_file_inv_label = QtWidgets.QLabel('Pointing File frame\ntransform direction')
+		self.pointing_file_inv_off_label = QtWidgets.QLabel('BF->ECI')
+		self.pointing_file_inv_on_label = QtWidgets.QLabel('ECI->BF')
+		glayout.addWidget(self.pointing_file_inv_label,3,0)
+		glayout.addWidget(self.pointing_file_inv_off_label,3,6)
+		glayout.addWidget(self.pointing_file_inv_toggle,3,7)
+		glayout.addWidget(self.pointing_file_inv_on_label,3,8)
+
+		self.use_pointing_period_label = QtWidgets.QLabel('Use pointing file\nto define period')
+		self.use_pointing_period = QtWidgets.QCheckBox()
+		glayout.addWidget(self.use_pointing_period_label,4,0)
+		glayout.addWidget(self.use_pointing_period,4,2)
+		
+		
+		vlayout.addLayout(glayout)
+		self.setLayout(vlayout)
+
+
+		self._enable.toggled.connect(self.enableState)
+		self._enable.setChecked(False)
+
+		self.addWidgetToEnable(self._pointing_file_selector)
+		self.addWidgetToEnable(self.pointing_file_inv_label)
+		self.addWidgetToEnable(self.pointing_file_inv_off_label)
+		self.addWidgetToEnable(self.pointing_file_inv_on_label)
+		self.addWidgetToEnable(self.pointing_file_inv_toggle)
+		self.addWidgetToEnable(self.use_pointing_period_label)
+		self.addWidgetToEnable(self.use_pointing_period)
+		self.enableState(False)
+
+	def isEnabled(self):
+		return self._enable.isChecked()
+
+	def enableState(self, state):
+		for widget in self._enable_list:
+			widget.setDisabled(not state)
+
+	def addWidgetToEnable(self, widget):
+		self._enable_list.append(widget)
+
+	def pointingFileDefinesPeriod(self):
+		return self.use_pointing_period.isChecked()
+
+class ConstellationControls(QtWidgets.QWidget):
+	def __init__(self, *args, **kwargs):
+		super().__init__()		
+		vlayout = QtWidgets.QVBoxLayout()
+
+		glayout = QtWidgets.QGridLayout()
+		glayout.setVerticalSpacing(1)
+		self._label_font = QtGui.QFont()
+		self._label_font.setWeight(QtGui.QFont.Medium)
+		self._label = QtWidgets.QLabel('Supplementary Constellations')
+		self._label.setFont(self._label_font)
+		glayout.addWidget(self._label,0,0,1,-1)
+		glayout.setContentsMargins(0,0,0,0)
+
+		self._en_label = QtWidgets.QLabel('Enable:')
+		self._enable = QtWidgets.QCheckBox()
+		self._enable_list = []
+		glayout.addWidget(self._en_label,1,0)
+		glayout.addWidget(self._enable,1,2)
+
+		self.suppl_constellation_selector = widgets.OptionBox('Supplementary Constellations',
+															options_list=OrbitConfigs.constellation_options)		
+		glayout.addWidget(self.suppl_constellation_selector,2,0,1,-1)
+
+		vlayout.addLayout(glayout)
+		self.setLayout(vlayout)
+
+		self._enable.toggled.connect(self.enableState)
+		self._enable.setChecked(False)
+
+		self.addWidgetToEnable(self.suppl_constellation_selector)
+		self.enableState(False)
+
+	def isEnabled(self):
+		return self._enable.isChecked()
+
+	def enableState(self, state):
+		for widget in self._enable_list:
+			widget.setDisabled(not state)
+
+	def addWidgetToEnable(self, widget):
+		self._enable_list.append(widget)
+
+	def setContainingScrollWidget(self, widget):
+		self.suppl_constellation_selector.setContainingScrollWidget(widget)
 
 class OptionConfigs(QtWidgets.QWidget):
 	def __init__(self, asset_dict, parent: QtWidgets.QWidget=None) -> None:

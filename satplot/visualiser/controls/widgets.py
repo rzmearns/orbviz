@@ -277,12 +277,16 @@ class OptionBox(QtWidgets.QWidget):
 		hlayout1.setContentsMargins(0,1,0,1)
 		hlayout2.setContentsMargins(0,1,10,1)
 
-		self._label = QtWidgets.QLabel(label)
+		if label is not None:
+			self._label = QtWidgets.QLabel(label)
+			hlayout1.addWidget(self._label)
+			hlayout1.addStretch()
+			vlayout.addLayout(hlayout1)
+
 		self._optionbox = NonScrollingComboBox()
 		for item in options_list:
 			self._optionbox.addItem(item)
 		self._optionbox.setFocusPolicy(QtCore.Qt.StrongFocus)
-
 
 		hlayout1.addWidget(self._label)
 		hlayout1.addStretch()
@@ -292,6 +296,7 @@ class OptionBox(QtWidgets.QWidget):
 		self.setLayout(vlayout)
 
 		self._optionbox.currentIndexChanged.connect((self._run_callbacks))
+		
 
 	def currentIndex(self):
 		if self._curr_index > 0:
@@ -312,7 +317,12 @@ class OptionBox(QtWidgets.QWidget):
 				callback(index)
 
 class FilePicker(QtWidgets.QWidget):
-	def __init__(self, label, dflt_file='', dflt_dir=None, save=False, parent: QtWidgets.QWidget=None) -> None:
+	def __init__(self, label, 
+			  			dflt_file='',
+						dflt_dir=None, 
+						save=False,
+						margins=[0,0,0,0],
+						parent: QtWidgets.QWidget=None) -> None:
 		super().__init__(parent)
 		self._callbacks = []
 		self.path = f'{dflt_dir}{dflt_file}'
@@ -322,10 +332,16 @@ class FilePicker(QtWidgets.QWidget):
 		vlayout.setSpacing(0)
 		hlayout1.setSpacing(0)
 		hlayout2.setSpacing(0)
-		hlayout1.setContentsMargins(0,1,0,1)
-		hlayout2.setContentsMargins(0,1,10,1)
+		hlayout1.setContentsMargins(0,1,0,0)
+		hlayout2.setContentsMargins(0,0,10,1)
+		vlayout.setContentsMargins(margins[0],margins[1],margins[2],margins[3])
 
-		self._label = QtWidgets.QLabel(label)
+		if label is not None:
+			self._label = QtWidgets.QLabel(label)
+			hlayout1.addWidget(self._label)
+			hlayout1.addStretch()
+			vlayout.addLayout(hlayout1)
+		
 		self._file_text_box = QtWidgets.QLineEdit(self.path)
 		self._dialog_button = QtWidgets.QPushButton('...')
 		self.caption = f'Pick {label}'
@@ -337,12 +353,10 @@ class FilePicker(QtWidgets.QWidget):
 		self._dialog_button.setFixedWidth(25)
 
 
-		hlayout1.addWidget(self._label)
-		hlayout1.addStretch()
 		hlayout2.addWidget(self._file_text_box)
 		hlayout2.addSpacing(5)
 		hlayout2.addWidget(self._dialog_button)
-		vlayout.addLayout(hlayout1)
+
 		vlayout.addLayout(hlayout2)
 		self.setLayout(vlayout)
 
@@ -378,6 +392,58 @@ class FilePicker(QtWidgets.QWidget):
 		else:
 			print("No FilePicker callbacks are set")
 
+class PeriodBox(QtWidgets.QWidget):
+	def __init__(self, label, dflt_val, parent: QtWidgets.QWidget=None):
+		super().__init__(parent)
+		self._callbacks = []
+		self.period = dflt_val
+		vlayout = QtWidgets.QVBoxLayout()
+		hlayout1 = QtWidgets.QHBoxLayout()
+		hlayout2 = QtWidgets.QHBoxLayout()
+		hlayout1.setSpacing(0)
+		hlayout1.setContentsMargins(2,1,2,1)
+		hlayout2.setSpacing(0)
+		hlayout2.setContentsMargins(2,1,2,1)
+		vlayout.setSpacing(0)
+		vlayout.setContentsMargins(2,1,2,1)
+
+		if label is not None:
+			self._label_font = QtGui.QFont()
+			self._label_font.setWeight(QtGui.QFont.Medium)
+			self._label = QtWidgets.QLabel(label)
+			self._label.setFont(self._label_font)
+			hlayout1.addWidget(self._label)
+
+		H,M,S = self.periodToHMS()
+		self._hms_label = QtWidgets.QLabel(f'{H}hrs - {M}mins - {S}secs')
+		self.val_box = QtWidgets.QSpinBox()
+		self.val_box.setValue(self.period)
+		self.val_box.setRange(1,86400)
+		self.val_box.setFixedWidth(80)
+
+		hlayout1.addWidget(self._hms_label)
+		hlayout2.addWidget(self.val_box)
+		hlayout2.addStretch()
+		vlayout.addLayout(hlayout1)
+		vlayout.addLayout(hlayout2)
+
+		self.val_box.textChanged.connect(self.updateLabels)
+		self.val_box.valueChanged.connect(self.updateLabels)
+
+		self.setLayout(vlayout)
+
+	def updateLabels(self):
+		self.period = int(self.val_box.text())
+		H,M,S = self.periodToHMS()
+		self._hms_label.setText(f'{H}hrs - {M}mins - {S}secs')
+
+	def periodToHMS(self):
+		H = int(self.period/3600)
+		M = int((self.period-H*3600)/60)
+		S = int((self.period-H*3600-M*60))
+
+		return H,M,S
+
 class DatetimeEntry(QtWidgets.QWidget):
 	def __init__(self, label, dflt_datetime, parent: QtWidgets.QWidget=None) -> None:
 		super().__init__(parent)
@@ -393,7 +459,13 @@ class DatetimeEntry(QtWidgets.QWidget):
 		vlayout.setSpacing(0)
 		vlayout.setContentsMargins(2,1,2,1)
 		
-		self._label = QtWidgets.QLabel(label)
+		if label is not None:
+			self._label_font = QtGui.QFont()
+			self._label_font.setWeight(QtGui.QFont.Medium)
+			self._label = QtWidgets.QLabel(label)
+			self._label.setFont(self._label_font)
+			hlayout1.addWidget(self._label)
+				
 		self._curr_dt = QtWidgets.QLabel(self.datetime.strftime("%Y-%m-%d   %H:%M:%S"))
 		self._mon_sp = QtWidgets.QLabel("-")
 		self._day_sp = QtWidgets.QLabel("-")
@@ -415,7 +487,6 @@ class DatetimeEntry(QtWidgets.QWidget):
 		self._min_text_box.setFixedWidth(25)
 		self._sec_text_box.setFixedWidth(25)
 
-		hlayout1.addWidget(self._label)
 		hlayout1.addWidget(self._curr_dt)
 		hlayout2.addWidget(self._yr_text_box)
 		hlayout2.addWidget(self._mon_sp)
@@ -466,6 +537,7 @@ class DatetimeEntry(QtWidgets.QWidget):
 		self._hr_text_box.setText(datetime.strftime("%H"))
 		self._min_text_box.setText(datetime.strftime("%M"))
 		self._sec_text_box.setText(datetime.strftime("%S"))
+		self._curr_dt.setText(self.datetime.strftime("%Y-%m-%d   %H:%M:%S"))
 
 	def addConnect(self, callback):
 		self._callbacks.append(callback)
@@ -568,8 +640,12 @@ class Switch(QtWidgets.QPushButton):
 
 	def paintEvent(self, event):
 		on_colour = QtGui.QColor(36,160,237)
+		on_dis_colour = QtGui.QColor(161,202,227)
 		off_colour = QtCore.Qt.gray
-		bg_colour = on_colour if self.isChecked() else off_colour
+		if self.isEnabled():
+			bg_colour = on_colour if self.isChecked() else off_colour
+		else:
+			bg_colour = on_dis_colour if self.isChecked() else off_colour
 		sw_colour = QtCore.Qt.lightGray
 		radius = 10
 		width = 25
