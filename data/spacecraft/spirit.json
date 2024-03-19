@@ -2,76 +2,13 @@
 	"spacecraft": {
 		"name":"SpIRIT",
 		"sensors": {
-					"RGB0":{
-						"shape":"square_pyramid",
-						"width_opening_angle":62.2,
-						"height_opening_angle":48.8,
-						"range":550,
-						"colour":"(52, 235, 198)",
-						"bf_quat":"(-0.40860704, -0.40860704, 0.577096542, 0.57709642)"},
-					"RGB1":{
-						"shape":"square_pyramid",
-						"width_opening_angle":62.2,
-						"height_opening_angle":48.8,
-						"range":550,
-						"colour":"(52, 235, 198)",
-						"bf_quat":"(-0.1830127, -0.1830127, 0.6830127, 0.6830127)"},
-					"RGB2":{
-						"shape":"square_pyramid",
-						"width_opening_angle":62.2,
-						"height_opening_angle":48.8,
-						"range":550,
-						"colour":"(52, 235, 198)",
-						"bf_quat":"(0.40860704, -0.40860704, -0.577096542, 0.57709642)"},
-					"RGB3Obscured":{
-						"shape":"square_pyramid",
-						"width_opening_angle":34,
-						"height_opening_angle":48.8,
-						"range":550,
-						"colour":"(77, 77, 77)",
-						"bf_quat":"(0.35781991, 0.60988926, 0.60988926, 0.35781991)"},
-					"RGB3":{
-						"shape":"square_pyramid",
-						"width_opening_angle":62.2,
-						"height_opening_angle":48.8,
-						"range":550,
-						"colour":"(52, 235, 198)",
-						"bf_quat":"(0.44403694, 0.55030101, 0.55030101, 0.44403694)"},
 					"RGB4":{
 						"shape":"square_pyramid",
 						"width_opening_angle":62.2,
 						"height_opening_angle":48.8,
 						"range":550,
 						"colour":"(52, 235, 198)",
-						"bf_quat":"(-0.23551074, 0.15003689, 0.80984185, -0.51592616)"},
-					"RGB5":{
-						"shape":"square_pyramid",
-						"width_opening_angle":62.2,
-						"height_opening_angle":48.8,
-						"range":550,
-						"colour":"(52, 235, 198)",
-						"bf_quat":"(0.15003689, -0.23551074, -0.51592616, 0.80984185)"},
-					"IR0":{
-						"shape":"square_pyramid",
-						"width_opening_angle":57,
-						"height_opening_angle":44,
-						"range":550,
-						"colour":"(255, 0, 0)",
-						"bf_quat":"(-0.40860704, -0.40860704, 0.577096542, 0.57709642)"},
-					"IR1":{
-						"shape":"square_pyramid",
-						"width_opening_angle":57,
-						"height_opening_angle":44,
-						"range":550,
-						"colour":"(255, 0, 0)",
-						"bf_quat":"(0.35103876, -0.61381739, 0.35103876, 0.61381739)"},
-					"IR2":{
-						"shape":"square_pyramid",
-						"width_opening_angle":57,
-						"height_opening_angle":44,
-						"range":550,
-						"colour":"(255, 0, 0)",
-						"bf_quat":"(0.40860704, -0.40860704, -0.577096542, 0.57709642)"}
+						"bf_quat":"(.354, .354, 0.146, 0.854)"}
 					}
 		}
 }

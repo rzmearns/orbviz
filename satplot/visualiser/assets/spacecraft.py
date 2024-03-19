@@ -127,7 +127,7 @@ class SpacecraftVisualiser(BaseAsset):
 										   			rotation=rotation)
 			for key, value in self.data['sens_suites'].items():			
 				self.assets[f'sensor_suite_{key}'].setTransform(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
-										   						quat=quat)
+										   						rotation=rotation)
 			
 			self.childAssetsRecompute()
 			self.requires_recompute = False
