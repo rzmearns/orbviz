@@ -14,7 +14,6 @@ import satplot
 
 import json
 import pickle
-import dill
 import datetime as dt
 
 import warnings
