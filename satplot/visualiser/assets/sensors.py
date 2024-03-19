@@ -109,7 +109,7 @@ class Sensor(SimpleAsset):
 		
 		T = np.eye(4)
 		if quat is not None:
-			rotation = Rotation.from_quat(self.data['bf_quat']) * Rotation.from_quat(quat)
+			rotation = Rotation.from_quat(self.data['bf_quat']).inv() * Rotation.from_quat(quat)
 			rot_mat = rotation.as_matrix()
 			# print(f"sensor:{self.data['name']} body frame quat {self.data['bf_quat']}")
 			# print(f"sensor:{self.data['name']} sc quat {quat}")
@@ -117,7 +117,8 @@ class Sensor(SimpleAsset):
 			# print("")
 			# rotation = Rotation.from_quat(new_quat).as_matrix()[0]
 		elif rotation is not None:
-			rotation = Rotation.from_quat(self.data['bf_quat'])*Rotation.from_matrix(rotation)
+			# bodyframe to cam quaternion
+			rotation = Rotation.from_quat(self.data['bf_quat']).inv()*Rotation.from_matrix(rotation)
 			rot_mat = rotation.as_matrix()
 			# print(f"sensor:{self.data['name']} body frame quat {self.data['bf_quat']}")
 		else:

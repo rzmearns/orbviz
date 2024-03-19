@@ -307,7 +307,8 @@ class History3DContext(BaseContext):
 			state['time_slider']['end_dt'] = self.time_slider.end_dt
 			state['time_slider']['num_ticks'] = self.time_slider.num_ticks
 			state['time_slider']['curr_index'] = self.time_slider.getValue()
-			state['pointing']['pointing_invert_transform'] = self.orbit_controls.pointing_file_inv_toggle.isChecked()
+			state['pointing'] = {}
+			state['pointing']['pointing_invert_transform'] = self.orbit_controls.pointing_file_controls.pointing_file_inv_toggle.isChecked()
 			return state
 
 		def deSerialise(self, state):
