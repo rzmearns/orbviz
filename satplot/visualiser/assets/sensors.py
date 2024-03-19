@@ -109,7 +109,7 @@ class Sensor(SimpleAsset):
 		
 		T = np.eye(4)
 		if quat is not None:
-			rotation = Rotation.from_quat(self.data['bf_quat']).inv() * Rotation.from_quat(quat)
+			rotation = Rotation.from_quat(self.data['bf_quat']) * Rotation.from_quat(quat)
 			rot_mat = rotation.as_matrix()
 			# print(f"sensor:{self.data['name']} body frame quat {self.data['bf_quat']}")
 			# print(f"sensor:{self.data['name']} sc quat {quat}")
@@ -118,7 +118,7 @@ class Sensor(SimpleAsset):
 			# rotation = Rotation.from_quat(new_quat).as_matrix()[0]
 		elif rotation is not None:
 			# bodyframe to cam quaternion
-			rotation = Rotation.from_quat(self.data['bf_quat']).inv()*Rotation.from_matrix(rotation)
+			rotation = Rotation.from_quat(self.data['bf_quat'])*Rotation.from_matrix(rotation)
 			rot_mat = rotation.as_matrix()
 			# print(f"sensor:{self.data['name']} body frame quat {self.data['bf_quat']}")
 		else:
@@ -157,7 +157,7 @@ class Sensor(SimpleAsset):
 	def cone(cls, sensor_name, sensor_dict, parent=None):
 		mesh_verts, mesh_faces  = polyhedra.calcConeMesh((0,0,0),
 								  		sensor_dict['range'],
-										(1,0,0),
+										(0,0,1),
 										sensor_dict['opening_angle'])
 		
 		bf_quat = np.asarray([float(x) for x in sensor_dict['bf_quat'].replace('(','').replace(')','').split(',')]).reshape(1,4)
@@ -168,7 +168,7 @@ class Sensor(SimpleAsset):
 	def squarePyramid(cls, sensor_name, sensor_dict, parent=None):
 		mesh_verts, mesh_faces  = polyhedra.calcSquarePyramidMesh((0,0,0),
 								  		sensor_dict['range'],
-										(1,0,0),
+										(0,0,1),
 										sensor_dict['height_opening_angle'],
 										sensor_dict['width_opening_angle'],
 										axis_sample=2)

@@ -43,7 +43,8 @@ class SpacecraftVisualiser(BaseAsset):
 		self.data['coords'] = np.zeros((4,3))
 		self.data['curr_index'] = 2
 		self.data['pointing'] = None
-
+		self.data['v_coords'] = 10000*np.array([[0, 0, 0],[0.433, 0.75, -0.5]]) # [-.01736, 0, 0.9848]-Sun, [0.433, 0.75, -0.5]-Cam4
+		self.data['v_coords_st'] =  20000*np.array([[0, 0, 0],[0.433, 0.75, -0.5]]) 
 
 	def setSource(self, *args, **kwargs):
 		# args[0] orbit
@@ -81,6 +82,11 @@ class SpacecraftVisualiser(BaseAsset):
 										edge_color='white',
 										size=self.opts['spacecraft_point_size']['value'],
 										symbol='o')
+		self.visuals['vector'] = scene.visuals.Line(self.data['v_coords'], color=colours.normaliseColour((255,0,255)),
+													parent=None)
+		self.visuals['vector_st'] = scene.visuals.Line(self.data['v_coords_st'], color=colours.normaliseColour((0,255,255)),
+													parent=None)
+		
 
 	# Use BaseAsset.updateIndex()
 
@@ -125,6 +131,24 @@ class SpacecraftVisualiser(BaseAsset):
 			# 									-self.data['coords'][self.data['curr_index']].reshape(1,3))[0].as_matrix()
 			self.assets['body_frame'].setTransform(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
 										   			rotation=rotation)
+			vp = rotation.T.reshape(3,3).dot(self.data['v_coords'].T).T
+			print(f"{vp=}")
+			svp = vp
+			print(f"{svp=}")
+			v = svp+self.data['coords'][self.data['curr_index']].reshape(1,3)
+			print(f"{v=}")
+			# using set transform
+			T = T = np.eye(4)
+			T[0:3,0:3] = rotation
+			T[3,0:3] = np.asarray(self.data['coords'][self.data['curr_index']].reshape(1,3)).reshape(-1,3)
+			self.visuals['vector_st'].transform = vTransforms.linear.MatrixTransform(T)
+			
+			print(f"Rotation {rotation}, reshape {rotation.reshape(3,3)}")
+			# pos = rotation.reshape(3,3).dot(self.data['v_coords'].T).T + self.data['coords'][self.data['curr_index']].reshape(1,3)
+			# print(f"Rotated vector: {pos[1,:]-self.data['coords'][self.data['curr_index']].reshape(1,3)}")
+			# print(pos)
+			print(f"Spacecraft position: {self.data['coords'][self.data['curr_index']].reshape(1,3)}")
+			self.visuals['vector'].set_data(v)
 			for key, value in self.data['sens_suites'].items():			
 				self.assets[f'sensor_suite_{key}'].setTransform(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
 										   						rotation=rotation)

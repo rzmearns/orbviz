@@ -43,6 +43,7 @@ class BodyGizmo(SimpleAsset):
 		T[0:3,0:3] = self.opts['gizmo_scale']['value']*rotation
 		T[3,0:3] = np.asarray(pos).reshape(-1,3)
 		self.visuals['gizmo'].transform = vTransforms.linear.MatrixTransform(T)
+		print(f"{self.visuals['gizmo'].transform.matrix=}")
 
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}
