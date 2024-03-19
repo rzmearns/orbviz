@@ -1,0 +1,42 @@
+{
+ "save": {
+  "tooltip": "Save SatPlot State",
+  "menu_item": "Save State",
+  "containing_menu": "file",
+  "button_icon": "resources/icons/disk-black.png",
+  "hotkey": "ctrl+s",
+  "callback": null,
+  "contexts": ["all"],
+  "toggleable": false
+ },
+ "save-as": {
+	"tooltip": "Save SatPlot State",
+	"menu_item": "Save State As..",
+	"containing_menu": "file",
+	"button_icon": null,
+	"hotkey": "ctrl+shift+s",
+	"callback": null,
+	"contexts": ["all"],
+	"toggleable": false
+   },
+ "load": {
+	"tooltip": "Load SatPlot State",
+	"menu_item": "Load State",
+	"containing_menu": "file",	
+	"button_icon": "resources/icons/folder-horizontal-open.png",
+	"hotkey": "ctrl+o",
+	"callback": null,
+	"contexts": ["all"],
+	"toggleable": false
+   },
+"test": {
+	"tooltip": "Test Button",
+	"menu_item": "Test Menu Item",
+	"containing_menu": "test",
+	"button_icon": "resources/icons/bug.png",
+	"hotkey": "ctrl+o",
+	"callback": null,
+	"contexts": ["all"],
+	"toggleable": false
+   }     
+}
