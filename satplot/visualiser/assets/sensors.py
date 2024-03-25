@@ -109,23 +109,17 @@ class Sensor(SimpleAsset):
 		
 		T = np.eye(4)
 		if quat is not None:
-			rotation = Rotation.from_quat(self.data['bf_quat']) * Rotation.from_quat(quat)
+			rotation = Rotation.from_quat(quat) * Rotation.from_quat(self.data['bf_quat']).inv()
 			rot_mat = rotation.as_matrix()
-			# print(f"sensor:{self.data['name']} body frame quat {self.data['bf_quat']}")
-			# print(f"sensor:{self.data['name']} sc quat {quat}")
-			# print(f"sensor:{self.data['name']} net quat {rotation.as_quat}")
-			# print("")
-			# rotation = Rotation.from_quat(new_quat).as_matrix()[0]
 		elif rotation is not None:
-			# bodyframe to cam quaternion
-			rotation = Rotation.from_quat(self.data['bf_quat'])*Rotation.from_matrix(rotation)
+			# bf_quat -> bodyframe to cam quaternion
+			rotation = Rotation.from_matrix(rotation) * Rotation.from_quat(self.data['bf_quat']).inv()
 			rot_mat = rotation.as_matrix()
-			# print(f"sensor:{self.data['name']} body frame quat {self.data['bf_quat']}")
 		else:
 			rot_mat = np.eye(3)
 		T[0:3,0:3] = rot_mat
-		T[3,0:3] = np.asarray(pos).reshape(-1,3)
-		self.visuals['sensor_cone'].transform = vTransforms.linear.MatrixTransform(T)
+		T[0:3,3] = np.asarray(pos).reshape(-1,3)
+		self.visuals['sensor_cone'].transform = vTransforms.linear.MatrixTransform(T.T)
 
 		for asset in self.assets.values():
 			asset.setTransform(pos=pos, rotation=rotation, quat=quat)

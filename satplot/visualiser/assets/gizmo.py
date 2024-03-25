@@ -41,8 +41,8 @@ class BodyGizmo(SimpleAsset):
 	def setTransform(self, pos=(0,0,0), rotation=np.eye(3)):
 		T = np.eye(4)
 		T[0:3,0:3] = self.opts['gizmo_scale']['value']*rotation
-		T[3,0:3] = np.asarray(pos).reshape(-1,3)
-		self.visuals['gizmo'].transform = vTransforms.linear.MatrixTransform(T)
+		T[0:3,3] = np.asarray(pos).reshape(-1,3)
+		self.visuals['gizmo'].transform = vTransforms.linear.MatrixTransform(T.T)
 		print(f"{self.visuals['gizmo'].transform.matrix=}")
 
 	def _setDefaultOptions(self):
