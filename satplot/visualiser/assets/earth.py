@@ -116,12 +116,11 @@ class Earth(BaseAsset):
 		if self.first_draw:
 			self.first_draw = False
 		if self.requires_recompute:
-			rot_mat = transforms.rotAround(self.data['ecef_rads'], pg.Z)
-			new_coords = rot_mat.dot(self.data['landmass'].T).T
+			R = transforms.rotAround(self.data['ecef_rads'], pg.Z)
+			new_coords = R.dot(self.data['landmass'].T).T
 			self.visuals['landmass'].set_data(new_coords)
-			rot_mat2 = transforms.rotAround(self.data['ecef_rads'], -pg.Z)
 			for asset in self.assets.values():
-				asset.setTransform(rotation=rot_mat2)
+				asset.setTransform(rotation=R)
 			
 
 			self.requires_recompute = False
@@ -395,8 +394,8 @@ class MeridiansGrid(SimpleAsset):
 	def setTransform(self, pos=(0,0,0), rotation=np.eye(3)):
 		T = np.eye(4)
 		T[0:3,0:3] = rotation
-		T[3,0:3] = np.asarray(pos).reshape(-1,3)
-		self.visuals['meridians'].transform = vTransforms.linear.MatrixTransform(T)
+		T[0:3,3] = np.asarray(pos).reshape(-1,3)
+		self.visuals['meridians'].transform = vTransforms.linear.MatrixTransform(T.T)
 
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}
