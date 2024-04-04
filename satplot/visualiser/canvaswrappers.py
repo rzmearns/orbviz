@@ -128,14 +128,15 @@ class History3D():
 		self.setCameraZoom(5*c.R_EARTH)
 		# self.assets['ECI_gizmo'].attachCamera(self.view_box.camera)
 
-	def centerCameraSpacecraft(self):
+	def centerCameraSpacecraft(self, set_zoom=True):
 		if self.is_asset_instantiated['spacecraft']:
 			sc_pos = tuple(self.assets['spacecraft'].data['coords'][self.assets['spacecraft'].data['curr_index']])			
 		else:
 			sc_pos = tuple(self.assets['primary_orbit'].data['coords'][self.assets['primary_orbit'].data['curr_index']])
 
 		self.view_box.camera.center = sc_pos
-		self.setCameraZoom(2200)
+		if set_zoom:
+			self.setCameraZoom(2200)
 		self.canvas.update()
 
 

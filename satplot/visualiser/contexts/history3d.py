@@ -70,8 +70,9 @@ class History3DContext(BaseContext):
 	def connectControls(self):
 		self.controls.orbit_controls.submit_button.clicked.connect(self._loadData)
 		self.controls.time_slider.add_connect(self._updateIndex)
-		self.controls.action_dict['center-earth']['callback'] = self.canvas_wrapper.centerCameraEarth
-		self.controls.action_dict['center-spacecraft']['callback'] = self.canvas_wrapper.centerCameraSpacecraft
+		self.controls.action_dict['center-earth']['callback'] = self._centerCameraEarth
+		self.controls.action_dict['center-spacecraft']['callback'] = self._toggleCameraSpacecraft
+		self.sccam_state = False
 
 	def _loadData(self):
 		console.send('Started Data Load')
@@ -195,6 +196,21 @@ class History3DContext(BaseContext):
 		self.controls.orbit_controls.submit_button.setEnabled(True)
 		return super()._cleanUpLoadWorkerThread()
 
+	def _centerCameraEarth(self):
+		if self.sccam_state and self.controls.toolbar.button_dict['center-spacecraft'].isChecked():
+			# if center cam on sc is on, turn it off when selecting center cam on earth.
+			self.controls.toolbar.button_dict['center-spacecraft'].setChecked(False)
+		self.sccam_state = False
+		self.canvas_wrapper.centerCameraEarth()	
+
+	def _toggleCameraSpacecraft(self):
+		self.sccam_state = not self.sccam_state
+
+		if self.sccam_state:
+			self.canvas_wrapper.centerCameraSpacecraft()
+			# setting button to checkable in case camera set to center via menu
+			self.controls.toolbar.button_dict['center-spacecraft'].setChecked(True)
+
 	class LoadDataWorker(BaseDataWorker):
 		finished = QtCore.pyqtSignal(timespan.TimeSpan, orbit.Orbit, list, np.ndarray)
 		error = QtCore.pyqtSignal()
@@ -302,15 +318,22 @@ class History3DContext(BaseContext):
 
 		def setHotkeys(self):
 			self.shortcuts={}
-			self.shortcuts['PgUp'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgUp'), self.context.window)
-			self.shortcuts['PgUp'].activated.connect(self.time_slider.incrementValue)
 			self.shortcuts['PgDown'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgDown'), self.context.window)
-			self.shortcuts['PgDown'].activated.connect(self.time_slider.decrementValue)
+			self.shortcuts['PgDown'].activated.connect(self.time_slider.incrementValue)
+			self.shortcuts['PgDown'].activated.connect(self._updateCam)
+			self.shortcuts['PgUp'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgUp'), self.context.window)
+			self.shortcuts['PgUp'].activated.connect(self.time_slider.decrementValue)
+			self.shortcuts['PgUp'].activated.connect(self._updateCam)
 			self.shortcuts['Home'] = QtWidgets.QShortcut(QtGui.QKeySequence('Home'), self.context.window)
 			self.shortcuts['Home'].activated.connect(self.time_slider.setBeginning)
+			self.shortcuts['Home'].activated.connect(self._updateCam)
 			self.shortcuts['End'] = QtWidgets.QShortcut(QtGui.QKeySequence('End'), self.context.window)
 			self.shortcuts['End'].activated.connect(self.time_slider.setEnd)
+			self.shortcuts['End'].activated.connect(self._updateCam)
 
+		def _updateCam(self):
+			if self.context.sccam_state:
+				self.context.canvas_wrapper.centerCameraSpacecraft(set_zoom=False)
 
 		def prepSerialisation(self):
 			state = {}
