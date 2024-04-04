@@ -61,6 +61,26 @@ class TimeSlider(QtWidgets.QWidget):
 	def setValue(self, value):
 		self.slider.setValue(value)
 
+	def setEnd(self):
+		self.slider.setValue(self.slider.maximum())
+
+	def setBeginning(self):
+		self.slider.setValue(0)
+
+	def incrementValue(self):
+		curr_val = self.getValue()
+		if curr_val == self.slider.maximum():
+			return
+		else:
+			self.setValue(curr_val+1)
+
+	def decrementValue(self):
+		curr_val = self.getValue()
+		if curr_val == 0:
+			return
+		else:
+			self.setValue(curr_val-1)
+
 	def setTimeLabels(self):
 		if self.start_dt is not None:
 			self._start_dt_label.setText(self.start_dt.strftime("%Y-%m-%d   %H:%M:%S"))

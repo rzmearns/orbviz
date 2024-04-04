@@ -19,7 +19,6 @@ class History3D():
 								  		keys=keys,
 										bgcolor=bgcolor,
 										show=True)
-		self.canvas.events.key_press.connect(self.onKeyPress)
 		self.canvas.events.mouse_move.connect(self.onMouseMove)
 		self.canvas.events.mouse_wheel.connect(self.onMouseScroll)
 		self.grid = self.canvas.central_widget.add_grid()
@@ -164,11 +163,4 @@ class History3D():
 
 	def onMouseScroll(self, event):
 		# print(self.view_box.camera.scale_factor)
-		pass
-		
-	def onKeyPress(self, event):
-		if event.key == "Home":
-			self.centerCameraEarth()
-
-		if event.key == "End":
-			self.centerCameraSpacecraft()
+		pass		
