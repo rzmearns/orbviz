@@ -298,7 +298,7 @@ class OptionBox(QtWidgets.QWidget):
 		self._optionbox.currentIndexChanged.connect((self._run_callbacks))
 		
 
-	def currentIndex(self):
+	def getCurrentIndex(self):
 		if self._curr_index > 0:
 			return self._curr_index-1
 		else:

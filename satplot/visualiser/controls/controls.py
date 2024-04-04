@@ -64,7 +64,7 @@ class OrbitConfigs(QtWidgets.QWidget):
 		# self.setLayout(self.config_layout)
 
 	def getConstellationIndex(self):
-		return self.suppl_constellation_selector.currentIndex()
+		return self.suppl_constellation_selector.getCurrentIndex()
 
 	def prepSerialisation(self):
 		state = {}
@@ -187,6 +187,9 @@ class ConstellationControls(QtWidgets.QWidget):
 
 	def setContainingScrollWidget(self, widget):
 		self.suppl_constellation_selector.setContainingScrollWidget(widget)
+
+	def getCurrentIndex(self):
+		return self.suppl_constellation_selector.getCurrentIndex()
 
 class OptionConfigs(QtWidgets.QWidget):
 	def __init__(self, asset_dict, parent: QtWidgets.QWidget=None) -> None:
