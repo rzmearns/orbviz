@@ -130,10 +130,14 @@ class History3D():
 
 	def centerCameraSpacecraft(self):
 		if self.is_asset_instantiated['spacecraft']:
-			sc_pos = tuple(self.assets['spacecraft'].data['coords'][self.assets['spacecraft'].data['curr_index']])
-			self.view_box.camera.center = sc_pos
-			self.setCameraZoom(2200)
-			self.canvas.update()
+			sc_pos = tuple(self.assets['spacecraft'].data['coords'][self.assets['spacecraft'].data['curr_index']])			
+		else:
+			sc_pos = tuple(self.assets['primary_orbit'].data['coords'][self.assets['primary_orbit'].data['curr_index']])
+
+		self.view_box.camera.center = sc_pos
+		self.setCameraZoom(2200)
+		self.canvas.update()
+
 
 	def centerCameraEarth(self):
 		self.view_box.camera.center = (0,0,0)
