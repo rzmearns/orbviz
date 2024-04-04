@@ -10,7 +10,7 @@ import sys
 import numpy as np
 import datetime as dt
 
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore, QtGui
 
 class History3DContext(BaseContext):
 	def __init__(self, name, parent_window):
@@ -297,6 +297,20 @@ class History3DContext(BaseContext):
 			# Prep toolbars
 			self.toolbar = controls.Toolbar(self.context.window, self.action_dict, context_name=self.context.data['name'])
 			self.menubar = controls.Menubar(self.context.window, self.action_dict, context_name=self.context.data['name'])
+
+			self.setHotkeys()
+
+		def setHotkeys(self):
+			self.shortcuts={}
+			self.shortcuts['PgUp'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgUp'), self.context.window)
+			self.shortcuts['PgUp'].activated.connect(self.time_slider.incrementValue)
+			self.shortcuts['PgDown'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgDown'), self.context.window)
+			self.shortcuts['PgDown'].activated.connect(self.time_slider.decrementValue)
+			self.shortcuts['Home'] = QtWidgets.QShortcut(QtGui.QKeySequence('Home'), self.context.window)
+			self.shortcuts['Home'].activated.connect(self.time_slider.setBeginning)
+			self.shortcuts['End'] = QtWidgets.QShortcut(QtGui.QKeySequence('End'), self.context.window)
+			self.shortcuts['End'].activated.connect(self.time_slider.setEnd)
+
 
 		def prepSerialisation(self):
 			state = {}
