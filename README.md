@@ -35,19 +35,27 @@ To load data from the selected files, click the 'Recalculate Button'
 The time slider will then activate.  
 
 * Time Slider
-	* Click and drag the time slider bar to run to a particular time
-	* The extents of the time slider are set by the `Period Start` field, and the length is hardcoded at 90mins for the moment
-	* Each tick of the time slider represents one time step in the calculation, this is currently hard coded to 30secs.
+	* Click and drag the time slider bar to update to a particular time
+	* The extents of the time slider are set by the `Period Start` and `Period End` fields
+	* The time slider increment is set by the `Sampling Period` field
 	* A particular time can be jumped to, by entering the time in the textbox above the slider (the nearest previous timestep will be selected)
+	* Hotkeys are available to control the time slider
+		* `Pg Up` - Decrement the current time
+		* `Pg Down` - Increment the current time
+		* `Home` - Go to the `Period Start`
+		* `End` - Go to the `Period End`
+
 
 * Camera Controls
 	* Click and drag in the display pane to rotate the model
 	* Hold `Shift`, and click and drag to pan the model
-	* Use the `Home` key to reset the camera to center on the Earth
-	* Use the `End` key to center on the spacecraft
+	* Use the `Camera->Center on Earth` toolbar button or menu option to reset the camera to center on the Earth
+	* Use the `Camera->Center on Spacecraft` toolbar button or menu option to stay centered on the spacecraft at each timestep. 
+		* This option is toggelable.
+		* Selecting `Camera->Center on Earth` will reset this option
 
-* Dispaly Options (IN PROGRESS)
-	* All display options (colour, alpha, width, length, size, etc.) should be configurable in the `Visual Options` pane.
+* Display Options (IN PROGRESS)
+	* All display options (colour, alpha, width, length, size, etc.) should be configurable in the `Visual Options` tab.
 	* Assets displayed in the model can be turned on and off via the shown checkboxes
 	* The options are listed in a nested tree structure.
 	* If an option is not yet active, the console should print a `NotImplemented` error.
@@ -57,8 +65,11 @@ The time slider will then activate.
 		* The TLE file must only have a single TLE for each satellite (i.e. 1 for the primary satellite)
 
 * Selecting a Pointing File
-	* The pointing file can be selected using the relevant file picker
-	* The timestamp of the period start must be present in the pointing file
+	* Enable the use of a pointing file
+	* The pointing file can then be selected using the file picker
+	* The period times can be derived automatically from the pointing file, select the checkbox if desired
+	* Otherwise:
+		* The timestamp of the period start must be present in the pointing file
 	* If the timesteps of the pointing file are not all the same, a warning will be issued
 	* If the pointing file is not sufficiently long, or there is bad data for a particular time step, the previous valid pointing data will be used, however, the spacecraft body frame Gizmo (RGB axis), will be shown as all Magenta. The Body Frame Gizmo colour will be restored once good pointing data is present again.
 	* The pointing file should be a csv file with the following columns in the following order:
@@ -70,10 +81,10 @@ The time slider will then activate.
 	* The pointing file is expected to have one header row
 
 * Constellations
+	* Enable the simulation of an additional constellation
 	* Currently the constellations are hard coded
 	* They can be selected from a drop down list
-	* To clear a constellation, set a blank constellation in the drop down list.
-	* Large constellations will take up to 2mins for the orbits to be propagated
+	* Large constellations can take a long time for the orbits to be propagated, especially if there are many timesteps.
 
 * Spacecraft Sensor Suite
 	* Currently the sensor suite file used is hardcoded as `spirit.json`
