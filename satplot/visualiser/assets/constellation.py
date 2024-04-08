@@ -63,13 +63,17 @@ class Constellation(BaseAsset):
 			self.data['beam_height'] = self._calcBeamHeight(self.data['beam_angle_deg']/2,
 												   			np.linalg.norm(args[0][0].pos[0,:]))
 
-		self.assets['beams'].setSource(self.data['num_sats'],
-								  		self.data['coords'],
-										self.data['curr_index'],
-										self.data['beam_height'],
-										self.data['beam_angle_deg'])
+		if self.assets['beams'] is not None:
+			self.assets['beams'].setSource(self.data['num_sats'],
+											self.data['coords'],
+											self.data['curr_index'],
+											self.data['beam_height'],
+											self.data['beam_angle_deg'])
+		
+		self.data['strings'] = [o.name for o in args[0]]
 
 	def _instantiateAssets(self):
+		# self.assets['beams'] = None
 		if satplot.gl_plus:
 			self.assets['beams'] = InstancedConstellationBeams(name=f'{self.data["name"]}_beams', v_parent=self.data['v_parent'])
 		else:
@@ -98,16 +102,40 @@ class Constellation(BaseAsset):
 			if self.data['num_sats'] > 1:
 				self.visuals['markers'].set_data(pos=self.data['coords'][:,self.data['curr_index'],:].reshape(-1,3),
 												size=self.opts['constellation_position_marker_size']['value'],
-												face_color=colours.normaliseColour(self.opts['constellation_colour']['value']))
+												face_color=colours.normaliseColour((self.opts['constellation_colour']['value'][0]/2,
+													self.opts['constellation_colour']['value'][1]/2,
+													self.opts['constellation_colour']['value'][2]/2)))
 			else:
 				self.visuals['markers'].set_data(pos=self.data['coords'][self.data['curr_index'],:].reshape(-1,3),
 												size=self.opts['constellation_position_marker_size']['value'],
-												face_color=colours.normaliseColour(self.opts['constellation_colour']['value']))
+												face_color=colours.normaliseColour((self.opts['constellation_colour']['value'][0]/2,
+																					self.opts['constellation_colour']['value'][1]/2,
+																					self.opts['constellation_colour']['value'][2]/2)))
 			
 			for asset in self.assets.values():
 				asset.recompute()
 			self.requires_recompute = False
-	
+
+	def getScreenMouseOverInfo(self):
+		canvas_poss = []
+		world_poss = []
+		if self.data['num_sats'] > 1:
+			for ii in range(self.data['num_sats']):
+				curr_world_pos = (self.data['coords'][ii,self.data['curr_index']]).reshape(1,3)
+				canvas_pos = self.visuals['markers'].get_transform('visual','canvas').map(curr_world_pos)
+				canvas_pos /= canvas_pos[:,3:]
+				canvas_poss.append((canvas_pos[0,0], canvas_pos[0,1]))
+				world_poss.append(curr_world_pos)
+		else:
+			curr_world_pos = (self.data['coords'][self.data['curr_index']]).reshape(1,3)
+			canvas_pos = self.visuals['marker'].get_transform('visual','canvas').map(curr_world_pos)
+			canvas_pos /= canvas_pos[:,3:]
+			canvas_poss.append((canvas_pos[0,0],canvas_pos[0,1]))
+			world_poss.append(curr_world_pos)
+
+		return canvas_poss, world_poss, self.data['strings']
+		# return [(canvas_pos[0,0], canvas_pos[0,1])], ['SpIRIT']
+
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}
 		self._dflt_opts['antialias'] = {'value': True,
@@ -153,7 +181,7 @@ class Constellation(BaseAsset):
 		self.visuals['markers'].visible = state
 
 	def setConstellationBeamsVisibility(self, state):
-		self.visuals['beams'].visible = state
+		self.assets['beams'].setVisibility(state)
 
 	def setBeamsAlpha(self, alpha):
 		raise NotImplementedError
@@ -369,7 +397,7 @@ class ConstellationBeams(BaseAsset):
 			beam_axis = -1 * pg.unitVector(self.data['coords'][self.data['curr_index'],:]).reshape(1,3)
 			instance_transforms = Rotation.align_vectors(self.data['start_beam_vec'],
 																beam_axis)[0].as_matrix()
-		alpha_filter = vFilters.Alpha(self.opts['beams_alpha']['value'])			
+		alpha_filter = vFilters.Alpha(self.opts['beams_alpha']['value'])
 		for ii in range(self.data['num_sats']):
 			vertices, faces = polyhedra.calcConeMesh((0,0,0),
 													self.data['beam_height'],
@@ -388,7 +416,7 @@ class ConstellationBeams(BaseAsset):
 			except:
 				print(f"T:{T}")
 			self.visuals['beams'][ii].transform = transform
-			self.visuals['beams'][ii].attach(alpha_filter)			
+			self.visuals['beams'][ii].attach(alpha_filter)
 
 	# Use BaseAsset.updateIndex()
 

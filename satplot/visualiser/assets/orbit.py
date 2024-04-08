@@ -44,6 +44,7 @@ class OrbitVisualiser(BaseAsset):
 		if type(args[0]) is not orbit.Orbit:
 			raise TypeError		
 		self.data['coords'] = args[0].pos
+		self.data['strings'] = [args[0].name]
 
 	def _instantiateAssets(self):
 		# no sub assets
@@ -94,6 +95,14 @@ class OrbitVisualiser(BaseAsset):
 
 			self.requires_recompute = False
 
+	def getScreenMouseOverInfo(self):
+		curr_world_pos = (self.data['coords'][self.data['curr_index']]).reshape(1,3)
+		canvas_pos = self.visuals['marker'].get_transform('visual','canvas').map(curr_world_pos)
+		canvas_pos /= canvas_pos[:,3:]
+		return [(canvas_pos[0,0], canvas_pos[0,1])], [curr_world_pos], self.data['strings']
+		# return [(canvas_pos[0,0], canvas_pos[0,1])], ['SpIRIT']
+
+
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}
 		self._dflt_opts['antialias'] = {'value': True,
@@ -138,7 +147,7 @@ class OrbitVisualiser(BaseAsset):
 										  		'type': 'boolean',
 												'help': '',
 												'callback': self.setOrbitalMarkerVisibility}
-		self._dflt_opts['orbital_position_marker_size'] = {'value': 500,
+		self._dflt_opts['orbital_position_marker_size'] = {'value': 50,
 										  		'type': 'number',
 												'help': '',
 												'callback': None}

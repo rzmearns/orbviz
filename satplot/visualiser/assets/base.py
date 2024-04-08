@@ -66,7 +66,8 @@ class BaseAsset(ABC):
 	def setFirstDrawFlag(self):
 		self.first_draw = True
 		for asset in self.assets.values():
-			asset.setFirstDrawFlag()
+			if asset is not None:
+				asset.setFirstDrawFlag()
 
 	@abstractmethod
 	def _initData(self):
@@ -121,6 +122,9 @@ class BaseAsset(ABC):
 		for asset in self.assets.values():
 			if isinstance(asset, BaseAsset):
 				asset.recompute()
+
+	def getScreenMouseOverInfo(self):
+		return [],[],[]
 
 	def _listVisuals(self):
 		keys = [key for key in self.visuals.keys()]
