@@ -180,7 +180,7 @@ class SpacecraftVisualiser(BaseAsset):
 		self._dflt_opts['spacecraft_point_size'] = {'value': 250,
 										  		'type': 'number',
 												'help': '',
-												'callback': None}
+												'callback': self.setOrbitalMarkerSize}
 		self._dflt_opts['plot_body_frame'] = {'value': True,
 												'type': 'boolean',
 												'help': '',
@@ -208,6 +208,13 @@ class SpacecraftVisualiser(BaseAsset):
 
 	def setBodyFrameVisibility(self, state):
 		self.assets['body_frame'].setVisibility(state)
+
+	def setOrbitalMarkerSize(self, value):
+		self.opts['spacecraft_point_size']['value'] = value
+		self.visuals['marker'].set_data(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
+								   			size=self.opts['spacecraft_point_size']['value'],
+											face_color=colours.normaliseColour(self.opts['spacecraft_point_colour']['value']))
+		self.visuals['marker'].update()
 
 	#----- HELPER FUNCTIONS -----#
 	def _addIndividualSensorSuitePlotOptions(self):
