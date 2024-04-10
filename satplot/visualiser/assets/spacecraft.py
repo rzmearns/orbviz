@@ -134,24 +134,6 @@ class SpacecraftVisualiser(BaseAsset):
 
 			self.assets['body_frame'].setTransform(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
 										   			rotation=rotation)
-			vp = rotation.reshape(3,3).dot(self.data['v_coords'].T).T
-			print(f"{vp=}")
-			svp = vp
-			print(f"{svp=}")
-			v = svp+self.data['coords'][self.data['curr_index']].reshape(1,3)
-			print(f"{v=}")
-			# using set transform
-			T = T = np.eye(4)
-			T[0:3,0:3] = rotation
-			T[3,0:3] = np.asarray(self.data['coords'][self.data['curr_index']].reshape(1,3))
-			# self.visuals['vector_st'].transform = vTransforms.linear.MatrixTransform(T.T)
-			
-			print(f"Rotation {rotation}, reshape {rotation.reshape(3,3)}")
-			# pos = rotation.reshape(3,3).dot(self.data['v_coords'].T).T + self.data['coords'][self.data['curr_index']].reshape(1,3)
-			# print(f"Rotated vector: {pos[1,:]-self.data['coords'][self.data['curr_index']].reshape(1,3)}")
-			# print(pos)
-			print(f"Spacecraft position: {self.data['coords'][self.data['curr_index']].reshape(1,3)}")
-			# self.visuals['vector'].set_data(v)
 			for key, value in self.data['sens_suites'].items():			
 				self.assets[f'sensor_suite_{key}'].setTransform(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
 										   						rotation=rotation)
@@ -180,7 +162,7 @@ class SpacecraftVisualiser(BaseAsset):
 		self._dflt_opts['spacecraft_point_size'] = {'value': 250,
 										  		'type': 'number',
 												'help': '',
-												'callback': None}
+												'callback': self.setOrbitalMarkerSize}
 		self._dflt_opts['plot_body_frame'] = {'value': True,
 												'type': 'boolean',
 												'help': '',
@@ -208,6 +190,13 @@ class SpacecraftVisualiser(BaseAsset):
 
 	def setBodyFrameVisibility(self, state):
 		self.assets['body_frame'].setVisibility(state)
+
+	def setOrbitalMarkerSize(self, value):
+		self.opts['spacecraft_point_size']['value'] = value
+		self.visuals['marker'].set_data(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
+								   			size=self.opts['spacecraft_point_size']['value'],
+											face_color=colours.normaliseColour(self.opts['spacecraft_point_colour']['value']))
+		self.visuals['marker'].update()
 
 	#----- HELPER FUNCTIONS -----#
 	def _addIndividualSensorSuitePlotOptions(self):

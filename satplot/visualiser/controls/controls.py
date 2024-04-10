@@ -258,15 +258,39 @@ class OptionConfigs(QtWidgets.QWidget):
 		for opt_key, opt_dict in opts.items():
 			w_str = string.capwords(' '.join(opt_key.split('_')))
 			if opt_dict['type'] == 'boolean':
-				widget = widgets.ToggleBox(w_str,
-											opt_dict['value'])
-				widget.add_connect(opt_dict['callback'])
+				try:
+					widget = widgets.ToggleBox(w_str,
+												opt_dict['value'])
+					widget.add_connect(opt_dict['callback'])
+				except:
+					print(f"Can't make widget {w_str} for asset {opt_key}")
+					raise ValueError
 			if opt_dict['type'] == 'colour':
-				widget = widgets.ColourPicker(w_str,
-											opt_dict['value'])
-				widget.add_connect(opt_dict['callback'])
-			if opt_dict['type'] == 'number':
-				continue
+				try:
+					widget = widgets.ColourPicker(w_str,
+												opt_dict['value'])
+					widget.add_connect(opt_dict['callback'])
+				except:
+					print(f"Can't make widget {w_str} for asset {opt_key}")
+					raise ValueError
+			if opt_dict['type'] == 'integer' or opt_dict['type'] == 'number':
+				try:
+					widget = widgets.ValueSpinner(w_str,
+								  				opt_dict['value'])
+					widget.add_connect(opt_dict['callback'])
+				except:
+					print(f"Can't make widget {w_str} for asset {opt_key}")
+					raise ValueError
+			if opt_dict['type'] == 'float':
+				try:
+					widget = widgets.ValueSpinner(w_str,
+								  				opt_dict['value'],
+												integer=False)
+					widget.add_connect(opt_dict['callback'])
+				except:
+					print(f"Can't make widget {w_str} for asset {opt_key}")
+					raise ValueError
+
 			w_key = opt_key.split('_')
 			if len(w_key) > 0:
 				if w_key[0] == 'plot':

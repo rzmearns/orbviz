@@ -58,7 +58,7 @@ class Sun(BaseAsset):
 
 	def _createVisuals(self):
 		# Sun Sphere
-		self.visuals['sun_sphere'] = scene.visuals.Sphere(radius=self.opts['sun_sphere_radius']['value'],
+		self.visuals['sun_sphere'] = scene.visuals.Sphere(radius=self.opts['sun_sphere_radius_kms']['value'],
 										method='latitude',
 										color=colours.normaliseColour(self.opts['sun_sphere_colour']['value']),
 										parent=None)
@@ -111,7 +111,7 @@ class Sun(BaseAsset):
 			self.first_draw = False
 		if self.requires_recompute:
 			# move the sun
-			sun_pos = self.opts['sun_distance']['value'] * pg.unitVector(self.data['curr_pos'])
+			sun_pos = self.opts['sun_distance_kms']['value'] * pg.unitVector(self.data['curr_pos'])
 			self.visuals['sun_sphere'].transform = vTransforms.STTransform(translate=sun_pos)
 			
 			# move umbra
@@ -122,8 +122,8 @@ class Sun(BaseAsset):
 			self.visuals['umbra'].transform = vTransforms.linear.MatrixTransform(t_mat1)
 			
 			# move sun vector
-			sun_vec_start = (np.linalg.norm(sun_pos)-self.opts['sun_vector_length']['value'])*pg.unitVector(sun_pos)
-			arrow_head_point = (np.linalg.norm(sun_pos)-self.opts['sun_vector_length']['value']-500)*pg.unitVector(sun_pos)
+			sun_vec_start = (np.linalg.norm(sun_pos)-self.opts['sun_vector_length_kms']['value'])*pg.unitVector(sun_pos)
+			arrow_head_point = (np.linalg.norm(sun_pos)-self.opts['sun_vector_length_kms']['value']-500)*pg.unitVector(sun_pos)
 			sun_vec_end = sun_pos
 			t_mat2 = np.eye(4)
 			t_mat2[0:3,0:3] = -rot_mat
@@ -165,13 +165,13 @@ class Sun(BaseAsset):
 												'help': '',
 												'callback': self.setSunVectorColour}
 		self._dflt_opts['sun_vector_width'] = {'value': 1,
-												'type': 'number',
+												'type': 'float',
 												'help': '',
-												'callback': None}
-		self._dflt_opts['sun_vector_length'] = {'value': c.R_EARTH/3,
-												'type': 'number',
+												'callback': self.setSunVectorWidth}
+		self._dflt_opts['sun_vector_length_kms'] = {'value': c.R_EARTH/3,
+												'type': 'integer',
 												'help': '',
-												'callback': None}		
+												'callback': self.setSunVectorLength}		
 		self._dflt_opts['plot_umbra'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
@@ -188,11 +188,11 @@ class Sun(BaseAsset):
 										  		'type': 'number',
 												'help': '',
 												'callback': self.setUmbraAlpha}		
-		self._dflt_opts['sun_distance'] = {'value': 15000,
+		self._dflt_opts['sun_distance_kms'] = {'value': 15000,
 										  		'type': 'number',
 												'help': '',
 												'callback': self.setSunDistance}
-		self._dflt_opts['sun_sphere_radius'] = {'value': 786,
+		self._dflt_opts['sun_sphere_radius_kms'] = {'value': 786,
 										  		'type': 'number',
 												'help': '',
 												'callback': self.setSunSphereRadius}
@@ -202,14 +202,28 @@ class Sun(BaseAsset):
 		self.opts = self._dflt_opts.copy()
 
 	#----- OPTIONS CALLBACKS -----#	
+	def _updateLineVisualsOptions(self):
+		self.visuals['vector_body'].set_data(color=colours.normaliseColour(self.opts['sun_vector_colour']['value']),
+												width=self.opts['sun_vector_width']['value'])
+
 	def setSunSphereVisibility(self, state):
 		self.visuals['sun_sphere'].visible = state
 
 	def setSunDistance(self, distance):
-		raise NotImplementedError
+		self.opts['sun_distance_kms']['value'] = distance
+		self.recompute()
+
+	def setSunVectorLength(self, distance):
+		self.opts['sun_vector_length_kms']['value'] = distance
+		self.recompute()
 
 	def setSunSphereRadius(self, radius):
-		raise NotImplementedError
+		self.opts['sun_sphere_radius_kms']['value'] = radius
+		self.visuals['sun_sphere'].parent = None
+		self._createVisuals()
+		self.visuals['sun_sphere'].parent = self.data['v_parent']
+		self.requires_recompute = True
+		self.recompute()
 
 	def setSunSphereColour(self, new_colour):
 		raise NotImplementedError('Bugged')
@@ -245,6 +259,11 @@ class Sun(BaseAsset):
 		self.visuals['vector_head'].visible = state
 
 	def setSunVectorColour(self, new_colour):
-		raise NotImplementedError
+
+		self._updateLineVisualsOptions()
+	
+	def setSunVectorWidth(self, value):
+		self.opts['sun_vector_width']['value'] = value
+		self._updateLineVisualsOptions()
 
 

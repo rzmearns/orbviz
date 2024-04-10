@@ -44,6 +44,7 @@ class OrbitVisualiser(BaseAsset):
 		if type(args[0]) is not orbit.Orbit:
 			raise TypeError		
 		self.data['coords'] = args[0].pos
+		self.data['strings'] = [args[0].name]
 
 	def _instantiateAssets(self):
 		# no sub assets
@@ -53,10 +54,12 @@ class OrbitVisualiser(BaseAsset):
 		self.visuals['past'] = scene.visuals.Line(self.data['past_coords'],
 													color=colours.normaliseColour(self.opts['orbital_path_colour']['value']),
 													antialias=self.opts['antialias']['value'],
+													width = self.opts['orbital_path_width']['value'],
 													parent=None)
 		self.visuals['future'] = scene.visuals.Line(self.data['future_coords'],
 													color=colours.normaliseColour(self.opts['orbital_path_colour']['value']),
 													antialias=self.opts['antialias']['value'],
+													width = self.opts['orbital_path_width']['value'],
 													parent=None)
 
 		self.visuals['marker'] = scene.visuals.Markers(parent=None,
@@ -94,6 +97,14 @@ class OrbitVisualiser(BaseAsset):
 
 			self.requires_recompute = False
 
+	def getScreenMouseOverInfo(self):
+		curr_world_pos = (self.data['coords'][self.data['curr_index']]).reshape(1,3)
+		canvas_pos = self.visuals['marker'].get_transform('visual','canvas').map(curr_world_pos)
+		canvas_pos /= canvas_pos[:,3:]
+		return [(canvas_pos[0,0], canvas_pos[0,1])], [curr_world_pos], self.data['strings']
+		# return [(canvas_pos[0,0], canvas_pos[0,1])], ['SpIRIT']
+
+
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}
 		self._dflt_opts['antialias'] = {'value': True,
@@ -104,18 +115,14 @@ class OrbitVisualiser(BaseAsset):
 										  		'type': 'boolean',
 												'help': '',
 												'callback': self.setVisibility}		
-		self._dflt_opts['orbital_length'] = {'value': 1,
-											'type': 'number',
-											'help': '',
-											'callback': None}
 		self._dflt_opts['orbital_path_colour'] = {'value': (0,0,255),
 												'type': 'colour',
 												'help': '',
 												'callback': self.setOrbitColour}
 		self._dflt_opts['orbital_path_width'] = {'value': 1,
-											'type': 'number',
+											'type': 'integer',
 											'help': '',
-											'callback': None}
+											'callback': self.setOrbitalPathWidth}
 		self._dflt_opts['orbital_path_past_style'] = {'value': 'solid',
 												'type': 'option',
 												'options': 'dash', 'solid'
@@ -139,13 +146,13 @@ class OrbitVisualiser(BaseAsset):
 												'help': '',
 												'callback': self.setOrbitalMarkerVisibility}
 		self._dflt_opts['orbital_position_marker_size'] = {'value': 500,
-										  		'type': 'number',
+										  		'type': 'integer',
 												'help': '',
-												'callback': None}
+												'callback': self.setOrbitalMarkerSize}
 		self._dflt_opts['orbital_path_future_dash_size'] = {'value': 3,
-										  		'type': 'number',
+										  		'type': 'integer',
 												'help': '',
-												'callback': None}
+												'callback': self.setFutureDashSize}
 
 		self.opts = self._dflt_opts.copy()
 
@@ -154,10 +161,29 @@ class OrbitVisualiser(BaseAsset):
 		self.opts['orbital_path_colour']['value'] = colours.normaliseColour(new_colour)
 		self.visuals['past'].set_data(color=colours.normaliseColour(new_colour))
 		self.visuals['future'].set_data(color=colours.normaliseColour(new_colour))
-		self.visuals['marker'].set_data(face_color=colours.normaliseColour(new_colour))
+		self.visuals['marker'].set_data(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
+								   			size=self.opts['orbital_position_marker_size']['value'],
+											face_color=colours.normaliseColour(self.opts['orbital_path_colour']['value']))
+
+	def setOrbitalMarkerSize(self, value):
+		self.opts['orbital_position_marker_size']['value'] = value
+		self.visuals['marker'].set_data(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
+								   			size=self.opts['orbital_position_marker_size']['value'],
+											face_color=colours.normaliseColour(self.opts['orbital_path_colour']['value']))
+		self.visuals['marker'].update()
+
+	def setFutureDashSize(self, value):
+		self.opts['orbital_path_future_dash_size']['value'] = value
+		self.updateIndex(self.data['curr_index'])
+
+	def setOrbitalPathWidth(self, value):
+		self.opts['orbital_path_width']['value'] = value
+		self.visuals['past'].set_data(pos=self.data['past_coords'], width=value)
+		self.visuals['future'].set_data(pos=self.data['future_coords'], connect=self.data['future_conn'], width=value)
 
 	def setOrbitalPathFutureVisibility(self, state):
 		self.visuals['future'].visible = state
+		
 
 	def setOrbitalPathPastVisibility(self, state):
 		self.visuals['past'].visible = state
@@ -165,6 +191,7 @@ class OrbitVisualiser(BaseAsset):
 	def setOrbitalMarkerVisibility(self, state):
 		self.visuals['marker'].visible = state
 
+	
 
 	#----- HELPER FUNCTIONS -----#
 	def _sliceData(self):

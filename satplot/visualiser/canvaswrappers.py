@@ -6,12 +6,20 @@ from satplot.visualiser.assets.orbit import OrbitVisualiser
 from satplot.visualiser.assets.sun import Sun
 from satplot.visualiser.assets.moon import Moon
 from satplot.visualiser.assets.spacecraft import SpacecraftVisualiser
+from satplot.visualiser.assets.widgets import PopUpTextBox
 from satplot.visualiser.assets.constellation import Constellation
 from satplot.visualiser.assets.gizmo import ViewBoxGizmo
 
 from satplot.visualiser.controls import console
 import json
 import numpy as np
+import time
+import satplot.model.geometry.primgeom as pg
+
+create_time = time.monotonic()
+MIN_MOVE_UPDATE_THRESHOLD = 1
+MOUSEOVER_DIST_THRESHOLD = 5
+last_mevnt_time = time.monotonic()
 
 class History3D():
 	def __init__(self, w=800, h=600, keys='interactive', bgcolor='white'):
@@ -27,10 +35,16 @@ class History3D():
 													   		fov=60,
 															center=(0,0,0),
 															name='Turntable')
+
 		self.is_asset_instantiated = {}
 		self.assets = {}
 		self.initAssetInstantiatedFlags()
 		self.buildScene()
+		self.mouseOverText = PopUpTextBox(v_parent=self.view_box,
+											padding=[3,3,3,3],
+											colour=(253,255,189),
+											border_colour=(186,186,186),
+											font_size=10)
 
 	def setCameraMode(self, mode='turntable'):
 		allowed_cam_modes = ['turntable',
@@ -161,8 +175,48 @@ class History3D():
 		self.view_box.camera.elevation = state['cam-el']
 		self.view_box.camera.roll = state['cam-roll']
 
-	def onMouseMove(self, event):
-		pass
+	def mapAssetPositionsToScreen(self):
+		screen_pos = []
+		text = []
+		world_pos = []
+		for asset_name, asset in self.assets.items():
+			if self.is_asset_instantiated[asset_name]:
+				screen_pos_list, world_pos_list, text_list = asset.getScreenMouseOverInfo()
+				screen_pos = screen_pos + screen_pos_list
+				world_pos = world_pos + world_pos_list
+				text = text + text_list
+
+		return screen_pos, world_pos, text
+	
+	def onMouseMove(self, event):		
+		global last_mevnt_time
+		
+		# cull if behind center of camera plane
+		az = np.deg2rad(self.view_box.camera.azimuth+179)
+		el = np.deg2rad(self.view_box.camera.elevation)
+		acamv = np.array([[0,0,0],[np.sin(-az)*np.cos(el),np.cos(-az)*np.cos(el),np.sin(el)]])
+		
+		# throttle mouse events to 100ms
+		if time.monotonic() - last_mevnt_time < 0.1:
+			return
+		pos_list, world_list, text_list = self.mapAssetPositionsToScreen()
+		pp = event.pos
+		
+		for ii, pos in enumerate(pos_list):
+			if ((abs(pos[0] - pp[0]) < MOUSEOVER_DIST_THRESHOLD) and \
+				(abs(pos[1] - pp[1]) < MOUSEOVER_DIST_THRESHOLD)):
+				dot = np.dot(pg.unitVector(world_list[ii]),acamv[1,:])[0]
+				if dot >=0:
+					last_mevnt_time = time.monotonic()
+					self.mouseOverText.setVisible(True)
+					self.mouseOverText.setText(text_list[ii].lower().capitalize())
+					self.mouseOverText.setPos((pos[0]+5, pos[1]))								
+					return
+
+		self.mouseOverText.setVisible(False)	
+		last_mevnt_time = time.monotonic()
+
+		
 		# console.send("captured event")
 		# self.assets['ECI_gizmo'].onMouseMove(event)
 

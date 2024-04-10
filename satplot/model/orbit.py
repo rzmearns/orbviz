@@ -102,7 +102,7 @@ class Orbit(object):
 			# Find closest listed TLE to start date
 			sat_datetime, sat_index = list_u.get_closest(tle_dates, self.timespan.start)
 			sat = sat_list[sat_index]
-			# self.sat = sat_list[0]
+			
 			
 			if len(sat_list) > 1:
 				# Prepare next TLE epoch for compare
@@ -140,6 +140,8 @@ class Orbit(object):
 			self.period = 2 * np.pi / sat.model.no_kozai * 60
 			self.period_steps = int(self.period / self.timespan.time_step.total_seconds())
 
+			self.name = sat.name
+
 		elif self.gen_type == 'FAKE_TLE':
 			satrec = args[1]
 			a = kwargs.get('a')
@@ -156,6 +158,8 @@ class Orbit(object):
 
 			self.period = 2 * np.pi / sat.model.no_kozai * 60
 			self.period_steps = int(self.period / self.timespan.time_step.total_seconds())
+			self.names = [kwargs['name']]
+
 
 		elif self.gen_type == 'ANALYTICAL':
 			body = kwargs.get('body')
@@ -178,7 +182,8 @@ class Orbit(object):
 
 			self.period = self.orb.period.unit.in_units('s') * self.orb.period.value
 			self.period_steps = int(self.period / self.timespan.time_step.total_seconds())
-			
+			self.names = [kwargs['name']]
+
 		elif self.gen_type == 'POS_LIST':
 			self.pos = args[1]
 			# Assume linear motion between each position at each timestep; 
@@ -187,6 +192,7 @@ class Orbit(object):
 			self.vel = np.concatenate((self.vel, np.array([[0, 0, 0]])))
 			self.period = 1
 			self.period_steps = 1
+			self.names = ['Sat from position list']
 			# Note that this doesn't define a period.
 			logger.warning("Warning: When generating satellite orbit from list of positions, `period` and `period_steps` will not be defined.")
 		else: 
@@ -272,7 +278,7 @@ class Orbit(object):
 
 
 	@classmethod
-	def fromTLEOrbitalParam(cls, timespan, a=6978, ecc=0, inc=0, raan=0, argp=0, mean_nu=0):
+	def fromTLEOrbitalParam(cls, timespan, a=6978, ecc=0, inc=0, raan=0, argp=0, mean_nu=0, name='Fake TLE'):
 		"""Create an orbit from orbital parameters, propagated using sgp4.
 		
 		Orbits created using this class method will respect gravity corrections such as J4, 
@@ -345,7 +351,7 @@ class Orbit(object):
 		return cls(timespan, satrec, a=a, type='FAKE_TLE')
 		
 	@classmethod
-	def fromOrbitalParam(cls, timespan, body='Earth', a=6978, ecc=0, inc=0, raan=0, argp=0, mean_nu=0):
+	def fromOrbitalParam(cls, timespan, body='Earth', a=6978, ecc=0, inc=0, raan=0, argp=0, mean_nu=0, name='Analytical'):
 		"""Create an orbit from orbital parameters
 		
 		Parameters
