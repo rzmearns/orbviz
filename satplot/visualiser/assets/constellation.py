@@ -47,8 +47,8 @@ class Constellation(BaseAsset):
 			if type(el) is not orbit.Orbit:
 				raise TypeError
 
-		if hasattr(args[0],'pos'):
-			self.data['coords'] = args[0].pos
+		if hasattr(args[0][0],'pos'):
+			pass
 		else:
 			raise ValueError('Constellation orbits have no position data')
 
