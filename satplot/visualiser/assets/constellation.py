@@ -157,7 +157,7 @@ class Constellation(BaseAsset):
 		self._dflt_opts['constellation_position_marker_size'] = {'value': 250,
 										  		'type': 'number',
 												'help': '',
-												'callback': None}
+												'callback': self.setConstellationMarkerSize}
 		self._dflt_opts['plot_constellation_beams'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
@@ -176,6 +176,10 @@ class Constellation(BaseAsset):
 	def setConstellationAssetVisibility(self, state):
 		self.setConstellationMarkersVisibility(state)
 		self.setConstellationBeamsVisibility(state)
+
+	def setConstellationMarkerSize(self, value):
+		self.opts['constellation_position_marker_size']['value'] = value
+		self.recompute()
 
 	def setConstellationMarkersVisibility(self, state):
 		self.visuals['markers'].visible = state
