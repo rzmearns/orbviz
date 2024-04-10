@@ -46,7 +46,12 @@ class Constellation(BaseAsset):
 		for el in args[0]:
 			if type(el) is not orbit.Orbit:
 				raise TypeError
-			
+
+		if hasattr(args[0],'pos'):
+			self.data['coords'] = args[0].pos
+		else:
+			raise ValueError('Constellation orbits have no position data')
+
 		self.data['beam_angle_deg'] = args[1]
 		self.data['num_sats'] = len(args[0])
 		if self.data['num_sats'] > 1:
@@ -69,8 +74,13 @@ class Constellation(BaseAsset):
 											self.data['curr_index'],
 											self.data['beam_height'],
 											self.data['beam_angle_deg'])
+		self.data['strings'] = []
+		for o in args[0]:
+			if hasattr(o,'name'):
+				self.data['strings'].append(o.name)
+			else:
+				self.data['strings'].append('')
 		
-		self.data['strings'] = [o.name for o in args[0]]
 
 	def _instantiateAssets(self):
 		# self.assets['beams'] = None

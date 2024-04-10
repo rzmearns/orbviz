@@ -42,9 +42,15 @@ class OrbitVisualiser(BaseAsset):
 
 	def setSource(self, *args, **kwargs):
 		if type(args[0]) is not orbit.Orbit:
-			raise TypeError		
-		self.data['coords'] = args[0].pos
-		self.data['strings'] = [args[0].name]
+			raise TypeError
+		if hasattr(args[0],'pos'):
+			self.data['coords'] = args[0].pos
+		else:
+			raise ValueError('Orbit has no position data')
+		if hasattr(args[0],'name'):
+			self.data['strings'] = [args[0].name]
+		else:
+			self.data['strings'] = ['']
 
 	def _instantiateAssets(self):
 		# no sub assets
