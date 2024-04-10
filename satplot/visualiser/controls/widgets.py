@@ -251,6 +251,54 @@ class ColourPicker(QtWidgets.QWidget):
 		else:
 			print("No Colour Picker callbacks are set")
 
+class ValueSpinner(QtWidgets.QWidget):
+	def __init__(self, label, dflt_val, integer=True, parent: QtWidgets.QWidget=None) -> None:
+		super().__init__(parent)
+		self._callbacks = []
+		self.allow_float = not integer
+		
+		if self.allow_float:
+			self.curr_val = dflt_val
+		else:
+			self.curr_val = int(dflt_val)
+		
+
+		layout = QtWidgets.QHBoxLayout()	
+		layout.setContentsMargins(2,1,2,1)
+		
+		self._label = QtWidgets.QLabel(label)
+		if self.allow_float:
+			self._val_box = QtWidgets.QDoubleSpinBox()
+		else:
+			self._val_box = QtWidgets.QSpinBox()
+		self._val_box.setRange(1,1000000)
+		self._val_box.setValue(self.curr_val)		
+		self._val_box.setFixedWidth(80)
+		self._val_box.setFixedHeight(20)
+
+		layout.addWidget(self._label)
+		layout.addWidget(self._val_box)	
+
+		self._val_box.textChanged.connect(self._run_callbacks)
+		self._val_box.valueChanged.connect(self._run_callbacks)
+
+		self.setLayout(layout)
+
+	def add_connect(self, callback):
+		self._callbacks.append(callback)
+
+	def _run_callbacks(self):
+		
+		if self.allow_float:
+			self.curr_val = self._val_box.value()
+		else:
+			self.curr_val = int(self._val_box.value())
+		if len(self._callbacks) > 0:
+			for callback in self._callbacks:
+				callback(self.curr_val)
+		else:
+			print("No Value Spinner callbacks are set")
+
 class ToggleBox(QtWidgets.QWidget):
 	def __init__(self, label, dflt_state, parent: QtWidgets.QWidget=None) -> None:
 		super().__init__(parent)
