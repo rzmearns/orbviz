@@ -241,7 +241,9 @@ class ParallelsGrid(SimpleAsset):
 		self.data['init_p_coords'] = None
 		self.data['p_conn'] = None
 		total_len = 0
-		for ii in range(15, 90, self.opts['parallel_spacing']['value']):
+		for ii in range(0, 90, self.opts['parallel_spacing']['value']):
+			if ii == 0:
+				continue
 			new_coords = self._genParallel(ii)
 			poly_len = len(new_coords)
 			new_conn = np.array([np.arange(poly_len-1),np.arange(1,poly_len)]).T + total_len
@@ -254,7 +256,9 @@ class ParallelsGrid(SimpleAsset):
 				self.data['init_p_coords'] = np.vstack((self.data['init_p_coords'], new_coords))
 			else:
 				self.data['init_p_coords'] = new_coords
-		for ii in range(15, 90, self.opts['parallel_spacing']['value']):
+		for ii in range(0, 90, self.opts['parallel_spacing']['value']):
+			if ii == 0:
+				continue
 			new_coords = self._genParallel(-ii)
 			poly_len = len(new_coords)
 			new_conn = np.array([np.arange(poly_len-1),np.arange(1,poly_len)]).T + total_len
@@ -273,7 +277,7 @@ class ParallelsGrid(SimpleAsset):
 	def _createVisuals(self):
 		self.visuals['equator'] = \
 			scene.visuals.Line(self.data['init_eq_coords'],
-								color=colours.normaliseColour(self.opts['parallel_colour']['value']),
+								color=colours.normaliseColour(self.opts['equator_colour']['value']),
 								antialias=self.opts['antialias']['value'],
 								parent=None)
 		self.visuals['parallels'] = \
@@ -296,22 +300,22 @@ class ParallelsGrid(SimpleAsset):
 											'type': 'colour',
 											'help': '',
 											'callback': self.setEquatorColour}
-		self._dflt_opts['equator_width'] = 	{'value': 0.5,
-											'type': 'number',
+		self._dflt_opts['equator_width'] = 	{'value': 2.0,
+											'type': 'float',
 											'help': '',
-											'callback': None}
+											'callback': self.setEquatorWidth}
 		self._dflt_opts['parallel_spacing'] = {'value': 15,
-											'type': 'number',
+											'type': 'integer',
 											'help': '',
-											'callback': None}
+											'callback': self.setParallelsSpacing}
 		self._dflt_opts['parallel_colour'] = {'value': (0,0,0),
 											'type': 'colour',
 											'help': '',
 											'callback': self.setParallelsColour}
 		self._dflt_opts['parallel_width'] = {'value': 0.5,
-											'type': 'number',
+											'type': 'float',
 											'help': '',
-											'callback': None}
+											'callback': self.setParallelsWidth}
 		self.opts = self._dflt_opts.copy()
 	
 	#----- OPTIONS CALLBACKS -----#
@@ -327,13 +331,37 @@ class ParallelsGrid(SimpleAsset):
 		else:
 			self.visuals['equator'].parent = None
 
+	def _updateLineVisualsOptions(self):
+		self.visuals['equator'].set_data(pos=self.data['init_eq_coords'],
+											color=colours.normaliseColour(self.opts['equator_colour']['value']),
+											width=self.opts['equator_width']['value'])
+		self.visuals['parallels'].set_data(pos=self.data['init_p_coords'],
+											color=colours.normaliseColour(self.opts['parallel_colour']['value']),
+											connect=self.data['p_conn'],
+											width=self.opts['parallel_width']['value'])
+		
 	def setEquatorColour(self, new_colour):
-		self.opts['equator_colour']['value'] = colours.normaliseColour(new_colour)
-		self.visuals['equator'].set_data(color=colours.normaliseColour(new_colour))
+		self.opts['equator_colour']['value'] = new_colour
+		self._updateLineVisualsOptions()
 
 	def setParallelsColour(self, new_colour):
-		self.opts['parallel_colour']['value'] = colours.normaliseColour(new_colour)
-		self.visuals['parallels'].set_data(color=colours.normaliseColour(new_colour))
+		self.opts['parallel_colour']['value'] = new_colour
+		self._updateLineVisualsOptions()
+
+	def setParallelsWidth(self, value):
+		self.opts['parallel_width']['value'] = value
+		self._updateLineVisualsOptions()
+
+	def setEquatorWidth(self, value):
+		self.opts['equator_width']['value'] = value
+		self._updateLineVisualsOptions()
+
+	def setParallelsSpacing(self, spacing):
+		self.opts['parallel_spacing']['value'] = spacing
+		old_transform = self.visuals['parallels'].transform
+		self._initData()
+		self._updateLineVisualsOptions()
+		self.visuals['parallels'].transform = old_transform
 
 	#----- HELPER FUNCTIONS -----#
 	def _genParallel(self, lat_degs):
@@ -385,7 +413,7 @@ class MeridiansGrid(SimpleAsset):
 		self.visuals['meridians'] = \
 			scene.visuals.Line(self.data['init_m_coords'],
 						 		color=colours.normaliseColour(self.opts['meridian_colour']['value']),
-								 antialias=self.opts['antialias']['value'],
+								antialias=self.opts['antialias']['value'],
 								connect=self.data['m_conn'],
 								parent=None)
 
@@ -404,17 +432,17 @@ class MeridiansGrid(SimpleAsset):
 										'help': '',
 										'callback': None}
 		self._dflt_opts['meridian_spacing'] = {'value': 30,
-											'type': 'number',
+											'type': 'integer',
 											'help': '',
-											'callback': None}
+											'callback': self.setMeridianSpacing}
 		self._dflt_opts['meridian_colour'] = {'value': (0,0,0),
 											'type': 'colour',
 											'help': '',
 											'callback': self.setMeridiansColour}
 		self._dflt_opts['meridian_width'] = {'value': 0.5,
-											'type': 'number',
+											'type': 'float',
 											'help': '',
-											'callback': None}
+											'callback': self.setMeridiansWidth}
 		self.opts = self._dflt_opts.copy()
 
 	#----- OPTIONS CALLBACKS -----#
@@ -427,7 +455,24 @@ class MeridiansGrid(SimpleAsset):
 
 	def setMeridiansColour(self, new_colour):
 		self.opts['meridian_colour']['value'] = colours.normaliseColour(new_colour)
-		self.visuals['meridians'].set_data(color=colours.normaliseColour(new_colour))
+		self._updateLineVisualsOptions()
+
+	def setMeridiansWidth(self, width):
+		self.opts['meridian_width']['value'] = width
+		self._updateLineVisualsOptions()
+
+	def setMeridianSpacing(self, spacing):
+		self.opts['meridian_spacing']['value'] = spacing
+		old_transform = self.visuals['meridians'].transform
+		self._initData()
+		self._updateLineVisualsOptions()
+		self.visuals['meridians'].transform = old_transform
+
+	def _updateLineVisualsOptions(self):
+		self.visuals['meridians'].set_data(pos=self.data['init_m_coords'],
+						 					color=colours.normaliseColour(self.opts['meridian_colour']['value']),
+											connect=self.data['m_conn'],
+											width=self.opts['meridian_width']['value'])
 
 	#----- HELPER FUNCTIONS -----#
 	def _genMeridian(self, long_degs):
