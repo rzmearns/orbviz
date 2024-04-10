@@ -11,12 +11,12 @@ satplot
 ├── [data](#data)  
 ├── [resources](#resources)  
 └── satplot  
-    ├── [model](#satplotmodel)  
-    └── [visualiser](#satplotvisualiser)  
-        ├── [assets](#satplotvisualiserassets)  
-        ├── [contexts](#satplotvisualisercontexts)  
-        │   └── [canvaswrappers](#satplotvisualisercontextscanvaswrappers)  
-        └── [controls](#satplotvisualisercontrols)  
+&emsp;&emsp;&emsp;├── [model](#satplotmodel)  
+&emsp;&emsp;&emsp;└── [visualiser](#satplotvisualiser)  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;├── [assets](#satplotvisualiserassets)  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;├── [contexts](#satplotvisualisercontexts)  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;│&emsp;&emsp;&emsp;└── [canvaswrappers](#satplotvisualisercontextscanvaswrappers)  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;└── [controls](#satplotvisualisercontrols)  
 
 
 ### `data`
