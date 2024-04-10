@@ -37,7 +37,7 @@ class Moon(BaseAsset):
 		pass
 
 	def _createVisuals(self):
-		self.visuals['moon'] = scene.visuals.Sphere(radius=self.opts['moon_sphere_radius']['value'],
+		self.visuals['moon'] = scene.visuals.Sphere(radius=self.opts['moon_sphere_radius_kms']['value'],
 												method='latitude',
 												color=colours.normaliseColour(self.opts['moon_sphere_colour']['value']),
 												parent=None)
@@ -56,7 +56,7 @@ class Moon(BaseAsset):
 		if self.first_draw:
 			self.first_draw = False
 		if self.requires_recompute:			
-			moon_pos = self.opts['moon_distance']['value'] * pg.unitVector(self.data['curr_pos'])
+			moon_pos = self.opts['moon_distance_kms']['value'] * pg.unitVector(self.data['curr_pos'])
 			self.visuals['moon'].transform = STTransform(translate=moon_pos)
 
 			for asset in self.assets.values():
@@ -78,18 +78,14 @@ class Moon(BaseAsset):
 												'type': 'colour',
 												'help': '',
 												'callback': self.setMoonSphereColour}
-		self._dflt_opts['moon_distance'] = {'value': 15000,
+		self._dflt_opts['moon_distance_kms'] = {'value': 15000,
 										  		'type': 'number',
 												'help': '',
 												'callback': self.setMoonDistance}
-		self._dflt_opts['moon_sphere_radius'] = {'value': 786,
+		self._dflt_opts['moon_sphere_radius_kms'] = {'value': 786,
 										  		'type': 'number',
 												'help': '',
 												'callback': self.setMoonSphereRadius}
-		self._dflt_opts['moon_sphere_angular_size'] = {'value': 6,
-										  		'type': 'number',
-												'help': '',
-												'callback': self.setMoonSphereAngularSize}		
 
 		# moon radius calculated using 6deg angular size
 
@@ -116,10 +112,14 @@ class Moon(BaseAsset):
 		raise NotImplementedError
 
 	def setMoonDistance(self, distance):
-		raise NotImplementedError
+		self.opts['moon_distance_kms']['value'] = distance
+		self.recompute()
 
 	def setMoonSphereRadius(self, radius):
-		raise NotImplementedError
-	
-	def setMoonSphereAngularSize(self, radius):
-		raise NotImplementedError
+		self.opts['moon_sphere_radius_kms']['value'] = radius
+		self.visuals['moon'].parent = None
+		self._createVisuals()
+		self.visuals['moon'].parent = self.data['v_parent']
+		self.requires_recompute = True
+		self.recompute()
+
