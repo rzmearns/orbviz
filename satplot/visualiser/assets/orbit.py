@@ -120,7 +120,7 @@ class OrbitVisualiser(BaseAsset):
 												'help': '',
 												'callback': self.setOrbitColour}
 		self._dflt_opts['orbital_path_width'] = {'value': 1,
-											'type': 'number',
+											'type': 'integer',
 											'help': '',
 											'callback': self.setOrbitalPathWidth}
 		self._dflt_opts['orbital_path_past_style'] = {'value': 'solid',
@@ -146,11 +146,11 @@ class OrbitVisualiser(BaseAsset):
 												'help': '',
 												'callback': self.setOrbitalMarkerVisibility}
 		self._dflt_opts['orbital_position_marker_size'] = {'value': 500,
-										  		'type': 'number',
+										  		'type': 'integer',
 												'help': '',
 												'callback': self.setOrbitalMarkerSize}
 		self._dflt_opts['orbital_path_future_dash_size'] = {'value': 3,
-										  		'type': 'number',
+										  		'type': 'integer',
 												'help': '',
 												'callback': self.setFutureDashSize}
 
