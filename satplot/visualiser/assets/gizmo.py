@@ -43,7 +43,6 @@ class BodyGizmo(SimpleAsset):
 		T[0:3,0:3] = self.opts['gizmo_scale']['value']*rotation
 		T[0:3,3] = np.asarray(pos).reshape(-1,3)
 		self.visuals['gizmo'].transform = vTransforms.linear.MatrixTransform(T.T)
-		print(f"{self.visuals['gizmo'].transform.matrix=}")
 
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}
@@ -63,11 +62,11 @@ class BodyGizmo(SimpleAsset):
 		self._dflt_opts['gizmo_width'] = {'value': 1,
 										  		'type': 'number',
 												'help': '',
-												'callback': None}
+												'callback': self.setGizmoWidth}
 		self._dflt_opts['gizmo_scale'] = {'value': 1,
 										  		'type': 'number',
 												'help': '',
-												'callback': None}
+												'callback': self.setGizmoScale}
 
 		self.opts = self._dflt_opts.copy()
 
@@ -120,6 +119,19 @@ class BodyGizmo(SimpleAsset):
 		old_colour_arr[4,0:3] = np.asarray(colours.normaliseColour(self.opts['gizmo_Z_axis_colour']['value']))
 		old_colour_arr[5,0:3] = np.asarray(colours.normaliseColour(self.opts['gizmo_Z_axis_colour']['value']))
 		self.visuals['gizmo'].set_data(color=old_colour_arr)
+
+	def setGizmoWidth(self, value):
+		self.opts['gizmo_width']['value'] = value
+		self.visuals['gizmo'].set_data(width=value)
+
+	def setGizmoScale(self, value):
+		old_scale = self.opts['gizmo_scale']['value']
+		old_transform_matrix = self.visuals['gizmo'].transform.matrix
+		base_rotation = old_transform_matrix[0:3,0:3] / old_scale
+		pos = old_transform_matrix[0:3,3]
+		self.opts['gizmo_scale']['value'] = value
+		self.setTransform(pos=pos, rotation=base_rotation)
+		self.visuals['gizmo'].update()
 
 class ViewBoxGizmo(BaseAsset):
 	def __init__(self, canvas=None, parent=None, translate=(0,0), scale=(1,1,1,1)):
