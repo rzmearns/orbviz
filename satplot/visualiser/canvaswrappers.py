@@ -209,9 +209,7 @@ class History3D():
 				if dot >=0:
 					last_mevnt_time = time.monotonic()
 					self.mouseOverText.setVisible(True)
-					# print(text_list[ii].lower().capitalize())
 					self.mouseOverText.setText(text_list[ii].lower().capitalize())
-					# self.mouseOverText.setText('fyDefault Text')
 					self.mouseOverText.setPos((pos[0]+5, pos[1]))								
 					return
 
