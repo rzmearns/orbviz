@@ -59,8 +59,9 @@ class BaseContext(ABC):
 		self.load_worker.error.connect(self.load_worker.deleteLater)	
 
 	def _cleanUpLoadWorkerThread(self):
-		self.load_worker_thread.quit()
-		self.load_worker_thread.deleteLater()
+		if self.load_worker_thread is not None:
+			self.load_worker_thread.quit()
+			self.load_worker_thread.deleteLater()
 		self.load_worker_thread = None
 		self.load_worker = None
 

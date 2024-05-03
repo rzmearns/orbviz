@@ -115,13 +115,18 @@ class History3DContext(BaseContext):
 												c_name = self.data['constellation_name'],
 												p_file = self.data['pointing_file'])
 
-		self.controls.orbit_controls.submit_button.setEnabled(False)
-		self.load_worker.finished.connect(self._updateDataSources)
-		self.load_worker.finished.connect(self._updateControls)
-		console.send(f'Calling super._loadData()')
-		self._setUpLoadWorkerThread()
-		console.send(f'Starting thread')
-		self.load_worker_thread.start()
+		try:
+			self.controls.orbit_controls.submit_button.setEnabled(False)
+			self.load_worker.finished.connect(self._updateDataSources)
+			self.load_worker.finished.connect(self._updateControls)
+			self.load_worker.error.connect(self._cleanUpLoadWorkerThread)
+			console.send(f'Calling super._loadData()')
+			self._setUpLoadWorkerThread()
+			console.send(f'Starting thread')
+			self.load_worker_thread.start()
+		except Exception as e:
+			self.controls.orbit_controls.submit_button.setEnabled(True)
+			raise e
 
 	def _updateControls(self, *args, **kwargs):
 		self.controls.orbit_controls.period_start.setDatetime(self.data['period_start'])
@@ -192,7 +197,8 @@ class History3DContext(BaseContext):
 		state['camera'] = self.canvas_wrapper.prepSerialisation()
 		return state
 
-	def _cleanUpLoadWorkerThread(self):
+	def _cleanUpLoadWorkerThread(self, err_str=None):
+		print(err_str, file=sys.stderr)
 		self.controls.orbit_controls.submit_button.setEnabled(True)
 		return super()._cleanUpLoadWorkerThread()
 
@@ -213,7 +219,7 @@ class History3DContext(BaseContext):
 
 	class LoadDataWorker(BaseDataWorker):
 		finished = QtCore.pyqtSignal(timespan.TimeSpan, orbit.Orbit, list, np.ndarray)
-		error = QtCore.pyqtSignal()
+		error = QtCore.pyqtSignal(str)
 
 		def __init__(self, period_start, period_end, sampling_period, prim_orbit_TLE_path,
 			   		 c_index = None, c_file=None, c_name=None, p_file=None, *args, **kwargs):
@@ -232,64 +238,69 @@ class History3DContext(BaseContext):
 			self.pointing_q = None
 
 		def run(self):
-			console.send("Started Load Data Worker thread")
-			self.period_start.replace(microsecond=0)
-			self. period_end.replace(microsecond=0)			
-			time_period = int((self.period_end - self.period_start).total_seconds())
-			console.send(f"Creating Timespan from {self.period_start} -> {self.period_end} ...")
-			self.t = timespan.TimeSpan(self.period_start,
-								timestep=f'{self.timestep}S',
-								timeperiod=f'{time_period}S')
-			console.send(f"\tDuration: {self.t.time_period}")
-			console.send(f"\tNumber of steps: {len(self.t)}")
-			console.send(f"\tLength of timestep: {self.t.time_step}")
+			try:
+				console.send("Started Load Data Worker thread")
+				self.period_start.replace(microsecond=0)
+				self. period_end.replace(microsecond=0)			
+				time_period = int((self.period_end - self.period_start).total_seconds())
+				console.send(f"Creating Timespan from {self.period_start} -> {self.period_end} ...")
+				self.t = timespan.TimeSpan(self.period_start,
+									timestep=f'{self.timestep}S',
+									timeperiod=f'{time_period}S')
+				console.send(f"\tDuration: {self.t.time_period}")
+				console.send(f"\tNumber of steps: {len(self.t)}")
+				console.send(f"\tLength of timestep: {self.t.time_step}")
 
 
-			console.send(f"Propagating orbit from {self.prim_orbit_TLE_path.split('/')[-1]} ...")
-			self.o = orbit.Orbit.fromTLE(self.t, self.prim_orbit_TLE_path)
-			console.send(f"\tNumber of steps in single orbit: {self.o.period_steps}")
-			
-			self.pointing_q = np.array(())
-			if self.p_file is not None and self.p_file != '':
-				console.send(f"Loading pointing from {self.p_file.split('/')[-1]}")
-				pointing_dates, pointing_q = readPointingData(self.p_file)
-
-				total_secs = lambda x: x.total_seconds()
-				total_secs = np.vectorize(total_secs)
-				sample_periods = total_secs(np.diff(pointing_dates))
-				different_sample_periods = np.where(sample_periods != sample_periods[0])[0]
-				if len(different_sample_periods) != 0:
-					print(f"WARNING: pointing samples are not taken at regular intervals - {pointing_dates[different_sample_periods]}", file=sys.stderr)
-
-				if sample_periods[0] != self.timestep:
-					print(f"ERROR: pointing file sampling period do not match the selected visualiser sampling period", file=sys.stderr)
-					self.error.emit()
-					return
+				console.send(f"Propagating orbit from {self.prim_orbit_TLE_path.split('/')[-1]} ...")
+				self.o = orbit.Orbit.fromTLE(self.t, self.prim_orbit_TLE_path)
+				console.send(f"\tNumber of steps in single orbit: {self.o.period_steps}")
 				
-				pointing_start_index = np.where(pointing_dates==self.period_start)[0]
-				if len(pointing_start_index) == 0:
-					print(f"ERROR: pointing file does not contain the selected start time {self.period_start}", file=sys.stderr)
-					self.error.emit()
-					return
-				pointing_start_index = pointing_start_index[0]
+				self.pointing_q = np.array(())
+				if self.p_file is not None and self.p_file != '':
+					console.send(f"Loading pointing from {self.p_file.split('/')[-1]}")
+					pointing_dates, pointing_q = readPointingData(self.p_file)
+
+					total_secs = lambda x: x.total_seconds()
+					total_secs = np.vectorize(total_secs)
+					sample_periods = total_secs(np.diff(pointing_dates))
+					different_sample_periods = np.where(sample_periods != sample_periods[0])[0]
+					if len(different_sample_periods) != 0:
+						print(f"WARNING: pointing samples are not taken at regular intervals - {pointing_dates[different_sample_periods]}", file=sys.stderr)
+
+					if sample_periods[0] != self.timestep:
+						print(f"ERROR: pointing file sampling periods do not match the selected visualiser sampling period", file=sys.stderr)
+						self.error.emit("ERROR: pointing file sampling period do not match the selected visualiser sampling period")
+						return
+					
+					pointing_start_index = np.where(pointing_dates==self.period_start)[0]
+					if len(pointing_start_index) == 0:
+						print(f"ERROR: pointing file does not contain the selected start time {self.period_start}", file=sys.stderr)
+						self.error.emit("ERROR: pointing file does not contain the selected start time")
+						return
+					pointing_start_index = pointing_start_index[0]
 
 
-				if len(pointing_q)-pointing_start_index < len(self.t):
-					print(f"WARNING: pointing file does not contain sufficient samples for the selected time period", file=sys.stderr)
-					print(f"\tAppending NaN to fill missing samples.", file=sys.stderr)
-					padding = np.empty((len(self.t)-(len(pointing_q)-pointing_start_index),4))
-					padding[:] = np.nan
-					self.pointing_q = np.vstack((pointing_q[pointing_start_index:],padding))
-				else:
-					self.pointing_q = pointing_q[pointing_start_index:len(self.t)+pointing_start_index]
+					if len(pointing_q)-pointing_start_index < len(self.t):
+						print(f"WARNING: pointing file does not contain sufficient samples for the selected time period", file=sys.stderr)
+						print(f"\tAppending NaN to fill missing samples.", file=sys.stderr)
+						padding = np.empty((len(self.t)-(len(pointing_q)-pointing_start_index),4))
+						padding[:] = np.nan
+						self.pointing_q = np.vstack((pointing_q[pointing_start_index:],padding))
+					else:
+						self.pointing_q = pointing_q[pointing_start_index:len(self.t)+pointing_start_index]
 
-			if self.c_index is not None:
-				console.send(f"Propagating constellation orbits from {self.c_file.split('/')[-1]} ...")
-				self.c_list = orbit.Orbit.multiFromTLE(self.t, self.c_file, console.consolefp)
-				console.send(f"\tLoaded {len(self.c_list)} satellites from the {self.c_name} constellation.")
-			
-			console.send("Load Data Worker thread finished")
-			self.finished.emit(self.t, self.o, self.c_list, self.pointing_q)
+				if self.c_index is not None:
+					console.send(f"Propagating constellation orbits from {self.c_file.split('/')[-1]} ...")
+					self.c_list = orbit.Orbit.multiFromTLE(self.t, self.c_file, console.consolefp)
+					console.send(f"\tLoaded {len(self.c_list)} satellites from the {self.c_name} constellation.")
+				
+				console.send("Load Data Worker thread finished")
+				self.finished.emit(self.t, self.o, self.c_list, self.pointing_q)
+			except Exception as e:
+				self.error.emit(str(e))
+				
+				
 
 
 		
