@@ -27,7 +27,7 @@ def calcConeMeshGrid(apex, height, axis, apex_angle_deg, axis_sample=3, r_sample
 	
 	return [X,Y,Z],[X2,Y2,Z2]
 
-def calcConePoints(apex, height, axis, apex_angle_deg, axis_sample=3, theta_sample=30):
+def calcConePoints(apex, height, axis, apex_angle_deg, axis_sample=3, theta_sample=30, sorted=True):
 
 	phi = np.deg2rad(apex_angle_deg/2)
 	
@@ -45,14 +45,15 @@ def calcConePoints(apex, height, axis, apex_angle_deg, axis_sample=3, theta_samp
 	theta = np.linspace(0, 2*np.pi, theta_sample)
 
 	R = height*np.tan(phi)
-	coords = t[0]*np.outer(np.cos(theta),e1) + t[0]*np.outer(np.sin(theta),e2)
-
+	coords = t[0]*np.outer(np.cos(theta),e1) + t[0]*np.outer(np.sin(theta),e2)	
 	for ii in range(1,axis_sample):
 		R = t[ii]*np.tan(phi)
-		new_coords = R*np.outer(np.cos(theta),e1) + R*np.outer(np.sin(theta),e2)
+		new_coords = R*np.outer(np.cos(theta),e1) + R*np.outer(np.sin(theta),e2)		
 		coords = np.vstack((coords,(t[ii]*e3)+new_coords))
-
-	return np.unique(coords+apex,axis=0)
+	if sorted:
+		return np.unique(coords+apex,axis=0)
+	else:
+		return coords[np.sort(np.unique(coords,axis=0, return_index=True)[1])]+apex
 
 def calcConeMesh(apex, height, axis, apex_angle_deg, axis_sample=3, theta_sample=30):
 	coords = calcConePoints(apex, height, axis, apex_angle_deg, axis_sample=axis_sample, theta_sample=theta_sample)

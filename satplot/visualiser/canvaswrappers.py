@@ -20,6 +20,7 @@ create_time = time.monotonic()
 MIN_MOVE_UPDATE_THRESHOLD = 1
 MOUSEOVER_DIST_THRESHOLD = 5
 last_mevnt_time = time.monotonic()
+mouse_over_is_highlighting = False
 
 class History3D():
 	def __init__(self, w=800, h=600, keys='interactive', bgcolor='white'):
@@ -111,6 +112,11 @@ class History3D():
 		if self.is_asset_instantiated['sun']:
 			self.assets['sun'].updateIndex(index)
 
+	def forceRedraw(self):
+		for k,v in self.assets.items():
+			if self.is_asset_instantiated[k]:
+				v.forceRedraw()
+
 	# TODO: change this to setFirstDrawFlags()
 	def setFirstDrawFlags(self):
 		for key,value in self.is_asset_instantiated.items():
@@ -176,20 +182,16 @@ class History3D():
 		self.view_box.camera.roll = state['cam-roll']
 
 	def mapAssetPositionsToScreen(self):
-		screen_pos = []
-		text = []
-		world_pos = []
+		mo_infos = []
 		for asset_name, asset in self.assets.items():
 			if self.is_asset_instantiated[asset_name]:
-				screen_pos_list, world_pos_list, text_list = asset.getScreenMouseOverInfo()
-				screen_pos = screen_pos + screen_pos_list
-				world_pos = world_pos + world_pos_list
-				text = text + text_list
+				mo_infos.append(asset.getScreenMouseOverInfo())
 
-		return screen_pos, world_pos, text
-	
-	def onMouseMove(self, event):		
+		return mo_infos
+
+	def onMouseMove(self, event):
 		global last_mevnt_time
+		global mouse_over_is_highlighting
 		
 		# cull if behind center of camera plane
 		az = np.deg2rad(self.view_box.camera.azimuth+179)
@@ -199,21 +201,27 @@ class History3D():
 		# throttle mouse events to 100ms
 		if time.monotonic() - last_mevnt_time < 0.1:
 			return
-		pos_list, world_list, text_list = self.mapAssetPositionsToScreen()
+		mo_infos = self.mapAssetPositionsToScreen()
 		pp = event.pos
 		
-		for ii, pos in enumerate(pos_list):
-			if ((abs(pos[0] - pp[0]) < MOUSEOVER_DIST_THRESHOLD) and \
-				(abs(pos[1] - pp[1]) < MOUSEOVER_DIST_THRESHOLD)):
-				dot = np.dot(pg.unitVector(world_list[ii]),acamv[1,:])[0]
-				if dot >=0:
-					last_mevnt_time = time.monotonic()
-					self.mouseOverText.setVisible(True)
-					self.mouseOverText.setText(text_list[ii].lower().capitalize())
-					self.mouseOverText.setPos((pos[0]+5, pos[1]))								
-					return
+		for jj, mo_info in enumerate(mo_infos):
+			for ii, pos in enumerate(mo_info['screen_pos']):
+				if ((abs(pos[0] - pp[0]) < MOUSEOVER_DIST_THRESHOLD) and \
+					(abs(pos[1] - pp[1]) < MOUSEOVER_DIST_THRESHOLD)):
+					dot = np.dot(pg.unitVector(mo_info['world_pos'][ii]),acamv[1,:])[0]
+					if dot >=0:
+						last_mevnt_time = time.monotonic()
+						self.mouseOverText.setVisible(True)
+						self.mouseOverText.setText(mo_info['strings'][ii].lower().capitalize())
+						self.mouseOverText.setPos((pos[0]+5, pos[1]))
+						mo_info['objects'][ii].mouseOver(ii)
+						mouse_over_is_highlighting = True
+						return
 
-		self.mouseOverText.setVisible(False)	
+		self.mouseOverText.setVisible(False)
+		if mouse_over_is_highlighting:
+			self.forceRedraw()
+			mouse_over_is_highlighting = False
 		last_mevnt_time = time.monotonic()
 
 		
