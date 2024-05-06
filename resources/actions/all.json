@@ -29,6 +29,16 @@
 	"contexts": ["all"],
 	"toggleable": false
    },
+"spacetrak-credentials": {
+	"tooltip": "Enter SpaceTrak Credentials",
+	"menu_item": "Enter Credentials",
+	"containing_menu": "spacetrack",
+	"button_icon": "resources/icons/spacetrak-unlock.png",
+	"hotkey": "ctrl+o",
+	"callback": null,
+	"contexts": ["all"],
+	"toggleable": false
+   },
 "test": {
 	"tooltip": "Test Button",
 	"menu_item": "Test Menu Item",
