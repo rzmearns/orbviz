@@ -1,0 +1,97 @@
+import spacetrack as sp
+import datetime as dt
+import satplot
+import satplot.util.epoch_u as epoch_u
+import sys
+import os
+from progressbar import progressbar
+import satplot.visualiser.controls.console as console
+
+MAX_RETRIES=3
+
+class TLEGetter:
+	def __init__(self, sat_id_list):
+		# initialise the client
+		self.username = satplot.spacetrack_credentials['user']
+		self.password = satplot.spacetrack_credentials['passwd']
+		if self.username is None or self.password is None:
+			raise InvalidCredentials('No Spacetrack Credentials have been entered')		
+		try:
+			self.stc = sp.SpaceTrackClient(self.username, self.password)
+			ii = 0
+			for sat_id in progressbar(sat_id_list):
+				# if satplot.running:
+				pc = ii/len(sat_id_list)*100
+				bar_str = int(pc)*'='
+				space_str = (100-int(pc))*'  '
+				console.send(f'Loading {pc:.2f}% ({ii} of {len(sat_id_list)}) |{bar_str}{space_str}|\r')
+
+				if not self.checkFile(sat_id) or self.getNumPastTLEs(sat_id) == 0:
+					self.fetchAll(sat_id)
+				else:
+					self.fetchLatest(sat_id)
+				ii+=1
+		except sp.AuthenticationError:
+			raise InvalidCredentials('Username and password are incorrect!')
+
+	def checkFile(self, sat_id):
+		return os.path.exists(self.getFileStr(sat_id))
+
+	def getFileStr(self, sat_id):
+		return f'data/TLEs/{sat_id}.tle'
+
+	def fetchAll(self, sat_id):		
+		retries = 0
+		while retries < MAX_RETRIES:
+			try:
+				res_str = self.stc.tle(norad_cat_id=sat_id, orderby='epoch asc', limit=500000, format='3le')
+				with open(self.getFileStr(sat_id), 'w') as fp:
+					if res_str[-1] == '\n':
+						res_str = res_str[:-1]
+					fp.write(res_str)
+				break
+			except TimeoutError as e:
+				retries += 1
+		if retries == MAX_RETRIES:
+			print(f"Could not fetch All TLEs ffor sat {sat_id}: failed {retries} times.", file=sys.stderr)
+
+	def getNumPastTLEs(self, sat_id):
+		with open(self.getFileStr(sat_id), 'r') as fp:
+			lines = fp.readlines()
+		return int(len(lines)/3)
+
+	def fetchLatest(self, sat_id):
+		retries = 0
+		while retries < MAX_RETRIES:
+			try:
+				# get penultimate and ultimate epochs
+				with open(self.getFileStr(sat_id), 'r') as fp:
+					lines = fp.readlines()
+				le_line = lines[-2]
+				# pe_line = lines[-5]
+				# pe_datetime = epoch_u.epoch2datetime(float(pe_line.split()[3]))
+				le = float(le_line.split()[3])
+				le_datetime = epoch_u.epoch2datetime(le)
+				delta = dt.datetime.now(tz=dt.timezone.utc) - le_datetime
+				if delta.days != 0:
+					res_str = self.stc.tle(norad_cat_id=sat_id, orderby='epoch asc', epoch=f'>now-{delta.days+1}', limit=500000, format='3le')
+					res_str = res_str[:-1]
+					res_lines = res_str.split('\n')
+					for ii, line in enumerate(res_lines):
+						if line[0] == '1' and float(line.split()[3])>le:
+							break
+					next_index = ii							
+					with open(self.getFileStr(sat_id), 'a') as fp:
+						fp.write('\n')
+						fp.write('\n'.join(res_lines[next_index-1:]))
+				break
+			except TimeoutError as e:
+				print(e)
+				retries += 1
+		if retries == MAX_RETRIES:
+			print(f"Could not fetch the latest TLEs for sat {sat_id}: failed {retries} times.", file=sys.stderr)
+
+class InvalidCredentials(Exception):
+	def __init__(self, message):
+		super().__init__(message)
+		return
