@@ -21,6 +21,11 @@ def epoch2datetime(string):
 		string = str(string)
 
 	year = int(string[:2])
+	if year < 50:
+		year += 2000
+	else:
+		year += 1900
+	
 	fractional_DoY = float(string[2:])
 
 	base = dt.datetime(year, 1, 1, tzinfo=dt.timezone.utc)
