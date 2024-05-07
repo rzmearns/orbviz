@@ -83,64 +83,96 @@ class Orbit(object):
 			logger.error("Orbit() should not be called directly.")
 			raise ValueError("Orbit() should not be called directly.")			
 
+		self.calc_astrobodies = kwargs.get('astrobodies')
+
 		self.timespan = args[0]
 		
 		# CONSTRUCTOR HANDLING
 		if self.gen_type == 'TLE':
+			# List of skyfield EarthSatellites, one for each TLE in the file
 			sat_list = args[1]
 			tle_dates = [sat.epoch.utc_datetime().astimezone(tz=self.timespan.timezone).replace(tzinfo=None) for sat in sat_list]
-			# if self.timespan.start < tle_dates[0] - dt.timedelta(days=14):
-			# 	logger.error("Timespan begins before provided TLEs (+14 days)")
-			# 	raise exceptions.OutOfRange("Timespan begins before provided TLEs (+14 days)")
-			# elif self.timespan.start > tle_dates[-1] + dt.timedelta(days=14):
-			# 	logger.error("Timespan begins after provided TLEs (+14 days)")
-			# 	raise exceptions.OutOfRange("Timespan begins after provided TLEs (+14 days)")
-			# elif self.timespan.end > tle_dates[-1] + dt.timedelta(days=14):
-			# 	logger.error("Timespan ends after provided TLEs (+14 days)")
+			ts = load.timescale(builtin=True)
+			if self.timespan.start < tle_dates[0] - dt.timedelta(days=14):
+				logger.error("Timespan begins before provided TLEs (+14 days)")
+				print("Timespan begins before provided TLEs (+14 days)", file=sys.stderr)
+				# raise exceptions.OutOfRange("Timespan begins before provided TLEs (+14 days)")
+			elif self.timespan.start > tle_dates[-1] + dt.timedelta(days=14):
+				logger.error("Timespan begins after provided TLEs (+14 days)")
+				print("Timespan begins after provided TLEs (+14 days)", file=sys.stderr)
+				# raise exceptions.OutOfRange("Timespan begins after provided TLEs (+14 days)")
+			elif self.timespan.end > tle_dates[-1] + dt.timedelta(days=14):
+				logger.error("Timespan ends after provided TLEs (+14 days)")
+				print("Timespan ends after provided TLEs (+14 days)", file=sys.stderr)
 			# 	raise exceptions.OutOfRange("Timespan ends after provided TLEs (+14 days)")
 
 			# Find closest listed TLE to start date
-			sat_datetime, sat_index = list_u.get_closest(tle_dates, self.timespan.start)
-			sat = sat_list[sat_index]
-			
-			
-			if len(sat_list) > 1:
-				# Prepare next TLE epoch for compare
-				next_sat_datetime = sat_list[sat_index + 1].epoch.utc_datetime()
-				# strip timezone for comparing
-				next_sat_datetime = next_sat_datetime.astimezone(tz=self.timespan.timezone).replace(tzinfo=None)
+			start_datetime, start_index = list_u.get_closest(tle_dates, self.timespan.start)
+			end_datetime, end_index = list_u.get_closest(tle_dates, self.timespan.end)
+			if start_index == -1 or start_index == len(tle_dates):
+				valid_sats = [sat_list[-1]]
+				valid_tle_epoch_dates = [tle_dates[-1]]
+			elif end_index == -1 or end_index == len(tle_dates):
+				valid_sats = sat_list[start_index:]
+				valid_tle_epoch_dates = tle_dates[start_index:]
 			else:
-				next_sat_datetime = None
+				valid_sats = sat_list[start_index:end_index+1]
+				valid_tle_epoch_dates = tle_dates[start_index:end_index+1]
 
-			ts = load.timescale(builtin=True)
-			self.TLE_epochs = np.zeros(self.timespan.asDatetime().shape)
-			self.TLE_epochs[0] = epoch_u.datetime2TLEepoch(sat.epoch.utc_datetime())
+			print(f'{valid_sats=}')
+			print(f'{valid_tle_epoch_dates=}')
 
-			self.pos = np.empty((self.timespan.num_steps, 3))
-			self.vel = np.empty((self.timespan.num_steps, 3))
+			timesteps = self.timespan.asDatetime()
+			for ii in range(len(timesteps)):
+				timesteps[ii] = timesteps[ii].replace(tzinfo=self.timespan.timezone)
+			
+			if len(valid_tle_epoch_dates) > 1:
+				valid_epoch_middates = np.diff(valid_tle_epoch_dates)/2 + np.asarray(valid_tle_epoch_dates[:-1])
+							
+				for ii, date in enumerate(valid_epoch_middates):
+					valid_epoch_middates[ii] = date.replace(tzinfo=self.timespan.timezone)
 
-			# For each timestep, compare time with next TlE epoch,
-			# If after, switch to new TLE
-			# TODO: might be able to speed this up by vectorising skyfield sat creation.
-			for ii, timestep in enumerate(self.timespan.asDatetime()):	
-				if next_sat_datetime is not None and timestep > next_sat_datetime:
-					sat_index += 1
-					sat = sat_list[sat_index]
-					next_sat_datetime = sat_list[sat_index + 1].epoch.utc_datetime()
-					# strip timezone for comparing
-					next_sat_datetime = next_sat_datetime.astimezone(tz=self.timespan.timezone).replace(tzinfo=None)
-					logger.debug("Using new TLE at timestep {}".format(ii))					
+				trans_indices = []
+				for date in valid_epoch_middates:
+					trans_indices.append(np.argmin(np.abs(np.vectorize(dt.timedelta.total_seconds)(timesteps-date))))
 
-				# Record sat pos and vel for 
-				self.pos[ii, :] = sat.at(ts.utc(timestep.replace(tzinfo=self.timespan.timezone))).position.km 
-				self.vel[ii, :] = sat.at(ts.utc(timestep.replace(tzinfo=self.timespan.timezone))).velocity.km_per_s * 1000
+				sat_rec = valid_sats[0].at(ts.utc(timesteps[:trans_indices[0]]))
+				pos = sat_rec.position.km
+				vel = sat_rec.velocity.km_per_s * 1000
+				self.pos = pos.T
+				self.vel = vel.T
+				TLE_epochs = np.tile(valid_tle_epoch_dates[0],trans_indices[0])
+				self.TLE_epochs = TLE_epochs
 
-				self.TLE_epochs[ii] = epoch_u.datetime2TLEepoch(sat.epoch.utc_datetime())
+				for ii in range(len(trans_indices)-1):
+					sat_rec = valid_sats[ii+1].at(ts.utc(timesteps[trans_indices[ii]:trans_indices[ii+1]]))
+					pos = sat_rec.position.km
+					vel = sat_rec.velocity.km_per_s * 1000
+					self.pos = np.vstack((self.pos, pos.T))
+					self.vel = np.vstack((self.vel, vel.T))
+					TLE_epochs = np.tile(valid_tle_epoch_dates[ii+1],trans_indices[ii+1]-trans_indices[ii])
+					self.TLE_epochs = np.concatenate((self.TLE_epochs,TLE_epochs))
 
-			self.period = 2 * np.pi / sat.model.no_kozai * 60
+				sat_rec = valid_sats[-1].at(ts.utc(timesteps[trans_indices[-1]:]))
+				pos = sat_rec.position.km
+				vel = sat_rec.velocity.km_per_s * 1000
+				self.pos = np.vstack((self.pos, pos.T))
+				self.vel = np.vstack((self.vel, vel.T))
+				TLE_epochs = np.tile(valid_tle_epoch_dates[ii+1],len(timesteps) - trans_indices[-1])
+				self.TLE_epochs = np.concatenate((self.TLE_epochs,TLE_epochs))
+
+			else:
+				sat_rec = valid_sats[0].at(ts.utc(timesteps))
+				pos = sat_rec.position.km
+				vel = sat_rec.velocity.km_per_s * 1000
+				self.pos = pos.T
+				self.vel = vel.T
+				self.TLE_epochs = np.tile(valid_tle_epoch_dates[0],len(timesteps))
+		
+			self.period = 2 * np.pi / valid_sats[-1].model.no_kozai * 60
 			self.period_steps = int(self.period / self.timespan.time_step.total_seconds())
-
-			self.name = sat.name
+			self.name = valid_sats[-1].name
+			self.sat = valid_sats[-1]
 
 		elif self.gen_type == 'FAKE_TLE':
 			satrec = args[1]
@@ -199,16 +231,20 @@ class Orbit(object):
 			logger.error("Invalid orbit generation option {}. Valid options are TLE, FAKE_TLE, POS_LIST, and ANALYITCAL.".format(self.gen_type))
 			raise ValueError("Invalid orbit generation option {}.".format(self.gen_type))
 
-		logger.info('Creating ephemeris for sun using timespan')
-		# Timescale for sun position calculation should use TDB, not UTC
-		# The resultant difference is likely very small
-		ephem_sun = Ephem.from_body(Sun, astropyTime(self.timespan.asAstropy(scale='tdb')), attractor=Earth)
-		self.sun = np.asarray(ephem_sun.rv()[0].to(u.km))
-		ephem_moon = Ephem.from_body(Moon, astropyTime(self.timespan.asAstropy(scale='tdb')), attractor=Earth)
-		self.moon = np.asarray(ephem_moon.rv()[0].to(u.km))
+		if self.calc_astrobodies:
+			logger.info('Creating ephemeris for sun using timespan')
+			# Timescale for sun position calculation should use TDB, not UTC
+			# The resultant difference is likely very small
+			ephem_sun = Ephem.from_body(Sun, astropyTime(self.timespan.asAstropy(scale='tdb')), attractor=Earth)
+			self.sun = np.asarray(ephem_sun.rv()[0].to(u.km))
+			ephem_moon = Ephem.from_body(Moon, astropyTime(self.timespan.asAstropy(scale='tdb')), attractor=Earth)
+			self.moon = np.asarray(ephem_moon.rv()[0].to(u.km))
+		else:
+			self.sun = None
+			self.moon = None
 
 	@classmethod	
-	def fromListOfPositions(cls, timespan, positions):
+	def fromListOfPositions(cls, timespan, positions, astrobodies=True):
 		"""Create an orbit by explicitly specifying the position of the 
 		satellite at each point in time. Useful for simplified test cases; but
 		may lead to unphysical orbits.
@@ -225,10 +261,10 @@ class Orbit(object):
 		-------
 		satplot.Orbit
 		"""
-		return cls(timespan, positions, type='POS_LIST')
+		return cls(timespan, positions, type='POS_LIST', astrobodies=astrobodies)
 	
 	@classmethod	
-	def fromTLE(cls, timespan, tle_path):
+	def fromTLE(cls, timespan, tle_path, astrobodies=True):
 		"""Create an orbit from an existing TLE or a list of historical TLEs
 				
 		Parameters
@@ -243,10 +279,10 @@ class Orbit(object):
 		satplot.Orbit
 		"""
 		sat_list = load.tle_file(tle_path)
-		return cls(timespan, sat_list, type='TLE')
+		return cls(timespan, sat_list, type='TLE', astrobodies=astrobodies)
 
 	@classmethod	
-	def multiFromTLE(cls, timespan, tle_path, fp=sys.stdout):
+	def multiFromTLE(cls, timespan, tle_path, fp=sys.stdout, astrobodies=True):
 		"""Create an orbit from an existing TLE or a list of historical TLEs
 				
 		Parameters
@@ -273,12 +309,12 @@ class Orbit(object):
 				for jj in range(3):
 					fp.write(lines[ii*3+jj])
 			sat_list = load.tle_file('temp.tle')
-			orbit_list.append(cls(timespan, sat_list, type='TLE'))
+			orbit_list.append(cls(timespan, sat_list, type='TLE', astrobodies=astrobodies))
 		return orbit_list
 
 
 	@classmethod
-	def fromTLEOrbitalParam(cls, timespan, a=6978, ecc=0, inc=0, raan=0, argp=0, mean_nu=0, name='Fake TLE'):
+	def fromTLEOrbitalParam(cls, timespan, a=6978, ecc=0, inc=0, raan=0, argp=0, mean_nu=0, name='Fake TLE', astrobodies=True):
 		"""Create an orbit from orbital parameters, propagated using sgp4.
 		
 		Orbits created using this class method will respect gravity corrections such as J4, 
@@ -348,10 +384,10 @@ class Orbit(object):
 								mean_motion * 60,  # mean motion [rad/min]  # noqa: E128
 								np.deg2rad(raan))  # raan [radians] # noqa: E126, E128
 
-		return cls(timespan, satrec, a=a, type='FAKE_TLE')
+		return cls(timespan, satrec, a=a, type='FAKE_TLE', astrobodies=astrobodies)
 		
 	@classmethod
-	def fromOrbitalParam(cls, timespan, body='Earth', a=6978, ecc=0, inc=0, raan=0, argp=0, mean_nu=0, name='Analytical'):
+	def fromOrbitalParam(cls, timespan, body='Earth', a=6978, ecc=0, inc=0, raan=0, argp=0, mean_nu=0, name='Analytical', astrobodies=True):
 		"""Create an orbit from orbital parameters
 		
 		Parameters
@@ -417,7 +453,7 @@ class Orbit(object):
 			logger.error("Mean anomaly, {}, is out of range, should be 0 < mean_nu < 360".format(inc))
 			raise exceptions.OutOfRange("Mean anomaly, {}, is out of range, should be 0 < mean_nu < 360".format(inc))
 
-		return cls(timespan, body=central_body, a=a, ecc=ecc, inc=inc, raan=raan, argp=argp, mean_nu=mean_nu, type='ANALYTICAL')
+		return cls(timespan, body=central_body, a=a, ecc=ecc, inc=inc, raan=raan, argp=argp, mean_nu=mean_nu, type='ANALYTICAL', astrobodies=astrobodies)
 
 	@classmethod
 	def load(cls, file):
