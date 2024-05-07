@@ -26,6 +26,8 @@ class TLEGetter:
 				space_str = (100-int(pc))*'  '
 				console.send(f'Loading {pc:.2f}% ({ii} of {len(sat_id_list)}) |{bar_str}{space_str}|\r')
 
+				print(f"{sat_id=}")
+
 				if not self.checkFile(sat_id) or self.getNumPastTLEs(sat_id) == 0:
 					self.fetchAll(sat_id)
 				else:
@@ -35,17 +37,14 @@ class TLEGetter:
 			raise InvalidCredentials('Username and password are incorrect!')
 
 	def checkFile(self, sat_id):
-		return os.path.exists(self.getFileStr(sat_id))
-
-	def getFileStr(self, sat_id):
-		return f'data/TLEs/{sat_id}.tle'
+		return os.path.exists(getTLEFilePath(sat_id))
 
 	def fetchAll(self, sat_id):		
 		retries = 0
 		while retries < MAX_RETRIES:
 			try:
 				res_str = self.stc.tle(norad_cat_id=sat_id, orderby='epoch asc', limit=500000, format='3le')
-				with open(self.getFileStr(sat_id), 'w') as fp:
+				with open(getTLEFilePath(sat_id), 'w') as fp:
 					if res_str[-1] == '\n':
 						res_str = res_str[:-1]
 					fp.write(res_str)
@@ -56,7 +55,7 @@ class TLEGetter:
 			print(f"Could not fetch All TLEs ffor sat {sat_id}: failed {retries} times.", file=sys.stderr)
 
 	def getNumPastTLEs(self, sat_id):
-		with open(self.getFileStr(sat_id), 'r') as fp:
+		with open(getTLEFilePath(sat_id), 'r') as fp:
 			lines = fp.readlines()
 		return int(len(lines)/3)
 
@@ -65,7 +64,7 @@ class TLEGetter:
 		while retries < MAX_RETRIES:
 			try:
 				# get penultimate and ultimate epochs
-				with open(self.getFileStr(sat_id), 'r') as fp:
+				with open(getTLEFilePath(sat_id), 'r') as fp:
 					lines = fp.readlines()
 				le_line = lines[-2]
 				# pe_line = lines[-5]
@@ -81,7 +80,7 @@ class TLEGetter:
 						if line[0] == '1' and float(line.split()[3])>le:
 							break
 					next_index = ii							
-					with open(self.getFileStr(sat_id), 'a') as fp:
+					with open(getTLEFilePath(sat_id), 'a') as fp:
 						fp.write('\n')
 						fp.write('\n'.join(res_lines[next_index-1:]))
 				break
@@ -95,3 +94,17 @@ class InvalidCredentials(Exception):
 	def __init__(self, message):
 		super().__init__(message)
 		return
+	
+def getSatIDs(sat_config):
+	'''
+	sat_config structure defined in data_structures.md
+	'''
+	return list(sat_config['satellites'].values())
+
+def updateTLEs(sat_config):
+	sat_id_list = getSatIDs(sat_config)
+	console.send(f"Updating TLEs for {sat_config['name']}")
+	TLEGetter(sat_id_list)
+
+def getTLEFilePath(sat_id):
+	return f'data/TLEs/{sat_id}.tle'
