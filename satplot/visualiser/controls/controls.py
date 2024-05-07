@@ -2,17 +2,14 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 from satplot.visualiser.controls import widgets
 from satplot.visualiser.assets import base
 import datetime as dt
+import os
 import string
+import json
 import satplot.visualiser.controls.console as console
 
 class OrbitConfigs(QtWidgets.QWidget):
 
-	constellation_options = ['Iridium NEXT', 'Iridium SMALL', 'Thuraya', 'Swift']
-	constellation_files = ['./data/TLEs/iridiumNEXT_latest.tle',
-							'./data/TLEs/iridiumSMALL_latest.tle',
-							'./data/TLEs/thuraya_latest.tle',
-							'./data/TLEs/swift_latest.tle']
-	constellation_beam_angles = [125.8, 125.8, 15.0, 0.1]
+	prim_config_dir = 'data/primary_configs/'
 
 	def __init__(self, parent: QtWidgets.QWidget=None) -> None:
 		super().__init__(parent)
@@ -30,8 +27,8 @@ class OrbitConfigs(QtWidgets.QWidget):
 		self.button_layout = QtWidgets.QHBoxLayout()
 		self.submit_button = QtWidgets.QPushButton('Recalculate')
 		self.prim_orbit_selector = widgets.FilePicker('Primary Orbit',
-															dflt_file='spirit_latest.tle',
-															dflt_dir='data/TLEs/',
+															dflt_file='SpIRIT.json',
+															dflt_dir='data/primary_configs/',
 															save=False)
 		self.pointing_file_controls = PointingFileControls()
 		
@@ -63,12 +60,14 @@ class OrbitConfigs(QtWidgets.QWidget):
 
 		# self.setLayout(self.config_layout)
 
-	def getConstellationIndex(self):
-		return self.suppl_constellation_selector.getCurrentIndex()
-
 	def prepSerialisation(self):
 		state = {}
 		return state
+
+	def getConfig(self):
+		with open(f'{self.prim_orbit_selector.path}','r') as fp:
+			prim_config = json.load(fp)
+		return prim_config	
 
 class PointingFileControls(QtWidgets.QWidget):
 	def __init__(self, *args, **kwargs):
@@ -143,6 +142,10 @@ class PointingFileControls(QtWidgets.QWidget):
 		return self.use_pointing_period.isChecked()
 
 class ConstellationControls(QtWidgets.QWidget):
+	c_config_dir = 'data/constellation_configs/'
+	c_configs = os.listdir(c_config_dir)
+	constellation_options = [c.split('.')[0].replace('_',' ') for c in c_configs]
+
 	def __init__(self, *args, **kwargs):
 		super().__init__()		
 		vlayout = QtWidgets.QVBoxLayout()
@@ -163,7 +166,7 @@ class ConstellationControls(QtWidgets.QWidget):
 		glayout.addWidget(self._enable,1,2)
 
 		self.suppl_constellation_selector = widgets.OptionBox('Supplementary Constellations',
-															options_list=OrbitConfigs.constellation_options)		
+															options_list=self.constellation_options)		
 		glayout.addWidget(self.suppl_constellation_selector,2,0,1,-1)
 
 		vlayout.addLayout(glayout)
@@ -187,6 +190,14 @@ class ConstellationControls(QtWidgets.QWidget):
 
 	def setContainingScrollWidget(self, widget):
 		self.suppl_constellation_selector.setContainingScrollWidget(widget)
+
+	def getConstellationConfig(self):
+		c_index = self.getCurrentIndex()
+		if c_index is None:
+			return None
+		with open(f'{self.c_config_dir}{self.c_configs[c_index]}','r') as fp:
+			c_config = json.load(fp)
+		return c_config
 
 	def getCurrentIndex(self):
 		return self.suppl_constellation_selector.getCurrentIndex()
