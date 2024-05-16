@@ -91,7 +91,7 @@ class Orbit(object):
 		if self.gen_type == 'TLE':
 			# List of skyfield EarthSatellites, one for each TLE in the file
 			sat_list = args[1]
-			tle_dates = [sat.epoch.utc_datetime().astimezone(tz=self.timespan.timezone).replace(tzinfo=None) for sat in sat_list]
+			tle_dates = [sat.epoch.utc_datetime() for sat in sat_list]
 			ts = load.timescale(builtin=True)
 			if self.timespan.start < tle_dates[0] - dt.timedelta(days=14):
 				logger.error("Timespan begins before provided TLEs (+14 days)")
@@ -119,12 +119,7 @@ class Orbit(object):
 				valid_sats = sat_list[start_index:end_index+1]
 				valid_tle_epoch_dates = tle_dates[start_index:end_index+1]
 
-			print(f'{valid_sats=}')
-			print(f'{valid_tle_epoch_dates=}')
-
 			timesteps = self.timespan.asDatetime()
-			for ii in range(len(timesteps)):
-				timesteps[ii] = timesteps[ii].replace(tzinfo=self.timespan.timezone)
 			
 			if len(valid_tle_epoch_dates) > 1:
 				valid_epoch_middates = np.diff(valid_tle_epoch_dates)/2 + np.asarray(valid_tle_epoch_dates[:-1])

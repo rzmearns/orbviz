@@ -5,6 +5,8 @@ from satplot.visualiser import canvaswrappers
 from satplot.visualiser.contexts.base import (BaseContext, BaseDataWorker, BaseControls)
 import satplot.visualiser.controls.console as console
 from satplot.visualiser.controls import controls, widgets
+import satplot.util.spacetrack as spacetrack
+from progressbar import progressbar
 
 import sys
 import numpy as np
@@ -79,15 +81,18 @@ class History3DContext(BaseContext):
 		self.data['period_start'] = self.controls.orbit_controls.period_start.datetime
 		self.data['period_end'] = self.controls.orbit_controls.period_end.datetime
 		self.data['sampling_period'] = self.controls.orbit_controls.sampling_period.period
-		self.data['prim_orbit_TLE_path'] = self.controls.orbit_controls.prim_orbit_selector.path
+		prim_config = self.controls.orbit_controls.getConfig()
+		self.data['prim_config'] = prim_config
 		if self.controls.orbit_controls.suppl_constellation_selector.isEnabled():
-			self.data['constellation_index'] = self.controls.orbit_controls.getConstellationIndex()			
-			self.data['constellation_file'] = self.controls.orbit_controls.constellation_files[self.data['constellation_index']]
-			self.data['constellation_name'] = self.controls.orbit_controls.constellation_options[self.data['constellation_index']]
-			self.data['constellation_beam_angle'] = self.controls.orbit_controls.constellation_beam_angles[self.data['constellation_index']]
+			c_config = self.controls.orbit_controls.suppl_constellation_selector.getConstellationConfig()
+			if c_config is None:
+				print("Please select a constellation.", file=sys.stderr)
+				return
+			self.data['constellation_config'] = c_config
+			self.data['constellation_name'] = c_config['name']
+			self.data['constellation_beam_angle'] = c_config['beam_width']
 		else:
-			self.data['constellation_index'] = None
-			self.data['constellation_file'] = None
+			self.data['constellation_config'] = None
 			self.data['constellation_name'] = None
 			self.data['constellation_beam_angle'] = None
 
@@ -104,15 +109,13 @@ class History3DContext(BaseContext):
 			self.data['pointing_invert_transform'] = None
 		
 		# Create worker
-		console.send(f'Constellation index {self.data["constellation_index"]}')
+		console.send(f'Constellation: {self.data["constellation_name"]}')
 		console.send('Creating loadDataWorker')
 		self.load_worker = self.LoadDataWorker(self.data['period_start'], 
 										 		self.data['period_end'],
 												self.data['sampling_period'],
-												self.data['prim_orbit_TLE_path'],
-												c_index = self.data['constellation_index'],
-												c_file = self.data['constellation_file'],
-												c_name = self.data['constellation_name'],
+												self.data['prim_config'],
+												c_config = self.data['constellation_config'],
 												p_file = self.data['pointing_file'])
 
 		self.controls.orbit_controls.submit_button.setEnabled(False)
@@ -140,12 +143,11 @@ class History3DContext(BaseContext):
 		else:
 			self.data['pointing'] = None
 		
-		if self.data['constellation_index'] is not None:
+		if self.data['constellation_config'] is not None:
 			self.data['constellation_list'] = c_list
 		else:
 			self.data['constellation_list'] = None
 
-		console.send(f'Constellation index: {self.data["constellation_index"]}')
 		if self.data['constellation_list'] is not None:
 			console.send(f'Length Constellation list: {len(self.data["constellation_list"])}')
 		else:
@@ -215,18 +217,16 @@ class History3DContext(BaseContext):
 		finished = QtCore.pyqtSignal(timespan.TimeSpan, orbit.Orbit, list, np.ndarray)
 		error = QtCore.pyqtSignal()
 
-		def __init__(self, period_start, period_end, sampling_period, prim_orbit_TLE_path,
-			   		 c_index = None, c_file=None, c_name=None, p_file=None, *args, **kwargs):
+		def __init__(self, period_start, period_end, sampling_period, prim_config,
+			   			c_config=None, p_file=None, *args, **kwargs):
 			super().__init__(*args, **kwargs)
 			self.period_start = period_start
 			self.period_end = period_end
 			self.timestep = sampling_period
-			self.prim_orbit_TLE_path = prim_orbit_TLE_path
+			self.prim_config = prim_config
 			self.t = None
 			self.o = None
-			self.c_index = c_index
-			self.c_file = c_file
-			self.c_name = c_name
+			self.c_config = c_config
 			self.c_list = []
 			self.p_file = p_file
 			self.pointing_q = None
@@ -244,9 +244,10 @@ class History3DContext(BaseContext):
 			console.send(f"\tNumber of steps: {len(self.t)}")
 			console.send(f"\tLength of timestep: {self.t.time_step}")
 
-
-			console.send(f"Propagating orbit from {self.prim_orbit_TLE_path.split('/')[-1]} ...")
-			self.o = orbit.Orbit.fromTLE(self.t, self.prim_orbit_TLE_path)
+			spacetrack.updateTLEs(self.prim_config)
+			prim_orbit_TLE_path = spacetrack.getTLEFilePath(spacetrack.getSatIDs(self.prim_config)[0])
+			console.send(f"Propagating orbit from {prim_orbit_TLE_path.split('/')[-1]} ...")
+			self.o = orbit.Orbit.fromTLE(self.t, prim_orbit_TLE_path)
 			console.send(f"\tNumber of steps in single orbit: {self.o.period_steps}")
 			
 			self.pointing_q = np.array(())
@@ -283,10 +284,19 @@ class History3DContext(BaseContext):
 				else:
 					self.pointing_q = pointing_q[pointing_start_index:len(self.t)+pointing_start_index]
 
-			if self.c_index is not None:
-				console.send(f"Propagating constellation orbits from {self.c_file.split('/')[-1]} ...")
-				self.c_list = orbit.Orbit.multiFromTLE(self.t, self.c_file, console.consolefp)
-				console.send(f"\tLoaded {len(self.c_list)} satellites from the {self.c_name} constellation.")
+			if self.c_config is not None:
+				self.c_list = []
+				num_c_sats = len(spacetrack.getSatIDs(self.c_config))
+				console.send(f"Propagating constellation orbits ...")
+				ii = 0
+				for sat_id in progressbar(spacetrack.getSatIDs(self.c_config)):
+					pc = ii/num_c_sats*100
+					bar_str = int(pc)*'='
+					space_str = (100-int(pc))*'  '
+					console.send(f'Loading {pc:.2f}% ({ii} of {num_c_sats}) |{bar_str}{space_str}|\r')					
+					self.c_list.append(orbit.Orbit.fromTLE(self.t, spacetrack.getTLEFilePath(sat_id),astrobodies=False))
+					ii += 1
+				console.send(f"\tLoaded {len(self.c_list)} satellites from the {self.c_config['name']} constellation.")
 			
 			console.send("Load Data Worker thread finished")
 			self.finished.emit(self.t, self.o, self.c_list, self.pointing_q)
