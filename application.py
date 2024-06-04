@@ -102,6 +102,7 @@ class Application():
 		return filename
 
 def setDefaultPackageOptions():
+	satplot.running = True
 	satplot.gl_plus = True
 	satplot.debug = False
 	try:

@@ -287,6 +287,7 @@ class History3DContext(BaseContext):
 			if self.c_config is not None:
 				self.c_list = []
 				num_c_sats = len(spacetrack.getSatIDs(self.c_config))
+				spacetrack.updateTLEs(self.c_config)
 				console.send(f"Propagating constellation orbits ...")
 				ii = 0
 				for sat_id in progressbar(spacetrack.getSatIDs(self.c_config)):

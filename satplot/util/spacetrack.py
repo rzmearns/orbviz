@@ -10,10 +10,16 @@ import satplot.visualiser.controls.console as console
 MAX_RETRIES=3
 
 class TLEGetter:
-	def __init__(self, sat_id_list):
+	def __init__(self, sat_id_list, user=None, passwd=None):
 		# initialise the client
-		self.username = satplot.spacetrack_credentials['user']
-		self.password = satplot.spacetrack_credentials['passwd']
+		if user == None:
+			self.username = satplot.spacetrack_credentials['user']
+		else:
+			self.username = user
+		if passwd == None:			
+			self.password = satplot.spacetrack_credentials['passwd']
+		else:
+			self.password = passwd
 		if self.username is None or self.password is None:
 			raise InvalidCredentials('No Spacetrack Credentials have been entered')		
 		try:
@@ -66,10 +72,16 @@ class TLEGetter:
 				# get penultimate and ultimate epochs
 				with open(getTLEFilePath(sat_id), 'r') as fp:
 					lines = fp.readlines()
+				while lines[-1] == '':
+					lines = lines[:-1]
 				le_line = lines[-2]
 				# pe_line = lines[-5]
 				# pe_datetime = epoch_u.epoch2datetime(float(pe_line.split()[3]))
-				le = float(le_line.split()[3])
+				try:
+					le = float(le_line.split()[3])
+				except IndexError:
+					print(le_line)
+					raise IndexError
 				le_datetime = epoch_u.epoch2datetime(le)
 				delta = dt.datetime.now(tz=dt.timezone.utc) - le_datetime
 				if delta.days != 0:
@@ -77,12 +89,21 @@ class TLEGetter:
 					res_str = res_str[:-1]
 					res_lines = res_str.split('\n')
 					for ii, line in enumerate(res_lines):
-						if line[0] == '1' and float(line.split()[3])>le:
-							break
-					next_index = ii							
-					with open(getTLEFilePath(sat_id), 'a') as fp:
-						fp.write('\n')
-						fp.write('\n'.join(res_lines[next_index-1:]))
+						# Try block for debugging, only sometimes failing, trying to investigate.
+						try:
+							if line[0] == '1' and float(line.split()[3])>le:
+								break
+						except IndexError:
+							print(f'{le=}')
+							print(f'{ii=}')
+							print(f'{line=}')
+							print(f'{line.split()}')
+							print(f'{res_lines}')
+					next_index = ii
+					if res_lines[0] != '':
+						with open(getTLEFilePath(sat_id), 'a') as fp:
+							fp.write('\n')
+							fp.write('\n'.join(res_lines[next_index-1:]))
 				break
 			except TimeoutError as e:
 				print(e)
@@ -101,10 +122,10 @@ def getSatIDs(sat_config):
 	'''
 	return list(sat_config['satellites'].values())
 
-def updateTLEs(sat_config):
+def updateTLEs(sat_config,user=None, passwd=None):
 	sat_id_list = getSatIDs(sat_config)
 	console.send(f"Updating TLEs for {sat_config['name']}")
-	TLEGetter(sat_id_list)
+	TLEGetter(sat_id_list,user=user,passwd=passwd)
 
 def getTLEFilePath(sat_id):
 	return f'data/TLEs/{sat_id}.tle'
