@@ -4,7 +4,7 @@ qt_tests/
 vispy_tests
 resources/
 data/spacetrack
-
+venv/
 # Compiled source #
 ###################
 *.com
