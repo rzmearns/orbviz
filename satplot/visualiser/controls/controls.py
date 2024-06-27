@@ -66,7 +66,7 @@ class OrbitConfigs(QtWidgets.QWidget):
 		return state
 
 	def getConfig(self):
-		return spacetrack.getConfig(self.prim_orbit_selector.path)
+		return spacetrack.fetchConfig(self.prim_orbit_selector.path)
 
 class PointingFileControls(QtWidgets.QWidget):
 	def __init__(self, *args, **kwargs):
