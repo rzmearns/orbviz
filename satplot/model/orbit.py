@@ -167,7 +167,11 @@ class Orbit(object):
 			self.period = 2 * np.pi / valid_sats[-1].model.no_kozai * 60
 			self.period_steps = int(self.period / self.timespan.time_step.total_seconds())
 			self.name = valid_sats[-1].name
-			# self.sat = valid_sats[-1]
+			try:
+				self.sat = valid_sats[-1]
+			except:
+				# TODO: figure out what the exact error is and cause of when valid_sats doesn't exist
+				pass
 
 		elif self.gen_type == 'FAKE_TLE':
 			satrec = args[1]
