@@ -121,14 +121,11 @@ class History3DContext(BaseContext):
 
 		try:
 			self.controls.orbit_controls.submit_button.setEnabled(False)
-			self.load_worker.finished.connect(self._updateDataSources)
-			self.load_worker.finished.connect(self._updateControls)
-			self.load_worker.error.connect(self._cleanUpLoadWorkerThread)
-			console.send(f'Calling super._loadData()')
 			self._setUpLoadWorkerThread()
 			console.send(f'Starting thread')
 			self.load_worker_thread.start()
 		except Exception as e:
+			console.send(f"Error history3D ln 128: {e}", file=sys.stderr)
 			self.controls.orbit_controls.submit_button.setEnabled(True)
 			raise e
 
@@ -200,10 +197,9 @@ class History3DContext(BaseContext):
 		state['camera'] = self.canvas_wrapper.prepSerialisation()
 		return state
 
-	def _cleanUpLoadWorkerThread(self, err_str=None):
-		print(err_str, file=sys.stderr)
+	def _cleanUpErrorInLoadWorkerThread(self, err_str=None):
 		self.controls.orbit_controls.submit_button.setEnabled(True)
-		return super()._cleanUpLoadWorkerThread()
+		return super()._cleanUpErrorInLoadWorkerThread(err_str=err_str)
 
 	def _centerCameraEarth(self):
 		if self.sccam_state and self.controls.toolbar.button_dict['center-spacecraft'].isChecked():
@@ -279,7 +275,7 @@ class History3DContext(BaseContext):
 
 					if sample_periods[0] != self.timestep:
 						print(f"ERROR: pointing file sampling period do not match the selected visualiser sampling period", file=sys.stderr)
-						self.error.emit()
+						self.error.emit(f"ERROR: pointing file sampling period do not match the selected visualiser sampling period")
 						return
 					
 					pointing_start_index = np.where(pointing_dates==self.period_start)[0]
@@ -328,7 +324,7 @@ class History3DContext(BaseContext):
 				self.finished.emit(self.t, self.o, self.c_list, self.pointing_q)
 
 			except Exception as e:
-				self.error.emit(str(e))
+				self.error.emit(f'Load Data Worker Exception: {e}')
 
 		
 	class Controls(BaseControls):
