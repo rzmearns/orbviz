@@ -80,6 +80,7 @@ Thumbs.db
 *.html
 *.txt
 *.tle
+*.temptle
 
 # Backup files #
 ######################
