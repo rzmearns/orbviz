@@ -6,6 +6,7 @@ import os
 import string
 import json
 import satplot.visualiser.controls.console as console
+import satplot.util.spacetrack as spacetrack
 
 class OrbitConfigs(QtWidgets.QWidget):
 
@@ -65,9 +66,7 @@ class OrbitConfigs(QtWidgets.QWidget):
 		return state
 
 	def getConfig(self):
-		with open(f'{self.prim_orbit_selector.path}','r') as fp:
-			prim_config = json.load(fp)
-		return prim_config	
+		return spacetrack.getConfig(self.prim_orbit_selector.path)
 
 class PointingFileControls(QtWidgets.QWidget):
 	def __init__(self, *args, **kwargs):

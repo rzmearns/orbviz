@@ -6,6 +6,7 @@ import sys
 import os
 from progressbar import progressbar
 import satplot.visualiser.controls.console as console
+import json
 
 MAX_RETRIES=3
 
@@ -129,3 +130,8 @@ def updateTLEs(sat_config,user=None, passwd=None):
 
 def getTLEFilePath(sat_id):
 	return f'data/TLEs/{sat_id}.tle'
+
+def fetchConfig(path):
+	with open(f'{path}','r') as fp:
+		config = json.load(fp)
+	return config
