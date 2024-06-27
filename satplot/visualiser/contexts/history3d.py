@@ -132,6 +132,7 @@ class History3DContext(BaseContext):
 	def _updateControls(self, *args, **kwargs):
 		self.controls.orbit_controls.period_start.setDatetime(self.data['period_start'])
 		self.controls.orbit_controls.period_end.setDatetime(self.data['period_end'])
+		self.controls.orbit_controls.submit_button.setEnabled(True)
 
 	def _updateDataSources(self, t, o, c_list, pointing_q):
 		self.data['timespan'] = t
@@ -237,6 +238,7 @@ class History3DContext(BaseContext):
 		def run(self):
 			try:
 				console.send("Started Load Data Worker thread")
+				# TIMESPAN
 				self.period_start.replace(microsecond=0)
 				self. period_end.replace(microsecond=0)			
 				time_period = int((self.period_end - self.period_start).total_seconds())
@@ -248,6 +250,7 @@ class History3DContext(BaseContext):
 				console.send(f"\tNumber of steps: {len(self.t)}")
 				console.send(f"\tLength of timestep: {self.t.time_step}")
 
+				# PRIMARY ORBIT
 				if spacetrack.doCredentialsExist():
 					spacetrack.updateTLEs(self.prim_config)
 					prim_orbit_TLE_path = spacetrack.getTLEFilePath(spacetrack.getSatIDs(self.prim_config)[0])
@@ -260,7 +263,8 @@ class History3DContext(BaseContext):
 				console.send(f"Propagating orbit from {prim_orbit_TLE_path.split('/')[-1]} ...")
 				self.o = orbit.Orbit.fromTLE(self.t, prim_orbit_TLE_path)
 				console.send(f"\tNumber of steps in single orbit: {self.o.period_steps}")
-				
+
+				# POINTING FILE
 				self.pointing_q = np.array(())
 				if self.p_file is not None and self.p_file != '':
 					console.send(f"Loading pointing from {self.p_file.split('/')[-1]}")
@@ -285,7 +289,6 @@ class History3DContext(BaseContext):
 						return
 					pointing_start_index = pointing_start_index[0]
 
-
 					if len(pointing_q)-pointing_start_index < len(self.t):
 						print(f"WARNING: pointing file does not contain sufficient samples for the selected time period", file=sys.stderr)
 						print(f"\tAppending NaN to fill missing samples.", file=sys.stderr)
@@ -295,6 +298,7 @@ class History3DContext(BaseContext):
 					else:
 						self.pointing_q = pointing_q[pointing_start_index:len(self.t)+pointing_start_index]
 
+				# CONSTELLATION
 				if self.c_config is not None:
 					self.c_list = []
 					num_c_sats = len(spacetrack.getSatIDs(self.c_config))
