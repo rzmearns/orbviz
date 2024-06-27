@@ -125,7 +125,7 @@ def getSatIDs(sat_config):
 
 def updateTLEs(sat_config,user=None, passwd=None):
 	sat_id_list = getSatIDs(sat_config)
-	console.send(f"Updating TLEs for {sat_config['name']}")
+	console.send(f"Using SPACETRACK to update TLEs for {sat_config['name']}")
 	TLEGetter(sat_id_list,user=user,passwd=passwd)
 
 def getTLEFilePath(sat_id):
