@@ -172,4 +172,4 @@ The following information is saved in a satplot state:
 * satellite pointing information
 * propagated constellation information
 
-Saving states is particularly useful for large time period simulations, allowing you to forego the TLE update and propagation steps.
+Saving states is particularly useful for large time period simulations, allowing you to forego the TLE update and propagation steps, or for sharing simulations.
