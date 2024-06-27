@@ -4,7 +4,6 @@ qt_tests/
 vispy_tests
 resources/
 data/spacetrack
-
 # Compiled source #
 ###################
 *.com
@@ -26,6 +25,7 @@ data/spacetrack
 # Environment #
 ############
 env/
+venv/
 
 # Packages #
 ############
