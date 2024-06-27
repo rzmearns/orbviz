@@ -6,6 +6,7 @@ from satplot.visualiser.contexts.base import (BaseContext, BaseDataWorker, BaseC
 import satplot.visualiser.controls.console as console
 from satplot.visualiser.controls import controls, widgets
 import satplot.util.spacetrack as spacetrack
+import satplot.util.celestrak as celestrak
 from progressbar import progressbar
 
 import sys
@@ -244,8 +245,15 @@ class History3DContext(BaseContext):
 			console.send(f"\tNumber of steps: {len(self.t)}")
 			console.send(f"\tLength of timestep: {self.t.time_step}")
 
-			spacetrack.updateTLEs(self.prim_config)
-			prim_orbit_TLE_path = spacetrack.getTLEFilePath(spacetrack.getSatIDs(self.prim_config)[0])
+			if spacetrack.doCredentialsExist():
+				spacetrack.updateTLEs(self.prim_config)
+				prim_orbit_TLE_path = spacetrack.getTLEFilePath(spacetrack.getSatIDs(self.prim_config)[0])
+				use_temp = False
+			else:
+				celestrak.updateTLEs(self.prim_config)
+				prim_orbit_TLE_path = celestrak.getTLEFilePath(spacetrack.getSatIDs(self.prim_config)[0])
+				use_temp = True
+			
 			console.send(f"Propagating orbit from {prim_orbit_TLE_path.split('/')[-1]} ...")
 			self.o = orbit.Orbit.fromTLE(self.t, prim_orbit_TLE_path)
 			console.send(f"\tNumber of steps in single orbit: {self.o.period_steps}")
@@ -287,15 +295,25 @@ class History3DContext(BaseContext):
 			if self.c_config is not None:
 				self.c_list = []
 				num_c_sats = len(spacetrack.getSatIDs(self.c_config))
-				spacetrack.updateTLEs(self.c_config)
+				if not use_temp:
+					spacetrack.updateTLEs(self.c_config)
+				else:
+					celestrak.updateTLEs(self.c_config)
 				console.send(f"Propagating constellation orbits ...")
 				ii = 0
 				for sat_id in progressbar(spacetrack.getSatIDs(self.c_config)):
 					pc = ii/num_c_sats*100
 					bar_str = int(pc)*'='
 					space_str = (100-int(pc))*'  '
-					console.send(f'Loading {pc:.2f}% ({ii} of {num_c_sats}) |{bar_str}{space_str}|\r')					
-					self.c_list.append(orbit.Orbit.fromTLE(self.t, spacetrack.getTLEFilePath(sat_id),astrobodies=False))
+					console.send(f'Loading {pc:.2f}% ({ii} of {num_c_sats}) |{bar_str}{space_str}|\r')
+					
+					if not use_temp:		
+						c_path = spacetrack.getTLEFilePath(sat_id)
+						
+					else:
+						c_path = celestrak.getTLEFilePath(sat_id)
+
+					self.c_list.append(orbit.Orbit.fromTLE(self.t, c_path, astrobodies=False))
 					ii += 1
 				console.send(f"\tLoaded {len(self.c_list)} satellites from the {self.c_config['name']} constellation.")
 			

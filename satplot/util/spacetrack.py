@@ -135,3 +135,16 @@ def fetchConfig(path):
 	with open(f'{path}','r') as fp:
 		config = json.load(fp)
 	return config
+
+def doCredentialsExist():
+	user_stored = False
+	passwd_stored = False
+	if satplot.spacetrack_credentials['user'] is not None:
+		user_stored = True
+	if satplot.spacetrack_credentials['passwd'] is not None:
+		passwd_stored = True
+
+	if user_stored and passwd_stored:
+		return True
+	
+	return False
