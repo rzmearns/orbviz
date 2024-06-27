@@ -60,7 +60,10 @@ class SpaceTrackCredentialsDialog():
 			with open(credential_file,'wb') as fp:
 				pickle.dump(satplot.spacetrack_credentials,fp)		
 		else:
-			os.remove(credential_file)
+			try:
+				os.remove(credential_file)
+			except FileNotFoundError:
+				pass
 
 	def cancel(self):
 		self.window.close()
