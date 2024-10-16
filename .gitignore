@@ -3,7 +3,7 @@
 qt_tests/
 vispy_tests
 resources/
-
+data/spacetrack
 # Compiled source #
 ###################
 *.com
@@ -25,6 +25,7 @@ resources/
 # Environment #
 ############
 env/
+venv/
 
 # Packages #
 ############
@@ -79,6 +80,7 @@ Thumbs.db
 *.html
 *.txt
 *.tle
+*.temptle
 
 # Backup files #
 ######################

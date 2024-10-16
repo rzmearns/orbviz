@@ -76,6 +76,7 @@ def get_closest(myList, myNumber):
 	-------
 	float, int
 		closest value, index of closest value
+		if index == -1 signifies that myNumber is greater than last value in list
 	"""
 	# Check list is 1D
 	if isinstance(myList, np.ndarray):

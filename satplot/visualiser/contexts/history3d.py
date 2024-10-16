@@ -5,6 +5,9 @@ from satplot.visualiser import canvaswrappers
 from satplot.visualiser.contexts.base import (BaseContext, BaseDataWorker, BaseControls)
 import satplot.visualiser.controls.console as console
 from satplot.visualiser.controls import controls, widgets
+import satplot.util.spacetrack as spacetrack
+import satplot.util.celestrak as celestrak
+from progressbar import progressbar
 
 import sys
 import numpy as np
@@ -79,15 +82,18 @@ class History3DContext(BaseContext):
 		self.data['period_start'] = self.controls.orbit_controls.period_start.datetime
 		self.data['period_end'] = self.controls.orbit_controls.period_end.datetime
 		self.data['sampling_period'] = self.controls.orbit_controls.sampling_period.period
-		self.data['prim_orbit_TLE_path'] = self.controls.orbit_controls.prim_orbit_selector.path
+		prim_config = self.controls.orbit_controls.getConfig()
+		self.data['prim_config'] = prim_config
 		if self.controls.orbit_controls.suppl_constellation_selector.isEnabled():
-			self.data['constellation_index'] = self.controls.orbit_controls.getConstellationIndex()			
-			self.data['constellation_file'] = self.controls.orbit_controls.constellation_files[self.data['constellation_index']]
-			self.data['constellation_name'] = self.controls.orbit_controls.constellation_options[self.data['constellation_index']]
-			self.data['constellation_beam_angle'] = self.controls.orbit_controls.constellation_beam_angles[self.data['constellation_index']]
+			c_config = self.controls.orbit_controls.suppl_constellation_selector.getConstellationConfig()
+			if c_config is None:
+				print("Please select a constellation.", file=sys.stderr)
+				return
+			self.data['constellation_config'] = c_config
+			self.data['constellation_name'] = c_config['name']
+			self.data['constellation_beam_angle'] = c_config['beam_width']
 		else:
-			self.data['constellation_index'] = None
-			self.data['constellation_file'] = None
+			self.data['constellation_config'] = None
 			self.data['constellation_name'] = None
 			self.data['constellation_beam_angle'] = None
 
@@ -104,28 +110,29 @@ class History3DContext(BaseContext):
 			self.data['pointing_invert_transform'] = None
 		
 		# Create worker
-		console.send(f'Constellation index {self.data["constellation_index"]}')
+		console.send(f'Constellation: {self.data["constellation_name"]}')
 		console.send('Creating loadDataWorker')
 		self.load_worker = self.LoadDataWorker(self.data['period_start'], 
 										 		self.data['period_end'],
 												self.data['sampling_period'],
-												self.data['prim_orbit_TLE_path'],
-												c_index = self.data['constellation_index'],
-												c_file = self.data['constellation_file'],
-												c_name = self.data['constellation_name'],
+												self.data['prim_config'],
+												c_config = self.data['constellation_config'],
 												p_file = self.data['pointing_file'])
 
-		self.controls.orbit_controls.submit_button.setEnabled(False)
-		self.load_worker.finished.connect(self._updateDataSources)
-		self.load_worker.finished.connect(self._updateControls)
-		console.send(f'Calling super._loadData()')
-		self._setUpLoadWorkerThread()
-		console.send(f'Starting thread')
-		self.load_worker_thread.start()
+		try:
+			self.controls.orbit_controls.submit_button.setEnabled(False)
+			self._setUpLoadWorkerThread()
+			console.send(f'Starting thread')
+			self.load_worker_thread.start()
+		except Exception as e:
+			console.send(f"Error history3D ln 128: {e}", file=sys.stderr)
+			self.controls.orbit_controls.submit_button.setEnabled(True)
+			raise e
 
 	def _updateControls(self, *args, **kwargs):
 		self.controls.orbit_controls.period_start.setDatetime(self.data['period_start'])
 		self.controls.orbit_controls.period_end.setDatetime(self.data['period_end'])
+		self.controls.orbit_controls.submit_button.setEnabled(True)
 
 	def _updateDataSources(self, t, o, c_list, pointing_q):
 		self.data['timespan'] = t
@@ -140,12 +147,11 @@ class History3DContext(BaseContext):
 		else:
 			self.data['pointing'] = None
 		
-		if self.data['constellation_index'] is not None:
+		if self.data['constellation_config'] is not None:
 			self.data['constellation_list'] = c_list
 		else:
 			self.data['constellation_list'] = None
 
-		console.send(f'Constellation index: {self.data["constellation_index"]}')
 		if self.data['constellation_list'] is not None:
 			console.send(f'Length Constellation list: {len(self.data["constellation_list"])}')
 		else:
@@ -192,9 +198,9 @@ class History3DContext(BaseContext):
 		state['camera'] = self.canvas_wrapper.prepSerialisation()
 		return state
 
-	def _cleanUpLoadWorkerThread(self):
+	def _cleanUpErrorInLoadWorkerThread(self, err_str=None):
 		self.controls.orbit_controls.submit_button.setEnabled(True)
-		return super()._cleanUpLoadWorkerThread()
+		return super()._cleanUpErrorInLoadWorkerThread(err_str=err_str)
 
 	def _centerCameraEarth(self):
 		if self.sccam_state and self.controls.toolbar.button_dict['center-spacecraft'].isChecked():
@@ -213,84 +219,116 @@ class History3DContext(BaseContext):
 
 	class LoadDataWorker(BaseDataWorker):
 		finished = QtCore.pyqtSignal(timespan.TimeSpan, orbit.Orbit, list, np.ndarray)
-		error = QtCore.pyqtSignal()
+		error = QtCore.pyqtSignal(str)
 
-		def __init__(self, period_start, period_end, sampling_period, prim_orbit_TLE_path,
-			   		 c_index = None, c_file=None, c_name=None, p_file=None, *args, **kwargs):
+		def __init__(self, period_start, period_end, sampling_period, prim_config,
+			   			c_config=None, p_file=None, *args, **kwargs):
 			super().__init__(*args, **kwargs)
 			self.period_start = period_start
 			self.period_end = period_end
 			self.timestep = sampling_period
-			self.prim_orbit_TLE_path = prim_orbit_TLE_path
+			self.prim_config = prim_config
 			self.t = None
 			self.o = None
-			self.c_index = c_index
-			self.c_file = c_file
-			self.c_name = c_name
+			self.c_config = c_config
 			self.c_list = []
 			self.p_file = p_file
 			self.pointing_q = None
 
 		def run(self):
-			console.send("Started Load Data Worker thread")
-			self.period_start.replace(microsecond=0)
-			self. period_end.replace(microsecond=0)			
-			time_period = int((self.period_end - self.period_start).total_seconds())
-			console.send(f"Creating Timespan from {self.period_start} -> {self.period_end} ...")
-			self.t = timespan.TimeSpan(self.period_start,
-								timestep=f'{self.timestep}S',
-								timeperiod=f'{time_period}S')
-			console.send(f"\tDuration: {self.t.time_period}")
-			console.send(f"\tNumber of steps: {len(self.t)}")
-			console.send(f"\tLength of timestep: {self.t.time_step}")
+			try:
+				console.send("Started Load Data Worker thread")
+				# TIMESPAN
+				self.period_start.replace(microsecond=0)
+				self. period_end.replace(microsecond=0)			
+				time_period = int((self.period_end - self.period_start).total_seconds())
+				console.send(f"Creating Timespan from {self.period_start} -> {self.period_end} ...")
+				self.t = timespan.TimeSpan(self.period_start,
+									timestep=f'{self.timestep}S',
+									timeperiod=f'{time_period}S')
+				console.send(f"\tDuration: {self.t.time_period}")
+				console.send(f"\tNumber of steps: {len(self.t)}")
+				console.send(f"\tLength of timestep: {self.t.time_step}")
 
-
-			console.send(f"Propagating orbit from {self.prim_orbit_TLE_path.split('/')[-1]} ...")
-			self.o = orbit.Orbit.fromTLE(self.t, self.prim_orbit_TLE_path)
-			console.send(f"\tNumber of steps in single orbit: {self.o.period_steps}")
-			
-			self.pointing_q = np.array(())
-			if self.p_file is not None and self.p_file != '':
-				console.send(f"Loading pointing from {self.p_file.split('/')[-1]}")
-				pointing_dates, pointing_q = readPointingData(self.p_file)
-
-				total_secs = lambda x: x.total_seconds()
-				total_secs = np.vectorize(total_secs)
-				sample_periods = total_secs(np.diff(pointing_dates))
-				different_sample_periods = np.where(sample_periods != sample_periods[0])[0]
-				if len(different_sample_periods) != 0:
-					print(f"WARNING: pointing samples are not taken at regular intervals - {pointing_dates[different_sample_periods]}", file=sys.stderr)
-
-				if sample_periods[0] != self.timestep:
-					print(f"ERROR: pointing file sampling period do not match the selected visualiser sampling period", file=sys.stderr)
-					self.error.emit()
-					return
-				
-				pointing_start_index = np.where(pointing_dates==self.period_start)[0]
-				if len(pointing_start_index) == 0:
-					print(f"ERROR: pointing file does not contain the selected start time {self.period_start}", file=sys.stderr)
-					self.error.emit()
-					return
-				pointing_start_index = pointing_start_index[0]
-
-
-				if len(pointing_q)-pointing_start_index < len(self.t):
-					print(f"WARNING: pointing file does not contain sufficient samples for the selected time period", file=sys.stderr)
-					print(f"\tAppending NaN to fill missing samples.", file=sys.stderr)
-					padding = np.empty((len(self.t)-(len(pointing_q)-pointing_start_index),4))
-					padding[:] = np.nan
-					self.pointing_q = np.vstack((pointing_q[pointing_start_index:],padding))
+				# PRIMARY ORBIT
+				if spacetrack.doCredentialsExist():
+					spacetrack.updateTLEs(self.prim_config)
+					prim_orbit_TLE_path = spacetrack.getTLEFilePath(spacetrack.getSatIDs(self.prim_config)[0])
+					use_temp = False
 				else:
-					self.pointing_q = pointing_q[pointing_start_index:len(self.t)+pointing_start_index]
+					celestrak.updateTLEs(self.prim_config)
+					prim_orbit_TLE_path = celestrak.getTLEFilePath(spacetrack.getSatIDs(self.prim_config)[0])
+					use_temp = True
+				
+				console.send(f"Propagating orbit from {prim_orbit_TLE_path.split('/')[-1]} ...")
+				self.o = orbit.Orbit.fromTLE(self.t, prim_orbit_TLE_path)
+				console.send(f"\tNumber of steps in single orbit: {self.o.period_steps}")
 
-			if self.c_index is not None:
-				console.send(f"Propagating constellation orbits from {self.c_file.split('/')[-1]} ...")
-				self.c_list = orbit.Orbit.multiFromTLE(self.t, self.c_file, console.consolefp)
-				console.send(f"\tLoaded {len(self.c_list)} satellites from the {self.c_name} constellation.")
-			
-			console.send("Load Data Worker thread finished")
-			self.finished.emit(self.t, self.o, self.c_list, self.pointing_q)
+				# POINTING FILE
+				self.pointing_q = np.array(())
+				if self.p_file is not None and self.p_file != '':
+					console.send(f"Loading pointing from {self.p_file.split('/')[-1]}")
+					pointing_dates, pointing_q = readPointingData(self.p_file)
 
+					total_secs = lambda x: x.total_seconds()
+					total_secs = np.vectorize(total_secs)
+					sample_periods = total_secs(np.diff(pointing_dates))
+					different_sample_periods = np.where(sample_periods != sample_periods[0])[0]
+					if len(different_sample_periods) != 0:
+						print(f"WARNING: pointing samples are not taken at regular intervals - {pointing_dates[different_sample_periods]}", file=sys.stderr)
+
+					if sample_periods[0] != self.timestep:
+						print(f"ERROR: pointing file sampling period do not match the selected visualiser sampling period", file=sys.stderr)
+						self.error.emit(f"ERROR: pointing file sampling period do not match the selected visualiser sampling period")
+						return
+					
+					pointing_start_index = np.where(pointing_dates==self.period_start)[0]
+					if len(pointing_start_index) == 0:
+						print(f"ERROR: pointing file does not contain the selected start time {self.period_start}", file=sys.stderr)
+						self.error.emit("ERROR: pointing file does not contain the selected start time")
+						return
+					pointing_start_index = pointing_start_index[0]
+
+					if len(pointing_q)-pointing_start_index < len(self.t):
+						print(f"WARNING: pointing file does not contain sufficient samples for the selected time period", file=sys.stderr)
+						print(f"\tAppending NaN to fill missing samples.", file=sys.stderr)
+						padding = np.empty((len(self.t)-(len(pointing_q)-pointing_start_index),4))
+						padding[:] = np.nan
+						self.pointing_q = np.vstack((pointing_q[pointing_start_index:],padding))
+					else:
+						self.pointing_q = pointing_q[pointing_start_index:len(self.t)+pointing_start_index]
+
+				# CONSTELLATION
+				if self.c_config is not None:
+					self.c_list = []
+					num_c_sats = len(spacetrack.getSatIDs(self.c_config))
+					if not use_temp:
+						spacetrack.updateTLEs(self.c_config)
+					else:
+						celestrak.updateTLEs(self.c_config)
+					console.send(f"Propagating constellation orbits ...")
+					ii = 0
+					for sat_id in progressbar(spacetrack.getSatIDs(self.c_config)):
+						pc = ii/num_c_sats*100
+						bar_str = int(pc)*'='
+						space_str = (100-int(pc))*'  '
+						console.send(f'Loading {pc:.2f}% ({ii} of {num_c_sats}) |{bar_str}{space_str}|\r')
+						
+						if not use_temp:		
+							c_path = spacetrack.getTLEFilePath(sat_id)
+							
+						else:
+							c_path = celestrak.getTLEFilePath(sat_id)
+
+						self.c_list.append(orbit.Orbit.fromTLE(self.t, c_path, astrobodies=False))
+						ii += 1
+					console.send(f"\tLoaded {len(self.c_list)} satellites from the {self.c_config['name']} constellation.")
+				
+				console.send("Load Data Worker thread finished")
+				self.finished.emit(self.t, self.o, self.c_list, self.pointing_q)
+
+			except Exception as e:
+				self.error.emit(f'Load Data Worker Exception: {e}')
 
 		
 	class Controls(BaseControls):
