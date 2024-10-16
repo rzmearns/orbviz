@@ -63,10 +63,8 @@ class TimeSpan(object):
 		# Numpy doesn't like timezones as of 1.11
 		self.start = self.start.replace(tzinfo=self.timezone)
 		self.end = self.end.replace(tzinfo=self.timezone)
-		self.start = self.start.astimezone(tz=dt.timezone.utc)
-		self.end = self.end.astimezone(tz=dt.timezone.utc)
-		self.start = self.start.replace(tzinfo=None)
-		self.end = self.end.replace(tzinfo=None)
+		# self.start = self.start.astimezone(tz=dt.timezone.utc)
+		# self.end = self.end.astimezone(tz=dt.timezone.utc)
 
 		if self.start >= self.end:
 			logger.error("Timeperiod: {} results in an end date earlier than the start date".
@@ -92,6 +90,9 @@ class TimeSpan(object):
 
 		self._timearr = np.arange(self.start, self.end, self.time_step).astype(dt.datetime)
 		self._skyfield_timespan = load.timescale()
+
+		for ii in range(len(self._timearr)):
+			self._timearr[ii] = self._timearr[ii].replace(tzinfo=self.timezone)
 
 
 

@@ -105,6 +105,15 @@ class BaseAsset(ABC):
 			self.requires_recompute = False'''
 		raise NotImplementedError
 	
+	def forceRedraw(self):
+		self.requires_recompute = True
+		self.recompute()
+		for asset in self.assets.values():
+			if isinstance(asset,BaseAsset):
+				asset.requires_recompute = True
+				asset.recompute()
+
+
 	def updateIndex(self, index):
 		'''Update the stored curr_index value
 			Should include the following iteration in the overriding method
@@ -124,7 +133,11 @@ class BaseAsset(ABC):
 				asset.recompute()
 
 	def getScreenMouseOverInfo(self):
-		return [],[],[]
+		mo_info = {'screen_pos':[], 'world_pos':[], 'strings':[], 'objects':[]}
+		return mo_info
+
+	def mouseOver(self, index):
+		return
 
 	def _listVisuals(self):
 		keys = [key for key in self.visuals.keys()]

@@ -107,7 +107,12 @@ class OrbitVisualiser(BaseAsset):
 		curr_world_pos = (self.data['coords'][self.data['curr_index']]).reshape(1,3)
 		canvas_pos = self.visuals['marker'].get_transform('visual','canvas').map(curr_world_pos)
 		canvas_pos /= canvas_pos[:,3:]
-		return [(canvas_pos[0,0], canvas_pos[0,1])], [curr_world_pos], self.data['strings']
+		mo_info = {'screen_pos':[], 'world_pos':[], 'strings':[], 'objects':[]}
+		mo_info['screen_pos'] = [(canvas_pos[0,0], canvas_pos[0,1])]
+		mo_info['world_pos'] = [curr_world_pos]
+		mo_info['strings'] = self.data['strings']
+		mo_info['objects'] = [self]
+		return mo_info
 		# return [(canvas_pos[0,0], canvas_pos[0,1])], ['SpIRIT']
 
 

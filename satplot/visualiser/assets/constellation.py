@@ -143,8 +143,15 @@ class Constellation(BaseAsset):
 			canvas_poss.append((canvas_pos[0,0],canvas_pos[0,1]))
 			world_poss.append(curr_world_pos)
 
-		return canvas_poss, world_poss, self.data['strings']
-		# return [(canvas_pos[0,0], canvas_pos[0,1])], ['SpIRIT']
+		mo_info = {'screen_pos':[], 'world_pos':[], 'strings':[], 'objects':[]}
+		mo_info['screen_pos'] = canvas_poss
+		mo_info['world_pos'] = world_poss
+		mo_info['strings'] = self.data['strings']
+		mo_info['objects'] = [self]*self.data['num_sats']
+		return mo_info
+
+	def mouseOver(self, index):
+		self.assets['beams'].mouseOver(index)
 
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}
@@ -213,6 +220,9 @@ class InstancedConstellationBeams(BaseAsset):
 		self._initData()
 		self._instantiateAssets()
 		# Can't create instanced mesh until source set
+		# Add circles to dict first, so that parent gets set first, otherwise will be hidden by cones
+		self.visuals['circles'] = None
+		self.visuals['scircle'] = None
 		self.visuals['beams'] = None
 		self.attachToParentView()
 
@@ -223,6 +233,7 @@ class InstancedConstellationBeams(BaseAsset):
 		self.data['curr_index'] = 0
 		self.data['num_sats'] = 0
 		self.data['start_beam_vec'] = np.array((0,0,1)).reshape(1,3)
+		self.data['c_conn'] = None
 
 	def setSource(self, *args, **kwargs):
 		# args[0] = num_sats
@@ -280,6 +291,33 @@ class InstancedConstellationBeams(BaseAsset):
 												self.data['start_beam_vec'],
 												self.data['beam_angle_deg'],
 												theta_sample = 60)
+		
+		generic_cone_points = polyhedra.calcConePoints((0,0,0),
+													self.data['beam_height'],
+													self.data['start_beam_vec'],
+													self.data['beam_angle_deg'],
+													axis_sample=2,
+													theta_sample=60,
+													sorted=False)
+		self.data['generic_circle_points'] = generic_cone_points[(generic_cone_points != np.asarray((0,0,0))).all(axis=1),:]
+		self.data['generic_circle_points'] = np.vstack((self.data['generic_circle_points'],self.data['generic_circle_points'][0,:]))
+		circles = self._genBeamCircles(instance_transforms, instance_positions)
+		self.visuals['circles'] = vVisuals.Line(circles,
+										  		connect=self.data['c_conn'],
+								 				color=colours.normaliseColour((self.opts['beams_colour']['value'][0]/2,
+												self.opts['beams_colour']['value'][1]/2,
+												self.opts['beams_colour']['value'][2]/2)),
+												width=self.opts['circle_width']['value'],
+												parent=None)
+		self.data['num_generic_circle_points'] = len(self.data['generic_circle_points'])
+		self.data['s_c_conn'] = np.array((0,0)).reshape(-1,2)
+		self.visuals['scircle'] = vVisuals.Line(circles,
+												connect=self.data['s_c_conn'],
+								 				color=colours.normaliseColour((self.opts['beams_colour']['value'][0]/2,
+												self.opts['beams_colour']['value'][1]/2,
+												self.opts['beams_colour']['value'][2]/2)),
+												width=5.0,
+												parent=None)	
 		self.visuals['beams'] = vVisuals.InstancedMesh(vertices,
 													faces,
 													instance_colors=instance_colours,
@@ -288,7 +326,6 @@ class InstancedConstellationBeams(BaseAsset):
 													parent=None)
 		alpha_filter = vFilters.Alpha(self.opts['beams_alpha']['value'])
 		self.visuals['beams'].attach(alpha_filter)
-		print("Created beams")
 
 	# Use BaseAsset.updateIndex()
 
@@ -296,6 +333,8 @@ class InstancedConstellationBeams(BaseAsset):
 		if self.first_draw:
 			if self.visuals['beams'] is not None:
 				self.visuals['beams'].parent = None
+				self.visuals['circles'].parent = None
+				self.visuals['scircle'].parent = None
 			self._createVisuals()
 			self.attachToParentView()
 			self.first_draw = False
@@ -317,18 +356,31 @@ class InstancedConstellationBeams(BaseAsset):
 
 			self.visuals['beams'].instance_transforms = instance_transforms
 			self.visuals['beams'].instance_positions = instance_positions
+			circles = self._genBeamCircles(instance_transforms,instance_positions)
+			self.visuals['circles'].set_data(circles)
+			self.data['s_c_conn'] = np.array((0,0)).reshape(-1,2)
+			self.visuals['scircle'].set_data(pos=circles, connect=self.data['s_c_conn'])
 			self.requires_recompute = False
+
+	def mouseOver(self, index):
+		self.data['s_c_conn'] = np.array([np.arange(self.data['num_generic_circle_points']-1),
+											np.arange(1,self.data['num_generic_circle_points'])]).T + index * self.data['num_generic_circle_points']
+		self.visuals['scircle'].set_data(connect=self.data['s_c_conn'])
 
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}
 		self._dflt_opts['beams_alpha'] = {'value': 0.5,
-										'type': 'number',
+										'type': 'float',
 										'help': '',
 										'callback': self.setBeamsAlpha}
 		self._dflt_opts['beams_colour'] = {'value': (0, 255, 0),
 										'type': 'colour',
 										'help': '',
 										'callback': self.setBeamsColour}
+		self._dflt_opts['circle_width'] = {'value': 0.5,
+										'type': 'float',
+										'help': '',
+										'callback': self.setCirclesWidth}
 		self.opts = self._dflt_opts.copy()
 
 	#----- OPTIONS CALLBACKS -----#	
@@ -339,8 +391,39 @@ class InstancedConstellationBeams(BaseAsset):
 	def setBeamsAlpha(self, alpha):
 		raise NotImplementedError
 	
+	def setCirclesWidth(self, width):
+		self.opts['circle_width']['value'] = width
+		self._updateLineVisualsOptions()
+
+	def _updateLineVisualsOptions(self):
+		self.visuals['circles'].set_data(width=self.opts['circle_width']['value'])
+
 	def setVisibility(self, state):
-		self.visuals['beams'].visible = False
+		self.visuals['beams'].visible = state
+
+	def _genBeamCircles(self, instance_transforms, instance_positions):
+		total_len = 0
+		gen_conn = False
+		circles = None
+		if self.data['c_conn'] is None:
+			gen_conn = True
+		
+		for ii in range(len(instance_transforms)):
+			circle = np.dot(instance_transforms[ii],self.data['generic_circle_points'].T).T + instance_positions[ii]	
+			poly_len = len(circle)
+			new_conn = np.array([np.arange(poly_len-1),np.arange(1,poly_len)]).T + total_len
+			if gen_conn:
+				if self.data['c_conn'] is not None:
+					self.data['c_conn'] = np.vstack((self.data['c_conn'],new_conn))
+				else:
+					self.data['c_conn'] = new_conn
+			total_len += poly_len
+			if circles is not None:
+				circles = np.vstack((circles, circle))
+			else:
+				circles = circle
+
+		return circles
 
 class ConstellationBeams(BaseAsset):
 	def __init__(self, name=None, v_parent=None):

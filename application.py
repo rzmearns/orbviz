@@ -11,6 +11,7 @@ import argparse
 
 import satplot.visualiser.controls.console as console
 import satplot
+import satplot.visualiser.controls.dialogs as dialogs
 
 import json
 import pickle
@@ -49,6 +50,7 @@ class Application():
 		context.controls.action_dict['save']['callback'] = self.save
 		context.controls.action_dict['save-as']['callback'] = self.saveAs
 		context.controls.action_dict['load']['callback'] = self.load
+		context.controls.action_dict['spacetrak-credentials']['callback'] = dialogs.SpaceTrackCredentialsDialog
 
 	def save(self):
 		if self.save_file is not None:
@@ -99,9 +101,18 @@ class Application():
 																options=options)			
 		return filename
 
+def setDefaultPackageOptions():
+	satplot.running = True
+	satplot.gl_plus = True
+	satplot.debug = False
+	try:
+		with open('data/spacetrack/.credentials', 'rb') as fp:
+			satplot.spacetrack_credentials = pickle.load(fp)
+	except Exception as e:
+		satplot.spacetrack_credentials = {'user':None, 'passwd':None}
 
 if __name__ == '__main__':
-
+	setDefaultPackageOptions()
 	parser = argparse.ArgumentParser(
 						prog='SatPlot',
 						description='Visualisation software for satellites; including orbits and pointing.')
@@ -110,12 +121,8 @@ if __name__ == '__main__':
 	args = parser.parse_args()
 	if args.nogl_plus:
 		satplot.gl_plus = False
-	else:
-		satplot.gl_plus = True
 	if args.debug:
 		satplot.debug = True
-	else:
-		satplot.debug = False
 	application = Application()
 	application.run()
 
