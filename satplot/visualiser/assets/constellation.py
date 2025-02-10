@@ -5,7 +5,7 @@ from satplot.visualiser.assets.base import BaseAsset
 import satplot.visualiser.controls.console as console
 import satplot.model.geometry.polyhedra as polyhedra
 import satplot.model.geometry.primgeom as pg
-import satplot.model.orbit as orbit
+import spherapy.orbit as orbit
 
 from scipy.spatial.transform import Rotation
 import scipy.special as sc

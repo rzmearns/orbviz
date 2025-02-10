@@ -6,7 +6,7 @@ from satplot.visualiser.assets import axis_indicator as axisInd
 from satplot.model.geometry import transformations as transforms
 from satplot.model.geometry import primgeom as pg
 from satplot.model.geometry import polygons
-import satplot.model.orbit as orbit
+import spherapy.orbit as orbit
 
 import satplot.visualiser.controls.console as console
 

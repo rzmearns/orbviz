@@ -17,7 +17,7 @@ import datetime as dt
 # Don't need to import all of skyfield just for EarthSatellite loading.
 # TODO: figure out the lightest import to use
 from skyfield.api import load, EarthSatellite
-
+from skyfield.data import hipparcos
 import satplot.util.list_u as list_u
 import satplot.util.epoch_u as epoch_u
 import satplot.util.orbital_u as orbit_u

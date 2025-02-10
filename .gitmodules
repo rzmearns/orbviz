@@ -1,0 +1,3 @@
+[submodule "spherapy"]
+	path = spherapy
+	url = git@gitlab.unimelb.edu.au:msl/libraries/spherapy.git

@@ -7,7 +7,7 @@ from satplot.model.geometry import transformations as transforms
 from satplot.model.geometry import primgeom as pg
 from satplot.model.geometry import polygons
 from satplot.model.geometry import polyhedra
-import satplot.model.orbit as orbit
+import spherapy.orbit as orbit
 from satplot.visualiser.controls import console
 
 from vispy import scene
@@ -88,7 +88,7 @@ class Sun(BaseAsset):
 		if type(args[0]) is not orbit.Orbit:
 			raise TypeError
 		
-		self.data['pos'] = args[0].sun
+		self.data['pos'] = args[0].sun_pos
 
 	# Override BaseAsset.updateIndex()
 	def updateIndex(self, index):

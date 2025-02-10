@@ -6,7 +6,7 @@ from satplot.visualiser.assets import axis_indicator as axisInd
 from satplot.model.geometry import transformations as transforms
 from satplot.model.geometry import primgeom as pg
 from satplot.model.geometry import polygons
-import satplot.model.timespan as timespan
+import spherapy.timespan as timespan
 
 import geopandas as gpd
 from skyfield.api import wgs84

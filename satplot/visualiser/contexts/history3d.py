@@ -1,13 +1,15 @@
 import satplot
-import satplot.model.timespan as timespan
-import satplot.model.orbit as orbit
+import spherapy.timespan as timespan
+import spherapy.orbit as orbit
 from satplot.visualiser import canvaswrappers
 from satplot.visualiser.contexts.base import (BaseContext, BaseDataWorker, BaseControls)
 import satplot.visualiser.controls.console as console
 from satplot.visualiser.controls import controls, widgets
 import satplot.util.spacetrack as spacetrack
 import satplot.util.celestrak as celestrak
+import satplot.util.list_u as list_u
 from progressbar import progressbar
+import traceback
 
 import sys
 import numpy as np
@@ -97,14 +99,18 @@ class History3DContext(BaseContext):
 			self.data['constellation_name'] = None
 			self.data['constellation_beam_angle'] = None
 
+		self.data['pnt_defines_sampling'] = False
 		if self.controls.orbit_controls.pointing_file_controls.isEnabled():
 			self.data['pointing_file'] = self.controls.orbit_controls.pointing_file_controls._pointing_file_selector.path
 			self.data['pointing_invert_transform'] = self.controls.orbit_controls.pointing_file_controls.pointing_file_inv_toggle.isChecked()
 			if self.controls.orbit_controls.pointing_file_controls.pointingFileDefinesPeriod():
+				self.data['pnt_defines_sampling'] = True
 				pointing_dates,q = readPointingData(self.data['pointing_file'])
 				self.data['period_start'] = pointing_dates[0]
+				print(f'{pointing_dates[0]=}')
+				print(f'{pointing_dates[-1]=}')
 				self.data['period_end'] = pointing_dates[-1]
-				self.data['sampling_period'] = (pointing_dates[1]-pointing_dates[0]).total_seconds()
+				self.data['sampling_period'] = 1
 		else:
 			self.data['pointing_file'] = None
 			self.data['pointing_invert_transform'] = None
@@ -117,7 +123,8 @@ class History3DContext(BaseContext):
 												self.data['sampling_period'],
 												self.data['prim_config'],
 												c_config = self.data['constellation_config'],
-												p_file = self.data['pointing_file'])
+												p_file = self.data['pointing_file'],
+												p_file_defines_sampling=self.data['pnt_defines_sampling'])
 
 		try:
 			self.controls.orbit_controls.submit_button.setEnabled(False)
@@ -171,6 +178,7 @@ class History3DContext(BaseContext):
 
 	def _updateIndex(self, index):
 		self.canvas_wrapper.updateIndex(index)
+		console.send(self.data['timespan'][index])
 
 	def loadState(self):
 		pass
@@ -222,7 +230,7 @@ class History3DContext(BaseContext):
 		error = QtCore.pyqtSignal(str)
 
 		def __init__(self, period_start, period_end, sampling_period, prim_config,
-			   			c_config=None, p_file=None, *args, **kwargs):
+			   			c_config=None, p_file=None, p_file_defines_sampling=False, *args, **kwargs):
 			super().__init__(*args, **kwargs)
 			self.period_start = period_start
 			self.period_end = period_end
@@ -233,17 +241,24 @@ class History3DContext(BaseContext):
 			self.c_config = c_config
 			self.c_list = []
 			self.p_file = p_file
+			self.p_file_defines_sampling = p_file_defines_sampling
 			self.pointing_q = None
 
 		def run(self):
 			try:
 				console.send("Started Load Data Worker thread")
 				# TIMESPAN
-				self.period_start.replace(microsecond=0)
-				self. period_end.replace(microsecond=0)			
-				time_period = int((self.period_end - self.period_start).total_seconds())
-				console.send(f"Creating Timespan from {self.period_start} -> {self.period_end} ...")
-				self.t = timespan.TimeSpan(self.period_start,
+
+				if self.p_file is not None and self.p_file != '' and self.p_file_defines_sampling:
+					console.send('Using pointing file to create timespan')
+					pointing_dates, pointing_q = readPointingData(self.p_file)
+					self.t = timespan.TimeSpan.fromDatetime(pointing_dates)
+				else:
+					self.period_start.replace(microsecond=0)
+					self.period_end.replace(microsecond=0)
+					time_period = int((self.period_end - self.period_start).total_seconds())
+					console.send(f"Creating Timespan from {self.period_start} -> {self.period_end} ...")
+					self.t = timespan.TimeSpan(self.period_start,
 									timestep=f'{self.timestep}S',
 									timeperiod=f'{time_period}S')
 				console.send(f"\tDuration: {self.t.time_period}")
@@ -270,33 +285,35 @@ class History3DContext(BaseContext):
 					console.send(f"Loading pointing from {self.p_file.split('/')[-1]}")
 					pointing_dates, pointing_q = readPointingData(self.p_file)
 
-					total_secs = lambda x: x.total_seconds()
-					total_secs = np.vectorize(total_secs)
-					sample_periods = total_secs(np.diff(pointing_dates))
-					different_sample_periods = np.where(sample_periods != sample_periods[0])[0]
-					if len(different_sample_periods) != 0:
-						print(f"WARNING: pointing samples are not taken at regular intervals - {pointing_dates[different_sample_periods]}", file=sys.stderr)
+					# total_secs = lambda x: x.total_seconds()
+					# total_secs = np.vectorize(total_secs)
+					# sample_periods = total_secs(np.diff(pointing_dates))
+					# different_sample_periods = np.where(sample_periods != sample_periods[0])[0]
+					# if len(different_sample_periods) != 0:
+					# 	print(f"WARNING: pointing samples are not taken at regular intervals - {pointing_dates[different_sample_periods]}", file=sys.stderr)
 
-					if sample_periods[0] != self.timestep:
-						print(f"ERROR: pointing file sampling period do not match the selected visualiser sampling period", file=sys.stderr)
-						self.error.emit(f"ERROR: pointing file sampling period do not match the selected visualiser sampling period")
-						return
+					# if sample_periods[0] != self.timestep:
+					# 	print(f"ERROR: pointing file sampling period do not match the selected visualiser sampling period", file=sys.stderr)
+					# 	self.error.emit(f"ERROR: pointing file sampling period do not match the selected visualiser sampling period")
+					# 	return
 					
-					pointing_start_index = np.where(pointing_dates==self.period_start)[0]
-					if len(pointing_start_index) == 0:
-						print(f"ERROR: pointing file does not contain the selected start time {self.period_start}", file=sys.stderr)
-						self.error.emit("ERROR: pointing file does not contain the selected start time")
-						return
-					pointing_start_index = pointing_start_index[0]
+					# pointing_start_index = np.where(pointing_dates==self.period_start)[0]
+					# if len(pointing_start_index) == 0:
+					# 	print(f"ERROR: pointing file does not contain the selected start time {self.period_start}", file=sys.stderr)
+					# 	self.error.emit("ERROR: pointing file does not contain the selected start time")
+					# 	return
+					# pointing_start_index = pointing_start_index[0]
 
-					if len(pointing_q)-pointing_start_index < len(self.t):
-						print(f"WARNING: pointing file does not contain sufficient samples for the selected time period", file=sys.stderr)
-						print(f"\tAppending NaN to fill missing samples.", file=sys.stderr)
-						padding = np.empty((len(self.t)-(len(pointing_q)-pointing_start_index),4))
-						padding[:] = np.nan
-						self.pointing_q = np.vstack((pointing_q[pointing_start_index:],padding))
-					else:
-						self.pointing_q = pointing_q[pointing_start_index:len(self.t)+pointing_start_index]
+					# if len(pointing_q)-pointing_start_index < len(self.t):
+					# 	print(f"WARNING: pointing file does not contain sufficient samples for the selected time period", file=sys.stderr)
+					# 	print(f"\tAppending NaN to fill missing samples.", file=sys.stderr)
+					# 	padding = np.empty((len(self.t)-(len(pointing_q)-pointing_start_index),4))
+					# 	padding[:] = np.nan
+					# 	self.pointing_q = np.vstack((pointing_q[pointing_start_index:],padding))
+					# else:
+					# 	self.pointing_q = pointing_q[pointing_start_index:len(self.t)+pointing_start_index]
+
+					self.pointing_q = pointing_q
 
 				# CONSTELLATION
 				if self.c_config is not None:
@@ -328,7 +345,10 @@ class History3DContext(BaseContext):
 				self.finished.emit(self.t, self.o, self.c_list, self.pointing_q)
 
 			except Exception as e:
-				self.error.emit(f'Load Data Worker Exception: {e}')
+				traceback.print_tb(e.__traceback__,file=sys.stderr)
+				self.error.emit(f'Load Data Worker Exception: {e} '
+								f''
+								f'')
 
 		
 	class Controls(BaseControls):
@@ -407,5 +427,5 @@ def date_parser(d_bytes):
 	d_bytes = d_bytes[:d_bytes.index(b'.')+4]
 	s = d_bytes.decode('utf-8')
 	d = dt.datetime.strptime(s,"%Y-%m-%d %H:%M:%S.%f")
-	print(d)
+	d = d.replace(tzinfo=dt.timezone.utc)
 	return d.replace(microsecond=0)

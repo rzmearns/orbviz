@@ -1,6 +1,6 @@
 import satplot
-import satplot.model.timespan as timespan
-import satplot.model.orbit as orbit
+import spherapy.timespan as timespan
+import spherapy.orbit as orbit
 from satplot.visualiser import canvaswrappers
 from satplot.visualiser.contexts.base import (BaseContext, BaseDataWorker, BaseControls)
 import satplot.visualiser.controls.console as console

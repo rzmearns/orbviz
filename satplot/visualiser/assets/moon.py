@@ -4,7 +4,7 @@ from satplot.visualiser.assets.base import BaseAsset
 from satplot.visualiser.controls import console
 
 from satplot.model.geometry import primgeom as pg
-import satplot.model.orbit as orbit
+import spherapy.orbit as orbit
 
 from vispy import scene
 from vispy.visuals.transforms import STTransform
@@ -31,7 +31,7 @@ class Moon(BaseAsset):
 	def setSource(self, *args, **kwargs):
 		if type(args[0]) is not orbit.Orbit:
 			raise TypeError
-		self.data['pos'] = args[0].moon
+		self.data['pos'] = args[0].moon_pos
 
 	def _instantiateAssets(self):
 		pass
