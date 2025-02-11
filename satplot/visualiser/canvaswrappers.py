@@ -1,10 +1,10 @@
 from vispy import scene
 
 from satplot.util import constants as c
-from satplot.visualiser.assets.earth import Earth
+from satplot.visualiser.assets.earth import Earth3DAsset
 from satplot.visualiser.assets.orbit import OrbitVisualiser
-from satplot.visualiser.assets.sun import Sun
-from satplot.visualiser.assets.moon import Moon
+from satplot.visualiser.assets.sun import Sun3DAsset
+from satplot.visualiser.assets.moon import Moon3DAsset
 from satplot.visualiser.assets.spacecraft import SpacecraftVisualiser
 from satplot.visualiser.assets.widgets import PopUpTextBox
 from satplot.visualiser.assets.constellation import Constellation
@@ -46,11 +46,11 @@ class History3D():
 											font_size=10)
 
 	def _buildAssets(self):
-		self.assets['earth'] = Earth(v_parent=self.view_box.scene)
+		self.assets['earth'] = Earth3DAsset(v_parent=self.view_box.scene)
 		self.assets['earth'].makeActive()
 		# self.assets['primary_orbit'] = OrbitVisualiser(v_parent=self.view_box.scene)
-		self.assets['moon'] = Moon(v_parent=self.view_box.scene)
-		self.assets['sun'] = Sun(v_parent=self.view_box.scene)
+		self.assets['moon'] = Moon3DAsset(v_parent=self.view_box.scene)
+		self.assets['sun'] = Sun3DAsset(v_parent=self.view_box.scene)
 
 		# self.assets['constellation'] = Constellation(v_parent=self.view_box.scene)
 

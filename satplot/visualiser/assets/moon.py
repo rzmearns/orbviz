@@ -11,7 +11,7 @@ from vispy.visuals.transforms import STTransform
 
 import numpy as np
 
-class Moon(BaseAsset):
+class Moon3DAsset(BaseAsset):
 	def __init__(self, name=None, v_parent=None):
 		super().__init__(name, v_parent)
 

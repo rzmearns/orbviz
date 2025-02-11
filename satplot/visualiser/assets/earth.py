@@ -16,7 +16,7 @@ from vispy.visuals import transforms as vTransforms
 
 import numpy as np
 
-class Earth(BaseAsset):
+class Earth3DAsset(BaseAsset):
 	def __init__(self, name=None, v_parent=None):
 		super().__init__(name, v_parent)
 						
@@ -80,8 +80,8 @@ class Earth(BaseAsset):
 			asset.setSource(self.data['datetimes'])
 
 	def _instantiateAssets(self):
-		self.assets['parallels'] = ParallelsGrid(v_parent=self.data['v_parent'])
-		self.assets['meridians'] = MeridiansGrid(v_parent=self.data['v_parent'])
+		self.assets['parallels'] = ParallelsGrid3DAsset(v_parent=self.data['v_parent'])
+		self.assets['meridians'] = MeridiansGrid3DAsset(v_parent=self.data['v_parent'])
 
 	def _createVisuals(self):
 		# Earth Sphere
@@ -224,7 +224,7 @@ class Earth(BaseAsset):
 		return coords
 
 
-class ParallelsGrid(SimpleAsset):
+class ParallelsGrid3DAsset(SimpleAsset):
 	def __init__(self,name=None, v_parent=None):
 		super().__init__(name, v_parent)
 		self._setDefaultOptions()
@@ -373,7 +373,7 @@ class ParallelsGrid(SimpleAsset):
 		return coords
 	
 
-class MeridiansGrid(SimpleAsset):
+class MeridiansGrid3DAsset(SimpleAsset):
 	def __init__(self, name=None, v_parent=None):
 		super().__init__(name, v_parent)
 
