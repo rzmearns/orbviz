@@ -102,12 +102,6 @@ class Sun(BaseAsset):
 
 	def recompute(self):
 		if self.first_draw:
-			if self.visuals['umbra'] is not None:
-				# Must do this to clear old visuals before creating a new one
-				# TODO: not clear if this is actually deleting or just removing the reference (memory leak?)
-				self.visuals['umbra'].parent = None
-			self._createVisuals()
-			self.attachToParentView()			
 			self.first_draw = False
 		if self.requires_recompute:
 			# move the sun
