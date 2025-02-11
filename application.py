@@ -34,6 +34,8 @@ class Application():
 		self.save_worker = None
 		self.save_worker_thread = None
 		self.save_file = None
+		satplot.threadpool = QtCore.QThreadPool()
+		print(f"Creating threadpool with {satplot.threadpool.maxThreadCount()} threads")
 
 	def run(self):
 		self.window.show()
