@@ -37,15 +37,48 @@ class History3D():
 															center=(0,0,0),
 															name='Turntable')
 
-		self.is_asset_instantiated = {}
 		self.assets = {}
-		self.initAssetInstantiatedFlags()
-		self.buildScene()
+		self._buildAssets()
 		self.mouseOverText = PopUpTextBox(v_parent=self.view_box,
 											padding=[3,3,3,3],
 											colour=(253,255,189),
 											border_colour=(186,186,186),
 											font_size=10)
+
+	def _buildAssets(self):
+		self.assets['earth'] = Earth(v_parent=self.view_box.scene)
+		self.assets['earth'].makeActive()
+		# self.assets['primary_orbit'] = OrbitVisualiser(v_parent=self.view_box.scene)
+		self.assets['moon'] = Moon(v_parent=self.view_box.scene)
+		self.assets['sun'] = Sun(v_parent=self.view_box.scene)
+
+		# self.assets['constellation'] = Constellation(v_parent=self.view_box.scene)
+
+		# with open('./data/spacecraft/spirit.json') as fp:
+		# 	sc_sens_dict = json.load(fp)
+
+		# sens_suites={}
+		# sens_suites['loris'] = sc_sens_dict
+
+		# self.assets['spacecraft'] = SpacecraftVisualiser(v_parent=self.view_box.scene, sens_suites=sens_suites)
+
+
+
+
+		# if self.is_asset_active['ECI_gizmo']:
+		# self.assets['ECI_gizmo'] = ViewBoxGizmo(canvas=self.canvas,
+		# 				   					parent=self.view_box.scene,
+		# 									translate=(c.R_EARTH,c.R_EARTH),
+		# 									scale=(2*c.R_EARTH,2*c.R_EARTH,2*c.R_EARTH,1))
+		self.setCameraZoom(5*c.R_EARTH)
+		# self.assets['ECI_gizmo'].attachCamera(self.view_box.camera)
+
+	def getActiveAssets(self):
+		active_assets = []
+		for k,v in self.assets.items():
+			if v.isActive():
+				active_assets.append(k)
+		return active_assets
 
 	def setCameraMode(self, mode='turntable'):
 		allowed_cam_modes = ['turntable',
@@ -62,94 +95,83 @@ class History3D():
 	def setCameraZoom(self, zoom):
 		self.view_box.camera.scale_factor = zoom
 
-	def setSource(self, timespan, orbit, pointing=None, pointing_invert_transform=False, c_list=None, c_beam_angle=None):
-		self.assets['earth'].setSource(timespan)
-		self.is_asset_instantiated['earth'] = True
-		self.assets['moon'].setSource(orbit)
-		self.is_asset_instantiated['moon'] = True
+	def setModel(self, data):
+		self.data_model = data
+		self.modelUpdated()
 
-		self.assets['primary_orbit'].setSource(orbit)
-		self.is_asset_instantiated['primary_orbit'] = True
-		if pointing is not None:
-			self.assets['spacecraft'].setSource(orbit, pointing, pointing_invert_transform)
-			self.is_asset_instantiated['spacecraft'] = True
-		elif self.is_asset_instantiated['spacecraft']:
-			# No pointing on this recalculate, but there is a spacecraft asset
-			self.is_asset_instantiated['spacecraft'] = False
-			self.assets['spacecraft'].setSpacecraftAssetVisibility(False)
-			self.assets['primary_orbit'].setOrbitalMarkerVisibility(True)
-		else:
-			self.assets['primary_orbit'].setOrbitalMarkerVisibility(True)
-		
-		if c_list is not None:
-			self.assets['constellation'].setSource(c_list, c_beam_angle)
-			self.is_asset_instantiated['constellation'] = True
+	def modelUpdated(self):
+		# Update data source for earth asset
+		if self.data_model.timespan is not None:
+			self.assets['earth'].setSource(self.data_model.timespan)
+			self.assets['earth'].makeActive()
 
-		self.assets['sun'].setSource(orbit)
-		self.is_asset_instantiated['sun'] = True
+		# Update data source for moon asset
+		if len(self.data_model.getConfigValue('primary_satellite_ids')) > 0:
+			self.assets['moon'].setSource(list(self.data_model.orbits.values())[0])
+			self.assets['moon'].makeActive()
 
-	def initAssetInstantiatedFlags(self):
-		self.is_asset_instantiated['primary_orbit'] = False
-		self.is_asset_instantiated['sun'] = False
-		self.is_asset_instantiated['moon'] = False
-		self.is_asset_instantiated['constellation'] = False
-		self.is_asset_instantiated['earth'] = False
-		self.is_asset_instantiated['spacecraft'] = False
-		self.is_asset_instantiated['ECI_gizmo'] = False
+		# Update data source for sun asset
+		if len(self.data_model.getConfigValue('primary_satellite_ids')) > 0:
+			self.assets['sun'].setSource(list(self.data_model.orbits.values())[0])
+			self.assets['sun'].makeActive()
+
+		# Update data source for primary orbit(s)
+		# if len(self.data_model.getConfigValue('primary_satellite_ids')) > 0:
+		# 	# TODO: extend to draw multiple primary satellites
+		# 	self.assets['primary_orbit'].setSource(list(self.data_model.orbits.values())[0])
+		# 	self.assets['primary_orbit'].makeActive()
+
+
+		# if self.data_model.getConfigValue('is_pointing_defined':
+		# 	self.assets['spacecraft'].setModel(list(self.data_model.orbits.values())[0],
+		# 										list(self.data_model.pointings.values())[0],
+		# 										self.data_model['pointing_invert_transform'])
+		# 	self.is_asset_active['spacecraft'] = True
+		# elif self.is_asset_active['spacecraft']:
+		# 	# No pointing on this recalculate, but there is a spacecraft asset
+		# 	self.is_asset_active['spacecraft'] = False
+		# 	self.assets['spacecraft'].setSpacecraftAssetVisibility(False)
+		# 	self.assets['primary_orbit'].setOrbitalMarkerVisibility(True)
+		# else:
+		# 	self.assets['primary_orbit'].setOrbitalMarkerVisibility(True)
+
+		# if self.data_model['has_supplemental_constellation']:
+		# 	self.assets['constellation'].setModel(c_list, c_beam_angle)
+		# 	self.is_asset_active['constellation'] = True
+
+
 
 	def updateIndex(self, index):
-		if self.is_asset_instantiated['primary_orbit']:
-			self.assets['primary_orbit'].updateIndex(index)
-		if self.is_asset_instantiated['earth']:
-			self.assets['earth'].updateIndex(index)
-		if self.is_asset_instantiated['moon']:
-			self.assets['moon'].updateIndex(index)
-		if self.is_asset_instantiated['constellation']:
-			self.assets['constellation'].updateIndex(index)
-		if self.is_asset_instantiated['spacecraft']:
-			self.assets['spacecraft'].updateIndex(index)
+		for asset_name,asset in self.assets.items():
+			if asset.isActive():
+				asset.updateIndex(index)
+
 		# Sun must be last so that umbra doesn't occlude objects
-		if self.is_asset_instantiated['sun']:
+		if self.assets['sun'].isActive():
 			self.assets['sun'].updateIndex(index)
+
+	def recomputeRedraw(self):
+		for asset_name, asset in self.assets.items():
+			if asset_name == 'sun':
+				continue
+			if asset.isActive():
+				asset.recomputeRedraw()
+
+		# Sun must be last so that umbra doesn't occlude objects
+		if self.assets['sun'].isActive():
+			self.assets['sun'].recomputeRedraw()
 
 	def forceRedraw(self):
 		for k,v in self.assets.items():
-			if self.is_asset_instantiated[k]:
+			if self.is_asset_active[k]:
 				v.forceRedraw()
 
-	# TODO: change this to setFirstDrawFlags()
 	def setFirstDrawFlags(self):
-		for key,value in self.is_asset_instantiated.items():
-			if value:
-				self.assets[key].setFirstDrawFlag()
-
-	def buildScene(self):		
-		self.assets['earth'] = Earth(v_parent=self.view_box.scene)
-		self.assets['primary_orbit'] = OrbitVisualiser(v_parent=self.view_box.scene)
-		self.assets['moon'] = Moon(v_parent=self.view_box.scene)
-		self.assets['constellation'] = Constellation(v_parent=self.view_box.scene)	
-	
-		with open('./data/spacecraft/spirit.json') as fp:
-			sc_sens_dict = json.load(fp)
-
-		sens_suites={}
-		sens_suites['loris'] = sc_sens_dict
-
-		self.assets['spacecraft'] = SpacecraftVisualiser(v_parent=self.view_box.scene, sens_suites=sens_suites)
-
-		self.assets['sun'] = Sun(v_parent=self.view_box.scene)
-
-
-		# if self.is_asset_instantiated['ECI_gizmo']:
-		# self.assets['ECI_gizmo'] = ViewBoxGizmo(canvas=self.canvas,
-		# 				   					parent=self.view_box.scene,
-		# 									translate=(c.R_EARTH,c.R_EARTH),
-		# 									scale=(2*c.R_EARTH,2*c.R_EARTH,2*c.R_EARTH,1))
-		self.setCameraZoom(5*c.R_EARTH)
-		# self.assets['ECI_gizmo'].attachCamera(self.view_box.camera)
+		for asset in self.assets.values():
+			asset.setFirstDrawFlagRecursive()
 
 	def centerCameraSpacecraft(self, set_zoom=True):
-		if self.is_asset_instantiated['spacecraft']:
+		if self.is_asset_active['spacecraft']:
 			sc_pos = tuple(self.assets['spacecraft'].data['coords'][self.assets['spacecraft'].data['curr_index']])			
 		else:
 			sc_pos = tuple(self.assets['primary_orbit'].data['coords'][self.assets['primary_orbit'].data['curr_index']])
@@ -184,7 +206,7 @@ class History3D():
 	def mapAssetPositionsToScreen(self):
 		mo_infos = []
 		for asset_name, asset in self.assets.items():
-			if self.is_asset_instantiated[asset_name]:
+			if asset.isActive():
 				mo_infos.append(asset.getScreenMouseOverInfo())
 
 		return mo_infos

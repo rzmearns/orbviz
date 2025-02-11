@@ -20,7 +20,7 @@ class Moon(BaseAsset):
 		self._instantiateAssets()
 		self._createVisuals()
 		
-		self.attachToParentView()
+		self._attachToParentView()
 	
 	def _initData(self):
 		if self.data['name'] is None:
@@ -44,25 +44,25 @@ class Moon(BaseAsset):
 
 	# Override BaseAsset.updateIndex()
 	def updateIndex(self, index):
+		self._setStaleFlag()
 		self.data['curr_index'] = index
 		self.data['curr_pos'] = self.data['pos'][self.data['curr_index']]
 		for asset in self.assets.values():
 			if isinstance(asset,BaseAsset):
-				asset.updateIndex(index)		
-		self.requires_recompute = True
-		self.recompute()
+				asset.updateIndex(index)
 
-	def recompute(self):
-		if self.first_draw:
-			self.first_draw = False
-		if self.requires_recompute:			
+	def recomputeRedraw(self):
+		if self.isFirstDraw():
+			self._clearFirstDrawFlag()
+		if self.isStale():
 			moon_pos = self.opts['moon_distance_kms']['value'] * pg.unitVector(self.data['curr_pos'])
 			self.visuals['moon'].transform = STTransform(translate=moon_pos)
 
 			for asset in self.assets.values():
-				asset.recompute()
+				if isinstance(asset,BaseAsset):
+					asset.recomputeRedraw()
+			self._clearStaleFlag()
 
-			self.requires_recompute = False
 	
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}

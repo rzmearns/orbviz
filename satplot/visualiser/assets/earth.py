@@ -29,7 +29,7 @@ class Earth(BaseAsset):
 		self.opts['plot_parallels']['callback'] = self.assets['parallels'].setVisibility
 		self.opts['plot_equator']['callback'] = self.assets['parallels'].setVisibility
 
-		self.attachToParentView()
+		self._attachToParentView()
 
 	def _initData(self):
 		if self.data['name'] is None:
@@ -67,7 +67,7 @@ class Earth(BaseAsset):
 		# rotation data
 		self.data['nullisland_topos'] = wgs84.latlon(0,0)
 
-	def setSource(self, *args, **kwargs):		
+	def setSource(self, *args, **kwargs):
 		if type(args[0]) is not timespan.TimeSpan:
 			# args[0] assumed to be timespan
 			raise TypeError
@@ -100,30 +100,29 @@ class Earth(BaseAsset):
 													connect=self.data['landmass_conn'],
 													parent=None)
 
-	# Override BaseAsset.updateIndex()
-	def updateIndex(self, index):
-		self.data['curr_index'] = index
-		nullisland_curr = self.data['nullisland_topos'].at(self.data['datetimes'][self.data['curr_index']]).xyz.km
-		rot_rad = np.arctan2(nullisland_curr[1], nullisland_curr[0])
-		self.data['ecef_rads'] = rot_rad
-		for asset in self.assets.values():
-			if isinstance(asset,BaseAsset):
-				asset.updateIndex(index)
-		self.requires_recompute = True
-		self.recompute()
-
-	def recompute(self):
-		if self.first_draw:
-			self.first_draw = False
-		if self.requires_recompute:
+	def recomputeRedraw(self):
+		if self.isFirstDraw():
+			self._clearFirstDrawFlag()
+		if self.isStale():
+			# calculate rotation of earth
+			nullisland_curr = self.data['nullisland_topos'].at(self.data['datetimes'][self.data['curr_index']]).xyz.km
+			rot_rad = np.arctan2(nullisland_curr[1], nullisland_curr[0])
+			self.data['ecef_rads'] = rot_rad
 			R = transforms.rotAround(self.data['ecef_rads'], pg.Z)
 			new_coords = R.dot(self.data['landmass'].T).T
-			self.visuals['landmass'].set_data(new_coords)
-			for asset in self.assets.values():
-				asset.setTransform(rotation=R)
-			
 
-			self.requires_recompute = False
+			# redraw necessary visuals
+			# only need to rotate landmass. axis and sphere don't need to rotate
+			self.visuals['landmass'].set_data(new_coords)
+
+			# recomputeRedraw child assets
+			for asset in self.assets.values():
+				if isinstance(asset,BaseAsset):
+					asset.recomputeRedraw()
+				elif isinstance(asset, SimpleAsset):
+					asset.setTransform(rotation=R)
+			self._clearStaleFlag()
+
 	
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}
@@ -232,7 +231,7 @@ class ParallelsGrid(SimpleAsset):
 		self._initData()
 		self._instantiateAssets()
 		self._createVisuals()
-		self.attachToParentView()
+		self._attachToParentView()
 
 	def _initData(self):
 		if self.data['name'] is None:
@@ -288,7 +287,10 @@ class ParallelsGrid(SimpleAsset):
 								parent=None)
 
 	def setTransform(self, pos=(0,0,0), rotation=np.eye(3)):
-		pass
+		if self.isFirstDraw():
+			self._clearFirstDrawFlag()
+		if self.isStale():
+			self._clearStaleFlag()
 
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}
@@ -380,7 +382,7 @@ class MeridiansGrid(SimpleAsset):
 		self._instantiateAssets()
 		self._createVisuals()
 
-		self.attachToParentView()
+		self._attachToParentView()
 
 	def _initData(self):
 		if self.data['name'] is None:
@@ -420,10 +422,14 @@ class MeridiansGrid(SimpleAsset):
 		self.setTransform()
 
 	def setTransform(self, pos=(0,0,0), rotation=np.eye(3)):
-		T = np.eye(4)
-		T[0:3,0:3] = rotation
-		T[0:3,3] = np.asarray(pos).reshape(-1,3)
-		self.visuals['meridians'].transform = vTransforms.linear.MatrixTransform(T.T)
+		if self.isFirstDraw():
+			self._clearFirstDrawFlag()
+		if self.isStale():
+			T = np.eye(4)
+			T[0:3,0:3] = rotation
+			T[0:3,3] = np.asarray(pos).reshape(-1,3)
+			self.visuals['meridians'].transform = vTransforms.linear.MatrixTransform(T.T)
+			self._clearStaleFlag()
 
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}

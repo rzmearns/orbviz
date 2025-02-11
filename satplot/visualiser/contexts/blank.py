@@ -2,7 +2,7 @@ import satplot
 import spherapy.timespan as timespan
 import spherapy.orbit as orbit
 from satplot.visualiser import canvaswrappers
-from satplot.visualiser.contexts.base import (BaseContext, BaseDataWorker, BaseControls)
+from satplot.visualiser.contexts.base import (BaseContext, BaseControls)
 import satplot.visualiser.controls.console as console
 from satplot.visualiser.controls import controls, widgets
 
@@ -33,7 +33,7 @@ class BlankContext(BaseContext):
 	def connectControls(self):
 		pass
 
-	def _loadData(self):
+	def _configureData(self):
 		pass
 
 	def loadState(self):
@@ -41,24 +41,11 @@ class BlankContext(BaseContext):
 
 	def saveState(self):
 		pass
-
-	def _cleanUpLoadWorkerThread(self):
-		return super()._cleanUpLoadWorkerThread()
-
-	class LoadDataWorker(BaseDataWorker):
-		finished = QtCore.pyqtSignal()
-		error = QtCore.pyqtSignal()
-
-		def __init__(self, *args, **kwargs):
-			super().__init__(*args, **kwargs)
-
-		def run(self):
-			self.finished.emit()
 		
 	class Controls(BaseControls):
 		def __init__(self, parent_context, canvas_wrapper):
 			self.context = parent_context
-			super().__init__(self.context.data['name'])
+			super().__init__(self.context.config['name'])
 
 			# Prep config widgets
 			
@@ -67,5 +54,5 @@ class BlankContext(BaseContext):
 			# Prep time slider
 
 			# Prep toolbars
-			self.toolbar = controls.Toolbar(self.context.window, self.action_dict, context_name=self.context.data['name'])
-			self.menubar = controls.Menubar(self.context.window, self.action_dict, context_name=self.context.data['name'])
+			self.toolbar = controls.Toolbar(self.context.window, self.action_dict, context_name=self.context.config['name'])
+			self.menubar = controls.Menubar(self.context.window, self.action_dict, context_name=self.context.config['name'])

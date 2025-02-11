@@ -29,7 +29,7 @@ class Sun(BaseAsset):
 		self._instantiateAssets()
 		self._createVisuals()		
 
-		self.attachToParentView()
+		self._attachToParentView()
 	
 	def _initData(self):
 		if self.data['name'] is None:
@@ -92,22 +92,21 @@ class Sun(BaseAsset):
 
 	# Override BaseAsset.updateIndex()
 	def updateIndex(self, index):
+		self._setStaleFlag()
 		self.data['curr_index'] = index
 		self.data['curr_pos'] = self.data['pos'][self.data['curr_index']]
 		for asset in self.assets.values():
 			if isinstance(asset,BaseAsset):			
 				asset.updateIndex(index)		
-		self.requires_recompute = True
-		self.recompute()
 
-	def recompute(self):
-		if self.first_draw:
-			self.first_draw = False
-		if self.requires_recompute:
+	def recomputeRedraw(self):
+		if self.isFirstDraw():
+			self._clearFirstDrawFlag()
+		if self.isStale():
 			# move the sun
 			sun_pos = self.opts['sun_distance_kms']['value'] * pg.unitVector(self.data['curr_pos'])
 			self.visuals['sun_sphere'].transform = vTransforms.STTransform(translate=sun_pos)
-			
+			console.send(sun_pos)
 			# move umbra
 			umbra_dir = (-1*self.data['curr_pos']).reshape(1,3)
 			rot_mat = Rotation.align_vectors(self.data['umbra_start_axis'], umbra_dir)[0].as_matrix()
@@ -127,10 +126,11 @@ class Sun(BaseAsset):
 			self.visuals['vector_body'].set_data(new_vec)
 			self.visuals['vector_head'].transform = vTransforms.linear.MatrixTransform(t_mat2)
 
-			for asset in self.assets.values():
-				asset.recompute()
 
-			self.requires_recompute = False
+			for asset in self.assets.values():
+				if isinstance(asset,BaseAsset):
+					asset.recomputeRedraw()
+			self._clearStaleFlag()
 
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}

@@ -13,7 +13,6 @@ import spherapy.updater as updater
 from satplot.model.data_models.base import (BaseDataModel)
 from satplot.util import threading
 from satplot.model.data_models.data_types import DataType
-from satplot.model.data_models.constellation_data import ConstellationData
 import satplot.visualiser.controls.console as console
 
 
