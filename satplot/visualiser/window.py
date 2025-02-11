@@ -4,6 +4,7 @@ import satplot
 from satplot.visualiser.controls import controls, widgets
 from satplot.visualiser import canvaswrappers
 from satplot.visualiser.contexts import (history3d, blank)
+from satplot.model.data_models import (history_data)
 import satplot.visualiser.controls.console as console
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -32,9 +33,11 @@ class MainWindow(QtWidgets.QMainWindow):
 		self.contexts_dict = {}
 		self.context_tabs = QtWidgets.QTabWidget()
 		
+		# Build data models
+		history_data_model = history_data.HistoryData()
 
 		# Build context panes
-		self.contexts_dict['3d-history'] = history3d.History3DContext('3d-history', self)
+		self.contexts_dict['3d-history'] = history3d.History3DContext('3d-history', self, history_data_model)
 		self.toolbars['3d-history'] = self.contexts_dict['3d-history'].controls.toolbar
 		self.menubars['3d-history'] = self.contexts_dict['3d-history'].controls.menubar
 		self.context_tabs.addTab(self.contexts_dict['3d-history'].widget, '3D History')

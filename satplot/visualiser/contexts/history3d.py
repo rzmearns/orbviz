@@ -8,6 +8,7 @@ from satplot.visualiser.controls import controls, widgets
 import satplot.util.spacetrack as spacetrack
 import satplot.util.celestrak as celestrak
 import satplot.util.list_u as list_u
+from satplot.model.data_models.data_types import DataType
 from progressbar import progressbar
 import traceback
 
@@ -18,7 +19,9 @@ import datetime as dt
 from PyQt5 import QtWidgets, QtCore, QtGui
 
 class History3DContext(BaseContext):
-	def __init__(self, name, parent_window):
+	data_type = DataType.HISTORY
+
+	def __init__(self, name, parent_window, data):
 		super().__init__(name)
 		self.window = parent_window
 		self.data['timespan'] = None
