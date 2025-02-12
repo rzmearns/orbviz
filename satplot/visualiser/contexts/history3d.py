@@ -100,16 +100,18 @@ class History3DContext(BaseContext):
 
 		# Historical pointing
 		if self.controls.orbit_controls.pointing_file_controls.isEnabled():
+			self.data.updateConfig('is_pointing_defined', True)
 			pointing_file_path = self.controls.orbit_controls.pointing_file_controls._pointing_file_selector.path
 			if pointing_file_path is None or \
 				pointing_file_path == '':
 				print("Displaying spacecraft pointing requires a pointing file.", file=sys.stderr)
 				return
-			self.data.updateConfig('pnt_defines_timespan', self.controls.orbit_controls.pointing_file_controls.pointingFileDefinesPeriod())
+			self.data.updateConfig('pointing_defines_timespan', self.controls.orbit_controls.pointing_file_controls.pointingFileDefinesPeriod())
 			self.data.updateConfig('pointing_file', pointing_file_path)
 			self.data.updateConfig('pointing_invert_transform', self.controls.orbit_controls.pointing_file_controls.pointing_file_inv_toggle.isChecked())
 		else:
-			self.data.updateConfig('pnt_defines_timespan', False)
+			self.data.updateConfig('is_pointing_defined', False)
+			self.data.updateConfig('pointing_defines_timespan', False)
 			self.data.updateConfig('pointing_file', None)
 			self.data.updateConfig('pointing_invert_transform', False)
 
