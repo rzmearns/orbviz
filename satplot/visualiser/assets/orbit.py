@@ -1,6 +1,6 @@
 import satplot.util.constants as c
 import satplot.visualiser.colours as colours
-from satplot.visualiser.assets.base import BaseAsset
+from satplot.visualiser.assets.base import (BaseAsset, SimpleAsset)
 from satplot.visualiser.assets import axis_indicator as axisInd
 
 from satplot.model.geometry import transformations as transforms
@@ -17,7 +17,7 @@ from vispy import scene, color
 
 import numpy as np
 
-class OrbitVisualiser(BaseAsset):
+class Orbit3DAsset(BaseAsset):
 	def __init__(self, name=None, v_parent=None):
 		super().__init__(name, v_parent)
 
@@ -26,7 +26,7 @@ class OrbitVisualiser(BaseAsset):
 		self._instantiateAssets()
 		self._createVisuals()
 		
-		self.attachToParentView()
+		self._attachToParentView()
 	
 	def _initData(self):
 		if self.data['name'] is None:
@@ -81,27 +81,30 @@ class OrbitVisualiser(BaseAsset):
 	# Override BaseAsset.updateIndex()
 	def updateIndex(self, index):
 		self.data['curr_index'] = index
+		self._setStaleFlag()
 		self._sliceData()
 		for asset in self.assets.values():
 			if isinstance(asset,BaseAsset):
 				asset.updateIndex(index)
-		self.requires_recompute = True
-		self.recompute()
 
-	def recompute(self):
-		if self.first_draw:
-			self.first_draw = False
-		if self.requires_recompute:
+	def recomputeRedraw(self):
+		if self.isFirstDraw():
+			self._clearFirstDrawFlag()
+		if self.isStale():
+			print()
 			self.visuals['past'].set_data(pos=self.data['past_coords'])
 			self.visuals['future'].set_data(pos=self.data['future_coords'], connect=self.data['future_conn'])
 			self.visuals['marker'].set_data(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
 								   			size=self.opts['orbital_position_marker_size']['value'],
 											face_color=colours.normaliseColour(self.opts['orbital_path_colour']['value']))
 
+			# recomputeRedraw child assets
 			for asset in self.assets.values():
-				asset.recompute()
-
-			self.requires_recompute = False
+				if isinstance(asset,BaseAsset):
+					asset.recomputeRedraw()
+				elif isinstance(asset, SimpleAsset):
+					asset.setTransform(rotation=R)
+			self._clearStaleFlag()
 
 	def getScreenMouseOverInfo(self):
 		curr_world_pos = (self.data['coords'][self.data['curr_index']]).reshape(1,3)

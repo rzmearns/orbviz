@@ -2,7 +2,7 @@ from vispy import scene
 
 from satplot.util import constants as c
 from satplot.visualiser.assets.earth import Earth3DAsset
-from satplot.visualiser.assets.orbit import OrbitVisualiser
+from satplot.visualiser.assets.orbit import Orbit3DAsset
 from satplot.visualiser.assets.sun import Sun3DAsset
 from satplot.visualiser.assets.moon import Moon3DAsset
 from satplot.visualiser.assets.spacecraft import SpacecraftVisualiser
@@ -48,7 +48,7 @@ class History3D():
 	def _buildAssets(self):
 		self.assets['earth'] = Earth3DAsset(v_parent=self.view_box.scene)
 		self.assets['earth'].makeActive()
-		# self.assets['primary_orbit'] = OrbitVisualiser(v_parent=self.view_box.scene)
+		self.assets['primary_orbit'] = Orbit3DAsset(v_parent=self.view_box.scene)
 		self.assets['moon'] = Moon3DAsset(v_parent=self.view_box.scene)
 		self.assets['sun'] = Sun3DAsset(v_parent=self.view_box.scene)
 
@@ -116,10 +116,10 @@ class History3D():
 			self.assets['sun'].makeActive()
 
 		# Update data source for primary orbit(s)
-		# if len(self.data_model.getConfigValue('primary_satellite_ids')) > 0:
-		# 	# TODO: extend to draw multiple primary satellites
-		# 	self.assets['primary_orbit'].setSource(list(self.data_model.orbits.values())[0])
-		# 	self.assets['primary_orbit'].makeActive()
+		if len(self.data_model.getConfigValue('primary_satellite_ids')) > 0:
+			# TODO: extend to draw multiple primary satellites
+			self.assets['primary_orbit'].setSource(list(self.data_model.orbits.values())[0])
+			self.assets['primary_orbit'].makeActive()
 
 
 		# if self.data_model.getConfigValue('is_pointing_defined':
@@ -146,6 +146,7 @@ class History3D():
 			if asset.isActive():
 				asset.updateIndex(index)
 
+		# TODO: remove this (doesn't need to be in updateIndex, just when drawn)
 		# Sun must be last so that umbra doesn't occlude objects
 		if self.assets['sun'].isActive():
 			self.assets['sun'].updateIndex(index)

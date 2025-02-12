@@ -222,6 +222,12 @@ class BaseAsset(ABC):
 		for ii, key in enumerate(k):
 			print(f"\t{key}-> ref:{v[ii]}")
 
+	def _printFlags(self):
+		print(f'\tactive:{self.isActive()}')
+		print(f'\tstale:{self.isStale()}')
+		print(f'\tfirst_draw:{self.isFirstDraw()}')
+
+
 	def _listAssets(self):
 		keys = [key for key in self.assets.keys()]
 		values = [key for key in self.assets.values()]
