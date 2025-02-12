@@ -5,7 +5,7 @@ from satplot.visualiser.assets.earth import Earth3DAsset
 from satplot.visualiser.assets.orbit import Orbit3DAsset
 from satplot.visualiser.assets.sun import Sun3DAsset
 from satplot.visualiser.assets.moon import Moon3DAsset
-from satplot.visualiser.assets.spacecraft import SpacecraftVisualiser
+from satplot.visualiser.assets.spacecraft import Spacecraft3DAsset
 from satplot.visualiser.assets.widgets import PopUpTextBox
 from satplot.visualiser.assets.constellation import Constellation
 from satplot.visualiser.assets.gizmo import ViewBoxGizmo
@@ -47,23 +47,19 @@ class History3D():
 
 	def _buildAssets(self):
 		self.assets['earth'] = Earth3DAsset(v_parent=self.view_box.scene)
-		self.assets['earth'].makeActive()
 		self.assets['primary_orbit'] = Orbit3DAsset(v_parent=self.view_box.scene)
 		self.assets['moon'] = Moon3DAsset(v_parent=self.view_box.scene)
-		self.assets['sun'] = Sun3DAsset(v_parent=self.view_box.scene)
+
+		with open('./data/spacecraft/spirit.json') as fp:
+			sc_sens_dict = json.load(fp)
+
+		sens_suites={}
+		sens_suites['loris'] = sc_sens_dict
+
+		self.assets['spacecraft'] = Spacecraft3DAsset(v_parent=self.view_box.scene, sens_suites=sens_suites)
 
 		# self.assets['constellation'] = Constellation(v_parent=self.view_box.scene)
-
-		# with open('./data/spacecraft/spirit.json') as fp:
-		# 	sc_sens_dict = json.load(fp)
-
-		# sens_suites={}
-		# sens_suites['loris'] = sc_sens_dict
-
-		# self.assets['spacecraft'] = SpacecraftVisualiser(v_parent=self.view_box.scene, sens_suites=sens_suites)
-
-
-
+		self.assets['sun'] = Sun3DAsset(v_parent=self.view_box.scene)
 
 		# if self.is_asset_active['ECI_gizmo']:
 		# self.assets['ECI_gizmo'] = ViewBoxGizmo(canvas=self.canvas,
@@ -110,10 +106,7 @@ class History3D():
 			self.assets['moon'].setSource(list(self.data_model.orbits.values())[0])
 			self.assets['moon'].makeActive()
 
-		# Update data source for sun asset
-		if len(self.data_model.getConfigValue('primary_satellite_ids')) > 0:
-			self.assets['sun'].setSource(list(self.data_model.orbits.values())[0])
-			self.assets['sun'].makeActive()
+
 
 		# Update data source for primary orbit(s)
 		if len(self.data_model.getConfigValue('primary_satellite_ids')) > 0:
@@ -121,12 +114,16 @@ class History3D():
 			self.assets['primary_orbit'].setSource(list(self.data_model.orbits.values())[0])
 			self.assets['primary_orbit'].makeActive()
 
-
-		# if self.data_model.getConfigValue('is_pointing_defined':
-		# 	self.assets['spacecraft'].setModel(list(self.data_model.orbits.values())[0],
-		# 										list(self.data_model.pointings.values())[0],
-		# 										self.data_model['pointing_invert_transform'])
-		# 	self.is_asset_active['spacecraft'] = True
+		if self.data_model.getConfigValue('is_pointing_defined'):
+			self.assets['spacecraft'].setSource(list(self.data_model.orbits.values())[0],
+												list(self.data_model.pointings.values())[0],
+												self.data_model.getConfigValue('pointing_invert_transform'))
+			self.assets['spacecraft'].makeActive()
+			self.assets['primary_orbit'].setOrbitalMarkerVisibility(False)
+		else:
+			# TODO: making this dormant at creation
+			self.assets['spacecraft'].makeDormant()
+			self.assets['primary_orbit'].setOrbitalMarkerVisibility(True)
 		# elif self.is_asset_active['spacecraft']:
 		# 	# No pointing on this recalculate, but there is a spacecraft asset
 		# 	self.is_asset_active['spacecraft'] = False
@@ -139,6 +136,10 @@ class History3D():
 		# 	self.assets['constellation'].setModel(c_list, c_beam_angle)
 		# 	self.is_asset_active['constellation'] = True
 
+		# Update data source for sun asset
+		if len(self.data_model.getConfigValue('primary_satellite_ids')) > 0:
+			self.assets['sun'].setSource(list(self.data_model.orbits.values())[0])
+			self.assets['sun'].makeActive()
 
 
 	def updateIndex(self, index):
@@ -148,19 +149,19 @@ class History3D():
 
 		# TODO: remove this (doesn't need to be in updateIndex, just when drawn)
 		# Sun must be last so that umbra doesn't occlude objects
-		if self.assets['sun'].isActive():
-			self.assets['sun'].updateIndex(index)
+		# if self.assets['sun'].isActive():
+		# 	self.assets['sun'].updateIndex(index)
 
 	def recomputeRedraw(self):
 		for asset_name, asset in self.assets.items():
-			if asset_name == 'sun':
-				continue
+			# if asset_name == 'sun':
+			# 	continue
 			if asset.isActive():
 				asset.recomputeRedraw()
 
 		# Sun must be last so that umbra doesn't occlude objects
-		if self.assets['sun'].isActive():
-			self.assets['sun'].recomputeRedraw()
+		# if self.assets['sun'].isActive():
+		# 	self.assets['sun'].recomputeRedraw()
 
 	def forceRedraw(self):
 		for k,v in self.assets.items():
