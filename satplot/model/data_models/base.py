@@ -5,6 +5,8 @@ from abc import ABC, abstractmethod
 from satplot.model.data_models.data_types import DataType
 import satplot.visualiser.controls.console as console
 
+from typing import Any
+
 class BaseDataModel(QtCore.QObject):
 	data_ready = QtCore.pyqtSignal()
 	data_err = QtCore.pyqtSignal()
@@ -14,7 +16,11 @@ class BaseDataModel(QtCore.QObject):
 		self.config = {'data_type': DataType.BASE,
 						'is_data_valid': False}
 
-	def updateConfig(self, param, val):
+	def _setConfig(self, param:str, val:Any) -> None:
+		self.config[param] = val
+		self.config['is_data_valid'] = False
+
+	def updateConfig(self, param:str, val:Any) -> None:
 		"""[summary]
 
 		[description]
@@ -23,8 +29,9 @@ class BaseDataModel(QtCore.QObject):
 			param ([type]): [description]
 			val ([type]): [description]
 		"""
-		self.config[param] = val
-		self.config['is_data_valid'] = False
+		if param not in self.config.keys():
+			raise ValueError(f"{param} not a valid configuration option for {self.config['data_type']}")
+		self._setConfig(param, val)
 
 	def isValid(self):
 		return self.config['is_data_valid']
@@ -51,6 +58,10 @@ class BaseDataModel(QtCore.QObject):
 	def deSerialise(self):
 		raise NotImplementedError()
 
+	def printConfig(self):
+		print(f"Data Config for {self.getConfigValue('data_type')}")
+		for k,v in self.config.items():
+			print(f'\t{k}:{v}')
 
 	# def _setUpLoadWorkerThread(self):
 	# 	''' call this after setting up the data to load in the inheriting class

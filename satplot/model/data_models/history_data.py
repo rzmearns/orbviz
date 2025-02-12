@@ -19,18 +19,18 @@ import satplot.visualiser.controls.console as console
 class HistoryData(BaseDataModel):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
-		self.updateConfig('data_type',DataType.HISTORY)
+		self._setConfig('data_type',DataType.HISTORY)
 		# initialise empty config
-		self.updateConfig('timespan_period_start', None)
-		self.updateConfig('timespan_period_end', None)
-		self.updateConfig('sampling_period', None)
-		self.updateConfig('pointing_defines_timespan', False)
-		self.updateConfig('primary_satellite_ids', []) # keys of orbits, position dict
-		self.updateConfig('has_supplemental_constellation', False)
-		self.updateConfig('num_geolocations', 0)
-		self.updateConfig('is_pointing_defined', False)
-		self.updateConfig('pointing_file', None)
-		self.updateConfig('pointing_invert_transform', False)
+		self._setConfig('timespan_period_start', None)
+		self._setConfig('timespan_period_end', None)
+		self._setConfig('sampling_period', None)
+		self._setConfig('pointing_defines_timespan', False)
+		self._setConfig('primary_satellite_ids', []) # keys of orbits, position dict
+		self._setConfig('has_supplemental_constellation', False)
+		self._setConfig('num_geolocations', 0)
+		self._setConfig('is_pointing_defined', False)
+		self._setConfig('pointing_file', None)
+		self._setConfig('pointing_invert_transform', False)
 
 		self.timespan = None
 		self.orbits = {}
