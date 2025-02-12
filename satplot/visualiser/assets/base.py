@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import numpy as np
+import traceback
 
 class BaseAsset(ABC):
 
@@ -34,8 +35,10 @@ class BaseAsset(ABC):
 		'''Sets all vispy visuals to use the stored parent'''
 		for visual in self.visuals.values():
 			if visual is not None and not isinstance(visual, list):
+				# print(f"Attaching visual of {self.data['name']} to parent")
 				visual.parent = self.data['v_parent']
 			elif visual is not None:
+				# print(f"Attaching visual of {self.data['name']} to parent")
 				for el in visual:
 					el.parent = self.data['v_parent']
 
@@ -51,8 +54,10 @@ class BaseAsset(ABC):
 		for visual in self.visuals.values():
 			if visual is not None and not isinstance(visual, list):
 				# single visual
+				# print(f"Detaching visual of {self.data['name']} to parent")
 				visual.parent = None
 			elif visual is not None:
+				# print(f"Detaching visual of {self.data['name']} from parent")
 				# list of visuals
 				for el in visual:
 					el.parent = None
@@ -72,6 +77,7 @@ class BaseAsset(ABC):
 
 	##### State methods
 	def makeActive(self):
+		# print(f"{self.data['name']} being made active.")
 		if not self.is_active:
 			self.setFirstDrawFlagRecursive()
 			self.attachToParentViewRecursive()  # will attach all assets  recursively
