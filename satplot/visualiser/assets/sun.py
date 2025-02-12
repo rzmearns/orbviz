@@ -69,7 +69,7 @@ class Sun3DAsset(BaseAsset):
     											color=colours.normaliseColour(self.opts['umbra_colour']['value']),
     											parent=None)
 		# Apply shrinking transform to hide umbra till it needs to be first drawn
-		self.visuals['umbra'].transform = vTransforms.STTransform(scale=(0.001,0.001,0.001))		
+		self.visuals['umbra'].transform = vTransforms.STTransform(scale=(0.001,0.001,0.001))
 		alpha_filter = vFilters.Alpha(self.opts['umbra_alpha']['value'])
 		self.visuals['umbra'].attach(alpha_filter)
 
@@ -101,6 +101,13 @@ class Sun3DAsset(BaseAsset):
 
 	def recomputeRedraw(self):
 		if self.isFirstDraw():
+			# In vispy, mesh transparency will not show visuals through it which have been added to the scene (by makeActive in satplot)
+			# Therefore any asset with a transparent mesh should detach then reattach to ensure solid objects inside the mesh are seen
+			# from outside.
+			# The order of calling recomputeRedraw() will determine what is displayed with nested meshes.
+			self._detachFromParentView()
+			self._attachToParentView()
+
 			self._clearFirstDrawFlag()
 		if self.isStale():
 			# move the sun
@@ -174,7 +181,7 @@ class Sun3DAsset(BaseAsset):
 												'type': 'colour',
 												'help': '',
 												'callback': self.setUmbraColour}
-		self._dflt_opts['umbra_alpha'] = {'value': 0.5,
+		self._dflt_opts['umbra_alpha'] = {'value': 0.25,
 										  		'type': 'number',
 												'help': '',
 												'callback': self.setUmbraAlpha}
