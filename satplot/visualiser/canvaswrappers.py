@@ -165,7 +165,7 @@ class History3D():
 
 	def forceRedraw(self):
 		for k,v in self.assets.items():
-			if self.is_asset_active[k]:
+			if v.isActive():
 				v.forceRedraw()
 
 	def setFirstDrawFlags(self):
@@ -173,7 +173,7 @@ class History3D():
 			asset.setFirstDrawFlagRecursive()
 
 	def centerCameraSpacecraft(self, set_zoom=True):
-		if self.is_asset_active['spacecraft']:
+		if self.assets['spacecraft'].isActive():
 			sc_pos = tuple(self.assets['spacecraft'].data['coords'][self.assets['spacecraft'].data['curr_index']])			
 		else:
 			sc_pos = tuple(self.assets['primary_orbit'].data['coords'][self.assets['primary_orbit'].data['curr_index']])
