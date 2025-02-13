@@ -25,8 +25,6 @@ class BodyGizmo(SimpleAsset):
 		pass
 		
 	def setSource(self, *args, **kwargs):
-		self.opts['gizmo_scale']['value'] = args[0]
-		self.opts['gizmo_width']['value'] = args[1]
 		pass
 
 	def _createVisuals(self):
@@ -56,11 +54,11 @@ class BodyGizmo(SimpleAsset):
 												'type': 'colour',
 												'help': '',
 												'callback': self.setGizmoZColour}
-		self._dflt_opts['gizmo_width'] = {'value': 1,
+		self._dflt_opts['gizmo_width'] = {'value': 3,
 										  		'type': 'number',
 												'help': '',
 												'callback': self.setGizmoWidth}
-		self._dflt_opts['gizmo_scale'] = {'value': 1,
+		self._dflt_opts['gizmo_scale'] = {'value': 700,
 										  		'type': 'number',
 												'help': '',
 												'callback': self.setGizmoScale}

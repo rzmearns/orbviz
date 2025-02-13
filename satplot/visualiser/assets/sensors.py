@@ -2,7 +2,7 @@
 import numpy as np
 import satplot.util.constants as c
 import satplot.visualiser.colours as colours
-from satplot.visualiser.assets.base import SimpleAsset
+from satplot.visualiser.assets.base import (AbstractCompoundAsset, BaseAsset, SimpleAsset)
 from satplot.visualiser.controls import console
 
 import satplot.model.geometry.polyhedra as polyhedra
@@ -13,45 +13,47 @@ import vispy.visuals.filters as vFilters
 
 from scipy.spatial.transform import Rotation
 
-class SensorSuite(SimpleAsset):
+class SensorSuite3DAsset(AbstractCompoundAsset):
 	def __init__(self, sens_suite_dict, name=None, v_parent=None):
 		super().__init__(name, v_parent)
 		
 		self._setDefaultOptions()
-		self._initData()
-		self.setSource(sens_suite_dict)
+		self._initData(sens_suite_dict)
 		self._instantiateAssets()
 		self._createVisuals()	
-		self.attachToParentView()
 
-	def _initData(self):
+		self._attachToParentView()
+
+	def _initData(self, sens_suite_dict):
 		if self.data['name'] is None:
 			self.data['name'] = 'SensorSuite'
-		
-	def setSource(self, *args, **kwargs):
-		self.data['sens_suite_dict'] = args[0]
+		self.data['sens_suite_dict'] = sens_suite_dict
 
-	def _instantiateAssets(self):
+	def setSource(self, *args, **kwargs):
 		pass
 
-	def _createVisuals(self):
-		for ii in range(len(self.data['sens_suite_dict']['spacecraft']['sensors'].keys())):			
+	def _instantiateAssets(self):
+		for ii in range(len(self.data['sens_suite_dict']['spacecraft']['sensors'].keys())):
 			sens_name = list(self.data['sens_suite_dict']['spacecraft']['sensors'].keys())[ii]
 			sens_dict = list(self.data['sens_suite_dict']['spacecraft']['sensors'].values())[ii]
 			if sens_dict['shape'] == 'cone':
-				self.assets[sens_name] = Sensor.cone(sens_name, sens_dict, parent=self.data['v_parent'])
+				self.assets[sens_name] = Sensor3DAsset.cone(sens_name, sens_dict, parent=self.data['v_parent'])
 			elif sens_dict['shape'] == 'square_pyramid':
-				self.assets[sens_name] = Sensor.squarePyramid(sens_name, sens_dict, parent=self.data['v_parent'])
+				self.assets[sens_name] = Sensor3DAsset.squarePyramid(sens_name, sens_dict, parent=self.data['v_parent'])
 			self.opts[f'plot_{sens_name}'] = {'value': True,
 											'type': 'boolean',
 											'help': '',
 											'callback': self.assets[sens_name].setVisibility}
+
+	def _createVisuals(self):
+		pass
 
 	def setTransform(self, pos=(0,0,0), rotation=None, quat=None):
 		if rotation is None and quat is None:
 			raise ValueError("Rotation and quaternion passed sensor suite cannot both be None")
 		if rotation is not None and quat is not None:
 			raise ValueError("Both rotation and quaternion passed to sensor suite, don't know which one to use")
+
 		for asset in self.assets.values():
 			asset.setTransform(pos=pos, rotation=rotation, quat=quat)
 
@@ -59,39 +61,32 @@ class SensorSuite(SimpleAsset):
 		self._dflt_opts = {}
 		self.opts = self._dflt_opts.copy()
 
-class Sensor(SimpleAsset):
+class Sensor3DAsset(SimpleAsset):
 	def __init__(self, sensor_name, mesh_verts, mesh_faces,
 			  			bf_quat, colour, sens_type=None, v_parent=None, *args, **kwargs):
 		super().__init__(sensor_name, v_parent)
+
 		self._setDefaultOptions()
-		self._initData()
-		self.data['type'] = sens_type
+		self._initData(sens_type, sensor_name, mesh_verts, mesh_faces, bf_quat, colour)
+
 		if self.data['type'] is None:
 			raise ValueError('Sensor() should not be called directly, use one of the constructor methods')		
 
-		self.setSource(sensor_name, mesh_verts, mesh_faces, bf_quat, colour)
-
-		self._instantiateAssets()
 		self._createVisuals()
+
 		self.setTransform()
-		self.attachToParentView()
+
+		self._attachToParentView()
 		
-	def _initData(self):
-		self.data['type'] = None
-		if self.data['name'] is None:
-			self.data['name'] = 'Sensor'
-		self.data['vertices'] = None
-		self.data['faces'] = None
-		self.data['bf_quat'] = None
+	def _initData(self, sens_type, sensor_name, mesh_verts, mesh_faces, bf_quat, colour):
+		self.data['type'] = sens_type
+		self.data['name'] = sensor_name
+		self.data['mesh_vertices'] = mesh_verts
+		self.data['mesh_faces'] = mesh_faces
+		self.data['bf_quat'] = bf_quat
+		self.opts['sensor_cone_colour']['value'] = colour
 
 	def setSource(self, *args, **kwargs):
-		self.data['name'] = args[0]
-		self.data['mesh_vertices'] = args[1]
-		self.data['mesh_faces'] = args[2]
-		self.data['bf_quat'] = args[3]
-		self.opts['sensor_cone_colour']['value'] = args[4]
-
-	def _instantiateAssets(self):
 		pass
 
 	def _createVisuals(self):
@@ -106,23 +101,22 @@ class Sensor(SimpleAsset):
 		self.visuals['sensor_cone'].attach(wireframe_filter)
 
 	def setTransform(self, pos=(0,0,0), rotation=None, quat=None):
-		
-		T = np.eye(4)
-		if quat is not None:
-			rotation = Rotation.from_quat(quat) * Rotation.from_quat(self.data['bf_quat']).inv()
-			rot_mat = rotation.as_matrix()
-		elif rotation is not None:
-			# bf_quat -> bodyframe to cam quaternion
-			rotation = Rotation.from_matrix(rotation) * Rotation.from_quat(self.data['bf_quat']).inv()
-			rot_mat = rotation.as_matrix()
-		else:
-			rot_mat = np.eye(3)
-		T[0:3,0:3] = rot_mat
-		T[0:3,3] = np.asarray(pos).reshape(-1,3)
-		self.visuals['sensor_cone'].transform = vTransforms.linear.MatrixTransform(T.T)
-
-		for asset in self.assets.values():
-			asset.setTransform(pos=pos, rotation=rotation, quat=quat)
+		if self.isFirstDraw():
+			self._clearFirstDrawFlag()
+		if self.isStale():
+			T = np.eye(4)
+			if quat is not None:
+				rotation = Rotation.from_quat(quat) * Rotation.from_quat(self.data['bf_quat']).inv()
+				rot_mat = rotation.as_matrix()
+			elif rotation is not None:
+				# bf_quat -> bodyframe to cam quaternion
+				rotation = Rotation.from_matrix(rotation) * Rotation.from_quat(self.data['bf_quat']).inv()
+				rot_mat = rotation.as_matrix()
+			else:
+				rot_mat = np.eye(3)
+			T[0:3,0:3] = rot_mat
+			T[0:3,3] = np.asarray(pos).reshape(-1,3)
+			self.visuals['sensor_cone'].transform = vTransforms.linear.MatrixTransform(T.T)
 
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}

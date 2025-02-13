@@ -1,6 +1,6 @@
 import satplot.util.constants as c
 import satplot.visualiser.colours as colours
-from satplot.visualiser.assets.base import BaseAsset
+from satplot.visualiser.assets.base import (BaseAsset, AbstractCompoundAsset, SimpleAsset)
 from satplot.visualiser.assets import gizmo
 
 from satplot.model.geometry import transformations as transforms
@@ -19,7 +19,7 @@ from vispy.visuals import transforms as vTransforms
 
 import numpy as np
 
-class SpacecraftVisualiser(BaseAsset):
+class Spacecraft3DAsset(BaseAsset):
 	def __init__(self, name=None, v_parent=None, sens_suites=None):
 		super().__init__(name, v_parent)		
 		self._setDefaultOptions()
@@ -33,20 +33,16 @@ class SpacecraftVisualiser(BaseAsset):
 		self._instantiateAssets()
 		self._createVisuals()
 
-		self.attachToParentView()
+		self._attachToParentView()
 
 	def _initData(self):
 		if self.data['name'] is None:
 			self.data['name'] = 'Spacecraft'
-		self.data['sens_suites'] = []
+		self.data['sens_suites'] = {}
 		self.data['num_sens_suites'] = 0
 		self.data['coords'] = np.zeros((4,3))
 		self.data['curr_index'] = 2
 		self.data['pointing'] = None
-		# self.data['v_coords'] = 10000*np.array([[0, 0, 0],[-.01736, 0, 0.9848]]) # -Sun
-		# self.data['v_coords_st'] = 10000*np.array([[0, 0, 0],[-.01736, 0, 0.9848]]) # -Sun
-		self.data['v_coords'] = 10000*np.array([[0, 0, 0],[0.433, 0.75, -0.5]]) #-Cam4
-		self.data['v_coords_st'] =  20000*np.array([[0, 0, 0],[0.433, 0.75, -0.5]]) 
 
 	def setSource(self, *args, **kwargs):
 		# args[0] orbit
@@ -69,15 +65,15 @@ class SpacecraftVisualiser(BaseAsset):
 													width=3,
 													v_parent=self.data['v_parent'])
 		for key, value in self.data['sens_suites'].items():
-			self.assets[f'sensor_suite_{key}'] = sensors.SensorSuite(value,
+			self.assets[f'sensor_suite_{key}'] = sensors.SensorSuite3DAsset(value,
 																	name=key,
 													 				v_parent=self.data['v_parent'])
 		self._addIndividualSensorSuitePlotOptions()
 
 	def _createVisuals(self):
-		self.visuals['marker'] = scene.visuals.Markers(scaling=True,
-												 		antialias=0,
-														parent=None)
+		self.visuals['marker'] = scene.visuals.Markers(parent=None,
+														scaling=True,
+												 		antialias=0)
 		self.visuals['marker'].set_data(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
 								  		edge_width=0,
 										face_color=colours.normaliseColour(self.opts['spacecraft_point_colour']['value']),
@@ -92,10 +88,10 @@ class SpacecraftVisualiser(BaseAsset):
 
 	# Use BaseAsset.updateIndex()
 
-	def recompute(self):
-		if self.first_draw:
-			self.first_draw = False
-		if self.requires_recompute:
+	def recomputeRedraw(self):
+		if self.isFirstDraw():
+			self._clearFirstDrawFlag()
+		if self.isStale():
 			# set marker position
 			self.visuals['marker'].set_data(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
 								   			size=self.opts['spacecraft_point_size']['value'],
@@ -111,7 +107,7 @@ class SpacecraftVisualiser(BaseAsset):
 						non_nan_found = True
 						quat = self.data['pointing'][ii,:].reshape(-1,4)
 						rotation = Rotation.from_quat(quat).as_matrix()
-						break			
+						break
 				if not non_nan_found:
 					# look backwards
 					for ii in range(self.data['curr_index'], -1, -1):
@@ -132,14 +128,14 @@ class SpacecraftVisualiser(BaseAsset):
 					rotation = Rotation.from_quat(quat).inv().as_matrix()
 				self.assets['body_frame'].restoreGizmoColours()
 
-			self.assets['body_frame'].setTransform(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
-										   			rotation=rotation)
-			for key, value in self.data['sens_suites'].items():			
-				self.assets[f'sensor_suite_{key}'].setTransform(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
-										   						rotation=rotation)
-			
-			self.childAssetsRecompute()
-			self.requires_recompute = False
+			# recomputeRedraw child assets
+			for asset in self.assets.values():
+				if isinstance(asset,BaseAsset):
+					asset.recomputeRedraw()
+				elif isinstance(asset, SimpleAsset) or isinstance(asset, AbstractCompoundAsset):
+					asset.setTransform(pos=self.data['coords'][self.data['curr_index']].reshape(1,3), rotation=rotation)
+					# asset.setTransform()
+			self._clearStaleFlag()
 
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}
@@ -151,7 +147,7 @@ class SpacecraftVisualiser(BaseAsset):
 										  		'type': 'boolean',
 												'help': '',
 												'callback': self.setVisibility}		
-		self._dflt_opts['spacecraft_point_colour'] = {'value': (0,0,255),
+		self._dflt_opts['spacecraft_point_colour'] = {'value': (255,0,0),
 												'type': 'colour',
 												'help': '',
 												'callback': self.setMarkerColour}
