@@ -1,4 +1,3 @@
-import geopandas as gpd
 import numpy as np
 from skyfield.api import wgs84
 
@@ -9,6 +8,7 @@ import satplot.model.geometry.polygons as polygons
 import satplot.model.geometry.primgeom as pg
 import satplot.model.geometry.transformations as transforms
 import satplot.util.constants as c
+import satplot.util.paths as satplot_paths
 import satplot.visualiser.assets.base as base
 import satplot.visualiser.assets.axis_indicator as axisInd
 import satplot.visualiser.colours as colours
@@ -41,27 +41,8 @@ class Earth3DAsset(base.AbstractAsset):
 		self.data['ea_coords'][1,2] = (c.R_EARTH+1000)
 
 		# landmass data
-		gdf = gpd.read_file('data/land_boundaries/ne_110m_land.shp')
-		conn = None
-		total_len = 0
-		all_coords = None
-		for ii in gdf.index:
-			polys = gdf.loc[ii].geometry
-			if polys.geom_type == 'Polygon':
-				coords = self._convertShapeFilePolys(polys)		
-				poly_len = len(coords)				
-				new_conn = np.array([np.arange(poly_len-1),np.arange(1,poly_len)]).T + total_len
-				if conn is not None:
-					conn = np.vstack((conn,new_conn))
-				else:
-					conn = new_conn
-				total_len += poly_len
-				if all_coords is not None:
-					all_coords = np.vstack((all_coords, coords))
-				else:
-					all_coords = coords
-		self.data['landmass'] = all_coords
-		self.data['landmass_conn'] = conn
+		self.data['landmass'] = np.load(f'{satplot_paths.data_dir}/land_boundaries/landmass_points.npy')
+		self.data['landmass_conn'] = np.load(f'{satplot_paths.data_dir}/land_boundaries/landmass_connections.npy')
 
 		# rotation data
 		self.data['nullisland_topos'] = wgs84.latlon(0,0)
