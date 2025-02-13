@@ -91,7 +91,6 @@ class Orbit3DAsset(BaseAsset):
 		if self.isFirstDraw():
 			self._clearFirstDrawFlag()
 		if self.isStale():
-			print()
 			self.visuals['past'].set_data(pos=self.data['past_coords'])
 			self.visuals['future'].set_data(pos=self.data['future_coords'], connect=self.data['future_conn'])
 			self.visuals['marker'].set_data(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
