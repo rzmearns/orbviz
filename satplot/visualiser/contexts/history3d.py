@@ -1,6 +1,6 @@
 import satplot
 
-from satplot.visualiser import canvaswrappers
+import satplot.visualiser.contexts.canvas_wrappers.history3d as canvaswrapper
 from satplot.visualiser.contexts.base import (BaseContext, BaseControls)
 import satplot.visualiser.controls.console as console
 from satplot.visualiser.controls import controls, widgets
@@ -26,7 +26,7 @@ class History3DContext(BaseContext):
 		self.data = data
 		self._validateDataType()
 
-		self.canvas_wrapper = canvaswrappers.History3D()
+		self.canvas_wrapper = canvaswrapper.History3DCanvas()
 		self.canvas_wrapper.setModel(self.data)
 		self.controls = self.Controls(self, self.canvas_wrapper)
 

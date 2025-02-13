@@ -22,7 +22,7 @@ MOUSEOVER_DIST_THRESHOLD = 5
 last_mevnt_time = time.monotonic()
 mouse_over_is_highlighting = False
 
-class History3D():
+class History3DCanvas():
 	def __init__(self, w=800, h=600, keys='interactive', bgcolor='white'):
 		self.canvas = scene.SceneCanvas(size=(w,h),
 								  		keys=keys,

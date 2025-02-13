@@ -2,7 +2,6 @@ import sys
 from PyQt5 import QtWidgets, QtCore
 import satplot
 from satplot.visualiser.controls import controls, widgets
-from satplot.visualiser import canvaswrappers
 from satplot.visualiser.contexts import (history3d, blank)
 from satplot.model.data_models import (history_data)
 import satplot.visualiser.controls.console as console
