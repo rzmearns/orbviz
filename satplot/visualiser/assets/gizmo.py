@@ -2,14 +2,14 @@
 import numpy as np
 import satplot.util.constants as c
 import satplot.visualiser.colours as colours
-from satplot.visualiser.assets.base import BaseAsset, SimpleAsset
+import satplot.visualiser.assets.base as base
 from satplot.visualiser.controls import console
 
 
 from vispy import scene
 from vispy.visuals import transforms as vTransforms
 
-class BodyGizmo(SimpleAsset):
+class BodyGizmo(base.AbstractSimpleAsset):
 	def __init__(self, name=None, v_parent=None, scale=1, width=1):
 		super().__init__(name, v_parent)
 						
@@ -128,7 +128,7 @@ class BodyGizmo(SimpleAsset):
 		self.setTransform(pos=pos, rotation=base_rotation)
 		self.visuals['gizmo'].update()
 
-class ViewBoxGizmo(BaseAsset):
+class ViewBoxGizmo(base.AbstractAsset):
 	def __init__(self, canvas=None, parent=None, translate=(0,0), scale=(1,1,1,1)):
 		self.parent = parent
 		self.canvas = canvas

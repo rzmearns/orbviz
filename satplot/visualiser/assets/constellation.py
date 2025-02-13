@@ -1,6 +1,6 @@
 import satplot.util.constants as c
 import satplot.visualiser.colours as colours
-from satplot.visualiser.assets.base import BaseAsset
+import satplot.visualiser.assets.base as base
 
 import satplot.visualiser.controls.console as console
 import satplot.model.geometry.polyhedra as polyhedra
@@ -19,7 +19,7 @@ import numpy as np
 
 import satplot
 
-class Constellation(BaseAsset):
+class Constellation(base.AbstractAsset):
 	def __init__(self, name=None, v_parent=None):
 		super().__init__(name, v_parent)
 		self._setDefaultOptions()
@@ -96,7 +96,7 @@ class Constellation(BaseAsset):
 														antialias=0,
 														parent=None)
 
-	# Use BaseAsset.updateIndex()
+	# Use AbstractAsset.updateIndex()
 
 	def recompute(self):
 		if self.first_draw:
@@ -213,7 +213,7 @@ class Constellation(BaseAsset):
 		beam_height = (np.cos(phi)**2 * (vector_length))
 		return beam_height
 	
-class InstancedConstellationBeams(BaseAsset):
+class InstancedConstellationBeams(base.AbstractAsset):
 	def __init__(self, name=None, v_parent=None):
 		super().__init__(name, v_parent)
 		self._setDefaultOptions()
@@ -327,7 +327,7 @@ class InstancedConstellationBeams(BaseAsset):
 		alpha_filter = vFilters.Alpha(self.opts['beams_alpha']['value'])
 		self.visuals['beams'].attach(alpha_filter)
 
-	# Use BaseAsset.updateIndex()
+	# Use AbstractAsset.updateIndex()
 
 	def recompute(self):
 		if self.first_draw:
@@ -425,7 +425,7 @@ class InstancedConstellationBeams(BaseAsset):
 
 		return circles
 
-class ConstellationBeams(BaseAsset):
+class ConstellationBeams(base.AbstractAsset):
 	def __init__(self, name=None, v_parent=None):
 		super().__init__(name, v_parent)
 		self._setDefaultOptions()
@@ -515,7 +515,7 @@ class ConstellationBeams(BaseAsset):
 			self.visuals['beams'][ii].transform = transform
 			self.visuals['beams'][ii].attach(alpha_filter)
 
-	# Use BaseAsset.updateIndex()
+	# Use AbstractAsset.updateIndex()
 
 	def recompute(self):
 		if self.first_draw:

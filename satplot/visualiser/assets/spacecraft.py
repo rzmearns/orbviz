@@ -1,6 +1,6 @@
 import satplot.util.constants as c
 import satplot.visualiser.colours as colours
-from satplot.visualiser.assets.base import (BaseAsset, AbstractCompoundAsset, SimpleAsset)
+import satplot.visualiser.assets.base as base
 from satplot.visualiser.assets import gizmo
 
 from satplot.model.geometry import transformations as transforms
@@ -19,7 +19,7 @@ from vispy.visuals import transforms as vTransforms
 
 import numpy as np
 
-class Spacecraft3DAsset(BaseAsset):
+class Spacecraft3DAsset(base.AbstractAsset):
 	def __init__(self, name=None, v_parent=None, sens_suites=None):
 		super().__init__(name, v_parent)		
 		self._setDefaultOptions()
@@ -86,7 +86,7 @@ class Spacecraft3DAsset(BaseAsset):
 		# 											parent=None)
 		
 
-	# Use BaseAsset.updateIndex()
+	# Use AbstractAsset.updateIndex()
 
 	def recomputeRedraw(self):
 		if self.isFirstDraw():
@@ -130,9 +130,9 @@ class Spacecraft3DAsset(BaseAsset):
 
 			# recomputeRedraw child assets
 			for asset in self.assets.values():
-				if isinstance(asset,BaseAsset):
+				if isinstance(asset,base.AbstractAsset):
 					asset.recomputeRedraw()
-				elif isinstance(asset, SimpleAsset) or isinstance(asset, AbstractCompoundAsset):
+				elif isinstance(asset, base.AbstractSimpleAsset) or isinstance(asset, base.AbstractCompoundAsset):
 					asset.setTransform(pos=self.data['coords'][self.data['curr_index']].reshape(1,3), rotation=rotation)
 					# asset.setTransform()
 			self._clearStaleFlag()

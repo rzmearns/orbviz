@@ -1,6 +1,6 @@
 import satplot.util.constants as c
 import satplot.visualiser.colours as colours
-from satplot.visualiser.assets.base import BaseAsset
+import satplot.visualiser.assets.base as base
 from satplot.visualiser.controls import console
 
 from satplot.model.geometry import primgeom as pg
@@ -11,7 +11,7 @@ from vispy.visuals.transforms import STTransform
 
 import numpy as np
 
-class Moon3DAsset(BaseAsset):
+class Moon3DAsset(base.AbstractAsset):
 	def __init__(self, name=None, v_parent=None):
 		super().__init__(name, v_parent)
 
@@ -42,13 +42,13 @@ class Moon3DAsset(BaseAsset):
 												color=colours.normaliseColour(self.opts['moon_sphere_colour']['value']),
 												parent=None)
 
-	# Override BaseAsset.updateIndex()
+	# Override AbstractAsset.updateIndex()
 	def updateIndex(self, index):
 		self._setStaleFlag()
 		self.data['curr_index'] = index
 		self.data['curr_pos'] = self.data['pos'][self.data['curr_index']]
 		for asset in self.assets.values():
-			if isinstance(asset,BaseAsset):
+			if isinstance(asset,base.AbstractAsset):
 				asset.updateIndex(index)
 
 	def recomputeRedraw(self):
@@ -59,7 +59,7 @@ class Moon3DAsset(BaseAsset):
 			self.visuals['moon'].transform = STTransform(translate=moon_pos)
 
 			for asset in self.assets.values():
-				if isinstance(asset,BaseAsset):
+				if isinstance(asset,base.AbstractAsset):
 					asset.recomputeRedraw()
 			self._clearStaleFlag()
 
@@ -113,6 +113,7 @@ class Moon3DAsset(BaseAsset):
 
 	def setMoonDistance(self, distance):
 		self.opts['moon_distance_kms']['value'] = distance
+		# TODO: fix this to setStale then recomputeRedraw()
 		self.recompute()
 
 	def setMoonSphereRadius(self, radius):
@@ -121,5 +122,6 @@ class Moon3DAsset(BaseAsset):
 		self._createVisuals()
 		self.visuals['moon'].parent = self.data['v_parent']
 		self.requires_recompute = True
+		# TODO: fix this to setStale then recomputeRedraw()
 		self.recompute()
 

@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 import traceback
 
-class BaseAsset(ABC):
+class AbstractAsset(ABC):
 
 	# name_str: str
 
@@ -191,7 +191,7 @@ class BaseAsset(ABC):
 	# 	self.is_stale = True
 	# 	self.recompute()
 	# 	for asset in self.assets.values():
-	# 		if isinstance(asset,BaseAsset):
+	# 		if isinstance(asset,AbstractAsset):
 	# 			asset.is_stale = True
 	# 			asset.recompute()
 
@@ -205,7 +205,7 @@ class BaseAsset(ABC):
 		self.data['curr_index'] = index
 		self._setStaleFlag()
 		for asset in self.assets.values():
-			if isinstance(asset,BaseAsset):
+			if isinstance(asset,AbstractAsset):
 				asset.updateIndex(index)
 
 	def getScreenMouseOverInfo(self):
@@ -252,7 +252,7 @@ class BaseAsset(ABC):
 			print(f"\tasset {asset_key} parent scene:{self.assets[asset_key].data['v_parent']}")
 
 
-class AbstractCompoundAsset():
+class AbstractCompoundAsset(ABC):
 	# name_str: str
 
 	@abstractmethod
@@ -457,7 +457,7 @@ class AbstractCompoundAsset():
 			print(f"\tvisual {visual_key} parent scene:{self.visuals[visual_key].parent}")
 
 
-class SimpleAsset(ABC):
+class AbstractSimpleAsset(ABC):
 
 	# name_str: str
 

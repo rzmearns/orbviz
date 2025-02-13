@@ -1,6 +1,6 @@
 import satplot.util.constants as c
 import satplot.visualiser.colours as colours
-from satplot.visualiser.assets.base import BaseAsset
+import satplot.visualiser.assets.base as base
 from satplot.visualiser.assets import axis_indicator as axisInd
 
 from satplot.model.geometry import transformations as transforms
@@ -20,7 +20,7 @@ from scipy.spatial.transform import Rotation
 
 import numpy as np
 
-class Sun3DAsset(BaseAsset):
+class Sun3DAsset(base.AbstractAsset):
 	def __init__(self, name=None, v_parent=None):
 		super().__init__(name, v_parent)
 
@@ -90,13 +90,13 @@ class Sun3DAsset(BaseAsset):
 		
 		self.data['pos'] = args[0].sun_pos
 
-	# Override BaseAsset.updateIndex()
+	# Override AbstractAsset.updateIndex()
 	def updateIndex(self, index):
 		self._setStaleFlag()
 		self.data['curr_index'] = index
 		self.data['curr_pos'] = self.data['pos'][self.data['curr_index']]
 		for asset in self.assets.values():
-			if isinstance(asset,BaseAsset):			
+			if isinstance(asset,base.AbstractAsset):
 				asset.updateIndex(index)		
 
 	def recomputeRedraw(self):
@@ -135,7 +135,7 @@ class Sun3DAsset(BaseAsset):
 
 
 			for asset in self.assets.values():
-				if isinstance(asset,BaseAsset):
+				if isinstance(asset,base.AbstractAsset):
 					asset.recomputeRedraw()
 			self._clearStaleFlag()
 
@@ -212,10 +212,13 @@ class Sun3DAsset(BaseAsset):
 
 	def setSunDistance(self, distance):
 		self.opts['sun_distance_kms']['value'] = distance
+		# TODO: fix this to set stale then recomputeredraw, maybe firstdraw as well
 		self.recompute()
 
 	def setSunVectorLength(self, distance):
 		self.opts['sun_vector_length_kms']['value'] = distance
+		# TODO: fix this to set stale then recomputeredraw
+		# TODO: fix this to set stale then recomputeredraw, maybe firstdraw as well
 		self.recompute()
 
 	def setSunSphereRadius(self, radius):
@@ -224,6 +227,7 @@ class Sun3DAsset(BaseAsset):
 		self._createVisuals()
 		self.visuals['sun_sphere'].parent = self.data['v_parent']
 		self.requires_recompute = True
+		# TODO: fix this to set stale then recomputeredraw, maybe firstdraw as well
 		self.recompute()
 
 	def setSunSphereColour(self, new_colour):

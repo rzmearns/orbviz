@@ -2,7 +2,7 @@
 import numpy as np
 import satplot.util.constants as c
 import satplot.visualiser.colours as colours
-from satplot.visualiser.assets.base import (AbstractCompoundAsset, BaseAsset, SimpleAsset)
+import satplot.visualiser.assets.base as base
 from satplot.visualiser.controls import console
 
 import satplot.model.geometry.polyhedra as polyhedra
@@ -13,7 +13,7 @@ import vispy.visuals.filters as vFilters
 
 from scipy.spatial.transform import Rotation
 
-class SensorSuite3DAsset(AbstractCompoundAsset):
+class SensorSuite3DAsset(base.AbstractCompoundAsset):
 	def __init__(self, sens_suite_dict, name=None, v_parent=None):
 		super().__init__(name, v_parent)
 		
@@ -61,7 +61,7 @@ class SensorSuite3DAsset(AbstractCompoundAsset):
 		self._dflt_opts = {}
 		self.opts = self._dflt_opts.copy()
 
-class Sensor3DAsset(SimpleAsset):
+class Sensor3DAsset(base.AbstractSimpleAsset):
 	def __init__(self, sensor_name, mesh_verts, mesh_faces,
 			  			bf_quat, colour, sens_type=None, v_parent=None, *args, **kwargs):
 		super().__init__(sensor_name, v_parent)

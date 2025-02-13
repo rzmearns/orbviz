@@ -1,6 +1,6 @@
 import satplot.util.constants as c
 import satplot.visualiser.colours as colours
-from satplot.visualiser.assets.base import (BaseAsset, SimpleAsset)
+import satplot.visualiser.assets.base as base
 from satplot.visualiser.assets import axis_indicator as axisInd
 
 from satplot.model.geometry import transformations as transforms
@@ -17,7 +17,7 @@ from vispy import scene, color
 
 import numpy as np
 
-class Orbit3DAsset(BaseAsset):
+class Orbit3DAsset(base.AbstractAsset):
 	def __init__(self, name=None, v_parent=None):
 		super().__init__(name, v_parent)
 
@@ -78,13 +78,13 @@ class Orbit3DAsset(BaseAsset):
 										size=self.opts['orbital_position_marker_size']['value'],
 										symbol='o')
 
-	# Override BaseAsset.updateIndex()
+	# Override AbstractAsset.updateIndex()
 	def updateIndex(self, index):
 		self.data['curr_index'] = index
 		self._setStaleFlag()
 		self._sliceData()
 		for asset in self.assets.values():
-			if isinstance(asset,BaseAsset):
+			if isinstance(asset,base.AbstractAsset):
 				asset.updateIndex(index)
 
 	def recomputeRedraw(self):
@@ -99,9 +99,9 @@ class Orbit3DAsset(BaseAsset):
 
 			# recomputeRedraw child assets
 			for asset in self.assets.values():
-				if isinstance(asset,BaseAsset):
+				if isinstance(asset,base.AbstractAsset):
 					asset.recomputeRedraw()
-				elif isinstance(asset, SimpleAsset):
+				elif isinstance(asset, base.AbstractSimpleAsset):
 					asset.setTransform(rotation=R)
 			self._clearStaleFlag()
 

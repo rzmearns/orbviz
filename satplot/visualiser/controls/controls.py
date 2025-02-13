@@ -1,6 +1,6 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
 from satplot.visualiser.controls import widgets
-from satplot.visualiser.assets import base
+import satplot.visualiser.assets.base as base
 import datetime as dt
 import os
 import string
@@ -237,7 +237,7 @@ class OptionConfigs(QtWidgets.QWidget):
 	def _buildNestedOptionWidgetDict(self, asset, asset_key=''):
 		# returns unsorted_dict
 		w_dict = {}
-		if not isinstance(asset, base.BaseAsset) and not isinstance(asset, base.SimpleAsset):
+		if not isinstance(asset, base.AbstractAsset) and not isinstance(asset, base.AbstractSimpleAsset):
 			# no options or nested assets with options
 			return w_dict
 		
@@ -250,7 +250,7 @@ class OptionConfigs(QtWidgets.QWidget):
 
 		if hasattr(asset, 'assets'):
 			for sub_key, sub_asset in asset.assets.items():
-				if not isinstance(sub_asset, base.BaseAsset) and not isinstance(sub_asset, base.SimpleAsset):
+				if not isinstance(sub_asset, base.AbstractAsset) and not isinstance(sub_asset, base.AbstractSimpleAsset):
 					continue
 				sub_w_dict = self._buildNestedOptionWidgetDict(sub_asset, asset_key=sub_key)
 				cb = widgets.CollapsibleSection(title=f"{sub_key.capitalize()} Options")
