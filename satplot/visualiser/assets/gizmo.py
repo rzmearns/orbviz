@@ -15,10 +15,9 @@ class BodyGizmo(SimpleAsset):
 						
 		self._setDefaultOptions()
 		self._initData()
-		self.setSource(scale, width)
-		self._instantiateAssets()
-		self._createVisuals()				
-		self.attachToParentView()
+		self._createVisuals()
+
+		self._attachToParentView()
 
 	def _initData(self):
 		if self.data['name'] is None:
@@ -28,8 +27,6 @@ class BodyGizmo(SimpleAsset):
 	def setSource(self, *args, **kwargs):
 		self.opts['gizmo_scale']['value'] = args[0]
 		self.opts['gizmo_width']['value'] = args[1]
-
-	def _instantiateAssets(self):
 		pass
 
 	def _createVisuals(self):

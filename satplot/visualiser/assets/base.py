@@ -379,12 +379,6 @@ class SimpleAsset(ABC):
 		raise NotImplementedError
 
 	@abstractmethod
-	def _instantiateAssets(self):
-		'''Create child assets
-			pass desired parent to asset at instantiation'''
-		raise NotImplementedError
-	
-	@abstractmethod
 	def _createVisuals(self):
 		'''Create visuals on canvas'''
 		raise NotImplementedError

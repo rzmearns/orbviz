@@ -229,7 +229,6 @@ class ParallelsGrid3DAsset(SimpleAsset):
 		super().__init__(name, v_parent)
 		self._setDefaultOptions()
 		self._initData()
-		self._instantiateAssets()
 		self._createVisuals()
 		self._attachToParentView()
 
@@ -267,10 +266,6 @@ class ParallelsGrid3DAsset(SimpleAsset):
 
 	def setSource(self, *args, **kwargs):
 		# No updating, so no source
-		pass
-
-	def _instantiateAssets(self):
-		# No sub assets
 		pass
 
 	def _createVisuals(self):
@@ -379,7 +374,6 @@ class MeridiansGrid3DAsset(SimpleAsset):
 
 		self._setDefaultOptions()
 		self._initData()
-		self._instantiateAssets()
 		self._createVisuals()
 
 		self._attachToParentView()
@@ -405,10 +399,6 @@ class MeridiansGrid3DAsset(SimpleAsset):
 				self.data['init_m_coords'] = new_coords
 
 	def setSource(self, *args, **kwargs):		
-		pass
-
-	def _instantiateAssets(self):
-		# No sub assets
 		pass
 
 	def _createVisuals(self):
