@@ -150,7 +150,7 @@ class BaseAsset(ABC):
 
 
 	@abstractmethod
-	def _initData(self):
+	def _initData(self, *args, **kwargs):
 		'''Initialise data used for drawing this and any child assets
 			Any parameters can be passed here'''
 		raise NotImplementedError
@@ -371,9 +371,8 @@ class SimpleAsset(ABC):
 		'''Sets the visibility of this asset and all child-assets'''
 		self.setVisibility(state)
 
-
 	@abstractmethod
-	def _initData(self):
+	def _initData(self, *args, **kwargs):
 		'''Initialise data used for drawing this and any child assets
 			Any parameters can be passed here'''
 		raise NotImplementedError
