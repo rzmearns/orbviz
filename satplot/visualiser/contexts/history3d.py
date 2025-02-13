@@ -1,9 +1,9 @@
 import satplot
-
+import satplot.visualiser.interface.console as console
+import satplot.visualiser.interface.controls as controls
+import satplot.visualiser.interface.widgets as widgets
+import satplot.visualiser.contexts.base as base
 import satplot.visualiser.contexts.canvas_wrappers.history3d as canvaswrapper
-from satplot.visualiser.contexts.base import (BaseContext, BaseControls)
-import satplot.visualiser.controls.console as console
-from satplot.visualiser.controls import controls, widgets
 import satplot.util.spacetrack as spacetrack
 import satplot.util.celestrak as celestrak
 import satplot.util.list_u as list_u
@@ -17,7 +17,7 @@ import datetime as dt
 
 from PyQt5 import QtWidgets, QtCore, QtGui
 
-class History3DContext(BaseContext):
+class History3DContext(base.BaseContext):
 	data_type = DataType.HISTORY
 
 	def __init__(self, name, parent_window, data):
@@ -190,7 +190,7 @@ class History3DContext(BaseContext):
 
 
 		
-	class Controls(BaseControls):
+	class Controls(base.BaseControls):
 		def __init__(self, parent_context, canvas_wrapper):
 			self.context = parent_context
 			super().__init__(self.context.config['name'])

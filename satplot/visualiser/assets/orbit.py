@@ -8,8 +8,6 @@ from satplot.model.geometry import primgeom as pg
 from satplot.model.geometry import polygons
 import spherapy.orbit as orbit
 
-import satplot.visualiser.controls.console as console
-
 
 import geopandas as gpd
 

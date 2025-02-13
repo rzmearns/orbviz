@@ -1,7 +1,6 @@
 import satplot.util.constants as c
 import satplot.visualiser.colours as colours
 import satplot.visualiser.assets.base as base
-from satplot.visualiser.controls import console
 
 from satplot.model.geometry import primgeom as pg
 import spherapy.orbit as orbit

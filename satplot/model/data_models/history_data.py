@@ -13,7 +13,7 @@ import spherapy.updater as updater
 from satplot.model.data_models.base import (BaseDataModel)
 from satplot.util import threading
 from satplot.model.data_models.data_types import DataType
-import satplot.visualiser.controls.console as console
+import satplot.visualiser.interface.console as console
 
 
 class HistoryData(BaseDataModel):

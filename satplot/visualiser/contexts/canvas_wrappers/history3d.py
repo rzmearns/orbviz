@@ -10,7 +10,6 @@ from satplot.visualiser.assets.widgets import PopUpTextBox
 from satplot.visualiser.assets.constellation import Constellation
 from satplot.visualiser.assets.gizmo import ViewBoxGizmo
 
-from satplot.visualiser.controls import console
 import json
 import numpy as np
 import time

@@ -9,9 +9,9 @@ import numpy as np
 import sys
 import argparse
 
-import satplot.visualiser.controls.console as console
 import satplot
-import satplot.visualiser.controls.dialogs as dialogs
+import satplot.visualiser.interface.console as console
+import satplot.visualiser.interface.dialogs as dialogs
 
 import json
 import pickle

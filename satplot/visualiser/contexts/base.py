@@ -4,7 +4,6 @@ import numpy as np
 from PyQt5 import QtWidgets, QtCore
 import json
 import sys
-import satplot.visualiser.controls.console as console
 
 class BaseContext(ABC):
 

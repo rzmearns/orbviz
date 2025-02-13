@@ -2,7 +2,6 @@ import satplot.util.constants as c
 import satplot.visualiser.colours as colours
 import satplot.visualiser.assets.base as base
 
-import satplot.visualiser.controls.console as console
 import satplot.model.geometry.polyhedra as polyhedra
 import satplot.model.geometry.primgeom as pg
 import spherapy.orbit as orbit

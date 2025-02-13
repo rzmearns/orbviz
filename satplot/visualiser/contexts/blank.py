@@ -2,8 +2,7 @@ import satplot
 import spherapy.timespan as timespan
 import spherapy.orbit as orbit
 from satplot.visualiser.contexts.base import (BaseContext, BaseControls)
-import satplot.visualiser.controls.console as console
-from satplot.visualiser.controls import controls, widgets
+import satplot.visualiser.interface.controls as controls
 
 import sys
 import numpy as np

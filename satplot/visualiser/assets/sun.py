@@ -8,7 +8,7 @@ from satplot.model.geometry import primgeom as pg
 from satplot.model.geometry import polygons
 from satplot.model.geometry import polyhedra
 import spherapy.orbit as orbit
-from satplot.visualiser.controls import console
+import satplot.visualiser.interface.console as console
 
 from vispy import scene
 from vispy.visuals import transforms as vTransforms

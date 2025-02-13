@@ -3,7 +3,7 @@ from PyQt5 import QtCore
 from abc import ABC, abstractmethod
 
 from satplot.model.data_models.data_types import DataType
-import satplot.visualiser.controls.console as console
+import satplot.visualiser.interface.console as console
 
 from typing import Any
 

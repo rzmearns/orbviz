@@ -5,7 +5,7 @@ import satplot.util.epoch_u as epoch_u
 import sys
 import os
 from progressbar import progressbar
-import satplot.visualiser.controls.console as console
+import satplot.visualiser.interface.console as console
 import json
 
 MAX_RETRIES=3

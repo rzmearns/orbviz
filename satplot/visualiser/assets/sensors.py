@@ -3,7 +3,6 @@ import numpy as np
 import satplot.util.constants as c
 import satplot.visualiser.colours as colours
 import satplot.visualiser.assets.base as base
-from satplot.visualiser.controls import console
 
 import satplot.model.geometry.polyhedra as polyhedra
 
