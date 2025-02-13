@@ -1,20 +1,19 @@
-import satplot.util.constants as c
-import satplot.visualiser.colours as colours
-import satplot.visualiser.assets.base as base
-from satplot.visualiser.assets import axis_indicator as axisInd
-
-from satplot.model.geometry import transformations as transforms
-from satplot.model.geometry import primgeom as pg
-from satplot.model.geometry import polygons
-import spherapy.timespan as timespan
-
 import geopandas as gpd
+import numpy as np
 from skyfield.api import wgs84
 
 from vispy import scene, color
 from vispy.visuals import transforms as vTransforms
 
-import numpy as np
+import satplot.model.geometry.polygons as polygons
+import satplot.model.geometry.primgeom as pg
+import satplot.model.geometry.transformations as transforms
+import satplot.util.constants as c
+import satplot.visualiser.assets.base as base
+import satplot.visualiser.assets.axis_indicator as axisInd
+import satplot.visualiser.colours as colours
+import spherapy.timespan as timespan
+
 
 class Earth3DAsset(base.AbstractAsset):
 	def __init__(self, name=None, v_parent=None):

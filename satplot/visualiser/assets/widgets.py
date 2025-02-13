@@ -1,8 +1,10 @@
-from vispy import scene
-import satplot.visualiser.colours as colours
-
 import numpy as np
 import sys
+
+from vispy import scene
+
+import satplot.visualiser.colours as colours
+
 
 class PopUpTextBox():
 	def __init__(self, v_parent=None, padding=[0,0,0,0], text_colour=(0,0,0), colour=(1,1,1), border_colour=(0,0,0), font_size=10):

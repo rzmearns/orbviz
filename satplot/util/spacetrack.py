@@ -1,12 +1,14 @@
-import spacetrack as sp
 import datetime as dt
-import satplot
-import satplot.util.epoch_u as epoch_u
-import sys
+import json
 import os
 from progressbar import progressbar
+import spacetrack as sp
+import sys
+
+import satplot
+import satplot.util.epoch_u as epoch_u
 import satplot.visualiser.interface.console as console
-import json
+
 
 MAX_RETRIES=3
 

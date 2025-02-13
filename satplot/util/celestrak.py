@@ -1,6 +1,8 @@
+import requests
+
 import satplot.util.spacetrack as spacetrack
 import satplot.visualiser.interface.console as console
-import requests
+
 
 MAX_RETRIES=3
 

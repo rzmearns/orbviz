@@ -1,14 +1,14 @@
+import numpy as np
+
+import vispy.scene as scene
+import vispy.visuals.transforms as vtransforms
+
+import satplot.model.geometry.primgeom as pg
 import satplot.util.constants as c
 import satplot.visualiser.colours as colours
 import satplot.visualiser.assets.base as base
-
-from satplot.model.geometry import primgeom as pg
 import spherapy.orbit as orbit
 
-from vispy import scene
-from vispy.visuals.transforms import STTransform
-
-import numpy as np
 
 class Moon3DAsset(base.AbstractAsset):
 	def __init__(self, name=None, v_parent=None):
@@ -55,7 +55,7 @@ class Moon3DAsset(base.AbstractAsset):
 			self._clearFirstDrawFlag()
 		if self.isStale():
 			moon_pos = self.opts['moon_distance_kms']['value'] * pg.unitVector(self.data['curr_pos'])
-			self.visuals['moon'].transform = STTransform(translate=moon_pos)
+			self.visuals['moon'].transform = vtransforms.STTransform(translate=moon_pos)
 
 			for asset in self.assets.values():
 				if isinstance(asset,base.AbstractAsset):

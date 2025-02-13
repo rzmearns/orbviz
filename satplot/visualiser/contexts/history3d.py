@@ -1,24 +1,25 @@
-import satplot
-import satplot.visualiser.interface.console as console
-import satplot.visualiser.interface.controls as controls
-import satplot.visualiser.interface.widgets as widgets
-import satplot.visualiser.contexts.base as base
-import satplot.visualiser.contexts.canvas_wrappers.history3d as canvaswrapper
-import satplot.util.spacetrack as spacetrack
-import satplot.util.celestrak as celestrak
-import satplot.util.list_u as list_u
-from satplot.model.data_models.data_types import DataType
-from progressbar import progressbar
-import traceback
-
-import sys
-import numpy as np
 import datetime as dt
+import numpy as np
+from progressbar import progressbar
+import sys
+import traceback
 
 from PyQt5 import QtWidgets, QtCore, QtGui
 
+import satplot
+import satplot.model.data_models.data_types as data_types
+import satplot.util.celestrak as celestrak
+import satplot.util.list_u as list_u
+import satplot.util.spacetrack as spacetrack
+import satplot.visualiser.contexts.base as base
+import satplot.visualiser.contexts.canvas_wrappers.history3d as canvaswrapper
+import satplot.visualiser.interface.console as console
+import satplot.visualiser.interface.controls as controls
+import satplot.visualiser.interface.widgets as widgets
+
+
 class History3DContext(base.BaseContext):
-	data_type = DataType.HISTORY
+	data_type = data_types.DataType.HISTORY
 
 	def __init__(self, name, parent_window, data):
 		super().__init__(name)

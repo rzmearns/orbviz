@@ -1,22 +1,20 @@
-import satplot.util.constants as c
-import satplot.visualiser.colours as colours
-import satplot.visualiser.assets.base as base
-from satplot.visualiser.assets import gizmo
-
-from satplot.model.geometry import transformations as transforms
-from satplot.model.geometry import primgeom as pg
-from satplot.model.geometry import polygons
-import spherapy.orbit as orbit
-
-import satplot.visualiser.assets.sensors as sensors
-from scipy.spatial.transform import Rotation
-
 import geopandas as gpd
+import numpy as np
+from scipy.spatial.transform import Rotation
 
 from vispy import scene, color
 from vispy.visuals import transforms as vTransforms
 
-import numpy as np
+import satplot.model.geometry.transformations as transforms
+import satplot.model.geometry.primgeom as pg
+import satplot.model.geometry.polygons as polygons
+import satplot.util.constants as c
+import satplot.visualiser.assets.sensors as sensors
+import satplot.visualiser.colours as colours
+import satplot.visualiser.assets.base as base
+import satplot.visualiser.assets.gizmo as gizmo
+import spherapy.orbit as orbit
+
 
 class Spacecraft3DAsset(base.AbstractAsset):
 	def __init__(self, name=None, v_parent=None, sens_suites=None):

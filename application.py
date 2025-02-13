@@ -1,23 +1,19 @@
-from vispy import app, use
-
-from satplot.visualiser import window
+import argparse
+import datetime as dt
+import json
+import pickle
+import numpy as np
+import sys
+import warnings
 
 from PyQt5 import QtWidgets, QtCore
-
-import numpy as np
-
-import sys
-import argparse
+from vispy import app, use
 
 import satplot
+import satplot.visualiser.window as window
 import satplot.visualiser.interface.console as console
 import satplot.visualiser.interface.dialogs as dialogs
 
-import json
-import pickle
-import datetime as dt
-
-import warnings
 warnings.filterwarnings("ignore", message="Optimal rotation is not uniquely or poorly defined for the given sets of vectors.")
 
 use(gl='gl+')

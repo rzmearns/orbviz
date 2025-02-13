@@ -1,4 +1,5 @@
 import numpy as np
+
 import satplot.util.constants as consts
 
 

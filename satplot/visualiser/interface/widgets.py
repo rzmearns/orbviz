@@ -1,7 +1,10 @@
-from PyQt5 import QtWidgets, QtCore, QtGui
-import math
-import satplot.visualiser.colours as colours
 import datetime as dt
+import math
+
+from PyQt5 import QtWidgets, QtCore, QtGui
+
+import satplot.visualiser.colours as colours
+
 
 class TimeSlider(QtWidgets.QWidget):
 	def __init__(self, parent: QtWidgets.QWidget=None) -> None:

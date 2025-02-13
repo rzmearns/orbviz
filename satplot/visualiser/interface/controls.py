@@ -1,11 +1,14 @@
-from PyQt5 import QtWidgets, QtCore, QtGui
-import satplot.visualiser.interface.widgets as widgets
-import satplot.visualiser.assets.base as base
 import datetime as dt
+import json
 import os
 import string
-import json
+
+from PyQt5 import QtWidgets, QtCore, QtGui
+
 import satplot.util.spacetrack as spacetrack
+import satplot.visualiser.assets.base as base
+import satplot.visualiser.interface.widgets as widgets
+
 
 class OrbitConfigs(QtWidgets.QWidget):
 

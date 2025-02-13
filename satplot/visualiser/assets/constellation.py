@@ -1,22 +1,20 @@
-import satplot.util.constants as c
-import satplot.visualiser.colours as colours
-import satplot.visualiser.assets.base as base
-
-import satplot.model.geometry.polyhedra as polyhedra
-import satplot.model.geometry.primgeom as pg
-import spherapy.orbit as orbit
-
+import numpy as np
 from scipy.spatial.transform import Rotation
 import scipy.special as sc
 
-from vispy import scene
-from vispy.visuals import transforms as vTransforms
-from vispy.scene import visuals as vVisuals
-from vispy.visuals import filters as vFilters
-
-import numpy as np
+import vispy.scene as scene
+import vispy.visuals.transforms as vTransforms
+import vispy.scene.visuals as vVisuals
+import vispy.visuals.filters as vFilters
 
 import satplot
+import satplot.model.geometry.polyhedra as polyhedra
+import satplot.model.geometry.primgeom as pg
+import satplot.util.constants as c
+import satplot.visualiser.assets.base as base
+import satplot.visualiser.colours as colours
+import spherapy.orbit as orbit
+
 
 class Constellation(base.AbstractAsset):
 	def __init__(self, name=None, v_parent=None):

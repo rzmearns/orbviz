@@ -1,14 +1,5 @@
-import satplot.util.constants as c
-import satplot.visualiser.colours as colours
-import satplot.visualiser.assets.base as base
-from satplot.visualiser.assets import axis_indicator as axisInd
-
-from satplot.model.geometry import transformations as transforms
-from satplot.model.geometry import primgeom as pg
-from satplot.model.geometry import polygons
-from satplot.model.geometry import polyhedra
-import spherapy.orbit as orbit
-import satplot.visualiser.interface.console as console
+import numpy as np
+from scipy.spatial.transform import Rotation
 
 from vispy import scene
 from vispy.visuals import transforms as vTransforms
@@ -16,9 +7,17 @@ from vispy.scene import visuals as vVisuals
 from vispy.scene import visuals as vVisuals
 from vispy.visuals import filters as vFilters
 
-from scipy.spatial.transform import Rotation
+import satplot.model.geometry.primgeom as pg
+import satplot.model.geometry.polygons as polygons
+import satplot.model.geometry.polyhedra as polyhedra
+import satplot.model.geometry.transformations as transforms
+import satplot.util.constants as c
+import satplot.visualiser.assets.axis_indicator as axisInd
+import satplot.visualiser.assets.base as base
+import satplot.visualiser.interface.console as console
+import satplot.visualiser.colours as colours
+import spherapy.orbit as orbit
 
-import numpy as np
 
 class Sun3DAsset(base.AbstractAsset):
 	def __init__(self, name=None, v_parent=None):

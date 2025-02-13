@@ -1,25 +1,27 @@
-from vispy import scene
-
-from satplot.util import constants as c
-from satplot.visualiser.assets.earth import Earth3DAsset
-from satplot.visualiser.assets.orbit import Orbit3DAsset
-from satplot.visualiser.assets.sun import Sun3DAsset
-from satplot.visualiser.assets.moon import Moon3DAsset
-from satplot.visualiser.assets.spacecraft import Spacecraft3DAsset
-from satplot.visualiser.assets.widgets import PopUpTextBox
-from satplot.visualiser.assets.constellation import Constellation
-from satplot.visualiser.assets.gizmo import ViewBoxGizmo
-
 import json
 import numpy as np
 import time
+
+from vispy import scene
+
 import satplot.model.geometry.primgeom as pg
+import satplot.util.constants as c
+import satplot.visualiser.assets.constellation as constellation
+import satplot.visualiser.assets.earth as earth
+import satplot.visualiser.assets.gizmo as gizmo
+import satplot.visualiser.assets.orbit as orbit
+import satplot.visualiser.assets.moon as moon
+import satplot.visualiser.assets.spacecraft as spacecraft
+import satplot.visualiser.assets.sun as sun
+import satplot.visualiser.assets.widgets as widgets
+
 
 create_time = time.monotonic()
 MIN_MOVE_UPDATE_THRESHOLD = 1
 MOUSEOVER_DIST_THRESHOLD = 5
 last_mevnt_time = time.monotonic()
 mouse_over_is_highlighting = False
+
 
 class History3DCanvas():
 	def __init__(self, w=800, h=600, keys='interactive', bgcolor='white'):
@@ -38,16 +40,16 @@ class History3DCanvas():
 
 		self.assets = {}
 		self._buildAssets()
-		self.mouseOverText = PopUpTextBox(v_parent=self.view_box,
+		self.mouseOverText = widgets.PopUpTextBox(v_parent=self.view_box,
 											padding=[3,3,3,3],
 											colour=(253,255,189),
 											border_colour=(186,186,186),
 											font_size=10)
 
 	def _buildAssets(self):
-		self.assets['earth'] = Earth3DAsset(v_parent=self.view_box.scene)
-		self.assets['primary_orbit'] = Orbit3DAsset(v_parent=self.view_box.scene)
-		self.assets['moon'] = Moon3DAsset(v_parent=self.view_box.scene)
+		self.assets['earth'] = earth.Earth3DAsset(v_parent=self.view_box.scene)
+		self.assets['primary_orbit'] = orbit.Orbit3DAsset(v_parent=self.view_box.scene)
+		self.assets['moon'] = moon.Moon3DAsset(v_parent=self.view_box.scene)
 
 		with open('./data/spacecraft/spirit.json') as fp:
 			sc_sens_dict = json.load(fp)
@@ -55,10 +57,10 @@ class History3DCanvas():
 		sens_suites={}
 		sens_suites['loris'] = sc_sens_dict
 
-		self.assets['spacecraft'] = Spacecraft3DAsset(v_parent=self.view_box.scene, sens_suites=sens_suites)
+		self.assets['spacecraft'] = spacecraft.Spacecraft3DAsset(v_parent=self.view_box.scene, sens_suites=sens_suites)
 
 		# self.assets['constellation'] = Constellation(v_parent=self.view_box.scene)
-		self.assets['sun'] = Sun3DAsset(v_parent=self.view_box.scene)
+		self.assets['sun'] = sun.Sun3DAsset(v_parent=self.view_box.scene)
 
 		# if self.is_asset_active['ECI_gizmo']:
 		# self.assets['ECI_gizmo'] = ViewBoxGizmo(canvas=self.canvas,

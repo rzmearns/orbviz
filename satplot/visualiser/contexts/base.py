@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
+import json
 import numpy as np
+import sys
 
 from PyQt5 import QtWidgets, QtCore
-import json
-import sys
+
 
 class BaseContext(ABC):
 

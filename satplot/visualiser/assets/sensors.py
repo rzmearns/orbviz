@@ -1,16 +1,15 @@
-
 import numpy as np
+from scipy.spatial.transform import Rotation
+
+import vispy.scene.visuals as vVisuals
+import vispy.visuals.filters as vFilters
+import vispy.visuals.transforms as vTransforms
+
+import satplot.model.geometry.polyhedra as polyhedra
 import satplot.util.constants as c
 import satplot.visualiser.colours as colours
 import satplot.visualiser.assets.base as base
 
-import satplot.model.geometry.polyhedra as polyhedra
-
-from vispy.visuals import transforms as vTransforms
-import vispy.scene.visuals as vVisuals
-import vispy.visuals.filters as vFilters
-
-from scipy.spatial.transform import Rotation
 
 class SensorSuite3DAsset(base.AbstractCompoundAsset):
 	def __init__(self, sens_suite_dict, name=None, v_parent=None):

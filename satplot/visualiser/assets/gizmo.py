@@ -1,11 +1,13 @@
-
 import numpy as np
+
+import vispy.scene as scene
+import vispy.visuals.transforms as vTransforms
+
 import satplot.util.constants as c
 import satplot.visualiser.colours as colours
 import satplot.visualiser.assets.base as base
 
-from vispy import scene
-from vispy.visuals import transforms as vTransforms
+
 
 class BodyGizmo(base.AbstractSimpleAsset):
 	def __init__(self, name=None, v_parent=None, scale=1, width=1):

@@ -1,10 +1,11 @@
 import sys
+
 from PyQt5 import QtWidgets, QtCore
+
 import satplot
+from satplot.model.data_models import (history_data)
 from satplot.visualiser.contexts import (history3d, blank)
 import satplot.visualiser.interface.console as console
-from satplot.model.data_models import (history_data)
-
 
 class MainWindow(QtWidgets.QMainWindow):
 	closing = QtCore.pyqtSignal()

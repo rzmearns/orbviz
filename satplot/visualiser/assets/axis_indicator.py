@@ -1,4 +1,3 @@
-
 import numpy as np
 
 from vispy.scene import visuals as scenevisuals

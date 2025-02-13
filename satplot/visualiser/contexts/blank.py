@@ -1,14 +1,13 @@
+import numpy as np
+import datetime as dt
+import sys
+
+from PyQt5 import QtWidgets, QtCore
+
 import satplot
-import spherapy.timespan as timespan
-import spherapy.orbit as orbit
 from satplot.visualiser.contexts.base import (BaseContext, BaseControls)
 import satplot.visualiser.interface.controls as controls
 
-import sys
-import numpy as np
-import datetime as dt
-
-from PyQt5 import QtWidgets, QtCore
 
 class BlankContext(BaseContext):
 	def __init__(self, name, parent_window):

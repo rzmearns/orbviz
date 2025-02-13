@@ -1,5 +1,6 @@
 from bisect import bisect_left
 import numpy as np
+
 import satplot.util.exceptions as exceptions
 
 

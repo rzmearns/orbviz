@@ -1,8 +1,10 @@
-import PyQt5.QtWidgets as QtWidgets
-# import QApplication, QMainWindow, QPushButton, QDialog, QVBoxLayout, QLabel, QWidget
-import satplot
 import pickle
 import os
+
+import PyQt5.QtWidgets as QtWidgets
+
+import satplot
+
 
 def createSpaceTrackCredentialsDialog():
 	SpaceTrackCredentialsDialog()

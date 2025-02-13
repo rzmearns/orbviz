@@ -1,11 +1,13 @@
-import traceback
-from PyQt5 import QtCore
 from abc import ABC, abstractmethod
+import traceback
+from typing import Any
+
+from PyQt5 import QtCore
 
 from satplot.model.data_models.data_types import DataType
 import satplot.visualiser.interface.console as console
 
-from typing import Any
+
 
 class BaseDataModel(QtCore.QObject):
 	data_ready = QtCore.pyqtSignal()

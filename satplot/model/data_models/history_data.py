@@ -3,23 +3,22 @@ import datetime as dt
 import sys
 import pathlib
 import collections
+
 from PyQt5 import QtCore
 
 import satplot
+from satplot.model.data_models.base import (BaseDataModel)
+import satplot.util.threading as threading
+import satplot.model.data_models.data_types as data_types
+import satplot.visualiser.interface.console as console
 import spherapy.timespan as timespan
 import spherapy.orbit as orbit
 import spherapy.updater as updater
 
-from satplot.model.data_models.base import (BaseDataModel)
-from satplot.util import threading
-from satplot.model.data_models.data_types import DataType
-import satplot.visualiser.interface.console as console
-
-
 class HistoryData(BaseDataModel):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
-		self._setConfig('data_type',DataType.HISTORY)
+		self._setConfig('data_type',data_types.DataType.HISTORY)
 		# initialise empty config
 		self._setConfig('timespan_period_start', None)
 		self._setConfig('timespan_period_end', None)
