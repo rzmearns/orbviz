@@ -59,7 +59,7 @@ class History3DCanvas():
 
 		self.assets['spacecraft'] = spacecraft.Spacecraft3DAsset(v_parent=self.view_box.scene, sens_suites=sens_suites)
 
-		# self.assets['constellation'] = Constellation(v_parent=self.view_box.scene)
+		self.assets['constellation'] = constellation.Constellation(v_parent=self.view_box.scene)
 		self.assets['sun'] = sun.Sun3DAsset(v_parent=self.view_box.scene)
 
 		# if self.is_asset_active['ECI_gizmo']:
@@ -125,17 +125,11 @@ class History3DCanvas():
 			# TODO: making this dormant at creation
 			self.assets['spacecraft'].makeDormant()
 			self.assets['primary_orbit'].setOrbitalMarkerVisibility(True)
-		# elif self.is_asset_active['spacecraft']:
-		# 	# No pointing on this recalculate, but there is a spacecraft asset
-		# 	self.is_asset_active['spacecraft'] = False
-		# 	self.assets['spacecraft'].setSpacecraftAssetVisibility(False)
-		# 	self.assets['primary_orbit'].setOrbitalMarkerVisibility(True)
-		# else:
-		# 	self.assets['primary_orbit'].setOrbitalMarkerVisibility(True)
 
-		# if self.data_model['has_supplemental_constellation']:
-		# 	self.assets['constellation'].setModel(c_list, c_beam_angle)
-		# 	self.is_asset_active['constellation'] = True
+		if self.data_model.getConfigValue('has_supplemental_constellation'):
+			self.assets['constellation'].setSource(list(self.data_model.constellation.orbits.values()),
+													self.data_model.constellation.getConfigValue('beam_angle_deg'))
+			self.assets['constellation'].makeActive()
 
 		# Update data source for sun asset
 		if len(self.data_model.getConfigValue('primary_satellite_ids')) > 0:

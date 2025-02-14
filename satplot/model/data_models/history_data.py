@@ -3,6 +3,7 @@ import datetime as dt
 import sys
 import pathlib
 import collections
+from progressbar import progressbar
 
 from PyQt5 import QtCore
 
@@ -10,6 +11,7 @@ import satplot
 from satplot.model.data_models.base import (BaseDataModel)
 import satplot.util.threading as threading
 import satplot.model.data_models.data_types as data_types
+import satplot.model.data_models.constellation_data as constellation_data
 import satplot.visualiser.interface.console as console
 import spherapy.timespan as timespan
 import spherapy.orbit as orbit
@@ -39,10 +41,8 @@ class HistoryData(BaseDataModel):
 		self.moon = None
 		self.geo_locations = []
 
-		self.worker_threads = {'primary': None,
-								'pointing': None,
-								'constellation': None,
-								'spacetrack': None}
+		self._worker_threads = {'primary': None,
+								'constellation': None}
 
 		print("Finished initialising HistoryData")
 
@@ -51,8 +51,7 @@ class HistoryData(BaseDataModel):
 
 	def setSupplementalConstellation(self, constellation_config):
 		self.updateConfig('has_supplemental_constellation', True)
-		self.constellation = ConstellationData(constellation_config)
-		raise NotImplementedError()
+		self.constellation = constellation_data.ConstellationData(constellation_config)
 
 	def clearSupplementalConstellation(self):
 		self.updateConfig('has_supplemental_constellation', False)
@@ -83,15 +82,35 @@ class HistoryData(BaseDataModel):
 		console.send(f"\tDuration: {self.timespan.time_period}")
 		console.send(f"\tNumber of steps: {len(self.timespan)}")
 
-		# Set up workers for orbit propagation
-		worker = threading.Worker(self._propagateOrbits, self.timespan, self.getConfigValue('primary_satellite_ids'))
-		worker.signals.result.connect(self._storeOrbitData)
-		worker.signals.finished.connect(self._procComplete)
-		worker.signals.error.connect(self._displayError)
 
-		satplot.threadpool.start(worker)
+		# Set up workers for orbit propagation
+		self._worker_threads['primary'] = threading.Worker(self._propagatePrimaryOrbits, self.timespan, self.getConfigValue('primary_satellite_ids'))
+		self._worker_threads['primary'].signals.result.connect(self._storeOrbitData)
+		self._worker_threads['primary'].signals.finished.connect(self._procComplete)
+		self._worker_threads['primary'].signals.error.connect(self._displayError)
+		self._worker_threads['primary'].setAutoDelete(True)
+
+		if self.getConfigValue('has_supplemental_constellation'):
+			self.constellation.setTimespan(timespan)
+			self._worker_threads['constellation'] = threading.Worker(self._propagateConstellationOrbits, self.timespan, self.constellation.getConfigValue('satellite_ids'))
+			self._worker_threads['constellation'].signals.result.connect(self.constellation._storeOrbitData)
+			self._worker_threads['constellation'].signals.finished.connect(self._procComplete)
+			self._worker_threads['constellation'].signals.error.connect(self._displayError)
+			self._worker_threads['constellation'].setAutoDelete(True)
+		else:
+			self._worker_threads['constellation'] = None
+
+		for thread_name, thread in self._worker_threads.items():
+			if thread is not None:
+				print(f'Starting thread {thread_name}:{thread}')
+				satplot.threadpool.start(thread)
 
 	def _procComplete(self):
+		print("TRIGGERED COMPLETION")
+		for thread_name, thread in self._worker_threads.items():
+			# print(f'Inside _procComplete {thread_name}:{thread}')
+			if thread.isRunning():
+				return
 		self.data_ready.emit()
 
 	def _loadPointingFile(self, p_file):
@@ -105,8 +124,9 @@ class HistoryData(BaseDataModel):
 
 		return pointing_dates, pointing_q
 
-	def _propagateOrbits(self, timespan:timespan.TimeSpan, sat_ids:list[int]):
+	def _propagatePrimaryOrbits(self, timespan:timespan.TimeSpan, sat_ids:list[int]) -> dict[int, orbit.Orbit]:
 		updated_list = updater.updateTLEs(sat_ids)
+		# TODO: check number of sats updated == number of sats requested
 		# if collections.Counter(updated_list) == collections.Counter(self.sat_ids):
 		# 		self.finished.emit()
 		# 	else:
@@ -118,35 +138,31 @@ class HistoryData(BaseDataModel):
 		for ii, sat_id in enumerate(sat_ids):
 			orbits[sat_id] = orbit.Orbit.fromTLE(timespan, tle_paths[ii])
 
-				# CONSTELLATION
-				# if self.c_config is not None:
-				# 	self.c_list = []
-				# 	num_c_sats = len(spacetrack.getSatIDs(self.c_config))
-				# 	if not use_temp:
-				# 		spacetrack.updateTLEs(self.c_config)
-				# 	else:
-				# 		celestrak.updateTLEs(self.c_config)
-				# 	console.send(f"Propagating constellation orbits ...")
-				# 	ii = 0
-				# 	for sat_id in progressbar(spacetrack.getSatIDs(self.c_config)):
-				# 		pc = ii/num_c_sats*100
-				# 		bar_str = int(pc)*'='
-				# 		space_str = (100-int(pc))*'  '
-				# 		console.send(f'Loading {pc:.2f}% ({ii} of {num_c_sats}) |{bar_str}{space_str}|\r')
+		return orbits
 
-				# 		if not use_temp:
-				# 			c_path = spacetrack.getTLEFilePath(sat_id)
-
-				# 		else:
-				# 			c_path = celestrak.getTLEFilePath(sat_id)
-
-				# 		self.c_list.append(orbit.Orbit.fromTLE(self.t, c_path, astrobodies=False))
-				# 		ii += 1
-				# 	console.send(f"\tLoaded {len(self.c_list)} satellites from the {self.c_config['name']} constellation.")
+	def _propagateConstellationOrbits(self, timespan:timespan.TimeSpan, sat_ids:list[int]) -> dict[int, orbit.Orbit]:
+		updated_list = updater.updateTLEs(sat_ids)
+		# TODO: check number of sats updated == number of sats requested
+		# if collections.Counter(updated_list) == collections.Counter(self.sat_ids):
+		# 		self.finished.emit()
+		# 	else:
+		# 		self.error.emit
+		tle_paths = updater.getTLEFilePaths(sat_ids)
+		orbits = {}
+		num_sats = len(sat_ids)
+		ii = 0
+		for sat_id in progressbar(sat_ids):
+			pc = ii/num_sats*100
+			bar_str = int(pc)*'='
+			space_str = (100-int(pc))*'  '
+			console.send(f'Loading {pc:.2f}% ({ii} of {num_sats}) |{bar_str}{space_str}|\r')
+			orbits[sat_id] = orbit.Orbit.fromTLE(timespan, tle_paths[ii])
+			ii+=1
+		console.send(f"\tLoaded {len(sat_ids)} satellites .")
 
 		return orbits
 
-	def _storeOrbitData(self, orbits):
+	def _storeOrbitData(self, orbits:dict[int,orbit.Orbit]):
 		self.orbits = orbits
 
 def date_parser(d_bytes):

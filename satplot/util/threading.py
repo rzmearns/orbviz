@@ -47,6 +47,7 @@ class Worker(QtCore.QRunnable):
 		self.args = args
 		self.kwargs = kwargs
 		self.signals = WorkerSignals()
+		self.running = False
 
 		# Add the callback to our kwargs
 		# self.kwargs['progress_callback'] = self.signals.progress
@@ -56,6 +57,7 @@ class Worker(QtCore.QRunnable):
 		"""Initalise the runner function with passed args, kwargs
 		"""
 		try:
+			self.running = True
 			result = self.fn(*self.args, **self.kwargs)
 		except:
 			traceback.print_exc()
@@ -64,5 +66,8 @@ class Worker(QtCore.QRunnable):
 		else:
 			self.signals.result.emit(result)
 		finally:
+			self.running = False
 			self.signals.finished.emit()
 
+	def isRunning(self):
+		return self.running

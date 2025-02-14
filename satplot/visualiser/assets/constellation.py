@@ -24,7 +24,7 @@ class Constellation(base.AbstractAsset):
 		self._instantiateAssets()
 		self._createVisuals()
 		
-		self.attachToParentView()
+		self._attachToParentView()
 
 	def _initData(self):
 		if self.data['name'] is None:
@@ -77,7 +77,7 @@ class Constellation(base.AbstractAsset):
 				self.data['strings'].append(o.name)
 			else:
 				self.data['strings'].append('')
-		
+
 
 	def _instantiateAssets(self):
 		# self.assets['beams'] = None
@@ -95,17 +95,20 @@ class Constellation(base.AbstractAsset):
 
 	# Use AbstractAsset.updateIndex()
 
-	def recompute(self):
-		if self.first_draw:
-			if self.visuals['markers'] is not None:
-				# Must do this to clear old visuals before creating a new one
-				# TODO: not clear if this is actually deleting or just removing the reference (memory leak?)
-				self.visuals['markers'].parent = None
-			self._createVisuals()
-			self.attachToParentView()
-			self.first_draw = False
+	def recomputeRedraw(self):
+		if self.isFirstDraw():
+			self._detachFromParentView()
+			# if self.visuals['markers'] is not None:
+			# 	# Must do this to clear old visuals before creating a new one
+			# 	# TODO: not clear if this is actually deleting or just removing the reference (memory leak?)
+			# 	self.visuals['markers'].parent = None
+			self._attachToParentView()
+			# self._createVisuals()
+			# self._attachToParentView()
+			# self.first_draw = False
+			self._clearFirstDrawFlag()
 
-		if self.requires_recompute:
+		if self.isStale():
 			if self.data['num_sats'] > 1:
 				self.visuals['markers'].set_data(pos=self.data['coords'][:,self.data['curr_index'],:].reshape(-1,3),
 												size=self.opts['constellation_position_marker_size']['value'],
@@ -119,9 +122,13 @@ class Constellation(base.AbstractAsset):
 																					self.opts['constellation_colour']['value'][1]/2,
 																					self.opts['constellation_colour']['value'][2]/2)))
 			
+			# recomputeRedraw child assets
 			for asset in self.assets.values():
-				asset.recompute()
-			self.requires_recompute = False
+				if isinstance(asset,base.AbstractAsset):
+					asset.recomputeRedraw()
+				elif isinstance(asset, base.AbstractSimpleAsset):
+					asset.setTransform(rotation=R)
+			self._clearStaleFlag()
 
 	def getScreenMouseOverInfo(self):
 		canvas_poss = []
@@ -216,12 +223,13 @@ class InstancedConstellationBeams(base.AbstractAsset):
 		self._setDefaultOptions()
 		self._initData()
 		self._instantiateAssets()
-		# Can't create instanced mesh until source set
+		# Can't create instanced mesh until source set, -> _createVisuals must be called after first time source set
+		self._first_creation = True
 		# Add circles to dict first, so that parent gets set first, otherwise will be hidden by cones
 		self.visuals['circles'] = None
 		self.visuals['scircle'] = None
 		self.visuals['beams'] = None
-		self.attachToParentView()
+		self._attachToParentView()
 
 	def _initData(self):
 		if self.data['name'] is None:
@@ -261,8 +269,18 @@ class InstancedConstellationBeams(base.AbstractAsset):
 			raise TypeError(f"args[4]:beam_angle_deg is not a float -> {args[4]}")
 		self.data['beam_angle_deg'] = args[4]
 
+		# # Create instanced mesh
+		if self._first_creation:
+			self._createVisuals()
+			self._first_creation = False
+
 	def _instantiateAssets(self):
 		pass
+
+	def _destroyVisuals(self):
+		for name in self.visuals.values():
+			del self.visuals[name]
+			self.visuals[name] = None
 
 	def _createVisuals(self):
 		instance_colours = np.tile(colours.normaliseColour(self.opts['beams_colour']['value']),(self.data['num_sats'],1))
@@ -326,17 +344,19 @@ class InstancedConstellationBeams(base.AbstractAsset):
 
 	# Use AbstractAsset.updateIndex()
 
-	def recompute(self):
-		if self.first_draw:
-			if self.visuals['beams'] is not None:
-				self.visuals['beams'].parent = None
-				self.visuals['circles'].parent = None
-				self.visuals['scircle'].parent = None
-			self._createVisuals()
-			self.attachToParentView()
-			self.first_draw = False
+	def recomputeRedraw(self):
+		if self.isFirstDraw():
+			self._detachFromParentView()
+			self._attachToParentView()
+			# if self.visuals['beams'] is not None:
+			# 	self.visuals['beams'].parent = None
+			# 	self.visuals['circles'].parent = None
+			# 	self.visuals['scircle'].parent = None
+			# self._createVisuals()
+			# self.attachToParentView()
+			self._clearFirstDrawFlag()
 		
-		if self.requires_recompute:
+		if self.isStale():
 			if self.data['num_sats'] > 1:
 				instance_transforms = []
 				for ii in range(self.data['num_sats']):
@@ -357,7 +377,8 @@ class InstancedConstellationBeams(base.AbstractAsset):
 			self.visuals['circles'].set_data(circles)
 			self.data['s_c_conn'] = np.array((0,0)).reshape(-1,2)
 			self.visuals['scircle'].set_data(pos=circles, connect=self.data['s_c_conn'])
-			self.requires_recompute = False
+			self._clearStaleFlag()
+
 
 	def mouseOver(self, index):
 		self.data['s_c_conn'] = np.array([np.arange(self.data['num_generic_circle_points']-1),
@@ -428,9 +449,9 @@ class ConstellationBeams(base.AbstractAsset):
 		self._setDefaultOptions()
 		self._initData()
 		self._instantiateAssets()
-		# Can't create instanced mesh until source set
+		self._createVisuals()
 		self.visuals['beams'] = None
-		self.attachToParentView()
+		self._attachToParentView()
 
 	def _initData(self):
 		if self.data['name'] is None:
@@ -514,16 +535,19 @@ class ConstellationBeams(base.AbstractAsset):
 
 	# Use AbstractAsset.updateIndex()
 
-	def recompute(self):
-		if self.first_draw:
-			if self.visuals['beams'] is not None:
-				for ii in range(len(self.visuals['beams'])):
-					self.visuals['beams'][ii].parent = None
-			self._createVisuals()
-			self.attachToParentView()
-			self.first_draw = False
+	def recomputeRedraw(self):
+		if self.isFirstDraw():
+			# if self.visuals['beams'] is not None:
+			# 	for ii in range(len(self.visuals['beams'])):
+			# 		self.visuals['beams'][ii].parent = None
+			# self._createVisuals()
+			# self.attachToParentView()
+			# self.first_draw = False
+			self._detachFromParentView()
+			self._attachToParentView()
+			self._clearStaleFlag()
 		
-		if self.requires_recompute:
+		if self.isStale():
 			if self.data['num_sats'] > 1:
 				instance_transforms = []
 				instance_positions = []
@@ -546,7 +570,7 @@ class ConstellationBeams(base.AbstractAsset):
 				transform = vTransforms.linear.MatrixTransform(T)
 				self.visuals['beams'][ii].transform = transform
 			
-			self.requires_recompute = False
+			self._clearStaleFlag()
 
 
 	def _setDefaultOptions(self):

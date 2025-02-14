@@ -1,31 +1,38 @@
+import numpy as np
+import datetime as dt
+import sys
+import pathlib
+import collections
 
+import satplot
+from satplot.model.data_models.base import (BaseDataModel)
+import satplot.model.data_models.data_types as data_types
+import spherapy.orbit as orbit
 
 # constellation_config
 # constellation_name
 # constellation_beam_angle
 
 
-class ConstellationData():
-	def __init__(self, timespan, constellation_config, *args, **kwargs):
+class ConstellationData(BaseDataModel):
+	def __init__(self, config, *args, **kwargs):
 		super().__init__(*args, **kwargs)
-		self.timespan = timespan
-		self.updateConfig('data_type', DataType.CONSTELLATION)
+		self._setConfig('data_type', data_types.DataType.CONSTELLATION)
+
 		# initialise empty config
-		self.updateConfig('timespan_period_start', None)
-		self.updateConfig('timespan_period_end', None)
-		self.updateConfig('sampling_period', None)
-		self.updateConfig('pointing_defines_timespan', False)
-		self.updateConfig('primary_satellite_ids', None) # keys of orbits, position dict
-		self.updateConfig('has_supplemental_constellation', False)
-		self.updateConfig('num_geolocations', 0)
-		self.updateConfig('is_pointing_defined', False)
-		self.updateConfig('pointing_file', None)
-		self.updateConfig('pointing_invert_transform', False)
+		self._setConfig('constellation_name', None)
+		self._setConfig('satellite_ids', None) # keys of orbits, position dict
+		self._setConfig('beam_angle_deg', None)
+
+		self.updateConfig('constellation_name', config['name'])
+		self.updateConfig('beam_angle_deg', config['beam_width'])
+		self.updateConfig('satellite_ids', list(config['satellites'].values()))
 
 		self.timespan = None
 		self.orbits = {}
-		self.pointings = {}
-		self.constellation = None
-		self.sun = None
-		self.moon = None
-		self.geo_locations = []
+
+	def setTimespan(self, timespan):
+		self.timespan = timespan
+
+	def _storeOrbitData(self, orbits:dict[int,orbit.Orbit]) -> None:
+		self.orbits = orbits
