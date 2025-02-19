@@ -2,12 +2,18 @@ import numpy as np
 import sys
 
 from vispy import scene
+from vispy.scene.widgets.viewbox import ViewBox
 
 import satplot.visualiser.colours as colours
 
 
 class PopUpTextBox():
-	def __init__(self, v_parent=None, padding=[0,0,0,0], text_colour=(0,0,0), colour=(1,1,1), border_colour=(0,0,0), font_size=10):
+	def __init__(self, v_parent:ViewBox|None=None,
+						padding:list[float]=[0,0,0,0],
+						text_colour:tuple[float,float,float]=(0,0,0),
+						colour:tuple[float,float,float]=(1,1,1),
+						border_colour:tuple[float,float,float]=(0,0,0),
+						font_size:int=10):
 		self.padding = padding
 		self.v_parent = v_parent
 		self.pos = (0,0)		
@@ -37,18 +43,18 @@ class PopUpTextBox():
 		self.t_visual.visible = False
 		self.b_visual.visible = False
 
-	def setPos(self, pos):
+	def setPos(self, pos:tuple[int,int]) -> None:
 		self.pos = (pos[0], pos[1])
 		self.t_visual.pos=(pos[0]+self.padding[0],pos[1]-self.padding[3])
 		self.updateCenter()
 
-	def updateCenter(self):
+	def updateCenter(self) -> None:
 		self.center = ((self.pos[0] + self.t_width/2+self.padding[0]),
 				 		((self.pos[1] - self.t_height/2-self.padding[3])))
 		if self.b_visual is not None:
 			self.b_visual.center = self.center
 
-	def updateBounds(self):
+	def updateBounds(self) -> None:
 		height, width, desc, dx, dy = self._vboInfo(self.t_visual.text,
 												   			self.t_visual._font,
 															'left',
@@ -64,15 +70,15 @@ class PopUpTextBox():
 			self.b_visual.height = self.t_height + self.padding[1] + self.padding[3]
 			self.b_visual.update()
 
-	def setText(self, text):
+	def setText(self, text:str) -> None:
 		self.t_visual.text = text
 		self.updateBounds()
 
-	def setVisible(self, state):
+	def setVisible(self, state:bool) -> None:
 		self.t_visual.visible = state
 		self.b_visual.visible = state
 
-	def _vboInfo(self, text, font, anchor_x, anchor_y):
+	def _vboInfo(self, text, font, anchor_x, anchor_y) -> tuple[float, float, float, float, float]:
 		prev = None
 		width = height = ascender = descender = 0
 		ratio, slop = 1. / font.ratio, font.slop

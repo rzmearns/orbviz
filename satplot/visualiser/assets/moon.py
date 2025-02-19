@@ -1,6 +1,7 @@
 import numpy as np
 
 import vispy.scene as scene
+from vispy.scene.widgets.viewbox import ViewBox
 import vispy.visuals.transforms as vtransforms
 
 import satplot.model.geometry.primgeom as pg
@@ -11,7 +12,7 @@ import spherapy.orbit as orbit
 
 
 class Moon3DAsset(base.AbstractAsset):
-	def __init__(self, name=None, v_parent=None):
+	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 
 		self._setDefaultOptions()
@@ -21,28 +22,28 @@ class Moon3DAsset(base.AbstractAsset):
 		
 		self._attachToParentView()
 	
-	def _initData(self):
+	def _initData(self) -> None:
 		if self.data['name'] is None:
 			self.data['name'] = 'Moon'		
 		self.data['curr_pos'] = None
 		self.data['pos'] = None
 
-	def setSource(self, *args, **kwargs):
+	def setSource(self, *args, **kwargs) -> None:
 		if type(args[0]) is not orbit.Orbit:
 			raise TypeError
 		self.data['pos'] = args[0].moon_pos
 
-	def _instantiateAssets(self):
+	def _instantiateAssets(self) -> None:
 		pass
 
-	def _createVisuals(self):
+	def _createVisuals(self) -> None:
 		self.visuals['moon'] = scene.visuals.Sphere(radius=self.opts['moon_sphere_radius_kms']['value'],
 												method='latitude',
 												color=colours.normaliseColour(self.opts['moon_sphere_colour']['value']),
 												parent=None)
 
 	# Override AbstractAsset.updateIndex()
-	def updateIndex(self, index):
+	def updateIndex(self, index:int) -> None:
 		self._setStaleFlag()
 		self.data['curr_index'] = index
 		self.data['curr_pos'] = self.data['pos'][self.data['curr_index']]
@@ -50,7 +51,7 @@ class Moon3DAsset(base.AbstractAsset):
 			if isinstance(asset,base.AbstractAsset):
 				asset.updateIndex(index)
 
-	def recomputeRedraw(self):
+	def recomputeRedraw(self) -> None:
 		if self.isFirstDraw():
 			self._clearFirstDrawFlag()
 		if self.isStale():
@@ -63,7 +64,7 @@ class Moon3DAsset(base.AbstractAsset):
 			self._clearStaleFlag()
 
 	
-	def _setDefaultOptions(self):
+	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
 		self._dflt_opts['antialias'] = {'value': True,
 								  		'type': 'boolean',
@@ -91,7 +92,7 @@ class Moon3DAsset(base.AbstractAsset):
 		self.opts = self._dflt_opts.copy()
 	
 	#----- OPTIONS CALLBACKS -----#
-	def setMoonSphereColour(self, new_colour):
+	def setMoonSphereColour(self, new_colour:tuple[float,float,float]) -> None:
 		raise NotImplementedError('Bugged')
 		# nnc = colours.normaliseColour(new_colour)
 		# annc = (nnc[0], nnc[1], nnc[2], 1)
@@ -107,15 +108,15 @@ class Moon3DAsset(base.AbstractAsset):
 		# self.visuals['earth'].mesh.set_data(color=c)
 		# self.visuals['earth'].mesh.update()
 
-	def setAntialias(self, state):
+	def setAntialias(self, state:bool) -> None:
 		raise NotImplementedError
 
-	def setMoonDistance(self, distance):
+	def setMoonDistance(self, distance:float) -> None:
 		self.opts['moon_distance_kms']['value'] = distance
 		# TODO: fix this to setStale then recomputeRedraw()
 		self.recompute()
 
-	def setMoonSphereRadius(self, radius):
+	def setMoonSphereRadius(self, radius:float) -> None:
 		self.opts['moon_sphere_radius_kms']['value'] = radius
 		self.visuals['moon'].parent = None
 		self._createVisuals()

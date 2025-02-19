@@ -1,6 +1,7 @@
 import numpy as np
+import numpy.typing as nptyping
 
-def uniqueRows(arr, to_decimal=8):
+def uniqueRows(arr:nptyping.NDArray, to_decimal:int=8) -> nptyping.NDArray:
 	'''
 	Find the unique rows in an array, rounding to the specified tolerance
 	to avoid floating point errors.
@@ -22,7 +23,7 @@ def uniqueRows(arr, to_decimal=8):
 	return unique_arr
 
 
-def arrayOverlap(a, b):
+def arrayOverlap(a:nptyping.NDArray, b:nptyping.NDArray) -> nptyping.NDArray:
 	'''[summary]
 	
 	[description]
@@ -36,7 +37,7 @@ def arrayOverlap(a, b):
 	'''
 	return np.array([x for x in set(tuple(x) for x in a) & set(tuple(x) for x in b)])
 
-def findRows(subarr, arr):
+def findRows(subarr:nptyping.NDArray, arr:nptyping.NDArray) -> list[int]:
 	'''Finds indices in an array row-wise
 	
 	Finds indices of each row of `subarr` in `arr`
@@ -60,7 +61,7 @@ def findRows(subarr, arr):
 
 	return indices
 
-def nonUnique(arr):
+def nonUnique(arr:nptyping.NDArray) -> list[nptyping.NDArray]:
 	idx_sort=np.argsort(arr)
 	sorted_arr=arr[idx_sort]
 	vals,idx_start,count=np.unique(sorted_arr,return_counts=True,return_index=True)

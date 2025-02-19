@@ -1,9 +1,11 @@
 import numpy as np
+import numpy.typing as nptyping
+from astropy import SkyCoord
 
 import satplot.util.constants as consts
 
 
-def ssoInc(alt, e=0):
+def ssoInc(alt:float, e:float=0) -> float:
 	# TODO: update to calculate for different central bodies
 	'''Generates required inclination for given altitude [km] to maintain Sun Syncrhonous orbit (default = circular)'''
 
@@ -26,7 +28,7 @@ def ssoInc(alt, e=0):
 	return np.rad2deg(inc)
 
 
-def calcPeriod(a):
+def calcPeriod(a:float) -> float:
 	"""Returns the period of an elliptical or circular orbit
 	
 	Parameters
@@ -44,7 +46,7 @@ def calcPeriod(a):
 	return period
 
 
-def calcOrbitalVel(a, pos):
+def calcOrbitalVel(a:float, pos:nptyping.NDArray) -> nptyping.NDArray:
 	"""Return the instantaneous velocity magnitude for an elliptical orbit of semi-major axis, a at position, pos.
 	
 	Parameters
@@ -66,7 +68,7 @@ def calcOrbitalVel(a, pos):
 	return v
 
 
-def calcMeanMotion(a):
+def calcMeanMotion(a: float) -> float:
 	"""Returns mean motion [radians/s] for an elliptical or circular orbit with semi-major axis a
 	
 	Parameters
@@ -82,7 +84,7 @@ def calcMeanMotion(a):
 
 	return np.sqrt(consts.GM_EARTH / a**3)
 
-def toNPArray(sky_coord):
+def toNPArray(sky_coord:SkyCoord) -> nptyping.NDArray:
 	"""Transform an astropy.SkyCoord object into a (3,) numpy array.
 	
 	Parameters

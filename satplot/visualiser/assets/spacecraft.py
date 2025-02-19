@@ -1,8 +1,9 @@
 import geopandas as gpd
 import numpy as np
 from scipy.spatial.transform import Rotation
-
+from typing import Any
 from vispy import scene, color
+from vispy.scene.widgets.viewbox import ViewBox
 from vispy.visuals import transforms as vTransforms
 
 import satplot.model.geometry.transformations as transforms
@@ -17,7 +18,7 @@ import spherapy.orbit as orbit
 
 
 class Spacecraft3DAsset(base.AbstractAsset):
-	def __init__(self, name=None, v_parent=None, sens_suites=None):
+	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None, sens_suites:dict[str,Any]|None=None):
 		super().__init__(name, v_parent)		
 		self._setDefaultOptions()
 		self._initData()
@@ -32,7 +33,7 @@ class Spacecraft3DAsset(base.AbstractAsset):
 
 		self._attachToParentView()
 
-	def _initData(self):
+	def _initData(self) -> None:
 		if self.data['name'] is None:
 			self.data['name'] = 'Spacecraft'
 		self.data['sens_suites'] = {}
@@ -41,7 +42,7 @@ class Spacecraft3DAsset(base.AbstractAsset):
 		self.data['curr_index'] = 2
 		self.data['pointing'] = None
 
-	def setSource(self, *args, **kwargs):
+	def setSource(self, *args, **kwargs) -> None:
 		# args[0] orbit
 		# args[1] pointing
 		# args[2] pointing frame transformation direction
@@ -57,7 +58,7 @@ class Spacecraft3DAsset(base.AbstractAsset):
 		self.data['pointing_invert_transform'] = args[2]
 
 
-	def _instantiateAssets(self):
+	def _instantiateAssets(self) -> None:
 		self.assets['body_frame'] = gizmo.BodyGizmo(scale=700,
 													width=3,
 													v_parent=self.data['v_parent'])
@@ -67,7 +68,7 @@ class Spacecraft3DAsset(base.AbstractAsset):
 													 				v_parent=self.data['v_parent'])
 		self._addIndividualSensorSuitePlotOptions()
 
-	def _createVisuals(self):
+	def _createVisuals(self) -> None:
 		self.visuals['marker'] = scene.visuals.Markers(parent=None,
 														scaling=True,
 												 		antialias=0)
@@ -85,7 +86,7 @@ class Spacecraft3DAsset(base.AbstractAsset):
 
 	# Use AbstractAsset.updateIndex()
 
-	def recomputeRedraw(self):
+	def recomputeRedraw(self) -> None:
 		if self.isFirstDraw():
 			self._clearFirstDrawFlag()
 		if self.isStale():
@@ -134,7 +135,7 @@ class Spacecraft3DAsset(base.AbstractAsset):
 					# asset.setTransform()
 			self._clearStaleFlag()
 
-	def _setDefaultOptions(self):
+	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
 		self._dflt_opts['antialias'] = {'value': True,
 								  		'type': 'boolean',
@@ -168,23 +169,23 @@ class Spacecraft3DAsset(base.AbstractAsset):
 		self.opts = self._dflt_opts.copy()
 
 	#----- OPTIONS CALLBACKS -----#	
-	def setMarkerColour(self, new_colour):
+	def setMarkerColour(self, new_colour:tuple[float,float,float]) -> None:
 		self.opts['spacecraft_point_colour']['value'] = colours.normaliseColour(new_colour)
 		self.visuals['marker'].set_data(face_color=colours.normaliseColour(new_colour))
 
-	def setAllSensorSuitesVisibility(self, state):
+	def setAllSensorSuitesVisibility(self, state:bool) -> None:
 		for key, asset in self.assets.items():
 			key_split = key.split('_')
 			if key_split[0] == 'sensor' and key_split[1] == 'suite':
 				asset.setVisibility(state)
 
-	def setOrbitalMarkerVisibility(self, state):
+	def setOrbitalMarkerVisibility(self, state:bool) -> None:
 		self.visuals['marker'].visible = state
 
-	def setBodyFrameVisibility(self, state):
+	def setBodyFrameVisibility(self, state:bool) -> None:
 		self.assets['body_frame'].setVisibility(state)
 
-	def setOrbitalMarkerSize(self, value):
+	def setOrbitalMarkerSize(self, value:int) -> None:
 		self.opts['spacecraft_point_size']['value'] = value
 		self.visuals['marker'].set_data(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
 								   			size=self.opts['spacecraft_point_size']['value'],
@@ -192,7 +193,7 @@ class Spacecraft3DAsset(base.AbstractAsset):
 		self.visuals['marker'].update()
 
 	#----- HELPER FUNCTIONS -----#
-	def _addIndividualSensorSuitePlotOptions(self):
+	def _addIndividualSensorSuitePlotOptions(self) -> None:
 		for key, value in self.data['sens_suites'].items():
 			self.opts[f'plot_sensor_suite_{key}'] = {'value': True,
 													'type': 'boolean',

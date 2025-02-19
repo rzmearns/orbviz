@@ -1,11 +1,14 @@
 import numpy as np
+import numpy.typing as nptyping
 from scipy.spatial.transform import Rotation
 import scipy.special as sc
+from typing import Any
 
 import vispy.scene as scene
-import vispy.visuals.transforms as vTransforms
+from vispy.scene.widgets.viewbox import ViewBox
 import vispy.scene.visuals as vVisuals
 import vispy.visuals.filters as vFilters
+import vispy.visuals.transforms as vTransforms
 
 import satplot
 import satplot.model.geometry.polyhedra as polyhedra
@@ -17,7 +20,7 @@ import spherapy.orbit as orbit
 
 
 class Constellation(base.AbstractAsset):
-	def __init__(self, name=None, v_parent=None):
+	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 		self._setDefaultOptions()
 		self._initData()
@@ -26,7 +29,7 @@ class Constellation(base.AbstractAsset):
 		
 		self._attachToParentView()
 
-	def _initData(self):
+	def _initData(self) -> None:
 		if self.data['name'] is None:
 			self.data['name'] = 'Constellation'
 		self.data['coords'] = np.zeros((4,3))
@@ -35,7 +38,7 @@ class Constellation(base.AbstractAsset):
 		self.data['num_sats'] = 0
 		self.data['beam_height'] = 0
 		
-	def setSource(self, *args, **kwargs):
+	def setSource(self, *args, **kwargs) -> None:
 		# args[0] = [orbits]
 		# args[1] = beam angle
 		if type(args[0]) is not list:
@@ -79,14 +82,14 @@ class Constellation(base.AbstractAsset):
 				self.data['strings'].append('')
 
 
-	def _instantiateAssets(self):
+	def _instantiateAssets(self) -> None:
 		# self.assets['beams'] = None
 		if satplot.gl_plus:
 			self.assets['beams'] = InstancedConstellationBeams(name=f'{self.data["name"]}_beams', v_parent=self.data['v_parent'])
 		else:
 			self.assets['beams'] = ConstellationBeams(name=f'{self.data["name"]}_beams', v_parent=self.data['v_parent'])
 
-	def _createVisuals(self):
+	def _createVisuals(self) -> None:
 		self.visuals['markers'] = scene.visuals.Markers(scaling=True,
 														edge_color='white',
 														symbol='o',
@@ -95,7 +98,7 @@ class Constellation(base.AbstractAsset):
 
 	# Use AbstractAsset.updateIndex()
 
-	def recomputeRedraw(self):
+	def recomputeRedraw(self) -> None:
 		if self.isFirstDraw():
 			self._detachFromParentView()
 			# if self.visuals['markers'] is not None:
@@ -130,7 +133,7 @@ class Constellation(base.AbstractAsset):
 					asset.setTransform(rotation=R)
 			self._clearStaleFlag()
 
-	def getScreenMouseOverInfo(self):
+	def getScreenMouseOverInfo(self) -> dict[str,Any]:
 		canvas_poss = []
 		world_poss = []
 		if self.data['num_sats'] > 1:
@@ -154,10 +157,10 @@ class Constellation(base.AbstractAsset):
 		mo_info['objects'] = [self]*self.data['num_sats']
 		return mo_info
 
-	def mouseOver(self, index):
+	def mouseOver(self, index:int) -> None:
 		self.assets['beams'].mouseOver(index)
 
-	def _setDefaultOptions(self):
+	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
 		self._dflt_opts['antialias'] = {'value': True,
 								  		'type': 'boolean',
@@ -187,38 +190,38 @@ class Constellation(base.AbstractAsset):
 		self.opts = self._dflt_opts.copy()
 		self._createOptHelp()
 
-	def _createOptHelp(self):
+	def _createOptHelp(self) -> None:
 		pass
 	
-	def setConstellationColour(self, new_colour):
+	def setConstellationColour(self, new_colour:tuple[int,int,int]) -> None:
 		self.opts['constellation_colour']['value'] = colours.normaliseColour(new_colour)
 		self.visuals['marker'].set_data(face_color=colours.normaliseColour(new_colour))
 
-	def setConstellationAssetVisibility(self, state):
+	def setConstellationAssetVisibility(self, state:bool) -> None:
 		self.setConstellationMarkersVisibility(state)
 		self.setConstellationBeamsVisibility(state)
 
-	def setConstellationMarkerSize(self, value):
+	def setConstellationMarkerSize(self, value:int) -> None:
 		self.opts['constellation_position_marker_size']['value'] = value
 		self.recompute()
 
-	def setConstellationMarkersVisibility(self, state):
+	def setConstellationMarkersVisibility(self, state:bool) -> None:
 		self.visuals['markers'].visible = state
 
-	def setConstellationBeamsVisibility(self, state):
+	def setConstellationBeamsVisibility(self, state:bool) -> None:
 		self.assets['beams'].setVisibility(state)
 
-	def setBeamsAlpha(self, alpha):
+	def setBeamsAlpha(self, alpha:float) -> None:
 		raise NotImplementedError
 	
-	def _calcBeamHeight(self, half_beam_angle, vector_length):
+	def _calcBeamHeight(self, half_beam_angle:float, vector_length:float|np.floating[Any]) -> float:
 		phi = np.deg2rad(half_beam_angle)
 		altitude = vector_length - c.R_EARTH
 		beam_height = (np.cos(phi)**2 * (vector_length))
 		return beam_height
 	
 class InstancedConstellationBeams(base.AbstractAsset):
-	def __init__(self, name=None, v_parent=None):
+	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 		self._setDefaultOptions()
 		self._initData()
@@ -231,7 +234,7 @@ class InstancedConstellationBeams(base.AbstractAsset):
 		self.visuals['beams'] = None
 		self._attachToParentView()
 
-	def _initData(self):
+	def _initData(self) -> None:
 		if self.data['name'] is None:
 			self.data['name'] = 'ConstellationBeams'
 		self.data['coords'] = None
@@ -240,7 +243,7 @@ class InstancedConstellationBeams(base.AbstractAsset):
 		self.data['start_beam_vec'] = np.array((0,0,1)).reshape(1,3)
 		self.data['c_conn'] = None
 
-	def setSource(self, *args, **kwargs):
+	def setSource(self, *args, **kwargs) -> None:
 		# args[0] = num_sats
 		# args[1] = coords
 		# args[2] = curr_index
@@ -274,15 +277,15 @@ class InstancedConstellationBeams(base.AbstractAsset):
 			self._createVisuals()
 			self._first_creation = False
 
-	def _instantiateAssets(self):
+	def _instantiateAssets(self) -> None:
 		pass
 
-	def _destroyVisuals(self):
+	def _destroyVisuals(self) -> None:
 		for name in self.visuals.values():
 			del self.visuals[name]
 			self.visuals[name] = None
 
-	def _createVisuals(self):
+	def _createVisuals(self) -> None:
 		instance_colours = np.tile(colours.normaliseColour(self.opts['beams_colour']['value']),(self.data['num_sats'],1))
 		if self.data['num_sats'] > 1:
 			instance_positions = self.data['coords'][:,self.data['curr_index'],:].reshape(-1,3)
@@ -344,7 +347,7 @@ class InstancedConstellationBeams(base.AbstractAsset):
 
 	# Use AbstractAsset.updateIndex()
 
-	def recomputeRedraw(self):
+	def recomputeRedraw(self) -> None:
 		if self.isFirstDraw():
 			self._detachFromParentView()
 			self._attachToParentView()
@@ -380,12 +383,12 @@ class InstancedConstellationBeams(base.AbstractAsset):
 			self._clearStaleFlag()
 
 
-	def mouseOver(self, index):
+	def mouseOver(self, index:int) -> None:
 		self.data['s_c_conn'] = np.array([np.arange(self.data['num_generic_circle_points']-1),
 											np.arange(1,self.data['num_generic_circle_points'])]).T + index * self.data['num_generic_circle_points']
 		self.visuals['scircle'].set_data(connect=self.data['s_c_conn'])
 
-	def _setDefaultOptions(self):
+	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
 		self._dflt_opts['beams_alpha'] = {'value': 0.5,
 										'type': 'float',
@@ -402,24 +405,25 @@ class InstancedConstellationBeams(base.AbstractAsset):
 		self.opts = self._dflt_opts.copy()
 
 	#----- OPTIONS CALLBACKS -----#	
-	def setBeamsColour(self, new_colour):
+	def setBeamsColour(self, new_colour:tuple[int,int,int]) -> None:
 		self.opts['beams_colour']['value'] = colours.normaliseColour(new_colour)
 		self.visuals['beams'].set_data(face_color=colours.normaliseColour(new_colour))		
 
-	def setBeamsAlpha(self, alpha):
+	def setBeamsAlpha(self, alpha:float) -> None:
 		raise NotImplementedError
 	
-	def setCirclesWidth(self, width):
+	def setCirclesWidth(self, width:float) -> None:
 		self.opts['circle_width']['value'] = width
 		self._updateLineVisualsOptions()
 
-	def _updateLineVisualsOptions(self):
+	def _updateLineVisualsOptions(self) -> None:
 		self.visuals['circles'].set_data(width=self.opts['circle_width']['value'])
 
-	def setVisibility(self, state):
+	def setVisibility(self, state:bool) -> None:
 		self.visuals['beams'].visible = state
 
-	def _genBeamCircles(self, instance_transforms, instance_positions):
+	def _genBeamCircles(self, instance_transforms:list[nptyping.NDArray]|nptyping.NDArray,
+							 instance_positions:list[nptyping.NDArray]|nptyping.NDArray) -> nptyping.NDArray | None:
 		total_len = 0
 		gen_conn = False
 		circles = None
@@ -444,7 +448,7 @@ class InstancedConstellationBeams(base.AbstractAsset):
 		return circles
 
 class ConstellationBeams(base.AbstractAsset):
-	def __init__(self, name=None, v_parent=None):
+	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 		self._setDefaultOptions()
 		self._initData()
@@ -453,7 +457,7 @@ class ConstellationBeams(base.AbstractAsset):
 		self.visuals['beams'] = None
 		self._attachToParentView()
 
-	def _initData(self):
+	def _initData(self) -> None:
 		if self.data['name'] is None:
 			self.data['name'] = 'ConstellationBeams'
 		self.data['coords'] = None
@@ -461,7 +465,7 @@ class ConstellationBeams(base.AbstractAsset):
 		self.data['num_sats'] = 0
 		self.data['start_beam_vec'] = np.array((0,0,1)).reshape(1,3)		
 
-	def setSource(self, *args, **kwargs):
+	def setSource(self, *args, **kwargs) -> None:
 		# args[0] = num_sats
 		# args[1] = coords
 		# args[2] = curr_index
@@ -490,10 +494,10 @@ class ConstellationBeams(base.AbstractAsset):
 			raise TypeError(f"args[4]:beam_angle_deg is not a float -> {args[4]}")
 		self.data['beam_angle_deg'] = args[4]
 
-	def _instantiateAssets(self):
+	def _instantiateAssets(self) -> None:
 		pass
 
-	def _createVisuals(self):
+	def _createVisuals(self) -> None:
 		self.visuals['beams'] = []
 		instance_colours = np.tile(colours.normaliseColour(self.opts['beams_colour']['value']),(self.data['num_sats'],1))
 		if self.data['num_sats'] > 1:
@@ -535,7 +539,7 @@ class ConstellationBeams(base.AbstractAsset):
 
 	# Use AbstractAsset.updateIndex()
 
-	def recomputeRedraw(self):
+	def recomputeRedraw(self) -> None:
 		if self.isFirstDraw():
 			# if self.visuals['beams'] is not None:
 			# 	for ii in range(len(self.visuals['beams'])):
@@ -573,7 +577,7 @@ class ConstellationBeams(base.AbstractAsset):
 			self._clearStaleFlag()
 
 
-	def _setDefaultOptions(self):
+	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
 		self._dflt_opts['beams_alpha'] = {'value': 0.5,
 										'type': 'number',
@@ -586,14 +590,14 @@ class ConstellationBeams(base.AbstractAsset):
 		self.opts = self._dflt_opts.copy()
 
 	#----- OPTIONS CALLBACKS -----#	
-	def setBeamsColour(self, new_colour):
+	def setBeamsColour(self, new_colour:tuple[float,float,float]) -> None:
 		self.opts['beams_colour']['value'] = colours.normaliseColour(new_colour)
 		for ii in range(self.data['num_sats']):
 			self.visuals['beams'][ii].set_data(color=colours.normaliseColour(new_colour))		
 
-	def setBeamsAlpha(self, alpha):
+	def setBeamsAlpha(self, alpha:float) -> None:
 		raise NotImplementedError
 	
-	def setVisibility(self, state):
+	def setVisibility(self, state:bool) -> None:
 		for ii in range(self.data['num_sats']):
 			self.visuals['beams'][ii].visible = False

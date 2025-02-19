@@ -3,15 +3,19 @@ import numpy as np
 from progressbar import progressbar
 import sys
 import traceback
+from typing import Any
 
 from PyQt5 import QtWidgets, QtCore, QtGui
 
 import satplot
 import satplot.model.data_models.data_types as data_types
+from satplot.model.data_models.history_data import HistoryData
+
 import satplot.util.celestrak as celestrak
 import satplot.util.list_u as list_u
 import satplot.util.spacetrack as spacetrack
 import satplot.visualiser.contexts.base as base
+from satplot.visualiser.contexts.canvas_wrappers.base import (BaseCanvas)
 import satplot.visualiser.contexts.canvas_wrappers.history3d as canvaswrapper
 import satplot.visualiser.interface.console as console
 import satplot.visualiser.interface.controls as controls
@@ -21,7 +25,7 @@ import satplot.visualiser.interface.widgets as widgets
 class History3DContext(base.BaseContext):
 	data_type = data_types.DataType.HISTORY
 
-	def __init__(self, name, parent_window, data):
+	def __init__(self, name:str, parent_window:QtWidgets.QMainWindow, data:HistoryData):
 		super().__init__(name)
 		self.window = parent_window
 		self.data = data
@@ -64,7 +68,7 @@ class History3DContext(base.BaseContext):
 		self.layout.setContentsMargins(0, 0, 0, 0)
 		self.layout.addWidget(content_widget)
 
-	def connectControls(self):
+	def connectControls(self) -> None:
 		print(f"Connecting controls of {self.config['name']}")
 		self.controls.orbit_controls.submit_button.clicked.connect(self._configureData)
 		self.controls.time_slider.add_connect(self._updateDisplayedIndex)
@@ -74,12 +78,12 @@ class History3DContext(base.BaseContext):
 		self.data.data_ready.connect(self._updateDataSources)
 		self.data.data_ready.connect(self._updateControls)
 
-	def _validateDataType(self):
+	def _validateDataType(self) -> None:
 		if self.data.getType() != self.data_type:
 			print(f"Error: history3D context has wrong data type: {self.data.getType()}", file=sys.stderr)
 			print(f"\t should be: {self.data_type}", file=sys.stderr)
 
-	def _configureData(self):
+	def _configureData(self) -> None:
 		console.send('Setting up data configuration')
 		# Timespan configuration
 		self.data.updateConfig('timespan_period_start', self.controls.orbit_controls.period_start.datetime)
@@ -124,7 +128,7 @@ class History3DContext(base.BaseContext):
 			self.controls.orbit_controls.submit_button.setEnabled(True)
 			raise e
 
-	def _updateControls(self, *args, **kwargs):
+	def _updateControls(self, *args, **kwargs) -> None:
 		self.controls.time_slider.setRange(self.data.timespan.start,
 									  		self.data.timespan.end,
 											len(self.data.timespan))
@@ -133,23 +137,23 @@ class History3DContext(base.BaseContext):
 		self.controls.time_slider._curr_dt_picker.setDatetime(self.data.timespan.start)
 		self.controls.orbit_controls.submit_button.setEnabled(True)
 
-	def _updateDataSources(self):
+	def _updateDataSources(self) -> None:
 		self.canvas_wrapper.modelUpdated()
 		self.canvas_wrapper.setFirstDrawFlags()
 		self._updateDisplayedIndex(self.controls.time_slider.slider.value())
 
-	def _updateDisplayedIndex(self, index):
+	def _updateDisplayedIndex(self, index:int) -> None:
 		self.canvas_wrapper.updateIndex(index)
 		self.canvas_wrapper.recomputeRedraw()
 		console.send(self.data.timespan[index])
 
-	def loadState(self):
+	def loadState(self) -> None:
 		pass
 
-	def saveState(self):
+	def saveState(self) -> None:
 		pass
 
-	def deSerialise(self, state_dict):
+	def deSerialise(self, state_dict: dict[str, Any]) -> None:
 		pass
 		# self.data = state_dict['data']
 		# self.canvas_wrapper.setSource(self.data['timespan'],
@@ -163,7 +167,7 @@ class History3DContext(base.BaseContext):
 		# self.controls.deSerialise(state_dict['controls'])
 		# self.canvas_wrapper.deSerialise(state_dict['camera'])
 
-	def prepSerialisation(self):
+	def prepSerialisation(self) -> dict[str, Any]:
 		pass
 		# state = {}
 		# state['data'] = self.data
@@ -173,14 +177,14 @@ class History3DContext(base.BaseContext):
 
 
 
-	def _centerCameraEarth(self):
+	def _centerCameraEarth(self) -> None:
 		if self.sccam_state and self.controls.toolbar.button_dict['center-spacecraft'].isChecked():
 			# if center cam on sc is on, turn it off when selecting center cam on earth.
 			self.controls.toolbar.button_dict['center-spacecraft'].setChecked(False)
 		self.sccam_state = False
 		self.canvas_wrapper.centerCameraEarth()	
 
-	def _toggleCameraSpacecraft(self):
+	def _toggleCameraSpacecraft(self) -> None:
 		self.sccam_state = not self.sccam_state
 
 		if self.sccam_state:
@@ -192,7 +196,7 @@ class History3DContext(base.BaseContext):
 
 		
 	class Controls(base.BaseControls):
-		def __init__(self, parent_context, canvas_wrapper):
+		def __init__(self, parent_context:base.BaseContext, canvas_wrapper:BaseCanvas):
 			self.context = parent_context
 			super().__init__(self.context.config['name'])
 			# Prep config widgets

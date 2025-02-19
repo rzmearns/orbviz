@@ -1,8 +1,15 @@
 import numpy as np
+import numpy.typing as nptyping
 import satplot.model.geometry.primgeom as pg
 import scipy.spatial
 
-def calcConeMeshGrid(apex, height, axis, apex_angle_deg, axis_sample=3, r_sample=2, theta_sample=100):
+def calcConeMeshGrid(apex:tuple[float,float,float] | nptyping.NDArray,
+					 height:float,
+					 axis:tuple[float,float,float] | nptyping.NDArray,
+					 apex_angle_deg:float,
+					 axis_sample:int=3,
+					 r_sample:int=2,
+					 theta_sample:int=100) -> tuple[list[nptyping.NDArray],list[nptyping.NDArray]]:
 		
 	phi = np.deg2rad(apex_angle_deg/2)
 	R = height*np.tan(phi)
@@ -27,7 +34,13 @@ def calcConeMeshGrid(apex, height, axis, apex_angle_deg, axis_sample=3, r_sample
 	
 	return [X,Y,Z],[X2,Y2,Z2]
 
-def calcConePoints(apex, height, axis, apex_angle_deg, axis_sample=3, theta_sample=30, sorted=True):
+def calcConePoints(apex:tuple[float,float,float] | nptyping.NDArray,
+					height:float,
+					axis:tuple[float,float,float] | nptyping.NDArray,
+					apex_angle_deg:float,
+					axis_sample:int=3,
+					theta_sample:int=30,
+					sorted:bool=True) -> nptyping.NDArray:
 
 	phi = np.deg2rad(apex_angle_deg/2)
 	
@@ -55,7 +68,12 @@ def calcConePoints(apex, height, axis, apex_angle_deg, axis_sample=3, theta_samp
 	else:
 		return coords[np.sort(np.unique(coords,axis=0, return_index=True)[1])]+apex
 
-def calcConeMesh(apex, height, axis, apex_angle_deg, axis_sample=3, theta_sample=30):
+def calcConeMesh(apex:tuple[float,float,float] | nptyping.NDArray,
+					height:float,
+					axis:tuple[float,float,float] | nptyping.NDArray,
+					apex_angle_deg:float,
+					axis_sample:int=3,
+					theta_sample:int=30) -> tuple[nptyping.NDArray,nptyping.NDArray]:
 	coords = calcConePoints(apex, height, axis, apex_angle_deg, axis_sample=axis_sample, theta_sample=theta_sample)
 	hull = scipy.spatial.ConvexHull(coords)
 
@@ -64,7 +82,12 @@ def calcConeMesh(apex, height, axis, apex_angle_deg, axis_sample=3, theta_sample
 
 	return vertices.astype('float32'), faces.astype(dtype='uint32')
 
-def calcSquarePyramidPoints(apex, height, axis, x_angle_deg, y_angle_deg, axis_sample=3):
+def calcSquarePyramidPoints(apex:tuple[float,float,float] | nptyping.NDArray,
+							height:float,
+							axis:tuple[float,float,float] | nptyping.NDArray,
+							x_angle_deg:float,
+							y_angle_deg:float,
+							axis_sample:int=3) -> nptyping.NDArray:
 	# Z direction is along axis of pyramid,
 	# X direction is the cross section height
 	# Y direction is the cross section width
@@ -96,7 +119,12 @@ def calcSquarePyramidPoints(apex, height, axis, x_angle_deg, y_angle_deg, axis_s
 
 	return np.unique(coords+apex, axis=0)
 
-def calcSquarePyramidMesh(apex, height, axis, x_angle_deg, y_angle_deg, axis_sample=3):
+def calcSquarePyramidMesh(apex:tuple[float,float,float] | nptyping.NDArray,
+							height:float,
+							axis:tuple[float,float,float] | nptyping.NDArray,
+							x_angle_deg:float,
+							y_angle_deg:float,
+							axis_sample:int=3) -> tuple[nptyping.NDArray,nptyping.NDArray]:
 	coords = calcSquarePyramidPoints(apex, height, axis, x_angle_deg, y_angle_deg, axis_sample=axis_sample)
 	hull = scipy.spatial.ConvexHull(coords)
 
@@ -105,7 +133,7 @@ def calcSquarePyramidMesh(apex, height, axis, x_angle_deg, y_angle_deg, axis_sam
 
 	return vertices.astype('float32'), faces.astype(dtype='uint32')
 
-def calcSphereMeshGrid(center, r):
+def calcSphereMeshGrid(center:tuple[float,float,float] | nptyping.NDArray, r:float) -> list[nptyping.NDArray]:
 	R = np.sqrt(r)
 	u_angle = np.linspace(0, 2*np.pi, 25)
 	v_angle = np.linspace(0, np.pi, 25)
@@ -114,7 +142,13 @@ def calcSphereMeshGrid(center, r):
 	z = np.outer(R*np.ones(u_angle.shape[0]), R*np.cos(v_angle)) + center[2]
 	return [x,y,z]
 
-def calcCylinderMeshGrid(end_point, height, axis, radius, axis_sample=3, r_sample=2, theta_sample=100):	
+def calcCylinderMeshGrid(end_point:tuple[float,float,float] | nptyping.NDArray,
+							height:float,
+							axis:tuple[float,float,float] | nptyping.NDArray,
+							radius:float,
+							axis_sample:int=3,
+							r_sample:int=2,
+							theta_sample:int=100) -> tuple[list[nptyping.NDArray],list[nptyping.NDArray],list[nptyping.NDArray]]:
 
 	R = radius
 
@@ -139,7 +173,12 @@ def calcCylinderMeshGrid(end_point, height, axis, radius, axis_sample=3, r_sampl
 
 	return [X,Y,Z],[X2,Y2,Z2],[X3,Y3,Z3]
 
-def calcCylinderPoints(end_point, height, axis, radius, axis_sample=3, theta_sample=30):
+def calcCylinderPoints(end_point:tuple[float,float,float] | nptyping.NDArray,
+						height:float,
+						axis:tuple[float,float,float] | nptyping.NDArray,
+						radius:float,
+						axis_sample:int=3,
+						theta_sample:int=30) -> nptyping.NDArray:
 
 	R = radius
 	end_point = np.asarray(end_point)
@@ -164,7 +203,12 @@ def calcCylinderPoints(end_point, height, axis, radius, axis_sample=3, theta_sam
 
 	return coords
 
-def calcCylinderMesh(end_point, height, axis, radius, axis_sample=3, theta_sample=30):
+def calcCylinderMesh(end_point:tuple[float,float,float] | nptyping.NDArray,
+						height:float,
+						axis:tuple[float,float,float] | nptyping.NDArray,
+						radius:float,
+						axis_sample:int=3,
+						theta_sample:int=30) -> tuple[nptyping.NDArray,nptyping.NDArray]:
 	coords = calcCylinderPoints(end_point, height, axis, radius, axis_sample=axis_sample, theta_sample=theta_sample)
 	hull = scipy.spatial.ConvexHull(coords)
 

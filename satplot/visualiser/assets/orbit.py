@@ -1,6 +1,7 @@
 import numpy as np
-
+from typing import Any
 from vispy import scene, color
+from vispy.scene.widgets.viewbox import ViewBox
 
 import satplot.model.geometry.transformations as transforms
 import satplot.model.geometry.primgeom as pg
@@ -13,7 +14,7 @@ import spherapy.orbit as orbit
 
 
 class Orbit3DAsset(base.AbstractAsset):
-	def __init__(self, name=None, v_parent=None):
+	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 
 		self._setDefaultOptions()
@@ -23,7 +24,7 @@ class Orbit3DAsset(base.AbstractAsset):
 		
 		self._attachToParentView()
 	
-	def _initData(self):
+	def _initData(self) -> None:
 		if self.data['name'] is None:
 			self.data['name'] = 'Primary Orbit'
 		self.data['past'] = None
@@ -35,7 +36,7 @@ class Orbit3DAsset(base.AbstractAsset):
 		self.data['curr_index'] = 2
 		self._sliceData()
 
-	def setSource(self, *args, **kwargs):
+	def setSource(self, *args, **kwargs) -> None:
 		if type(args[0]) is not orbit.Orbit:
 			raise TypeError
 		if hasattr(args[0],'pos'):
@@ -47,11 +48,11 @@ class Orbit3DAsset(base.AbstractAsset):
 		else:
 			self.data['strings'] = ['']
 
-	def _instantiateAssets(self):
+	def _instantiateAssets(self) -> None:
 		# no sub assets
 		pass
 		
-	def _createVisuals(self):
+	def _createVisuals(self) -> None:
 		self.visuals['past'] = scene.visuals.Line(self.data['past_coords'],
 													color=colours.normaliseColour(self.opts['orbital_path_colour']['value']),
 													antialias=self.opts['antialias']['value'],
@@ -74,7 +75,7 @@ class Orbit3DAsset(base.AbstractAsset):
 										symbol='o')
 
 	# Override AbstractAsset.updateIndex()
-	def updateIndex(self, index):
+	def updateIndex(self, index:int) -> None:
 		self.data['curr_index'] = index
 		self._setStaleFlag()
 		self._sliceData()
@@ -82,7 +83,7 @@ class Orbit3DAsset(base.AbstractAsset):
 			if isinstance(asset,base.AbstractAsset):
 				asset.updateIndex(index)
 
-	def recomputeRedraw(self):
+	def recomputeRedraw(self) -> None:
 		if self.isFirstDraw():
 			self._clearFirstDrawFlag()
 		if self.isStale():
@@ -100,7 +101,7 @@ class Orbit3DAsset(base.AbstractAsset):
 					asset.setTransform(rotation=R)
 			self._clearStaleFlag()
 
-	def getScreenMouseOverInfo(self):
+	def getScreenMouseOverInfo(self) -> dict[str, Any]:
 		curr_world_pos = (self.data['coords'][self.data['curr_index']]).reshape(1,3)
 		canvas_pos = self.visuals['marker'].get_transform('visual','canvas').map(curr_world_pos)
 		canvas_pos /= canvas_pos[:,3:]
@@ -113,7 +114,7 @@ class Orbit3DAsset(base.AbstractAsset):
 		# return [(canvas_pos[0,0], canvas_pos[0,1])], ['SpIRIT']
 
 
-	def _setDefaultOptions(self):
+	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
 		self._dflt_opts['antialias'] = {'value': True,
 								  		'type': 'boolean',
@@ -165,7 +166,7 @@ class Orbit3DAsset(base.AbstractAsset):
 		self.opts = self._dflt_opts.copy()
 
 	#----- OPTIONS CALLBACKS -----#	
-	def setOrbitColour(self, new_colour):
+	def setOrbitColour(self, new_colour:tuple[float,float,float]) -> None:
 		self.opts['orbital_path_colour']['value'] = colours.normaliseColour(new_colour)
 		self.visuals['past'].set_data(color=colours.normaliseColour(new_colour))
 		self.visuals['future'].set_data(color=colours.normaliseColour(new_colour))
@@ -173,36 +174,36 @@ class Orbit3DAsset(base.AbstractAsset):
 								   			size=self.opts['orbital_position_marker_size']['value'],
 											face_color=colours.normaliseColour(self.opts['orbital_path_colour']['value']))
 
-	def setOrbitalMarkerSize(self, value):
+	def setOrbitalMarkerSize(self, value:int) -> None:
 		self.opts['orbital_position_marker_size']['value'] = value
 		self.visuals['marker'].set_data(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
 								   			size=self.opts['orbital_position_marker_size']['value'],
 											face_color=colours.normaliseColour(self.opts['orbital_path_colour']['value']))
 		self.visuals['marker'].update()
 
-	def setFutureDashSize(self, value):
+	def setFutureDashSize(self, value:int) -> None:
 		self.opts['orbital_path_future_dash_size']['value'] = value
 		self.updateIndex(self.data['curr_index'])
 
-	def setOrbitalPathWidth(self, value):
+	def setOrbitalPathWidth(self, value:int) -> None:
 		self.opts['orbital_path_width']['value'] = value
 		self.visuals['past'].set_data(pos=self.data['past_coords'], width=value)
 		self.visuals['future'].set_data(pos=self.data['future_coords'], connect=self.data['future_conn'], width=value)
 
-	def setOrbitalPathFutureVisibility(self, state):
+	def setOrbitalPathFutureVisibility(self, state:bool) -> None:
 		self.visuals['future'].visible = state
 		
 
-	def setOrbitalPathPastVisibility(self, state):
+	def setOrbitalPathPastVisibility(self, state:bool) -> None:
 		self.visuals['past'].visible = state
 
-	def setOrbitalMarkerVisibility(self, state):
+	def setOrbitalMarkerVisibility(self, state:bool) -> None:
 		self.visuals['marker'].visible = state
 
 	
 
 	#----- HELPER FUNCTIONS -----#
-	def _sliceData(self):
+	def _sliceData(self) -> None:
 		self.data['past_coords'] = self.data['coords'][:self.data['curr_index']]
 		self.data['future_coords'] = self.data['coords'][self.data['curr_index']:]
 		future_len = len(self.data['future_coords'])

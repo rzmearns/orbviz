@@ -1,6 +1,7 @@
 import argparse
 import datetime as dt
 import json
+import pathlib
 import pickle
 import numpy as np
 import sys
@@ -10,9 +11,11 @@ from PyQt5 import QtWidgets, QtCore
 from vispy import app, use
 
 import satplot
-import satplot.visualiser.window as window
+from satplot.visualiser.contexts.canvas_wrappers.base import (BaseCanvas)
 import satplot.visualiser.interface.console as console
 import satplot.visualiser.interface.dialogs as dialogs
+import satplot.visualiser.window as window
+
 
 warnings.filterwarnings("ignore", message="Optimal rotation is not uniquely or poorly defined for the given sets of vectors.")
 
@@ -33,54 +36,54 @@ class Application():
 		satplot.threadpool = QtCore.QThreadPool()
 		print(f"Creating threadpool with {satplot.threadpool.maxThreadCount()} threads")
 
-	def run(self):
+	def run(self) -> None:
 		self.window.show()
 		self.pyqt_app.run()
 
-	def _connectControls(self):
+	def _connectControls(self) -> None:
 		for context_key, context in self.window.contexts_dict.items():
 			context.connectControls()
 			self._connectAllContextControls(context)
 			context.controls.toolbar.addButtons()
 			context.controls.menubar.addMenuItems()	
 
-	def _connectAllContextControls(self, context):
+	def _connectAllContextControls(self, context:BaseCanvas) -> None:
 		context.controls.action_dict['save']['callback'] = self.save
 		context.controls.action_dict['save-as']['callback'] = self.saveAs
 		context.controls.action_dict['load']['callback'] = self.load
 		context.controls.action_dict['spacetrak-credentials']['callback'] = dialogs.SpaceTrackCredentialsDialog
 
-	def save(self):
+	def save(self) -> None:
 		if self.save_file is not None:
 			self._saveState()
 		else:
 			self.saveAs()
 
-	def saveAs(self):
+	def saveAs(self) -> None:
 		dflt_save_file = f'satplot-state_{dt.datetime.now().strftime("%y%m%d-%H%M%S")}.pickle'
 		save_file = self._openFileDialog('SatPlot Save...', 'data/saves/', dflt_save_file)
 		if save_file != '':
 			self.save_file = save_file
 			self._saveState()
 
-	def _saveState(self):
+	def _saveState(self) -> None:
 		console.send(f'Saving State to {self.save_file}')
 		state = self.window.serialiseContexts()
 		with open(self.save_file, 'wb') as picklefp:
 			pickle.dump(state, picklefp)
 
-	def load(self):
+	def load(self) -> None:
 		load_file = self._openFileDialog('SatPlot Load...', 'data/saves/', None, save=False)
 		if load_file != '':
 			self._loadState(load_file)
 
-	def _loadState(self, load_file):
+	def _loadState(self, load_file:pathlib.Path) -> None:
 		console.send(f'Loading State from {load_file}')
 		with open(load_file, 'rb') as picklefp:
 			state = pickle.load(picklefp)
 		self.window.deserialiseContexts(state)
 
-	def _openFileDialog(self, caption, dir, dflt_filename, save=True):
+	def _openFileDialog(self, caption: str, dir:pathlib.Path, dflt_filename:str, save=True) -> pathlib.Path:
 		if dflt_filename is None:
 			dflt_filename = ''
 		options = QtWidgets.QFileDialog.Options()
@@ -99,7 +102,7 @@ class Application():
 																options=options)			
 		return filename
 
-def setDefaultPackageOptions():
+def setDefaultPackageOptions() -> None:
 	satplot.running = True
 	satplot.gl_plus = True
 	satplot.debug = False

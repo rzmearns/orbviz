@@ -1,13 +1,15 @@
 from abc import ABC, abstractmethod
 import numpy as np
+import numpy.typing as nptyping
 import traceback
+from vispy.scene.widgets.viewbox import ViewBox
 
 class AbstractAsset(ABC):
 
 	# name_str: str
 
 	@abstractmethod
-	def __init__(self, name=None, v_parent=None):
+	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		# Is this asset is_active for drawing
 		self.is_active = False
 		# dict storing vispy visuals to be drawn as part of this asset
@@ -31,7 +33,7 @@ class AbstractAsset(ABC):
 		self.is_stale = False
 	
 	##### Viewbox methods
-	def _attachToParentView(self):
+	def _attachToParentView(self) -> None:
 		'''Sets all vispy visuals to use the stored parent'''
 		for visual in self.visuals.values():
 			if visual is not None and not isinstance(visual, list):
@@ -42,14 +44,14 @@ class AbstractAsset(ABC):
 				for el in visual:
 					el.parent = self.data['v_parent']
 
-	def attachToParentViewRecursive(self):
+	def attachToParentViewRecursive(self) -> None:
 		'''Sets all nested vispy visuals to use the stored parent'''
 		self._attachToParentView()
 		for asset in self.assets.values():
 			if asset is not None:
 				asset.attachToParentViewRecursive()
 
-	def _detachFromParentView(self):
+	def _detachFromParentView(self) -> None:
 		'''Sets all vispy visuals to use no parent -> stops rendering'''
 		for visual in self.visuals.values():
 			if visual is not None and not isinstance(visual, list):
@@ -62,87 +64,87 @@ class AbstractAsset(ABC):
 				for el in visual:
 					el.parent = None
 
-	def detachFromParentViewRecursive(self):
+	def detachFromParentViewRecursive(self) -> None:
 		'''Sets all nested vispy visuals to use no parent -> stops rendering'''
 		self._detachFromParentView()
 
 		for asset in self.assets.values():
 			asset.detachFromParentViewRecursive()
 
-	def setParentView(self, view):
+	def setParentView(self, view:ViewBox) -> None:
 		'''Stores the v_parent to the vispy view to use'''
 		self.data['v_parent'] = view
 		for asset in self.assets.values():
 			asset.data['v_parent'] = view
 
 	##### State methods
-	def makeActive(self):
+	def makeActive(self) -> None:
 		# print(f"{self.data['name']} being made active.")
 		if not self.is_active:
 			self.setFirstDrawFlagRecursive()
 			self.attachToParentViewRecursive()  # will attach all assets  recursively
 		self.setActiveFlagRecursive()
 
-	def makeDormant(self):
+	def makeDormant(self) -> None:
 		self.clearActiveFlagRecursive()
 		self.setStaleFlagRecursive()
 		self.detachFromParentViewRecursive()
 
-	def _setActiveFlag(self):
+	def _setActiveFlag(self) -> None:
 		self.is_active = True
 
-	def _clearActiveFlag(self):
+	def _clearActiveFlag(self) -> None:
 		self.is_active = False
 
-	def setActiveFlagRecursive(self):
+	def setActiveFlagRecursive(self) -> None:
 		self._setActiveFlag()
 		for asset in self.assets.values():
 			asset.setActiveFlagRecursive()
 
-	def clearActiveFlagRecursive(self):
+	def clearActiveFlagRecursive(self) -> None:
 		self._clearActiveFlag()
 		for asset in self.assets.values():
 			asset.clearActiveFlagRecursive()
 
-	def isActive(self):
+	def isActive(self) -> bool:
 		return self.is_active
 
-	def _setStaleFlag(self):
+	def _setStaleFlag(self) -> None:
 		self.is_stale = True
 
-	def setStaleFlagRecursive(self):
+	def setStaleFlagRecursive(self) -> None:
 		self._setStaleFlag()
 		for asset in self.assets.values():
 			if asset is not None:
 				asset.setStaleFlagRecursive()
 
-	def _clearStaleFlag(self):
+	def _clearStaleFlag(self) -> None:
 		self.is_stale = False
 
-	def isStale(self):
+	def isStale(self) -> bool:
 		return self.is_stale
 
-	def _setFirstDrawFlag(self):
+	def _setFirstDrawFlag(self) -> None:
 		self.first_draw = True
 
-	def setFirstDrawFlagRecursive(self):
+	def setFirstDrawFlagRecursive(self) -> None:
 		self._setFirstDrawFlag()
 		for asset in self.assets.values():
 			if asset is not None:
 				asset.setFirstDrawFlagRecursive()
 
 	# should only be called within its own recomputeRedraw
-	def _clearFirstDrawFlag(self):
+	def _clearFirstDrawFlag(self) -> None:
 		self.first_draw = False
 
-	def isFirstDraw(self):
+	def isFirstDraw(self) -> bool:
 		return self.first_draw
 
-	def setVisibility(self, state):
+	def setVisibility(self, state:bool) -> None:
 		for visual in self.visuals.values():
 			visual.visible = state
 
-	def setVisibilityRecursive(self, state):
+	def setVisibilityRecursive(self, state:bool) -> None:
 		'''Sets the visibility of this asset and all child-assets'''
 		self.setVisibility(state)
 		for asset in self.assets.values():
@@ -156,23 +158,23 @@ class AbstractAsset(ABC):
 		raise NotImplementedError
 
 	@abstractmethod
-	def _instantiateAssets(self):
+	def _instantiateAssets(self) -> None:
 		'''Create child assets
 			pass desired parent to asset at instantiation'''
 		raise NotImplementedError
 	
 	@abstractmethod
-	def _createVisuals(self):
+	def _createVisuals(self) -> None:
 		'''Create visuals on canvas'''
 		raise NotImplementedError
 
 	@abstractmethod
-	def _setDefaultOptions(self):
+	def _setDefaultOptions(self) -> None:
 		''' Set the default options for the visualiser {dict} '''
 		raise NotImplementedError
 
 	@abstractmethod
-	def recomputeRedraw(self):
+	def recomputeRedraw(self) -> None:
 		'''Recompute the asset geometry; apply to child assets and visuals
 			
 			Should include the following check at the beginning of the function
@@ -196,7 +198,7 @@ class AbstractAsset(ABC):
 	# 			asset.recompute()
 
 
-	def updateIndex(self, index):
+	def updateIndex(self, index:int) -> None:
 		'''Update the stored curr_index value
 			Should include the following iteration in the overriding method
 			for asset in self.assets.values():
@@ -208,43 +210,43 @@ class AbstractAsset(ABC):
 			if isinstance(asset,AbstractAsset):
 				asset.updateIndex(index)
 
-	def getScreenMouseOverInfo(self):
+	def getScreenMouseOverInfo(self) -> dict[str,list]:
 		mo_info = {'screen_pos':[], 'world_pos':[], 'strings':[], 'objects':[]}
 		return mo_info
 
-	def mouseOver(self, index):
+	def mouseOver(self, index: int) -> None:
 		return
 
 
 	##### helper functions
-	def _listVisuals(self):
+	def _listVisuals(self) -> None:
 		keys = [key for key in self.visuals.keys()]
 		values = [key for key in self.visuals.values()]
 		return keys, values
 	
-	def _printVisuals(self):
+	def _printVisuals(self) -> None:
 		k,v = self._listVisuals()
 		print(f"{self.__name__} asset has visuals:")
 		for ii, key in enumerate(k):
 			print(f"\t{key}-> ref:{v[ii]}")
 
-	def _printFlags(self):
+	def _printFlags(self) -> None:
 		print(f'\tactive:{self.isActive()}')
 		print(f'\tstale:{self.isStale()}')
 		print(f'\tfirst_draw:{self.isFirstDraw()}')
 
-	def _listAssets(self):
+	def _listAssets(self) -> None:
 		keys = [key for key in self.assets.keys()]
 		values = [key for key in self.assets.values()]
 		return keys, values
 	
-	def _printAssets(self):
+	def _printAssets(self) -> None:
 		k,v = self._listAssets()
 		print(f"{self.__name__} asset has child assets:")
 		for ii, key in enumerate(k):
 			print(f"\t{key}-> ref:{v[ii]}")
 
-	def _printParent(self,visual_key=None, asset_key=None):
+	def _printParent(self,visual_key:str|None=None, asset_key:str|None=None) -> None:
 		print(f"asset {self.data['name']} parent scene:{self.data['v_parent']}")
 		if visual_key is not None:
 			print(f"\tvisual {visual_key} parent scene:{self.visuals[visual_key].parent}")
@@ -256,7 +258,7 @@ class AbstractCompoundAsset(ABC):
 	# name_str: str
 
 	@abstractmethod
-	def __init__(self, name=None, v_parent=None):
+	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		# Is this asset is_active for drawing
 		self.is_active = False
 		# dict storing satplot child assets
@@ -279,7 +281,7 @@ class AbstractCompoundAsset(ABC):
 		# positions and transforms of child-assets and visuals must be recomputed
 		self.is_stale = False
 
-	def _attachToParentView(self):
+	def _attachToParentView(self) -> None:
 		'''Sets all vispy visuals to use the stored parent'''
 		for visual in self.visuals.values():
 			if visual is not None and not isinstance(visual, list):
@@ -288,14 +290,14 @@ class AbstractCompoundAsset(ABC):
 				for el in visual:
 					el.parent = self.data['v_parent']
 
-	def attachToParentViewRecursive(self):
+	def attachToParentViewRecursive(self) -> None:
 		'''Sets all nested vispy visuals to use the stored parent'''
 		self._attachToParentView()
 		for asset in self.assets.values():
 			if asset is not None:
 				asset.attachToParentViewRecursive()
 
-	def _detachFromParentView(self):
+	def _detachFromParentView(self) -> None:
 		'''Sets all nested vispy visuals to use no parent -> stops rendering'''
 		for visual in self.visuals.values():
 			if visual is not None and not isinstance(visual, list):
@@ -306,110 +308,110 @@ class AbstractCompoundAsset(ABC):
 				for el in visual:
 					el.parent = None
 
-	def detachFromParentViewRecursive(self):
+	def detachFromParentViewRecursive(self) -> None:
 		self._detachFromParentView()
 
 		for asset in self.assets.values():
 			asset.detachFromParentViewRecursive()
 
-	def setParentView(self, view):
+	def setParentView(self, view:ViewBox) -> None:
 		'''Stores the v_parent to the vispy view to use'''
 		self.data['v_parent'] = view
 
 	##### State methods
-	def makeActive(self):
+	def makeActive(self) -> None:
 		if not self.is_active:
 			self.setFirstDrawFlagRecursive()
 			self.attachToParentViewRecursive()
 		self.setActiveFlagRecursive()
 
-	def makeDormant(self):
+	def makeDormant(self) -> None:
 		self.clearActiveFlagRecursive()
 		self.setStaleFlagRecursive()
 		self.detachFromParentViewRecursive()
 
-	def isActive(self):
+	def isActive(self) -> bool:
 		return self.is_active
 
-	def _setActiveFlag(self):
+	def _setActiveFlag(self) -> None:
 		self.is_active = True
 
-	def _clearActiveFlag(self):
+	def _clearActiveFlag(self) -> None:
 		self.is_active = False
 
-	def setActiveFlagRecursive(self):
+	def setActiveFlagRecursive(self) -> None:
 		self._setActiveFlag()
 
-	def clearActiveFlagRecursive(self):
+	def clearActiveFlagRecursive(self) -> None:
 		self._clearActiveFlag()
 		for asset in self.assets.values():
 			asset.clearActiveFlagRecursive()
 
-	def _setStaleFlag(self):
+	def _setStaleFlag(self) -> None:
 		self.is_stale = True
 		for asset in self.assets.values():
 			if asset is not None:
 				asset.setStaleFlagRecursive()
 
-	def setStaleFlagRecursive(self):
+	def setStaleFlagRecursive(self) -> None:
 		self._setStaleFlag()
 
-	def _clearStaleFlag(self):
+	def _clearStaleFlag(self) -> None:
 		self.is_stale = False
 
-	def isStale(self):
+	def isStale(self) -> bool:
 		return self.is_stale
 
-	def _setFirstDrawFlag(self):
+	def _setFirstDrawFlag(self) -> None:
 		self.first_draw = True
 
-	def setFirstDrawFlagRecursive(self):
+	def setFirstDrawFlagRecursive(self) -> None:
 		self._setFirstDrawFlag()
 		for asset in self.assets.values():
 			if asset is not None:
 				asset.setFirstDrawFlagRecursive()
 
 	# first_draw flag should only be cleared within its own recomputeRedraw
-	def _clearFirstDrawFlag(self):
+	def _clearFirstDrawFlag(self) -> None:
 		self.first_draw = False
 
-	def isFirstDraw(self):
+	def isFirstDraw(self) -> bool:
 		return self.first_draw
 
-	def setVisibility(self, state):
+	def setVisibility(self, state:bool) -> None:
 		for visual in self.visuals.values():
 			visual.visible = state
 
-	def setVisibilityRecursive(self, state):
+	def setVisibilityRecursive(self, state) -> None:
 		'''Sets the visibility of this asset and all child-assets'''
 		self.setVisibility(state)
 		for asset in self.assets.values():
 			asset.setVisibilityRecursive(state)
 
 	@abstractmethod
-	def _initData(self, *args, **kwargs):
+	def _initData(self, *args, **kwargs) -> None:
 		'''Initialise data used for drawing this and any child assets
 			Any parameters can be passed here'''
 		raise NotImplementedError
 
 	@abstractmethod
-	def _instantiateAssets(self):
+	def _instantiateAssets(self) -> None:
 		'''Create child assets
 			pass desired parent to asset at instantiation'''
 		raise NotImplementedError
 
 	@abstractmethod
-	def _createVisuals(self):
+	def _createVisuals(self) -> None:
 		'''Create visuals on canvas'''
 		raise NotImplementedError
 
 	@abstractmethod
-	def _setDefaultOptions(self):
+	def _setDefaultOptions(self) -> None:
 		''' Set the default options for the visualiser {dict} '''
 		raise NotImplementedError
 
 	@abstractmethod
-	def setTransform(self, pos=(0,0,0), rotation=np.eye(3)):
+	def setTransform(self, pos:tuple[float,float,float]=(0,0,0), rotation:nptyping.NDArray=np.eye(3)) -> None:
 		'''Directly set the linear transform to be applied to the visuals
 
 			Should include the following iteration in the overriding method
@@ -417,41 +419,41 @@ class AbstractCompoundAsset(ABC):
 				asset.setTransform()'''
 		raise NotImplementedError
 
-	def getScreenMouseOverInfo(self):
+	def getScreenMouseOverInfo(self) -> None:
 		mo_info = {'screen_pos':[], 'world_pos':[], 'strings':[], 'objects':[]}
 		return mo_info
 
-	def mouseOver(self, index):
+	def mouseOver(self, index:int) -> None:
 		return
 
-	def _listVisuals(self):
+	def _listVisuals(self) -> None:
 		keys = [key for key in self.visuals.keys()]
 		values = [key for key in self.visuals.values()]
 		return keys, values
 
-	def _printVisuals(self):
+	def _printVisuals(self) -> None:
 		k,v = self._listVisuals()
 		print(f"{self.__name__} asset has visuals:")
 		for ii, key in enumerate(k):
 			print(f"\t{key}-> ref:{v[ii]}")
 
-	def _printFlags(self):
+	def _printFlags(self) -> None:
 		print(f'\tactive:{self.isActive()}')
 		print(f'\tstale:{self.isStale()}')
 		print(f'\tfirst_draw:{self.isFirstDraw()}')
 
-	def _listAssets(self):
+	def _listAssets(self) -> None:
 		keys = [key for key in self.assets.keys()]
 		values = [key for key in self.assets.values()]
 		return keys, values
 
-	def _printAssets(self):
+	def _printAssets(self) -> None:
 		k,v = self._listAssets()
 		print(f"{self.__name__} asset has child assets:")
 		for ii, key in enumerate(k):
 			print(f"\t{key}-> ref:{v[ii]}")
 
-	def _printParent(self,visual_key=None):
+	def _printParent(self,visual_key:str|None=None) -> None:
 		print(f"asset {self.data['name']} parent scene:{self.data['v_parent']}")
 		if visual_key is not None:
 			print(f"\tvisual {visual_key} parent scene:{self.visuals[visual_key].parent}")
@@ -462,7 +464,7 @@ class AbstractSimpleAsset(ABC):
 	# name_str: str
 
 	@abstractmethod
-	def __init__(self, name=None, v_parent=None):
+	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		# Is this asset is_active for drawing
 		self.is_active = False
 		# dict storing vispy visuals to be drawn as part of this asset
@@ -483,7 +485,7 @@ class AbstractSimpleAsset(ABC):
 		# positions and transforms of child-assets and visuals must be recomputed
 		self.is_stale = False
 	
-	def _attachToParentView(self):
+	def _attachToParentView(self) -> None:
 		'''Sets all vispy visuals to use the stored parent'''
 		for visual in self.visuals.values():
 			if visual is not None and not isinstance(visual, list):
@@ -492,11 +494,11 @@ class AbstractSimpleAsset(ABC):
 				for el in visual:
 					el.parent = self.data['v_parent']
 
-	def attachToParentViewRecursive(self):
+	def attachToParentViewRecursive(self) -> None:
 		'''Sets all nested vispy visuals to use the stored parent'''
 		self._attachToParentView()
 
-	def _detachFromParentView(self):
+	def _detachFromParentView(self) -> None:
 		'''Sets all nested vispy visuals to use no parent -> stops rendering'''
 		for visual in self.visuals.values():
 			if visual is not None and not isinstance(visual, list):
@@ -507,91 +509,91 @@ class AbstractSimpleAsset(ABC):
 				for el in visual:
 					el.parent = None
 
-	def detachFromParentViewRecursive(self):
+	def detachFromParentViewRecursive(self) -> None:
 		self._detachFromParentView()
 
-	def setParentView(self, view):
+	def setParentView(self, view:ViewBox) -> None:
 		'''Stores the v_parent to the vispy view to use'''
 		self.data['v_parent'] = view
 
 	##### State methods
-	def makeActive(self):
+	def makeActive(self) -> None:
 		if not self.is_active:
 			self.setFirstDrawFlagRecursive()
 			self.attachToParentViewRecursive()
 		self.is_active = True
 
-	def makeDormant(self):
+	def makeDormant(self) -> None:
 		self.clearActiveFlagRecursive()
 		self.setStaleFlagRecursive()
 		self.detachFromParentViewRecursive()
 
-	def isActive(self):
+	def isActive(self) -> bool:
 		return self.is_active
 
-	def _setActiveFlag(self):
+	def _setActiveFlag(self) -> None:
 		self.is_active = True
 
-	def _clearActiveFlag(self):
+	def _clearActiveFlag(self) -> None:
 		self.is_active = False
 
-	def setActiveFlagRecursive(self):
+	def setActiveFlagRecursive(self) -> None:
 		self._setActiveFlag()
 
-	def clearActiveFlagRecursive(self):
+	def clearActiveFlagRecursive(self) -> None:
 		self._clearActiveFlag()
 
-	def _setStaleFlag(self):
+	def _setStaleFlag(self) -> None:
 		self.is_stale = True
 
-	def setStaleFlagRecursive(self):
+	def setStaleFlagRecursive(self) -> None:
 		self._setStaleFlag()
 
-	def _clearStaleFlag(self):
+	def _clearStaleFlag(self) -> None:
 		self.is_stale = False
 
-	def isStale(self):
+	def isStale(self) -> bool:
 		return self.is_stale
 
-	def _setFirstDrawFlag(self):
+	def _setFirstDrawFlag(self) -> None:
 		self.first_draw = True
 
-	def setFirstDrawFlagRecursive(self):
+	def setFirstDrawFlagRecursive(self) -> None:
 		self._setFirstDrawFlag()
 
 	# first_draw flag should only be cleared within its own recomputeRedraw
-	def _clearFirstDrawFlag(self):
+	def _clearFirstDrawFlag(self) -> None:
 		self.first_draw = False
 
-	def isFirstDraw(self):
+	def isFirstDraw(self) -> bool:
 		return self.first_draw
 
-	def setVisibility(self, state):
+	def setVisibility(self, state:bool) -> None:
 		for visual in self.visuals.values():
 			visual.visible = state
 
-	def setVisibilityRecursive(self, state):
+	def setVisibilityRecursive(self, state:bool) -> None:
 		'''Sets the visibility of this asset and all child-assets'''
 		self.setVisibility(state)
 
 	@abstractmethod
-	def _initData(self, *args, **kwargs):
+	def _initData(self, *args, **kwargs) -> None:
 		'''Initialise data used for drawing this and any child assets
 			Any parameters can be passed here'''
 		raise NotImplementedError
 
 	@abstractmethod
-	def _createVisuals(self):
+	def _createVisuals(self) -> None:
 		'''Create visuals on canvas'''
 		raise NotImplementedError
 
 	@abstractmethod
-	def _setDefaultOptions(self):
+	def _setDefaultOptions(self) -> None:
 		''' Set the default options for the visualiser {dict} '''
 		raise NotImplementedError
 
 	@abstractmethod
-	def setTransform(self, pos=(0,0,0), rotation=np.eye(3)):
+	def setTransform(self, pos:tuple[float,float,float]=(0,0,0), rotation:nptyping.NDArray=np.eye(3)):
 		'''Directly set the linear transform to be applied to the visuals
 
 			Should include the following iteration in the overriding method
@@ -599,23 +601,23 @@ class AbstractSimpleAsset(ABC):
 				asset.setTransform()'''
 		raise NotImplementedError
 		
-	def _listVisuals(self):
+	def _listVisuals(self) -> None:
 		keys = [key for key in self.visuals.keys()]
 		values = [key for key in self.visuals.values()]
 		return keys, values
 	
-	def _printVisuals(self):
+	def _printVisuals(self) -> None:
 		k,v = self._listVisuals()
 		print(f"{self.__name__} asset has visuals:")
 		for ii, key in enumerate(k):
 			print(f"\t{key}-> ref:{v[ii]}")
 
-	def _printFlags(self):
+	def _printFlags(self) -> None:
 		print(f'\tactive:{self.isActive()}')
 		print(f'\tstale:{self.isStale()}')
 		print(f'\tfirst_draw:{self.isFirstDraw()}')
 
-	def _printParent(self,visual_key=None):
+	def _printParent(self,visual_key:str|None=None):
 		print(f"asset {self.data['name']} parent scene:{self.data['v_parent']}")
 		if visual_key is not None:
 			print(f"\tvisual {visual_key} parent scene:{self.visuals[visual_key].parent}")

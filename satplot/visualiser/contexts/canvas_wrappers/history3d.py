@@ -1,11 +1,16 @@
 import json
 import numpy as np
 import time
+from typing import Any
+
+from PyQt5 import QtGui
 
 from vispy import scene
 
+from satplot.model.data_models.history_data import (HistoryData)
 import satplot.model.geometry.primgeom as pg
 import satplot.util.constants as c
+import satplot.visualiser.assets.base as base_assets
 import satplot.visualiser.assets.constellation as constellation
 import satplot.visualiser.assets.earth as earth
 import satplot.visualiser.assets.gizmo as gizmo
@@ -24,7 +29,7 @@ mouse_over_is_highlighting = False
 
 
 class History3DCanvas():
-	def __init__(self, w=800, h=600, keys='interactive', bgcolor='white'):
+	def __init__(self, w:int=800, h:int=600, keys:str='interactive', bgcolor:str='white'):
 		self.canvas = scene.SceneCanvas(size=(w,h),
 								  		keys=keys,
 										bgcolor=bgcolor,
@@ -46,7 +51,7 @@ class History3DCanvas():
 											border_colour=(186,186,186),
 											font_size=10)
 
-	def _buildAssets(self):
+	def _buildAssets(self) -> None:
 		self.assets['earth'] = earth.Earth3DAsset(v_parent=self.view_box.scene)
 		self.assets['primary_orbit'] = orbit.Orbit3DAsset(v_parent=self.view_box.scene)
 		self.assets['moon'] = moon.Moon3DAsset(v_parent=self.view_box.scene)
@@ -70,14 +75,14 @@ class History3DCanvas():
 		self.setCameraZoom(5*c.R_EARTH)
 		# self.assets['ECI_gizmo'].attachCamera(self.view_box.camera)
 
-	def getActiveAssets(self):
+	def getActiveAssets(self) -> list[base_assets.AbstractAsset|base_assets.AbstractCompoundAsset|base_assets.AbstractSimpleAsset]:
 		active_assets = []
 		for k,v in self.assets.items():
 			if v.isActive():
 				active_assets.append(k)
 		return active_assets
 
-	def setCameraMode(self, mode='turntable'):
+	def setCameraMode(self, mode:str='turntable') -> None:
 		allowed_cam_modes = ['turntable',
 					   		'arcball',
 							'fly',
@@ -89,14 +94,14 @@ class History3DCanvas():
 		
 		self.view_box.camera = mode
 
-	def setCameraZoom(self, zoom):
+	def setCameraZoom(self, zoom:float) -> None:
 		self.view_box.camera.scale_factor = zoom
 
-	def setModel(self, data):
+	def setModel(self, data:HistoryData) -> None:
 		self.data_model = data
 		self.modelUpdated()
 
-	def modelUpdated(self):
+	def modelUpdated(self) -> None:
 		# Update data source for earth asset
 		if self.data_model.timespan is not None:
 			self.assets['earth'].setSource(self.data_model.timespan)
@@ -137,7 +142,7 @@ class History3DCanvas():
 			self.assets['sun'].makeActive()
 
 
-	def updateIndex(self, index):
+	def updateIndex(self, index:int) -> None:
 		for asset_name,asset in self.assets.items():
 			if asset.isActive():
 				asset.updateIndex(index)
@@ -147,7 +152,7 @@ class History3DCanvas():
 		# if self.assets['sun'].isActive():
 		# 	self.assets['sun'].updateIndex(index)
 
-	def recomputeRedraw(self):
+	def recomputeRedraw(self) -> None:
 		for asset_name, asset in self.assets.items():
 			# if asset_name == 'sun':
 			# 	continue
@@ -158,16 +163,16 @@ class History3DCanvas():
 		# if self.assets['sun'].isActive():
 		# 	self.assets['sun'].recomputeRedraw()
 
-	def forceRedraw(self):
+	def forceRedraw(self) -> None:
 		for k,v in self.assets.items():
 			if v.isActive():
 				v.forceRedraw()
 
-	def setFirstDrawFlags(self):
+	def setFirstDrawFlags(self) -> None:
 		for asset in self.assets.values():
 			asset.setFirstDrawFlagRecursive()
 
-	def centerCameraSpacecraft(self, set_zoom=True):
+	def centerCameraSpacecraft(self, set_zoom:bool=True) -> None:
 		if self.assets['spacecraft'].isActive():
 			sc_pos = tuple(self.assets['spacecraft'].data['coords'][self.assets['spacecraft'].data['curr_index']])			
 		else:
@@ -179,12 +184,12 @@ class History3DCanvas():
 		self.canvas.update()
 
 
-	def centerCameraEarth(self):
+	def centerCameraEarth(self) -> None:
 		self.view_box.camera.center = (0,0,0)
 		self.setCameraZoom(5*c.R_EARTH)
 		self.canvas.update()
 
-	def prepSerialisation(self):
+	def prepSerialisation(self) -> dict[str,Any]:
 		state = {}
 		state['cam-center'] = self.view_box.camera.center
 		state['cam-zoom'] = self.view_box.camera.scale_factor
@@ -193,14 +198,14 @@ class History3DCanvas():
 		state['cam-roll'] = self.view_box.camera.roll
 		return state
 
-	def deSerialise(self, state):
+	def deSerialise(self, state:dict[str,Any]) -> None:
 		self.view_box.camera.center = state['cam-center']
 		self.view_box.camera.scale_factor = state['cam-zoom']
 		self.view_box.camera.azimuth = state['cam-az']
 		self.view_box.camera.elevation = state['cam-el']
 		self.view_box.camera.roll = state['cam-roll']
 
-	def mapAssetPositionsToScreen(self):
+	def mapAssetPositionsToScreen(self) -> list:
 		mo_infos = []
 		for asset_name, asset in self.assets.items():
 			if asset.isActive():
@@ -208,7 +213,7 @@ class History3DCanvas():
 
 		return mo_infos
 
-	def onMouseMove(self, event):
+	def onMouseMove(self, event:QtGui.QMouseEvent) -> None:
 		global last_mevnt_time
 		global mouse_over_is_highlighting
 		
@@ -247,6 +252,6 @@ class History3DCanvas():
 		# console.send("captured event")
 		# self.assets['ECI_gizmo'].onMouseMove(event)
 
-	def onMouseScroll(self, event):
+	def onMouseScroll(self, event:QtGui.QMouseEvent) -> None:
 		# print(self.view_box.camera.scale_factor)
 		pass		

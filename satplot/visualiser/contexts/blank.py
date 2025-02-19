@@ -7,10 +7,11 @@ from PyQt5 import QtWidgets, QtCore
 import satplot
 from satplot.visualiser.contexts.base import (BaseContext, BaseControls)
 import satplot.visualiser.interface.controls as controls
+from satplot.visualiser.contexts.canvas_wrappers.base import (BaseCanvas)
 
 
 class BlankContext(BaseContext):
-	def __init__(self, name, parent_window):
+	def __init__(self, name:str, parent_window:QtWidgets.QMainWindow):
 		super().__init__(name)
 		self.window = parent_window
 
@@ -27,20 +28,20 @@ class BlankContext(BaseContext):
 		content_widget = QtWidgets.QWidget()
 		content_vlayout = QtWidgets.QVBoxLayout()
 
-	def connectControls(self):
+	def connectControls(self) -> None:
 		pass
 
-	def _configureData(self):
+	def _configureData(self) -> None:
 		pass
 
-	def loadState(self):
+	def loadState(self) -> None:
 		pass
 
-	def saveState(self):
+	def saveState(self) -> None:
 		pass
 		
 	class Controls(BaseControls):
-		def __init__(self, parent_context, canvas_wrapper):
+		def __init__(self, parent_context:BaseContext, canvas_wrapper:BaseCanvase) -> None:
 			self.context = parent_context
 			super().__init__(self.context.config['name'])
 

@@ -1,6 +1,10 @@
 import numpy as np
-
+import numpy.typing as nptyping
 import vispy.scene as scene
+
+from PyQt5 import QtGui
+
+from vispy.scene.widgets.viewbox import ViewBox
 import vispy.visuals.transforms as vTransforms
 
 import satplot.util.constants as c
@@ -10,7 +14,7 @@ import satplot.visualiser.assets.base as base
 
 
 class BodyGizmo(base.AbstractSimpleAsset):
-	def __init__(self, name=None, v_parent=None, scale=1, width=1):
+	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None, scale:int=1, width:int=1):
 		super().__init__(name, v_parent)
 						
 		self._setDefaultOptions()
@@ -19,27 +23,28 @@ class BodyGizmo(base.AbstractSimpleAsset):
 
 		self._attachToParentView()
 
-	def _initData(self):
+	def _initData(self) -> None:
 		if self.data['name'] is None:
 			self.data['name'] = 'body_frame_gizmo'
 		pass
 		
-	def setSource(self, *args, **kwargs):
+	def setSource(self, *args, **kwargs) -> None:
 		pass
 
-	def _createVisuals(self):
+	def _createVisuals(self) -> None:
 		self.visuals['gizmo'] = scene.visuals.XYZAxis(width=self.opts['gizmo_width']['value'],
 														parent=None)
 		scale_vec = self.opts['gizmo_scale']['value']*np.ones((1,3))
 		self.visuals['gizmo'].transform = vTransforms.STTransform(scale=scale_vec).as_matrix()
 
-	def setTransform(self, pos=(0,0,0), rotation=np.eye(3)):
+	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
+							 rotation:nptyping.NDArray=np.eye(3)) -> None:
 		T = np.eye(4)
 		T[0:3,0:3] = self.opts['gizmo_scale']['value']*rotation
 		T[0:3,3] = np.asarray(pos).reshape(-1,3)
 		self.visuals['gizmo'].transform = vTransforms.linear.MatrixTransform(T.T)
 
-	def _setDefaultOptions(self):
+	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
 
 		self._dflt_opts['gizmo_X_axis_colour'] = {'value': (255,0,0),
@@ -66,46 +71,46 @@ class BodyGizmo(base.AbstractSimpleAsset):
 		self.opts = self._dflt_opts.copy()
 
 	#----- OPTIONS CALLBACKS -----#
-	def setGizmoXColour(self, colour):
+	def setGizmoXColour(self, colour:tuple[float,float,float]) -> None:
 		old_colour_arr = self.visuals['gizmo'].color
 		old_colour_arr[0,0:3] = np.asarray(colours.normaliseColour(colour))
 		old_colour_arr[1,0:3] = np.asarray(colours.normaliseColour(colour))
 		self.visuals['gizmo'].set_data(color=old_colour_arr)
 		self.opts['gizmo_X_axis_colour']['value'] = colour
 	
-	def setGizmoYColour(self, colour):
+	def setGizmoYColour(self, colour:tuple[float,float,float]) -> None:
 		old_colour_arr = self.visuals['gizmo'].color
 		old_colour_arr[2,0:3] = np.asarray(colours.normaliseColour(colour))
 		old_colour_arr[3,0:3] = np.asarray(colours.normaliseColour(colour))
 		self.visuals['gizmo'].set_data(color=old_colour_arr)
 		self.opts['gizmo_Y_axis_colour']['value'] = colour
 	
-	def setGizmoZColour(self, colour):
+	def setGizmoZColour(self, colour:tuple[float,float,float]) -> None:
 		old_colour_arr = self.visuals['gizmo'].color
 		old_colour_arr[4,0:3] = np.asarray(colours.normaliseColour(colour))
 		old_colour_arr[5,0:3] = np.asarray(colours.normaliseColour(colour))
 		self.visuals['gizmo'].set_data(color=old_colour_arr)
 		self.opts['gizmo_Z_axis_colour']['value'] = colour
 
-	def setTemporaryGizmoXColour(self, colour):
+	def setTemporaryGizmoXColour(self, colour:tuple[float,float,float]) -> None:
 		old_colour_arr = self.visuals['gizmo'].color
 		old_colour_arr[0,0:3] = np.asarray(colours.normaliseColour(colour))
 		old_colour_arr[1,0:3] = np.asarray(colours.normaliseColour(colour))
 		self.visuals['gizmo'].set_data(color=old_colour_arr)
 	
-	def setTemporaryGizmoYColour(self, colour):
+	def setTemporaryGizmoYColour(self, colour:tuple[float,float,float]) -> None:
 		old_colour_arr = self.visuals['gizmo'].color
 		old_colour_arr[2,0:3] = np.asarray(colours.normaliseColour(colour))
 		old_colour_arr[3,0:3] = np.asarray(colours.normaliseColour(colour))
 		self.visuals['gizmo'].set_data(color=old_colour_arr)
 	
-	def setTemporaryGizmoZColour(self, colour):
+	def setTemporaryGizmoZColour(self, colour:tuple[float,float,float]) -> None:
 		old_colour_arr = self.visuals['gizmo'].color
 		old_colour_arr[4,0:3] = np.asarray(colours.normaliseColour(colour))
 		old_colour_arr[5,0:3] = np.asarray(colours.normaliseColour(colour))
 		self.visuals['gizmo'].set_data(color=old_colour_arr)
 
-	def restoreGizmoColours(self):
+	def restoreGizmoColours(self) -> None:
 		old_colour_arr = self.visuals['gizmo'].color
 		old_colour_arr[0,0:3] = np.asarray(colours.normaliseColour(self.opts['gizmo_X_axis_colour']['value']))
 		old_colour_arr[1,0:3] = np.asarray(colours.normaliseColour(self.opts['gizmo_X_axis_colour']['value']))
@@ -115,11 +120,11 @@ class BodyGizmo(base.AbstractSimpleAsset):
 		old_colour_arr[5,0:3] = np.asarray(colours.normaliseColour(self.opts['gizmo_Z_axis_colour']['value']))
 		self.visuals['gizmo'].set_data(color=old_colour_arr)
 
-	def setGizmoWidth(self, value):
+	def setGizmoWidth(self, value:int) -> None:
 		self.opts['gizmo_width']['value'] = value
 		self.visuals['gizmo'].set_data(width=value)
 
-	def setGizmoScale(self, value):
+	def setGizmoScale(self, value:float) -> None:
 		old_scale = self.opts['gizmo_scale']['value']
 		old_transform_matrix = self.visuals['gizmo'].transform.matrix
 		base_rotation = old_transform_matrix[0:3,0:3] / old_scale
@@ -129,7 +134,10 @@ class BodyGizmo(base.AbstractSimpleAsset):
 		self.visuals['gizmo'].update()
 
 class ViewBoxGizmo(base.AbstractAsset):
-	def __init__(self, canvas=None, parent=None, translate=(0,0), scale=(1,1,1,1)):
+	def __init__(self, canvas:scene.canvas.SceneCanvas|None=None,
+						 parent:ViewBox|None=None,
+						 translate:tuple[float,float]=(0,0),
+						 scale:tuple[float,float,float,float]=(1,1,1,1)):
 		self.parent = parent
 		self.canvas = canvas
 		
@@ -145,19 +153,19 @@ class ViewBoxGizmo(base.AbstractAsset):
 		affine = s.as_matrix()
 		self.visuals['gizmo'].transform = affine
 
-	def compute(self):
+	def compute(self) -> None:
 		pass
 
-	def draw(self):
+	def draw(self) -> None:
 		pass
 
-	def recompute(self):
+	def recompute(self) -> None:
 		pass
 
-	def attachCamera(self, cam):
+	def attachCamera(self, cam) -> None:
 		self.cam = cam
 
-	def onMouseMove(self, event):
+	def onMouseMove(self, event:QtGui.QMouseEvent) -> None:
 		# console.send("Gizmo received event")
 		if event.button == 1 and event.is_dragging:
 			# console.send("Gizmo updating")
@@ -171,7 +179,7 @@ class ViewBoxGizmo(base.AbstractAsset):
 			self.visuals['gizmo'].transform.translate((self.translate[0], self.translate[1]))
 			self.visuals['gizmo'].update()	
 
-	def _setDefaultOptions(self):
+	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
 
 		self._dflt_opts['plot_gizmo'] = {'value': True,
@@ -194,17 +202,17 @@ class ViewBoxGizmo(base.AbstractAsset):
 		self.opts = self._dflt_opts.copy()
 		self._createOptHelp()
 
-	def _createOptHelp(self):
+	def _createOptHelp(self) -> None:
 		pass
 
-	def setGizmoAssetVisibility(self, state):
+	def setGizmoAssetVisibility(self, state:bool) -> None:
 		raise NotImplementedError
 	
-	def setGizmoXColour(self, colour):
+	def setGizmoXColour(self, colour:tuple[float,float,float]) -> None:
 		raise NotImplementedError
 	
-	def setGizmoYColour(self, colour):
+	def setGizmoYColour(self, colour:tuple[float,float,float]) -> None:
 		raise NotImplementedError
 	
-	def setGizmoZColour(self, colour):
+	def setGizmoZColour(self, colour:tuple[float,float,float]) -> None:
 		raise NotImplementedError

@@ -9,7 +9,8 @@ class XYZAxisVisual(visuals.LineVisual):
 	x=red, y=green, z=blue.
 	"""
 
-	def __init__(self, center=(0,0,0), scale=1, **kwargs):
+	def __init__(self, center:tuple[float,float,float]=(0,0,0),
+						 scale:float=1, **kwargs):
 		pos = scale*np.array([[0, 0, 0],
 						[1, 0, 0],
 						[0, 0, 0],

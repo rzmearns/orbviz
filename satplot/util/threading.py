@@ -53,7 +53,7 @@ class Worker(QtCore.QRunnable):
 		# self.kwargs['progress_callback'] = self.signals.progress
 
 	@QtCore.pyqtSlot()
-	def run(self):
+	def run(self) -> None:
 		"""Initalise the runner function with passed args, kwargs
 		"""
 		try:
@@ -69,5 +69,5 @@ class Worker(QtCore.QRunnable):
 			self.running = False
 			self.signals.finished.emit()
 
-	def isRunning(self):
+	def isRunning(self) -> bool:
 		return self.running

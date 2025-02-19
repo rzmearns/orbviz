@@ -1,4 +1,5 @@
 import sys
+from typing import Any
 
 from PyQt5 import QtWidgets, QtCore
 
@@ -10,7 +11,7 @@ import satplot.visualiser.interface.console as console
 class MainWindow(QtWidgets.QMainWindow):
 	closing = QtCore.pyqtSignal()
 
-	def __init__(self,	title="",
+	def __init__(self,	title:str="",
 						*args, **kwargs):
 		super().__init__(*args, **kwargs)
 		main_widget = QtWidgets.QWidget()
@@ -88,7 +89,7 @@ class MainWindow(QtWidgets.QMainWindow):
 		self.setWindowTitle(title)
 		self._changeToolbarsToContext(0)
 
-	def _changeToolbarsToContext(self, new_context_index):
+	def _changeToolbarsToContext(self, new_context_index:int) -> None:
 		new_context_key = list(self.toolbars.keys())[new_context_index]
 		# process deselects first in order to clear parent pointer to menubar, otherwise menubar gets deleted (workaround for pyqt5)
 		for context_key in self.toolbars.keys():
@@ -107,24 +108,24 @@ class MainWindow(QtWidgets.QMainWindow):
 	# def changeTo3DHistoryContext(self):
 	# 	self._changeToolbarsToContext(0)
 
-	def printCol(self,val):
+	def printCol(self,val:Any) -> None:
 		print(val)
 
-	def serialiseContexts(self):
+	def serialiseContexts(self) -> dict[str,Any]:
 		state = {}
 		for context_key, context in self.contexts_dict.items():
 			state[context_key] = context.prepSerialisation()
 
 		return state
 
-	def deserialiseContexts(self, state):
+	def deserialiseContexts(self, state:dict[str,Any]) -> None:
 		for context_key, context_dict in state.items():
 			self.contexts_dict[context_key].deSerialise(context_dict)
 
-	def __del__(self):
+	def __del__(self) -> None:
 		sys.stderr = sys.__stderr__
 
-	def closeEvent(self, event):
+	def closeEvent(self, event:QtCore.QEvent) -> None:
 		sys.stderr = sys.__stderr__
 		self.closing.emit()
 		return super().closeEvent(event)

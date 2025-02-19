@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import json
 import numpy as np
 import sys
+from typing import Any
 
 from PyQt5 import QtWidgets, QtCore
 
@@ -11,10 +12,11 @@ class BaseContext(ABC):
 	# name_str: str
 
 	@abstractmethod
-	def __init__(self, name=None):
+	def __init__(self, name:str|None=None):
 
 		self.widget = QtWidgets.QWidget()
 		self.layout = QtWidgets.QHBoxLayout(self.widget)
+		self.window = None
 
 
 		# dict storing crucial configuration data for this context
@@ -27,22 +29,22 @@ class BaseContext(ABC):
 		self.save_worker_thread = None
 
 	@abstractmethod
-	def saveState(self):
+	def saveState(self) -> None:
 		raise NotImplementedError()
 	
 	@abstractmethod
-	def loadState(self):
+	def loadState(self) -> None:
 		raise NotImplementedError()
 
 	@abstractmethod
-	def connectControls(self):
+	def connectControls(self) -> None:
 		raise NotImplementedError()
 
 	@abstractmethod
-	def _configureData(self):
+	def _configureData(self) -> None:
 		raise NotImplementedError()
 
-	def prepSerialisation(self):
+	def prepSerialisation(self) -> dict[str,Any]:
 		state = {}
 		state['data'] = self.data
 		return state
@@ -52,13 +54,13 @@ class BaseContext(ABC):
 	
 class BaseControls:
 	@abstractmethod
-	def __init__(self, context_name, *args, **kwargs):
+	def __init__(self, context_name:str, *args, **kwargs):
 		self.context_name = context_name
 		# dict storing config state for this context
 		self.state = {}
 		self._buildActionDict()
 
-	def _buildActionDict(self):
+	def _buildActionDict(self) -> None:
 		with open(f'resources/actions/all.json','r') as fp:
 			all_action_dict = json.load(fp)
 		with open(f'resources/actions/{self.context_name}.json','r') as fp:
