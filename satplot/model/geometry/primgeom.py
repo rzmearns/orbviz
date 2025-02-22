@@ -37,7 +37,7 @@ def unitVector(vector:nptyping.NDArray) -> nptyping.NDArray:
 
 	'''
 	if np.allclose(vector, np.zeros(vector.shape), rtol=1e-8):
-		raise exceptions.InputException("Cannot norm 0-vector")
+		raise exceptions.InputError("Cannot norm 0-vector")
 	
 	if len(vector.shape) == 1:
 		return vector / np.linalg.norm(vector)
@@ -149,10 +149,10 @@ def vectorSignedAngle(v1:nptyping.NDArray, v2:nptyping.NDArray, norm:nptyping.ND
 
 	# check v* are vectors
 	if m1 == 1 or m1 > 3:
-		raise exceptions.InputException(f'{v1} is not a vector')
+		raise exceptions.InputError(f'{v1} is not a vector')
 	# Check v1 and v2 are same dimensions
 	if m1 != m2:
-		raise exceptions.InputException(f'Dimensions of {v1} and {v2} do not match')
+		raise exceptions.InputError(f'Dimensions of {v1} and {v2} do not match')
 
 	# If 2D pad to 3D, and set norm
 	if m1 == 2:
