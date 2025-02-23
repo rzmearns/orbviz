@@ -6,6 +6,7 @@ from typing import Any
 from PyQt5 import QtGui
 
 from vispy import scene
+from vispy.app.canvas import MouseEvent
 
 from satplot.model.data_models.history_data import (HistoryData)
 import satplot.model.geometry.primgeom as pg
@@ -225,7 +226,7 @@ class History3DCanvasWrapper(BaseCanvas):
 
 		return mo_infos
 
-	def onMouseMove(self, event:QtGui.QMouseEvent) -> None:
+	def onMouseMove(self, event:MouseEvent) -> None:
 		global last_mevnt_time
 		global mouse_over_is_highlighting
 		
@@ -238,12 +239,12 @@ class History3DCanvasWrapper(BaseCanvas):
 		if time.monotonic() - last_mevnt_time < 0.1:
 			return
 		mo_infos = self.mapAssetPositionsToScreen()
-		pp = event.pos()
+		pp = event.pos
 		
 		for jj, mo_info in enumerate(mo_infos):
 			for ii, pos in enumerate(mo_info['screen_pos']):
-				if ((abs(pos[0] - pp.x) < MOUSEOVER_DIST_THRESHOLD) and \
-					(abs(pos[1] - pp.y) < MOUSEOVER_DIST_THRESHOLD)):
+				if ((abs(pos[0] - pp[0]) < MOUSEOVER_DIST_THRESHOLD) and \
+					(abs(pos[1] - pp[1]) < MOUSEOVER_DIST_THRESHOLD)):
 					dot = np.dot(pg.unitVector(mo_info['world_pos'][ii]),acamv[1,:])[0]
 					if dot >=0:
 						last_mevnt_time = time.monotonic()
