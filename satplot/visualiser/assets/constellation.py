@@ -41,10 +41,10 @@ class Constellation(base.AbstractAsset):
 	def setSource(self, *args, **kwargs) -> None:
 		# args[0] = [orbits]
 		# args[1] = beam angle
-		if type(args[0]) is not list:
+		if type(args[0]) is not dict:
 			raise TypeError
-		for el in args[0]:
-			if type(el) is not orbit.Orbit:
+		for k, v in args[0].items():
+			if type(v) is not orbit.Orbit:
 				raise TypeError
 
 		if hasattr(args[0][0],'pos'):
@@ -52,21 +52,24 @@ class Constellation(base.AbstractAsset):
 		else:
 			raise ValueError('Constellation orbits have no position data')
 
-		self.data['beam_angle_deg'] = args[1]
-		self.data['num_sats'] = len(args[0])
+		sats = args[0]
+		beam_angle = args[1]
+
+		self.data['beam_angle_deg'] = beam_angle
+		self.data['num_sats'] = len(sats.values())
 		if self.data['num_sats'] > 1:
-			self.data['coords'] = np.zeros((self.data['num_sats'],len(args[0][0].pos),3))
+			self.data['coords'] = np.zeros((self.data['num_sats'],len(list(sats.values())[0].pos),3))
 			for ii in range(self.data['num_sats']):
-				self.data['coords'][ii,:,:] = args[0][ii].pos
+				self.data['coords'][ii,:,:] = list(sats.values())[ii].pos
 			self.data['num_sats'] = self.data['num_sats']
 			self.data['beam_height'] = self._calcBeamHeight(self.data['beam_angle_deg']/2,
-												   			np.linalg.norm(args[0][0].pos[0,:]))
+												   			np.linalg.norm(list(sats.values())[0].pos[0,:]))
 		else:
-			self.data['coords'] = np.zeros((len(args[0][0].pos),3))
-			self.data['coords'][:,:] = args[0][0].pos
+			self.data['coords'] = np.zeros((len(list(sats.values())[0].pos),3))
+			self.data['coords'][:,:] = list(sats.values())[0].pos
 			self.data['num_sats'] = 1
 			self.data['beam_height'] = self._calcBeamHeight(self.data['beam_angle_deg']/2,
-												   			np.linalg.norm(args[0][0].pos[0,:]))
+												   			np.linalg.norm(list(sats.values())[0].pos[0,:]))
 
 		if self.assets['beams'] is not None:
 			self.assets['beams'].setSource(self.data['num_sats'],

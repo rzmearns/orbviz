@@ -132,8 +132,8 @@ class History3DCanvas():
 			self.assets['primary_orbit'].setOrbitalMarkerVisibility(True)
 
 		if self.data_model.getConfigValue('has_supplemental_constellation'):
-			self.assets['constellation'].setSource(list(self.data_model.constellation.orbits.values()),
-													self.data_model.constellation.getConfigValue('beam_angle_deg'))
+			self.assets['constellation'].setSource(list(self.data_model.getConstellation().getOrbits()),
+													self.data_model.getConstellation().getConfigValue('beam_angle_deg'))
 			self.assets['constellation'].makeActive()
 
 		# Update data source for sun asset

@@ -8,6 +8,7 @@ import satplot
 from satplot.model.data_models.base import (BaseDataModel)
 import satplot.model.data_models.data_types as data_types
 import spherapy.orbit as orbit
+import spherapy.timespan as timespan
 
 # constellation_config
 # constellation_name
@@ -28,11 +29,21 @@ class ConstellationData(BaseDataModel):
 		self.updateConfig('beam_angle_deg', config['beam_width'])
 		self.updateConfig('satellite_ids', list(config['satellites'].values()))
 
-		self.timespan = None
-		self.orbits = {}
+		self.timespan: timespan.TimeSpan | None = None
+		self.orbits: dict[int, orbit.Orbit] = {}
 
-	def setTimespan(self, timespan):
+	def setTimespan(self, timespan:timespan.TimeSpan) -> None:
 		self.timespan = timespan
+
+	def getTimespan(self) -> timespan.TimeSpan:
+		if self.timespan is None:
+			raise ValueError(f'Constellation data:{self} does not have a timespan yet')
+		return self.timespan
+
+	def getOrbits(self) -> dict[int,orbit.Orbit]:
+		if len(self.orbits.values()) == 0:
+			raise ValueError(f'Constellation data:{self} has no orbits yet')
+		return self.orbits
 
 	def _storeOrbitData(self, orbits:dict[int,orbit.Orbit]) -> None:
 		self.orbits = orbits
