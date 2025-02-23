@@ -56,7 +56,28 @@ class HistoryData(BaseDataModel):
 	def clearSupplementalConstellation(self):
 		self.updateConfig('has_supplemental_constellation', False)
 
-	def process(self):
+	def getTimespan(self) -> timespan.TimeSpan:
+		if self.timespan is None:
+			raise ValueError(f'History data:{self} does not have a timespan yet')
+		return self.timespan
+
+	def getConstellation(self) -> constellation_data.ConstellationData:
+		if self.constellation is None:
+			raise ValueError(f'History data:{self} does not have a constellation yet')
+		else:
+			return self.constellation
+
+	def getOrbits(self) -> dict[int,orbit.Orbit]:
+		if len(self.orbits.values()) == 0:
+			raise ValueError(f'History data:{self} has no orbits yet')
+		return self.orbits
+
+	def getPointings(self) -> dict[int, nptyping.NDArray[np.float64]]:
+		if len(self.pointings.values()) == 0:
+			raise ValueError(f'History data:{self} has no pointings yet')
+		return self.pointings
+
+	def process(self) -> None:
 		# Load pointing and create timespan
 		if self.getConfigValue('is_pointing_defined'):
 			pointing_dates, pointing = self._loadPointingFile(self.getConfigValue('pointing_file'))

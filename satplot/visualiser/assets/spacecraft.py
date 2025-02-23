@@ -48,14 +48,19 @@ class Spacecraft3DAsset(base.AbstractAsset):
 		# args[2] pointing frame transformation direction
 			# True = ECI->BF
 			# False = BF->ECI
-		if type(args[0]) is not orbit.Orbit:
-			raise TypeError(f"args[0]:orbit is not a satplot Orbit -> {args[0]}")
-		self.data['coords'] = args[0].pos
+		sats_dict = args[0]
+		pointings_dict = args[1]
+		first_sat_orbit = list(sats_dict.values())[0]
+		first_sat_pointings = list(pointings_dict.values())[0]
+		invert_transform = args[2]
+		if type(first_sat_orbit) is not orbit.Orbit:
+			raise TypeError(f"setSource() of {self} requires a satellite dictionary, not: {first_sat_orbit}")
+		self.data['coords'] = first_sat_orbit.pos
 
-		if type(args[1]) is not np.ndarray:
-			raise TypeError(f"args[1]:pointing is not an ndarray -> {args[1]}")
-		self.data['pointing'] = args[1]
-		self.data['pointing_invert_transform'] = args[2]
+		if type(first_sat_pointings) is not np.ndarray:
+			raise TypeError(f"setSource() of {self} requires a pointings dictionary, not: {first_sat_pointings}")
+		self.data['pointing'] = first_sat_pointings
+		self.data['pointing_invert_transform'] = invert_transform
 
 
 	def _instantiateAssets(self) -> None:

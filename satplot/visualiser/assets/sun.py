@@ -84,10 +84,12 @@ class Sun3DAsset(base.AbstractAsset):
     											parent=None)
 
 	def setSource(self, *args, **kwargs):
-		if type(args[0]) is not orbit.Orbit:
+		sats_dict = args[0]
+		first_sat_orbit = list(sats_dict.values())[0]
+		if type(first_sat_orbit) is not orbit.Orbit:
 			raise TypeError
 		
-		self.data['pos'] = args[0].sun_pos
+		self.data['pos'] = first_sat_orbit.sun_pos
 
 	# Override AbstractAsset.updateIndex()
 	def updateIndex(self, index):

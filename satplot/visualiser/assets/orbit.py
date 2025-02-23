@@ -37,14 +37,16 @@ class Orbit3DAsset(base.AbstractAsset):
 		self._sliceData()
 
 	def setSource(self, *args, **kwargs) -> None:
-		if type(args[0]) is not orbit.Orbit:
+		sats_dict = args[0]
+		first_sat_orbit = list(sats_dict.values())[0]
+		if type(first_sat_orbit) is not orbit.Orbit:
 			raise TypeError
-		if hasattr(args[0],'pos'):
-			self.data['coords'] = args[0].pos
+		if hasattr(first_sat_orbit,'pos'):
+			self.data['coords'] = first_sat_orbit.pos
 		else:
 			raise ValueError('Orbit has no position data')
-		if hasattr(args[0],'name'):
-			self.data['strings'] = [args[0].name]
+		if hasattr(first_sat_orbit,'name'):
+			self.data['strings'] = [first_sat_orbit.name]
 		else:
 			self.data['strings'] = ['']
 

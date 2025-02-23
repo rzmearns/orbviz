@@ -117,12 +117,12 @@ class History3DCanvas():
 		# Update data source for primary orbit(s)
 		if len(self.data_model.getConfigValue('primary_satellite_ids')) > 0:
 			# TODO: extend to draw multiple primary satellites
-			self.assets['primary_orbit'].setSource(list(self.data_model.orbits.values())[0])
+			self.assets['primary_orbit'].setSource(self.data_model.getOrbits())
 			self.assets['primary_orbit'].makeActive()
 
 		if self.data_model.getConfigValue('is_pointing_defined'):
-			self.assets['spacecraft'].setSource(list(self.data_model.orbits.values())[0],
-												list(self.data_model.pointings.values())[0],
+			self.assets['spacecraft'].setSource(self.data_model.getOrbits(),
+												self.data_model.getPointings(),
 												self.data_model.getConfigValue('pointing_invert_transform'))
 			self.assets['spacecraft'].makeActive()
 			self.assets['primary_orbit'].setOrbitalMarkerVisibility(False)
@@ -132,13 +132,13 @@ class History3DCanvas():
 			self.assets['primary_orbit'].setOrbitalMarkerVisibility(True)
 
 		if self.data_model.getConfigValue('has_supplemental_constellation'):
-			self.assets['constellation'].setSource(list(self.data_model.getConstellation().getOrbits()),
+			self.assets['constellation'].setSource(self.data_model.getConstellation().getOrbits(),
 													self.data_model.getConstellation().getConfigValue('beam_angle_deg'))
 			self.assets['constellation'].makeActive()
 
 		# Update data source for sun asset
 		if len(self.data_model.getConfigValue('primary_satellite_ids')) > 0:
-			self.assets['sun'].setSource(list(self.data_model.orbits.values())[0])
+			self.assets['sun'].setSource(self.data_model.getOrbits())
 			self.assets['sun'].makeActive()
 
 
