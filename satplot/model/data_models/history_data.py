@@ -5,7 +5,7 @@ import pathlib
 from progressbar import progressbar
 
 import satplot
-from satplot.model.data_models.base import (BaseDataModel)
+from satplot.model.data_models.base_models import (BaseDataModel)
 import satplot.util.threading as threading
 import satplot.model.data_models.data_types as data_types
 import satplot.model.data_models.constellation_data as constellation_data

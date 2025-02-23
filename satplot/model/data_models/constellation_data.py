@@ -1,4 +1,4 @@
-from satplot.model.data_models.base import (BaseDataModel)
+from satplot.model.data_models.base_models import (BaseDataModel)
 import satplot.model.data_models.data_types as data_types
 import spherapy.orbit as orbit
 import spherapy.timespan as timespan
