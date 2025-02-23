@@ -5,7 +5,7 @@ from PyQt5 import QtWidgets, QtCore
 
 import satplot
 from satplot.model.data_models import (history_data)
-from satplot.visualiser.contexts import (history3d, blank)
+from satplot.visualiser.contexts import (history3d_context, blank_context)
 import satplot.visualiser.interface.console as console
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -38,12 +38,12 @@ class MainWindow(QtWidgets.QMainWindow):
 		history_data_model = history_data.HistoryData()
 
 		# Build context panes
-		self.contexts_dict['3d-history'] = history3d.History3DContext('3d-history', self, history_data_model)
+		self.contexts_dict['3d-history'] = history3d_context.History3DContext('3d-history', self, history_data_model)
 		self.toolbars['3d-history'] = self.contexts_dict['3d-history'].controls.toolbar
 		self.menubars['3d-history'] = self.contexts_dict['3d-history'].controls.menubar
 		self.context_tabs.addTab(self.contexts_dict['3d-history'].widget, '3D History')
 
-		self.contexts_dict['blank'] = blank.BlankContext('blank', self)
+		self.contexts_dict['blank'] = blank_context.BlankContext('blank', self)
 		self.toolbars['blank'] = self.contexts_dict['blank'].controls.toolbar
 		self.menubars['blank'] = self.contexts_dict['blank'].controls.menubar
 		self.context_tabs.addTab(self.contexts_dict['blank'].widget, 'Blank')

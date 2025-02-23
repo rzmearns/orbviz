@@ -6,7 +6,7 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 import satplot.model.data_models.data_types as data_types
 from satplot.model.data_models.history_data import HistoryData
 
-import satplot.visualiser.contexts.base as base
+import satplot.visualiser.contexts.base_context as base
 from satplot.visualiser.contexts.canvas_wrappers.base_cw import (BaseCanvas)
 import satplot.visualiser.contexts.canvas_wrappers.history3d_cw as history3d_cw
 import satplot.visualiser.interface.console as console
