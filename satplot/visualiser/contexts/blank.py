@@ -2,7 +2,7 @@ from PyQt5 import QtWidgets, QtCore
 
 from satplot.visualiser.contexts.base import (BaseContext, BaseControls)
 import satplot.visualiser.interface.controls as controls
-from satplot.visualiser.contexts.canvas_wrappers.base import (BaseCanvas)
+from satplot.visualiser.contexts.canvas_wrappers.base_cw import (BaseCanvas)
 
 
 class BlankContext(BaseContext):

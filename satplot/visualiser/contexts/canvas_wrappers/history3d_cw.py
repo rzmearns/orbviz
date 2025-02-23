@@ -9,7 +9,7 @@ from vispy import scene
 
 from satplot.model.data_models.history_data import (HistoryData)
 import satplot.model.geometry.primgeom as pg
-from satplot.visualiser.contexts.canvas_wrappers.base import BaseCanvas
+from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 import satplot.util.constants as c
 import satplot.util.exceptions as exceptions
 import satplot.visualiser.assets.base as base_assets
@@ -30,7 +30,7 @@ last_mevnt_time = time.monotonic()
 mouse_over_is_highlighting = False
 
 
-class History3DCanvas(BaseCanvas):
+class History3DCanvasWrapper(BaseCanvas):
 	def __init__(self, w:int=800, h:int=600, keys:str='interactive', bgcolor:str='white'):
 		self.canvas = scene.canvas.SceneCanvas(size=(w,h),
 								  		keys=keys,

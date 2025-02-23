@@ -7,8 +7,8 @@ import satplot.model.data_models.data_types as data_types
 from satplot.model.data_models.history_data import HistoryData
 
 import satplot.visualiser.contexts.base as base
-from satplot.visualiser.contexts.canvas_wrappers.base import (BaseCanvas)
-import satplot.visualiser.contexts.canvas_wrappers.history3d as canvaswrapper
+from satplot.visualiser.contexts.canvas_wrappers.base_cw import (BaseCanvas)
+import satplot.visualiser.contexts.canvas_wrappers.history3d_cw as history3d_cw
 import satplot.visualiser.interface.console as console
 import satplot.visualiser.interface.controls as controls
 import satplot.visualiser.interface.widgets as widgets
@@ -22,7 +22,7 @@ class History3DContext(base.BaseContext):
 		self.window = parent_window
 		self._validateDataType()
 		self.data = data
-		self.canvas_wrapper = canvaswrapper.History3DCanvas()
+		self.canvas_wrapper = history3d_cw.History3DCanvasWrapper()
 		self.canvas_wrapper.setModel(self.data)
 		self.controls = Controls(self, self.canvas_wrapper)
 

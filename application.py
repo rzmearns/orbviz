@@ -8,7 +8,7 @@ from PyQt5 import QtWidgets, QtCore
 from vispy import app, use
 
 import satplot
-from satplot.visualiser.contexts.canvas_wrappers.base import (BaseCanvas)
+from satplot.visualiser.contexts.canvas_wrappers.base_cw import (BaseCanvas)
 import satplot.visualiser.interface.console as console
 import satplot.visualiser.interface.dialogs as dialogs
 import satplot.visualiser.window as window
