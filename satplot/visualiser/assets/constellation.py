@@ -13,12 +13,12 @@ import satplot
 import satplot.model.geometry.polyhedra as polyhedra
 import satplot.model.geometry.primgeom as pg
 import satplot.util.constants as c
-import satplot.visualiser.assets.base as base
+import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.colours as colours
 import spherapy.orbit as orbit
 
 
-class Constellation(base.AbstractAsset):
+class Constellation(base_assets.AbstractAsset):
 	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 		self._setDefaultOptions()
@@ -133,9 +133,9 @@ class Constellation(base.AbstractAsset):
 			
 			# recomputeRedraw child assets
 			for asset in self.assets.values():
-				if isinstance(asset,base.AbstractAsset):
+				if isinstance(asset,base_assets.AbstractAsset):
 					asset.recomputeRedraw()
-				elif isinstance(asset, base.AbstractSimpleAsset):
+				elif isinstance(asset, base_assets.AbstractSimpleAsset):
 					asset.setTransform(rotation=R)
 			self._clearStaleFlag()
 
@@ -226,7 +226,7 @@ class Constellation(base.AbstractAsset):
 		beam_height = (np.cos(phi)**2 * (vector_length))
 		return beam_height
 	
-class InstancedConstellationBeams(base.AbstractAsset):
+class InstancedConstellationBeams(base_assets.AbstractAsset):
 	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 		self._setDefaultOptions()
@@ -453,7 +453,7 @@ class InstancedConstellationBeams(base.AbstractAsset):
 
 		return circles
 
-class ConstellationBeams(base.AbstractAsset):
+class ConstellationBeams(base_assets.AbstractAsset):
 	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 		self._setDefaultOptions()

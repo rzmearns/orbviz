@@ -11,10 +11,10 @@ import vispy.visuals.transforms as vTransforms
 import satplot.model.geometry.polyhedra as polyhedra
 import satplot.util.constants as c
 import satplot.visualiser.colours as colours
-import satplot.visualiser.assets.base as base
+import satplot.visualiser.assets.base_assets as base_assets
 
 
-class SensorSuite3DAsset(base.AbstractCompoundAsset):
+class SensorSuite3DAsset(base_assets.AbstractCompoundAsset):
 	def __init__(self, sens_suite_dict:dict[str,Any], name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 		
@@ -63,7 +63,7 @@ class SensorSuite3DAsset(base.AbstractCompoundAsset):
 		self._dflt_opts = {}
 		self.opts = self._dflt_opts.copy()
 
-class Sensor3DAsset(base.AbstractSimpleAsset):
+class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 	def __init__(self, sensor_name, mesh_verts, mesh_faces,
 			  			bf_quat, colour, sens_type=None, v_parent=None, *args, **kwargs):
 		super().__init__(sensor_name, v_parent)

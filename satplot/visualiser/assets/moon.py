@@ -7,11 +7,11 @@ import vispy.visuals.transforms as vtransforms
 import satplot.model.geometry.primgeom as pg
 import satplot.util.constants as c
 import satplot.visualiser.colours as colours
-import satplot.visualiser.assets.base as base
+import satplot.visualiser.assets.base_assets as base_assets
 import spherapy.orbit as orbit
 
 
-class Moon3DAsset(base.AbstractAsset):
+class Moon3DAsset(base_assets.AbstractAsset):
 	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 

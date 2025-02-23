@@ -11,13 +11,13 @@ import satplot.model.geometry.primgeom as pg
 import satplot.model.geometry.transformations as transforms
 import satplot.util.constants as c
 import satplot.util.paths as satplot_paths
-import satplot.visualiser.assets.base as base
+import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.assets.axis_indicator as axisInd
 import satplot.visualiser.colours as colours
 import spherapy.timespan as timespan
 
 
-class Earth3DAsset(base.AbstractAsset):
+class Earth3DAsset(base_assets.AbstractAsset):
 	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 						
@@ -99,9 +99,9 @@ class Earth3DAsset(base.AbstractAsset):
 
 			# recomputeRedraw child assets
 			for asset in self.assets.values():
-				if isinstance(asset,base.AbstractAsset):
+				if isinstance(asset,base_assets.AbstractAsset):
 					asset.recomputeRedraw()
-				elif isinstance(asset, base.AbstractSimpleAsset):
+				elif isinstance(asset, base_assets.AbstractSimpleAsset):
 					asset.setTransform(rotation=R)
 			self._clearStaleFlag()
 
@@ -206,7 +206,7 @@ class Earth3DAsset(base.AbstractAsset):
 		return coords
 
 
-class ParallelsGrid3DAsset(base.AbstractSimpleAsset):
+class ParallelsGrid3DAsset(base_assets.AbstractSimpleAsset):
 	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 		self._setDefaultOptions()
@@ -351,7 +351,7 @@ class ParallelsGrid3DAsset(base.AbstractSimpleAsset):
 		return coords
 	
 
-class MeridiansGrid3DAsset(base.AbstractSimpleAsset):
+class MeridiansGrid3DAsset(base_assets.AbstractSimpleAsset):
 	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 

@@ -6,12 +6,12 @@ from vispy.scene.widgets.viewbox import ViewBox
 
 import satplot.visualiser.assets.sensors as sensors
 import satplot.visualiser.colours as colours
-import satplot.visualiser.assets.base as base
+import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.assets.gizmo as gizmo
 import spherapy.orbit as orbit
 
 
-class Spacecraft3DAsset(base.AbstractAsset):
+class Spacecraft3DAsset(base_assets.AbstractAsset):
 	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None, sens_suites:dict[str,Any]|None=None):
 		super().__init__(name, v_parent)		
 		self._setDefaultOptions()
@@ -130,9 +130,9 @@ class Spacecraft3DAsset(base.AbstractAsset):
 
 			# recomputeRedraw child assets
 			for asset in self.assets.values():
-				if isinstance(asset,base.AbstractAsset):
+				if isinstance(asset,base_assets.AbstractAsset):
 					asset.recomputeRedraw()
-				elif isinstance(asset, base.AbstractSimpleAsset) or isinstance(asset, base.AbstractCompoundAsset):
+				elif isinstance(asset, base_assets.AbstractSimpleAsset) or isinstance(asset, base_assets.AbstractCompoundAsset):
 					asset.setTransform(pos=self.data['coords'][self.data['curr_index']].reshape(1,3), rotation=rotation)
 					# asset.setTransform()
 			self._clearStaleFlag()

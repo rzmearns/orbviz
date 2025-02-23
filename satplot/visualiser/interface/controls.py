@@ -6,7 +6,7 @@ import string
 from PyQt5 import QtWidgets, QtCore, QtGui
 
 import satplot.model.data_models.data_types as data_types
-import satplot.visualiser.assets.base as base
+import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.interface.widgets as widgets
 
 
@@ -239,7 +239,7 @@ class OptionConfigs(QtWidgets.QWidget):
 	def _buildNestedOptionWidgetDict(self, asset, asset_key=''):
 		# returns unsorted_dict
 		w_dict = {}
-		if not isinstance(asset, base.AbstractAsset) and not isinstance(asset, base.AbstractSimpleAsset):
+		if not isinstance(asset, base_assets.AbstractAsset) and not isinstance(asset, base_assets.AbstractSimpleAsset):
 			# no options or nested assets with options
 			return w_dict
 		
@@ -251,9 +251,9 @@ class OptionConfigs(QtWidgets.QWidget):
 		w_dict.update(w_opt_dict) 	# type:ignore
 
 		if hasattr(asset, 'assets'):
-			if asset is not type(base.AbstractSimpleAsset):
+			if asset is not type(base_assets.AbstractSimpleAsset):
 				for sub_key, sub_asset in asset.assets.items():  # type:ignore
-					if not isinstance(sub_asset, base.AbstractAsset) and not isinstance(sub_asset, base.AbstractSimpleAsset):
+					if not isinstance(sub_asset, base_assets.AbstractAsset) and not isinstance(sub_asset, base_assets.AbstractSimpleAsset):
 						continue
 					sub_w_dict = self._buildNestedOptionWidgetDict(sub_asset, asset_key=sub_key)
 					cb = widgets.CollapsibleSection(title=f"{sub_key.capitalize()} Options")

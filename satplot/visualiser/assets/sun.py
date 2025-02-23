@@ -9,13 +9,13 @@ from vispy.visuals import filters as vFilters
 import satplot.model.geometry.primgeom as pg
 import satplot.model.geometry.polyhedra as polyhedra
 import satplot.util.constants as c
-import satplot.visualiser.assets.base as base
+import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.interface.console as console
 import satplot.visualiser.colours as colours
 import spherapy.orbit as orbit
 
 
-class Sun3DAsset(base.AbstractAsset):
+class Sun3DAsset(base_assets.AbstractAsset):
 	def __init__(self, name=None, v_parent=None):
 		super().__init__(name, v_parent)
 

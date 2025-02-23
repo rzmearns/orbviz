@@ -3,7 +3,7 @@ from typing import Any
 
 from vispy import scene
 
-import satplot.visualiser.assets.base as base_assets
+import satplot.visualiser.assets.base_assets as base_assets
 
 class BaseCanvas():
 	def __init__(self, w:int=800, h:int=600, keys:str='interactive', bgcolor:str='white'):

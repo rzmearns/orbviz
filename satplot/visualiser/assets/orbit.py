@@ -3,12 +3,12 @@ from typing import Any
 from vispy import scene
 from vispy.scene.widgets.viewbox import ViewBox
 
-import satplot.visualiser.assets.base as base
+import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.colours as colours
 import spherapy.orbit as orbit
 
 
-class Orbit3DAsset(base.AbstractAsset):
+class Orbit3DAsset(base_assets.AbstractAsset):
 	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 

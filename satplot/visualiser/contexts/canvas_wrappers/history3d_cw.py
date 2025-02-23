@@ -12,7 +12,7 @@ import satplot.model.geometry.primgeom as pg
 from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 import satplot.util.constants as c
 import satplot.util.exceptions as exceptions
-import satplot.visualiser.assets.base as base_assets
+import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.assets.constellation as constellation
 import satplot.visualiser.assets.earth as earth
 import satplot.visualiser.assets.gizmo as gizmo
