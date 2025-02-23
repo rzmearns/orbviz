@@ -1,11 +1,8 @@
-import numpy as np
 import datetime as dt
-import sys
+import numpy as np
+from numpy import typing as nptyping
 import pathlib
-import collections
 from progressbar import progressbar
-
-from PyQt5 import QtCore
 
 import satplot
 from satplot.model.data_models.base import (BaseDataModel)
@@ -27,34 +24,37 @@ class HistoryData(BaseDataModel):
 		self._setConfig('sampling_period', None)
 		self._setConfig('pointing_defines_timespan', False)
 		self._setConfig('primary_satellite_ids', []) # keys of orbits, position dict
+		self._setConfig('primary_satellite_config', None)
 		self._setConfig('has_supplemental_constellation', False)
 		self._setConfig('num_geolocations', 0)
 		self._setConfig('is_pointing_defined', False)
 		self._setConfig('pointing_file', None)
 		self._setConfig('pointing_invert_transform', False)
 
-		self.timespan = None
-		self.orbits = {}
-		self.pointings = {}
-		self.constellation = None
-		self.sun = None
-		self.moon = None
-		self.geo_locations = []
+		self.timespan: timespan.Timespan | None = None
+		self.orbits: dict[int, orbit.Orbit] = {}
+		self.pointings: dict[int, nptyping.NDArray[np.float64]] = {}
+		self.constellation: constellation_data.ConstellationData | None = None
+		self.sun: nptyping.NDArray[np.float64] | None = None
+		self.moon: nptyping.NDArray[np.float64] | None = None
+		self.geo_locations: list[nptyping.NDArray[np.float64]] = []
 
-		self._worker_threads = {'primary': None,
-								'constellation': None}
+		self._worker_threads: dict[str, threading.Worker | None] = {'primary': None,
+																	'constellation': None}
 
 		print("Finished initialising HistoryData")
 
-	def setPrimarySatellites(self, satellite_config):
-		self.updateConfig('primary_satellite_ids', list(satellite_config['satellites'].values()))
+	def setPrimarySatellites(self, satellite_config:data_types.PrimaryConfig) -> None:
+		self.updateConfig('primary_satellite_config', satellite_config)
+		self.updateConfig('primary_satellite_ids', satellite_config.getSatIDs())
 
-	def setSupplementalConstellation(self, constellation_config):
+	def setSupplementalConstellation(self, constellation_config:data_types.ConstellationConfig) -> None:
 		self.updateConfig('has_supplemental_constellation', True)
 		self.constellation = constellation_data.ConstellationData(constellation_config)
 
-	def clearSupplementalConstellation(self):
+	def clearSupplementalConstellation(self) -> None:
 		self.updateConfig('has_supplemental_constellation', False)
+		self.constellation = None
 
 	def getTimespan(self) -> timespan.TimeSpan:
 		if self.timespan is None:
@@ -85,7 +85,10 @@ class HistoryData(BaseDataModel):
 			if self.getConfigValue('pointing_defines_timespan'):
 				console.send(f"Loading timespan from pointing file.")
 				self.timespan = timespan.TimeSpan.fromDatetime(pointing_dates)
-		else:
+			else:
+				self.timespan = None
+
+		if self.timespan is None:
 			period_start = self.getConfigValue('timespan_period_start').replace(microsecond=0)
 			period_end = self.getConfigValue('timespan_period_end').replace(microsecond=0)
 			self.updateConfig('timespan_period_start', period_start)
@@ -100,6 +103,11 @@ class HistoryData(BaseDataModel):
 			self.timespan = timespan.TimeSpan(period_start,
 								timestep=f'{timestep}S',
 								timeperiod=f'{duration}S')
+
+
+		if self.timespan is None:
+			raise AttributeError("Timespan has not been configured")
+
 		console.send(f"\tDuration: {self.timespan.time_period}")
 		console.send(f"\tNumber of steps: {len(self.timespan)}")
 
@@ -112,7 +120,10 @@ class HistoryData(BaseDataModel):
 		self._worker_threads['primary'].setAutoDelete(True)
 
 		if self.getConfigValue('has_supplemental_constellation'):
-			self.constellation.setTimespan(timespan)
+			if self.constellation is None:
+				raise AttributeError("Constellation has not been configured")
+
+			self.constellation.setTimespan(self.timespan)
 			self._worker_threads['constellation'] = threading.Worker(self._propagateConstellationOrbits, self.timespan, self.constellation.getConfigValue('satellite_ids'))
 			self._worker_threads['constellation'].signals.result.connect(self.constellation._storeOrbitData)
 			self._worker_threads['constellation'].signals.finished.connect(self._procComplete)
@@ -126,22 +137,23 @@ class HistoryData(BaseDataModel):
 				print(f'Starting thread {thread_name}:{thread}')
 				satplot.threadpool.start(thread)
 
-	def _procComplete(self):
+	def _procComplete(self) -> None:
 		print("TRIGGERED COMPLETION")
-		for thread_name, thread in self._worker_threads.items():
+		for thread in self._worker_threads.values():
 			# print(f'Inside _procComplete {thread_name}:{thread}')
-			if thread.isRunning():
-				return
+			if thread is not None:
+				if thread.isRunning():
+					return
 		self.data_ready.emit()
 
-	def _loadPointingFile(self, p_file):
+	def _loadPointingFile(self, p_file: pathlib.Path) -> tuple[nptyping.NDArray, nptyping.NDArray]:
 		pointing_q = np.array(())
-		pointing_w = np.genfromtxt(p_file, delimiter=',', usecols=(1), skip_header=1).reshape(-1,1)
-		pointing_x = np.genfromtxt(p_file, delimiter=',', usecols=(2), skip_header=1).reshape(-1,1)
-		pointing_y = np.genfromtxt(p_file, delimiter=',', usecols=(3), skip_header=1).reshape(-1,1)
-		pointing_z = np.genfromtxt(p_file, delimiter=',', usecols=(4), skip_header=1).reshape(-1,1)
+		pointing_w = np.genfromtxt(p_file, delimiter=',', usecols=[1], skip_header=1).reshape(-1,1)
+		pointing_x = np.genfromtxt(p_file, delimiter=',', usecols=[2], skip_header=1).reshape(-1,1)
+		pointing_y = np.genfromtxt(p_file, delimiter=',', usecols=[3], skip_header=1).reshape(-1,1)
+		pointing_z = np.genfromtxt(p_file, delimiter=',', usecols=[4], skip_header=1).reshape(-1,1)
 		pointing_q = np.hstack((pointing_x,pointing_y,pointing_z,pointing_w))
-		pointing_dates = np.genfromtxt(p_file, delimiter=',', usecols=(0),skip_header=1, converters={0:date_parser})
+		pointing_dates = np.genfromtxt(p_file, delimiter=',', usecols=[0],skip_header=1, converters={0:date_parser})
 
 		return pointing_dates, pointing_q
 
@@ -183,10 +195,10 @@ class HistoryData(BaseDataModel):
 
 		return orbits
 
-	def _storeOrbitData(self, orbits:dict[int,orbit.Orbit]):
+	def _storeOrbitData(self, orbits:dict[int,orbit.Orbit]) -> None:
 		self.orbits = orbits
 
-def date_parser(d_bytes):
+def date_parser(d_bytes) -> dt.datetime:
 	d_bytes = d_bytes[:d_bytes.index(b'.')+4]
 	s = d_bytes.decode('utf-8')
 	d = dt.datetime.strptime(s,"%Y-%m-%d %H:%M:%S.%f")

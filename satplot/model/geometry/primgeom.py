@@ -49,7 +49,7 @@ def unitVector(vector:nptyping.NDArray) -> nptyping.NDArray:
 		raise exceptions.InputError("Vectors of shape {} are not supported by unitVector.".format(vector.shape))
 
 
-def randUnitVector() -> tuple[nptyping.NDArray,nptyping.NDArray,nptyping.NDArray]:
+def randUnitVector() -> nptyping.NDArray:
 	''' Returns a unit vector pointing in a random direction
 	Maths powered by: mathworld.wolfram.com/SpherePointPicking.html
 	'''

@@ -14,6 +14,11 @@ class DimensionError(Exception):
 	'''Dimension of an array is invalid
 	'''
 	pass
+
+class InvalidDataError(Exception):
+	'''Data model is incorrect or doesn't exist
+	'''
+	pass
 	
 class GeometryError(Exception):
 	'''For when a user tries to do something non-Euclidean

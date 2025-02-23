@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 import traceback
 from typing import Any
 
@@ -27,17 +27,17 @@ class BaseDataModel(QtCore.QObject):
 			raise ValueError(f"{param} not a valid configuration option for {self.config['data_type']}")
 		self._setConfig(param, val)
 
-	def isValid(self):
+	def isValid(self) -> bool:
 		return self.config['is_data_valid']
 
-	def getType(self):
+	def getType(self) -> DataType:
 		return self.config['data_type']
 
-	def getConfigValue(self, value):
+	def getConfigValue(self, value:str) -> Any:
 		# TODO: check if value is a key of self.config
 		return self.config[value]
 
-	def _displayError(self, err:tuple):
+	def _displayError(self, err:tuple) -> None:
 		exctype = err[0]
 		value = err[1]
 		traceback = err[2]
@@ -52,7 +52,7 @@ class BaseDataModel(QtCore.QObject):
 	def deSerialise(self):
 		raise NotImplementedError()
 
-	def printConfig(self):
+	def printConfig(self) -> None:
 		print(f"Data Config for {self.getConfigValue('data_type')}")
 		for k,v in self.config.items():
 			print(f'\t{k}:{v}')

@@ -1,10 +1,3 @@
-import numpy as np
-import datetime as dt
-import sys
-import pathlib
-import collections
-
-import satplot
 from satplot.model.data_models.base import (BaseDataModel)
 import satplot.model.data_models.data_types as data_types
 import spherapy.orbit as orbit

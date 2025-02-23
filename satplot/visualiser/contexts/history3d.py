@@ -1,19 +1,11 @@
-import datetime as dt
-import numpy as np
-from progressbar import progressbar
 import sys
-import traceback
 from typing import Any
 
 from PyQt5 import QtWidgets, QtCore, QtGui
 
-import satplot
 import satplot.model.data_models.data_types as data_types
 from satplot.model.data_models.history_data import HistoryData
 
-import satplot.util.celestrak as celestrak
-import satplot.util.list_u as list_u
-import satplot.util.spacetrack as spacetrack
 import satplot.visualiser.contexts.base as base
 from satplot.visualiser.contexts.canvas_wrappers.base import (BaseCanvas)
 import satplot.visualiser.contexts.canvas_wrappers.history3d as canvaswrapper
@@ -26,16 +18,15 @@ class History3DContext(base.BaseContext):
 	data_type = data_types.DataType.HISTORY
 
 	def __init__(self, name:str, parent_window:QtWidgets.QMainWindow, data:HistoryData):
-		super().__init__(name)
+		super().__init__(name, data)
 		self.window = parent_window
-		self.data = data
 		self._validateDataType()
-
+		self.data = data
 		self.canvas_wrapper = canvaswrapper.History3DCanvas()
 		self.canvas_wrapper.setModel(self.data)
-		self.controls = self.Controls(self, self.canvas_wrapper)
+		self.controls = Controls(self, self.canvas_wrapper)
 
-		disp_hsplitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+		disp_hsplitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)
 		disp_hsplitter.setObjectName('disp_hsplitter')
 		disp_hsplitter.setStyleSheet('''
 					QSplitter#disp_hsplitter::handle {
@@ -52,7 +43,7 @@ class History3DContext(base.BaseContext):
 		# | ###
 		'''
 		disp_hsplitter.addWidget(self.controls.config_tabs)
-		disp_hsplitter.addWidget(self.canvas_wrapper.canvas.native)
+		disp_hsplitter.addWidget(self.canvas_wrapper.getCanvas().native)
 
 		# Build area down to bottom of time slider
 		'''
@@ -75,17 +66,22 @@ class History3DContext(base.BaseContext):
 		self.controls.action_dict['center-earth']['callback'] = self._centerCameraEarth
 		self.controls.action_dict['center-spacecraft']['callback'] = self._toggleCameraSpacecraft
 		self.sccam_state = False
+		if self.data is None:
+			raise AttributeError(f'Context History3D: {self} does not have a data model.')
 		self.data.data_ready.connect(self._updateDataSources)
 		self.data.data_ready.connect(self._updateControls)
 
 	def _validateDataType(self) -> None:
-		if self.data.getType() != self.data_type:
+		if self.data is not None and self.data.getType() != self.data_type:
 			print(f"Error: history3D context has wrong data type: {self.data.getType()}", file=sys.stderr)
 			print(f"\t should be: {self.data_type}", file=sys.stderr)
 
 	def _configureData(self) -> None:
 		console.send('Setting up data configuration')
 		# Timespan configuration
+		if self.data is None:
+			raise ValueError(f"model data is not set for context {self.config['name']}:{self}")
+
 		self.data.updateConfig('timespan_period_start', self.controls.orbit_controls.period_start.datetime)
 		self.data.updateConfig('timespan_period_end', self.controls.orbit_controls.period_end.datetime)
 		self.data.updateConfig('sampling_period', self.controls.orbit_controls.sampling_period.period)
@@ -129,12 +125,13 @@ class History3DContext(base.BaseContext):
 			raise e
 
 	def _updateControls(self, *args, **kwargs) -> None:
-		self.controls.time_slider.setRange(self.data.timespan.start,
-									  		self.data.timespan.end,
-											len(self.data.timespan))
+
+		self.controls.time_slider.setRange(self.data.getTimespan().start,
+									  		self.data.getTimespan().end,
+											len(self.data.getTimespan()))
 		self.controls.orbit_controls.period_start.setDatetime(self.data.getConfigValue('timespan_period_start'))
 		self.controls.orbit_controls.period_end.setDatetime(self.data.getConfigValue('timespan_period_end'))
-		self.controls.time_slider._curr_dt_picker.setDatetime(self.data.timespan.start)
+		self.controls.time_slider._curr_dt_picker.setDatetime(self.data.getTimespan().start)
 		self.controls.orbit_controls.submit_button.setEnabled(True)
 
 	def _updateDataSources(self) -> None:
@@ -143,9 +140,10 @@ class History3DContext(base.BaseContext):
 		self._updateDisplayedIndex(self.controls.time_slider.slider.value())
 
 	def _updateDisplayedIndex(self, index:int) -> None:
+		if self.data is None:
+			ValueError(f"model data is not set for context {self.config['name']}:{self}")
 		self.canvas_wrapper.updateIndex(index)
 		self.canvas_wrapper.recomputeRedraw()
-		console.send(self.data.timespan[index])
 
 	def loadState(self) -> None:
 		pass
@@ -168,12 +166,11 @@ class History3DContext(base.BaseContext):
 		# self.canvas_wrapper.deSerialise(state_dict['camera'])
 
 	def prepSerialisation(self) -> dict[str, Any]:
-		pass
-		# state = {}
-		# state['data'] = self.data
-		# state['controls'] = self.controls.prepSerialisation()
-		# state['camera'] = self.canvas_wrapper.prepSerialisation()
-		# return state
+		state = {}
+		state['data'] = self.data
+		state['controls'] = self.controls.prepSerialisation()
+		state['camera'] = self.canvas_wrapper.prepSerialisation()
+		return state
 
 
 
@@ -195,64 +192,64 @@ class History3DContext(base.BaseContext):
 
 
 		
-	class Controls(base.BaseControls):
-		def __init__(self, parent_context:base.BaseContext, canvas_wrapper:BaseCanvas):
-			self.context = parent_context
-			super().__init__(self.context.config['name'])
-			# Prep config widgets
-			self.orbit_controls = controls.OrbitConfigs()
-			self.config_controls = controls.OptionConfigs(canvas_wrapper.assets)
-			
-			# Wrap config widgets in tabs
-			self.config_tabs = QtWidgets.QTabWidget()
-			self.config_tabs.addTab(self.orbit_controls, 'Orbit')
-			self.config_tabs.addTab(self.config_controls, 'Visual Options')
+class Controls(base.BaseControls):
+	def __init__(self, parent_context:base.BaseContext, canvas_wrapper:BaseCanvas):
+		self.context = parent_context
+		super().__init__(self.context.config['name'])
+		# Prep config widgets
+		self.orbit_controls = controls.OrbitConfigs()
+		self.config_controls = controls.OptionConfigs(canvas_wrapper.assets)
 
-			# Prep time slider
-			self.time_slider = widgets.TimeSlider()
-			self.time_slider.setFixedHeight(50)
+		# Wrap config widgets in tabs
+		self.config_tabs = QtWidgets.QTabWidget()
+		self.config_tabs.addTab(self.orbit_controls, 'Orbit')
+		self.config_tabs.addTab(self.config_controls, 'Visual Options')
 
-			# Prep toolbars
-			self.toolbar = controls.Toolbar(self.context.window, self.action_dict, context_name=self.context.config['name'])
-			self.menubar = controls.Menubar(self.context.window, self.action_dict, context_name=self.context.config['name'])
+		# Prep time slider
+		self.time_slider = widgets.TimeSlider()
+		self.time_slider.setFixedHeight(50)
 
-			self.setHotkeys()
+		# Prep toolbars
+		self.toolbar = controls.Toolbar(self.context.window, self.action_dict, context_name=self.context.config['name'])
+		self.menubar = controls.Menubar(self.context.window, self.action_dict, context_name=self.context.config['name'])
 
-		def setHotkeys(self):
-			self.shortcuts={}
-			self.shortcuts['PgDown'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgDown'), self.context.window)
-			self.shortcuts['PgDown'].activated.connect(self.time_slider.incrementValue)
-			self.shortcuts['PgDown'].activated.connect(self._updateCam)
-			self.shortcuts['PgUp'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgUp'), self.context.window)
-			self.shortcuts['PgUp'].activated.connect(self.time_slider.decrementValue)
-			self.shortcuts['PgUp'].activated.connect(self._updateCam)
-			self.shortcuts['Home'] = QtWidgets.QShortcut(QtGui.QKeySequence('Home'), self.context.window)
-			self.shortcuts['Home'].activated.connect(self.time_slider.setBeginning)
-			self.shortcuts['Home'].activated.connect(self._updateCam)
-			self.shortcuts['End'] = QtWidgets.QShortcut(QtGui.QKeySequence('End'), self.context.window)
-			self.shortcuts['End'].activated.connect(self.time_slider.setEnd)
-			self.shortcuts['End'].activated.connect(self._updateCam)
+		self.setHotkeys()
 
-		def _updateCam(self):
-			if self.context.sccam_state:
-				self.context.canvas_wrapper.centerCameraSpacecraft(set_zoom=False)
+	def setHotkeys(self):
+		self.shortcuts={}
+		self.shortcuts['PgDown'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgDown'), self.context.window)
+		self.shortcuts['PgDown'].activated.connect(self.time_slider.incrementValue)
+		self.shortcuts['PgDown'].activated.connect(self._updateCam)
+		self.shortcuts['PgUp'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgUp'), self.context.window)
+		self.shortcuts['PgUp'].activated.connect(self.time_slider.decrementValue)
+		self.shortcuts['PgUp'].activated.connect(self._updateCam)
+		self.shortcuts['Home'] = QtWidgets.QShortcut(QtGui.QKeySequence('Home'), self.context.window)
+		self.shortcuts['Home'].activated.connect(self.time_slider.setBeginning)
+		self.shortcuts['Home'].activated.connect(self._updateCam)
+		self.shortcuts['End'] = QtWidgets.QShortcut(QtGui.QKeySequence('End'), self.context.window)
+		self.shortcuts['End'].activated.connect(self.time_slider.setEnd)
+		self.shortcuts['End'].activated.connect(self._updateCam)
 
-		def prepSerialisation(self):
-			state = {}
-			# state['orbit_controls'] = self.orbit_controls.prepSerialisation()
-			# state['config_controls'] = self.config_controls.prepSerialisation()
-			state['time_slider'] = {}
-			state['time_slider']['start_dt'] = self.time_slider.start_dt
-			state['time_slider']['end_dt'] = self.time_slider.end_dt
-			state['time_slider']['num_ticks'] = self.time_slider.num_ticks
-			state['time_slider']['curr_index'] = self.time_slider.getValue()
-			state['pointing'] = {}
-			state['pointing']['pointing_invert_transform'] = self.orbit_controls.pointing_file_controls.pointing_file_inv_toggle.isChecked()
-			return state
+	def _updateCam(self):
+		if self.context.sccam_state and self.context.canvas_wrapper is not None:
+			self.context.canvas_wrapper.centerCameraSpacecraft(set_zoom=False)
 
-		def deSerialise(self, state):
-			self.time_slider.setRange(state['time_slider']['start_dt'],
-							 			state['time_slider']['end_dt'],
-										state['time_slider']['num_ticks'])
-			self.time_slider.setValue(state['time_slider']['curr_index'])
+	def prepSerialisation(self):
+		state = {}
+		# state['orbit_controls'] = self.orbit_controls.prepSerialisation()
+		# state['config_controls'] = self.config_controls.prepSerialisation()
+		state['time_slider'] = {}
+		state['time_slider']['start_dt'] = self.time_slider.start_dt
+		state['time_slider']['end_dt'] = self.time_slider.end_dt
+		state['time_slider']['num_ticks'] = self.time_slider.num_ticks
+		state['time_slider']['curr_index'] = self.time_slider.getValue()
+		state['pointing'] = {}
+		state['pointing']['pointing_invert_transform'] = self.orbit_controls.pointing_file_controls.pointing_file_inv_toggle.isChecked()
+		return state
+
+	def deSerialise(self, state):
+		self.time_slider.setRange(state['time_slider']['start_dt'],
+						 			state['time_slider']['end_dt'],
+									state['time_slider']['num_ticks'])
+		self.time_slider.setValue(state['time_slider']['curr_index'])
 

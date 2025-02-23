@@ -9,7 +9,9 @@ from vispy import scene
 
 from satplot.model.data_models.history_data import (HistoryData)
 import satplot.model.geometry.primgeom as pg
+from satplot.visualiser.contexts.canvas_wrappers.base import BaseCanvas
 import satplot.util.constants as c
+import satplot.util.exceptions as exceptions
 import satplot.visualiser.assets.base as base_assets
 import satplot.visualiser.assets.constellation as constellation
 import satplot.visualiser.assets.earth as earth
@@ -28,9 +30,9 @@ last_mevnt_time = time.monotonic()
 mouse_over_is_highlighting = False
 
 
-class History3DCanvas():
+class History3DCanvas(BaseCanvas):
 	def __init__(self, w:int=800, h:int=600, keys:str='interactive', bgcolor:str='white'):
-		self.canvas = scene.SceneCanvas(size=(w,h),
+		self.canvas = scene.canvas.SceneCanvas(size=(w,h),
 								  		keys=keys,
 										bgcolor=bgcolor,
 										show=True)
@@ -43,6 +45,7 @@ class History3DCanvas():
 															center=(0,0,0),
 															name='Turntable')
 
+		self.data_model: HistoryData|None = None
 		self.assets = {}
 		self._buildAssets()
 		self.mouseOverText = widgets.PopUpTextBox(v_parent=self.view_box,
@@ -103,6 +106,11 @@ class History3DCanvas():
 
 	def modelUpdated(self) -> None:
 		# Update data source for earth asset
+		if self.data_model is None:
+			raise exceptions.InvalidDataError
+
+
+
 		if self.data_model.timespan is not None:
 			self.assets['earth'].setSource(self.data_model.timespan)
 			self.assets['earth'].makeActive()
@@ -173,6 +181,8 @@ class History3DCanvas():
 			asset.setFirstDrawFlagRecursive()
 
 	def centerCameraSpacecraft(self, set_zoom:bool=True) -> None:
+		if self.canvas is None:
+			raise AttributeError(f"Canvas has not been set for History3D Canvas Wrapper. No camera to center")
 		if self.assets['spacecraft'].isActive():
 			sc_pos = tuple(self.assets['spacecraft'].data['coords'][self.assets['spacecraft'].data['curr_index']])			
 		else:
@@ -185,6 +195,8 @@ class History3DCanvas():
 
 
 	def centerCameraEarth(self) -> None:
+		if self.canvas is None:
+			raise AttributeError(f"Canvas has not been set for History3D Canvas Wrapper. No camera to center")
 		self.view_box.camera.center = (0,0,0)
 		self.setCameraZoom(5*c.R_EARTH)
 		self.canvas.update()
@@ -226,12 +238,12 @@ class History3DCanvas():
 		if time.monotonic() - last_mevnt_time < 0.1:
 			return
 		mo_infos = self.mapAssetPositionsToScreen()
-		pp = event.pos
+		pp = event.pos()
 		
 		for jj, mo_info in enumerate(mo_infos):
 			for ii, pos in enumerate(mo_info['screen_pos']):
-				if ((abs(pos[0] - pp[0]) < MOUSEOVER_DIST_THRESHOLD) and \
-					(abs(pos[1] - pp[1]) < MOUSEOVER_DIST_THRESHOLD)):
+				if ((abs(pos[0] - pp.x) < MOUSEOVER_DIST_THRESHOLD) and \
+					(abs(pos[1] - pp.y) < MOUSEOVER_DIST_THRESHOLD)):
 					dot = np.dot(pg.unitVector(mo_info['world_pos'][ii]),acamv[1,:])[0]
 					if dot >=0:
 						last_mevnt_time = time.monotonic()

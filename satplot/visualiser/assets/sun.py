@@ -4,15 +4,11 @@ from scipy.spatial.transform import Rotation
 from vispy import scene
 from vispy.visuals import transforms as vTransforms
 from vispy.scene import visuals as vVisuals
-from vispy.scene import visuals as vVisuals
 from vispy.visuals import filters as vFilters
 
 import satplot.model.geometry.primgeom as pg
-import satplot.model.geometry.polygons as polygons
 import satplot.model.geometry.polyhedra as polyhedra
-import satplot.model.geometry.transformations as transforms
 import satplot.util.constants as c
-import satplot.visualiser.assets.axis_indicator as axisInd
 import satplot.visualiser.assets.base as base
 import satplot.visualiser.interface.console as console
 import satplot.visualiser.colours as colours
@@ -56,12 +52,18 @@ class Sun3DAsset(base.AbstractAsset):
 		pass
 
 	def _createVisuals(self):
+		self._createSunVisual()
+		self._createUmbraVisual()
+		self._createVectorVisual()
+
+	def _createSunVisual(self):
 		# Sun Sphere
 		self.visuals['sun_sphere'] = scene.visuals.Sphere(radius=self.opts['sun_sphere_radius_kms']['value'],
 										method='latitude',
 										color=colours.normaliseColour(self.opts['sun_sphere_colour']['value']),
 										parent=None)
 		
+	def _createUmbraVisual(self):
 		# Umbra
 		self.visuals['umbra'] = vVisuals.Mesh(self.data['umbra_vertices'],
     											self.data['umbra_faces'],
@@ -72,6 +74,7 @@ class Sun3DAsset(base.AbstractAsset):
 		alpha_filter = vFilters.Alpha(self.opts['umbra_alpha']['value'])
 		self.visuals['umbra'].attach(alpha_filter)
 
+	def _createVectorVisual(self):
 		# Sun Vector
 		self.visuals['vector_body'] = vVisuals.Line(self.data['vector'][:,0:3],
 												color=colours.normaliseColour(self.opts['sun_vector_colour']['value']),
@@ -214,22 +217,21 @@ class Sun3DAsset(base.AbstractAsset):
 	def setSunDistance(self, distance):
 		self.opts['sun_distance_kms']['value'] = distance
 		# TODO: fix this to set stale then recomputeredraw, maybe firstdraw as well
-		self.recompute()
+		self.recomputeRedraw()
 
 	def setSunVectorLength(self, distance):
 		self.opts['sun_vector_length_kms']['value'] = distance
-		# TODO: fix this to set stale then recomputeredraw
-		# TODO: fix this to set stale then recomputeredraw, maybe firstdraw as well
-		self.recompute()
+		print(f"{self.opts['sun_vector_length_kms']['value']=}")
+		self._setStaleFlag()
+		self.recomputeRedraw()
 
 	def setSunSphereRadius(self, radius):
 		self.opts['sun_sphere_radius_kms']['value'] = radius
-		self.visuals['sun_sphere'].parent = None
-		self._createVisuals()
-		self.visuals['sun_sphere'].parent = self.data['v_parent']
-		self.requires_recompute = True
-		# TODO: fix this to set stale then recomputeredraw, maybe firstdraw as well
-		self.recompute()
+		self._detachFromParentView()
+		self._createSunVisual()
+		self._attachToParentView()
+		self._setStaleFlag()
+		self.recomputeRedraw()
 
 	def setSunSphereColour(self, new_colour):
 		raise NotImplementedError('Bugged')
@@ -265,7 +267,7 @@ class Sun3DAsset(base.AbstractAsset):
 		self.visuals['vector_head'].visible = state
 
 	def setSunVectorColour(self, new_colour):
-
+		self.opts['sun_vector_colour']['value'] = new_colour
 		self._updateLineVisualsOptions()
 	
 	def setSunVectorWidth(self, value):

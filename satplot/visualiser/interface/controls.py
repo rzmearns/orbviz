@@ -5,7 +5,7 @@ import string
 
 from PyQt5 import QtWidgets, QtCore, QtGui
 
-import satplot.util.spacetrack as spacetrack
+import satplot.model.data_models.data_types as data_types
 import satplot.visualiser.assets.base as base
 import satplot.visualiser.interface.widgets as widgets
 
@@ -14,7 +14,7 @@ class OrbitConfigs(QtWidgets.QWidget):
 
 	prim_config_dir = 'data/primary_configs/'
 
-	def __init__(self, parent: QtWidgets.QWidget=None) -> None:
+	def __init__(self, parent: QtWidgets.QWidget|None=None) -> None:
 		super().__init__(parent)
 		self.pane_groupbox = QtWidgets.QGroupBox('Orbit Configuration')
 		# self.setFixedWidth(400)
@@ -67,8 +67,8 @@ class OrbitConfigs(QtWidgets.QWidget):
 		state = {}
 		return state
 
-	def getConfig(self):
-		return spacetrack.fetchConfig(self.prim_orbit_selector.path)
+	def getConfig(self) -> data_types.PrimaryConfig:
+		return data_types.PrimaryConfig.fromJSON(self.prim_orbit_selector.path)
 
 class PointingFileControls(QtWidgets.QWidget):
 	def __init__(self, *args, **kwargs):
@@ -204,7 +204,7 @@ class ConstellationControls(QtWidgets.QWidget):
 		return self.suppl_constellation_selector.getCurrentIndex()
 
 class OptionConfigs(QtWidgets.QWidget):
-	def __init__(self, asset_dict, parent: QtWidgets.QWidget=None) -> None:
+	def __init__(self, asset_dict, parent: QtWidgets.QWidget|None=None) -> None:
 		super().__init__(parent)
 
 		self.la_dict = asset_dict
@@ -248,20 +248,21 @@ class OptionConfigs(QtWidgets.QWidget):
 		else:
 			w_opt_dict = None
 
-		w_dict.update(w_opt_dict)
+		w_dict.update(w_opt_dict) 	# type:ignore
 
 		if hasattr(asset, 'assets'):
-			for sub_key, sub_asset in asset.assets.items():
-				if not isinstance(sub_asset, base.AbstractAsset) and not isinstance(sub_asset, base.AbstractSimpleAsset):
-					continue
-				sub_w_dict = self._buildNestedOptionWidgetDict(sub_asset, asset_key=sub_key)
-				cb = widgets.CollapsibleSection(title=f"{sub_key.capitalize()} Options")
-				for sub_w_key, widget in dict(sorted(sub_w_dict.items())).items():
-					cb.addWidget(widget)
-				if sub_key not in w_dict.keys():
-					w_dict[sub_key] = cb
-				else:
-					w_dict[f"{sub_key}_"] = cb
+			if asset is not type(base.AbstractSimpleAsset):
+				for sub_key, sub_asset in asset.assets.items():  # type:ignore
+					if not isinstance(sub_asset, base.AbstractAsset) and not isinstance(sub_asset, base.AbstractSimpleAsset):
+						continue
+					sub_w_dict = self._buildNestedOptionWidgetDict(sub_asset, asset_key=sub_key)
+					cb = widgets.CollapsibleSection(title=f"{sub_key.capitalize()} Options")
+					for sub_w_key, widget in dict(sorted(sub_w_dict.items())).items():
+						cb.addWidget(widget)
+					if sub_key not in w_dict.keys():
+						w_dict[sub_key] = cb
+					else:
+						w_dict[f"{sub_key}_"] = cb
 
 		return w_dict
 
@@ -310,7 +311,7 @@ class OptionConfigs(QtWidgets.QWidget):
 				else:
 					w_key = '_'.join(w_key)
 			try:
-				w_dict[w_key] = widget
+				w_dict[w_key] = widget 				# type:ignore
 			except UnboundLocalError:
 				print(f"UnboundLocalError when generating options widget for {w_key}")
 				raise UnboundLocalError
@@ -320,9 +321,9 @@ class OptionConfigs(QtWidgets.QWidget):
 
 class Toolbar(QtWidgets.QWidget):
 	# TODO: this should be in widgets, not controls	
-	def __init__(self, parent_window, action_dict, context_name=None):
+	def __init__(self, parent_window:QtWidgets.QMainWindow|None, action_dict, context_name=None):
 		super().__init__()
-		self.window = parent_window
+		self.parent_window = parent_window
 		self.action_dict = action_dict
 		self.context_name = context_name
 		if self.context_name is None:
@@ -360,17 +361,23 @@ class Toolbar(QtWidgets.QWidget):
 				self.toolbar.addAction(self.button_dict[key])
 
 	def addToWindow(self):
-		self.window.addToolBar(self.toolbar)
+		if self.parent_window is not None:
+			self.parent_window.addToolBar(self.toolbar)
+		else:
+			raise ValueError("Can't add toolbar to window, context {context_name} doesn't have a window yet.")
 
 	def setActiveState(self, state):
-		self.toolbar.toggleViewAction().setChecked(not state)
-		self.toolbar.toggleViewAction().trigger()
+		if self.toolbar.toggleViewAction() is not None:
+			self.toolbar.toggleViewAction().setChecked(not state) # type:ignore
+			self.toolbar.toggleViewAction().trigger()					# type:ignore
+		else:
+			raise ValueError("Can't set toolbar active state for {context_name}")
 
 class Menubar(QtWidgets.QWidget):
 	# TODO: this should be in widgets, not controls
 	def __init__(self, parent_window, action_dict, context_name=None):
 		super().__init__()
-		self.window = parent_window
+		self.parent_window = parent_window
 		self.action_dict = action_dict
 		self.context_name = context_name
 		if self.context_name is None:
@@ -406,7 +413,7 @@ class Menubar(QtWidgets.QWidget):
 
 	def setActiveState(self, state):
 		if state:
-			self.window.setMenuBar(self.menubar)
+			self.parent_window.setMenuBar(self.menubar)
 		else:	
 			self.menubar.setParent(None)
 

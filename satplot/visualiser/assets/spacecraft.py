@@ -1,15 +1,9 @@
-import geopandas as gpd
 import numpy as np
 from scipy.spatial.transform import Rotation
 from typing import Any
-from vispy import scene, color
+from vispy import scene
 from vispy.scene.widgets.viewbox import ViewBox
-from vispy.visuals import transforms as vTransforms
 
-import satplot.model.geometry.transformations as transforms
-import satplot.model.geometry.primgeom as pg
-import satplot.model.geometry.polygons as polygons
-import satplot.util.constants as c
 import satplot.visualiser.assets.sensors as sensors
 import satplot.visualiser.colours as colours
 import satplot.visualiser.assets.base as base
@@ -26,7 +20,10 @@ class Spacecraft3DAsset(base.AbstractAsset):
 		if sens_suites is not None and type(sens_suites) is not dict:
 			raise TypeError(f"sens_suites is not a dict -> {sens_suites}")
 		self.data['sens_suites'] = sens_suites
-		self.data['num_sens_suites'] = len(sens_suites.keys())
+		if sens_suites is not None:
+			self.data['num_sens_suites'] = len(sens_suites.keys())
+		else:
+			self.data['num_sens_suites'] = 0
 
 		self._instantiateAssets()
 		self._createVisuals()

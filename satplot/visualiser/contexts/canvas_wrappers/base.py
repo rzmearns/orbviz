@@ -1,19 +1,17 @@
-from abc import ABC, abstractmethod
-import json
-import numpy as np
-import sys
+from abc import abstractmethod
 from typing import Any
 
-from PyQt5 import QtWidgets, QtCore
+from vispy import scene
 
 import satplot.visualiser.assets.base as base_assets
 
 class BaseCanvas():
 	def __init__(self, w:int=800, h:int=600, keys:str='interactive', bgcolor:str='white'):
-		self.canvas = None
+		self.canvas:scene.canvas.SceneCanvas|None = None
 		self.grid = None
 		self.view_box = None
 		self.assets={}
+		self.controls = None
 
 
 	@abstractmethod
@@ -25,7 +23,8 @@ class BaseCanvas():
 		raise NotImplementedError()
 
 	@abstractmethod
-	def setModel(self) -> None:
+	def setModel(self, *args, **kwargs) -> None:
+		# Can accept any subclass of Base Data Model
 		raise NotImplementedError()
 
 	@abstractmethod
@@ -33,7 +32,7 @@ class BaseCanvas():
 		raise NotImplementedError()
 
 	@abstractmethod
-	def updateIndex(self) -> None:
+	def updateIndex(self, index:int) -> None:
 		raise NotImplementedError()
 
 	@abstractmethod
@@ -45,9 +44,16 @@ class BaseCanvas():
 		raise NotImplementedError()
 
 	@abstractmethod
-	def prepSerialisation(self) -> None:
+	def prepSerialisation(self) -> dict[str, Any]:
 		raise NotImplementedError()
 
 	@abstractmethod
-	def deSerialise(self) -> None:
+	def deSerialise(self, state:dict[str, Any]) -> None:
 		raise NotImplementedError()
+
+
+	def getCanvas(self) -> scene.canvas.SceneCanvas:
+		if self.canvas is None:
+			raise ValueError(f'Canvas wrapper:{self} does not have a canvas yet.')
+		else:
+			return self.canvas

@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 import numpy as np
 import numpy.typing as nptyping
-import traceback
 from vispy.scene.widgets.viewbox import ViewBox
 
 class AbstractAsset(ABC):
@@ -21,7 +20,8 @@ class AbstractAsset(ABC):
 		self.data['name'] = name
 		self.data['v_parent'] = v_parent
 		self.data['curr_index'] = None
-
+		self._dflt_opts = {}
+		self.opts = {}
 
 		# Flag to indicate that this is the first drawing since the asset 
 		# has been re-instantiated. This generally means that any visuals 
@@ -219,7 +219,7 @@ class AbstractAsset(ABC):
 
 
 	##### helper functions
-	def _listVisuals(self) -> None:
+	def _listVisuals(self) -> tuple[list, list]:
 		keys = [key for key in self.visuals.keys()]
 		values = [key for key in self.visuals.values()]
 		return keys, values
@@ -235,7 +235,7 @@ class AbstractAsset(ABC):
 		print(f'\tstale:{self.isStale()}')
 		print(f'\tfirst_draw:{self.isFirstDraw()}')
 
-	def _listAssets(self) -> None:
+	def _listAssets(self) -> tuple[list,list]:
 		keys = [key for key in self.assets.keys()]
 		values = [key for key in self.assets.values()]
 		return keys, values
@@ -270,7 +270,8 @@ class AbstractCompoundAsset(ABC):
 		self.data['name'] = None
 		self.data['v_parent'] = v_parent
 		self.data['curr_index'] = None
-
+		self._dflt_opts = {}
+		self.opts = {}
 
 		# Flag to indicate that this is the first drawing since the asset
 		# has been re-instantiated. This generally means that any visuals
@@ -419,14 +420,14 @@ class AbstractCompoundAsset(ABC):
 				asset.setTransform()'''
 		raise NotImplementedError
 
-	def getScreenMouseOverInfo(self) -> None:
+	def getScreenMouseOverInfo(self) -> dict[str,list]:
 		mo_info = {'screen_pos':[], 'world_pos':[], 'strings':[], 'objects':[]}
 		return mo_info
 
 	def mouseOver(self, index:int) -> None:
 		return
 
-	def _listVisuals(self) -> None:
+	def _listVisuals(self) -> tuple[list, list]:
 		keys = [key for key in self.visuals.keys()]
 		values = [key for key in self.visuals.values()]
 		return keys, values
@@ -442,7 +443,7 @@ class AbstractCompoundAsset(ABC):
 		print(f'\tstale:{self.isStale()}')
 		print(f'\tfirst_draw:{self.isFirstDraw()}')
 
-	def _listAssets(self) -> None:
+	def _listAssets(self) -> tuple[list, list]:
 		keys = [key for key in self.assets.keys()]
 		values = [key for key in self.assets.values()]
 		return keys, values
@@ -474,7 +475,8 @@ class AbstractSimpleAsset(ABC):
 		self.data['name'] = None
 		self.data['v_parent'] = v_parent
 		self.data['curr_index'] = None
-
+		self._dflt_opts = {}
+		self.opts = {}
 
 		# Flag to indicate that this is the first drawing since the asset 
 		# has been re-instantiated. This generally means that any visuals 
@@ -601,7 +603,7 @@ class AbstractSimpleAsset(ABC):
 				asset.setTransform()'''
 		raise NotImplementedError
 		
-	def _listVisuals(self) -> None:
+	def _listVisuals(self) -> tuple[list, list]:
 		keys = [key for key in self.visuals.keys()]
 		values = [key for key in self.visuals.values()]
 		return keys, values
