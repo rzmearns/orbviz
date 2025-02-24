@@ -62,10 +62,6 @@ class Moon3DAsset(base_assets.AbstractAsset):
 	
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
-		self._dflt_opts['antialias'] = {'value': True,
-								  		'type': 'boolean',
-										'help': '',
-												'callback': self.setAntialias}
 		self._dflt_opts['plot_moon'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
@@ -89,20 +85,13 @@ class Moon3DAsset(base_assets.AbstractAsset):
 	
 	#----- OPTIONS CALLBACKS -----#
 	def setMoonSphereColour(self, new_colour:tuple[float,float,float]) -> None:
-		raise NotImplementedError('Bugged')
-		# nnc = colours.normaliseColour(new_colour)
-		# annc = (nnc[0], nnc[1], nnc[2], 1)
-		# self.opts['earth_sphere_colour']['value'] = new_colour
-		# c = color.Color(color=nnc, alpha=1)
-		# print(c)
-		# print(self.opts['earth_sphere_colour']['value'])
-		# self.visuals['earth'].mesh.set_data(vertex_colors=colours.normaliseColour(new_colour))
-		# # self.visuals['earth'].mesh.mesh_data._face_colors_indexed_by_faces[:] = colours.normaliseColour(new_colour)
-		# # self.visuals['earth'].mesh.mesh_data_changed()
-		# # self.visuals['earth'].mesh.mesh_data.set_vertex_colors(nnc)
-		# # self.visuals['earth'].mesh.mesh_data_changed()
-		# self.visuals['earth'].mesh.set_data(color=c)
-		# self.visuals['earth'].mesh.update()
+		print(f"Changing moon sphere colour {self.opts['moon_sphere_colour']['value']} -> {new_colour}")
+		self.opts['moon_sphere_colour']['value'] = new_colour
+		n_faces = self.visuals['moon'].mesh._meshdata.n_faces
+		n_verts = self.visuals['moon'].mesh._meshdata.n_vertices
+		self.visuals['moon'].mesh._meshdata.set_face_colors(np.tile(colours.normaliseColour(new_colour),(n_faces,1)))
+		self.visuals['moon'].mesh._meshdata.set_vertex_colors(np.tile(colours.normaliseColour(new_colour),(n_verts,1)))
+		self.visuals['moon'].mesh.mesh_data_changed()
 
 	def setAntialias(self, state:bool) -> None:
 		raise NotImplementedError
