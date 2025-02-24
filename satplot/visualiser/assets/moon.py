@@ -47,9 +47,7 @@ class Moon3DAsset(base_assets.AbstractAsset):
 		self._setStaleFlag()
 		self.data['curr_index'] = index
 		self.data['curr_pos'] = self.data['pos'][self.data['curr_index']]
-		for asset in self.assets.values():
-			if isinstance(asset,base.AbstractAsset):
-				asset.updateIndex(index)
+		self._updateIndexChildren(index)
 
 	def recomputeRedraw(self) -> None:
 		if self.isFirstDraw():
@@ -58,9 +56,7 @@ class Moon3DAsset(base_assets.AbstractAsset):
 			moon_pos = self.opts['moon_distance_kms']['value'] * pg.unitVector(self.data['curr_pos'])
 			self.visuals['moon'].transform = vtransforms.STTransform(translate=moon_pos)
 
-			for asset in self.assets.values():
-				if isinstance(asset,base.AbstractAsset):
-					asset.recomputeRedraw()
+			self._recomputeRedrawChildren()
 			self._clearStaleFlag()
 
 	

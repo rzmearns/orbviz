@@ -108,6 +108,8 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 						quat = self.data['pointing'][ii,:].reshape(-1,4)
 						rotation = Rotation.from_quat(quat).as_matrix()
 						break
+					else:
+						rotation = np.eye(3)
 				if not non_nan_found:
 					# look backwards
 					for ii in range(self.data['curr_index'], -1, -1):
@@ -115,6 +117,8 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 							quat = self.data['pointing'][ii,:].reshape(-1,4)
 							rotation = Rotation.from_quat(quat).as_matrix()
 							break
+						else:
+							rotation = np.eye(3)
 				self.assets['body_frame'].setTemporaryGizmoXColour((255,0,255))
 				self.assets['body_frame'].setTemporaryGizmoYColour((255,0,255))
 				self.assets['body_frame'].setTemporaryGizmoZColour((255,0,255))
@@ -129,12 +133,7 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 				self.assets['body_frame'].restoreGizmoColours()
 
 			# recomputeRedraw child assets
-			for asset in self.assets.values():
-				if isinstance(asset,base_assets.AbstractAsset):
-					asset.recomputeRedraw()
-				elif isinstance(asset, base_assets.AbstractSimpleAsset) or isinstance(asset, base_assets.AbstractCompoundAsset):
-					asset.setTransform(pos=self.data['coords'][self.data['curr_index']].reshape(1,3), rotation=rotation)
-					# asset.setTransform()
+			self._recomputeRedrawChildren(pos=self.data['coords'][self.data['curr_index']].reshape(1,3), rotation=rotation)
 			self._clearStaleFlag()
 
 	def _setDefaultOptions(self) -> None:

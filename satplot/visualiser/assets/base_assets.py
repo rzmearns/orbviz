@@ -562,6 +562,14 @@ class AbstractAsset(ABC):
 			self.is_stale = False'''
 		raise NotImplementedError
 
+	def _recomputeRedrawChildren(self,pos:tuple[float,float,float]=(0,0,0), rotation:nptyping.NDArray=np.eye(3)) -> None:
+		for asset in self.assets.values():
+			if isinstance(asset, AbstractAsset):
+				asset.recomputeRedraw()
+			elif isinstance(asset, AbstractSimpleAsset) or isinstance(asset, AbstractCompoundAsset):
+				asset.setTransform(pos=pos, rotation=rotation)
+
+
 	# def forceRedraw(self):
 	# 	# Method to manually force the redraw of all assets
 
@@ -581,8 +589,11 @@ class AbstractAsset(ABC):
 			self.is_stale = True'''
 		self.data['curr_index'] = index
 		self._setStaleFlag()
+		self._updateIndexChildren(index)
+
+	def _updateIndexChildren(self, index:int) -> None:
 		for asset in self.assets.values():
-			if isinstance(asset,AbstractAsset):
+			if isinstance(asset, AbstractAsset):
 				asset.updateIndex(index)
 
 	def getScreenMouseOverInfo(self) -> dict[str,list]:

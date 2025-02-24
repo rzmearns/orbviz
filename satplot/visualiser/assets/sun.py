@@ -99,9 +99,7 @@ class Sun3DAsset(base_assets.AbstractAsset):
 		self._setStaleFlag()
 		self.data['curr_index'] = index
 		self.data['curr_pos'] = self.data['pos'][self.data['curr_index']]
-		for asset in self.assets.values():
-			if isinstance(asset,base.AbstractAsset):
-				asset.updateIndex(index)		
+		self._updateIndexChildren(index)
 
 	def recomputeRedraw(self):
 		if self.isFirstDraw():
@@ -138,9 +136,7 @@ class Sun3DAsset(base_assets.AbstractAsset):
 			self.visuals['vector_head'].transform = vTransforms.linear.MatrixTransform(t_mat2)
 
 
-			for asset in self.assets.values():
-				if isinstance(asset,base.AbstractAsset):
-					asset.recomputeRedraw()
+			self._recomputeRedrawChildren()
 			self._clearStaleFlag()
 
 	def _setDefaultOptions(self):

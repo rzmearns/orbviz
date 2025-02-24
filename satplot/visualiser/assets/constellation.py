@@ -132,11 +132,7 @@ class Constellation(base_assets.AbstractAsset):
 																					self.opts['constellation_colour']['value'][2]/2)))
 			
 			# recomputeRedraw child assets
-			for asset in self.assets.values():
-				if isinstance(asset,base_assets.AbstractAsset):
-					asset.recomputeRedraw()
-				elif isinstance(asset, base_assets.AbstractSimpleAsset):
-					asset.setTransform(rotation=R)
+			self._recomputeRedrawChildren()
 			self._clearStaleFlag()
 
 	def getScreenMouseOverInfo(self) -> dict[str,Any]:
@@ -209,7 +205,7 @@ class Constellation(base_assets.AbstractAsset):
 
 	def setConstellationMarkerSize(self, value:int) -> None:
 		self.opts['constellation_position_marker_size']['value'] = value
-		self.recompute()
+		self.recomputeRedraw()
 
 	def setConstellationMarkersVisibility(self, state:bool) -> None:
 		self.visuals['markers'].visible = state
@@ -386,6 +382,7 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 			self.visuals['circles'].set_data(circles)
 			self.data['s_c_conn'] = np.array((0,0)).reshape(-1,2)
 			self.visuals['scircle'].set_data(pos=circles, connect=self.data['s_c_conn'])
+			self._recomputeRedrawChildren()
 			self._clearStaleFlag()
 
 
@@ -547,12 +544,6 @@ class ConstellationBeams(base_assets.AbstractAsset):
 
 	def recomputeRedraw(self) -> None:
 		if self.isFirstDraw():
-			# if self.visuals['beams'] is not None:
-			# 	for ii in range(len(self.visuals['beams'])):
-			# 		self.visuals['beams'][ii].parent = None
-			# self._createVisuals()
-			# self.attachToParentView()
-			# self.first_draw = False
 			self._detachFromParentView()
 			self._attachToParentView()
 			self._clearStaleFlag()
@@ -580,6 +571,7 @@ class ConstellationBeams(base_assets.AbstractAsset):
 				transform = vTransforms.linear.MatrixTransform(T)
 				self.visuals['beams'][ii].transform = transform
 			
+			self._recomputeRedrawChildren()
 			self._clearStaleFlag()
 
 

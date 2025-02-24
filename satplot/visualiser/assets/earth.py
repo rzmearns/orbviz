@@ -98,11 +98,7 @@ class Earth3DAsset(base_assets.AbstractAsset):
 			self.visuals['landmass'].set_data(new_coords)
 
 			# recomputeRedraw child assets
-			for asset in self.assets.values():
-				if isinstance(asset,base_assets.AbstractAsset):
-					asset.recomputeRedraw()
-				elif isinstance(asset, base_assets.AbstractSimpleAsset):
-					asset.setTransform(rotation=R)
+			self._recomputeRedrawChildren(rotation=R)
 			self._clearStaleFlag()
 
 	

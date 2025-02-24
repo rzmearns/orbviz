@@ -76,9 +76,7 @@ class Orbit3DAsset(base_assets.AbstractAsset):
 		self.data['curr_index'] = index
 		self._setStaleFlag()
 		self._sliceData()
-		for asset in self.assets.values():
-			if isinstance(asset,base.AbstractAsset):
-				asset.updateIndex(index)
+		self._updateIndexChildren(index)
 
 	def recomputeRedraw(self) -> None:
 		if self.isFirstDraw():
@@ -91,11 +89,7 @@ class Orbit3DAsset(base_assets.AbstractAsset):
 											face_color=colours.normaliseColour(self.opts['orbital_path_colour']['value']))
 
 			# recomputeRedraw child assets
-			for asset in self.assets.values():
-				if isinstance(asset,base.AbstractAsset):
-					asset.recomputeRedraw()
-				elif isinstance(asset, base.AbstractSimpleAsset):
-					asset.setTransform(rotation=R)
+			self._recomputeRedrawChildren()
 			self._clearStaleFlag()
 
 	def getScreenMouseOverInfo(self) -> dict[str, Any]:
