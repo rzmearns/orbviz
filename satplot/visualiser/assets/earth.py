@@ -78,7 +78,7 @@ class Earth3DAsset(base_assets.AbstractAsset):
 		# Landmass
 		self.visuals['landmass'] = scene.visuals.Line(self.data['landmass'],
 													color=colours.normaliseColour(self.opts['landmass_colour']['value']),
-													antialias=self.opts['antialias']['value'],
+													antialias=True,
 													connect=self.data['landmass_conn'],
 													parent=None)
 
@@ -106,14 +106,10 @@ class Earth3DAsset(base_assets.AbstractAsset):
 	
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
-		self._dflt_opts['antialias'] = {'value': True,
-								  		'type': 'boolean',
-										'help': '',
-												'callback': None}
 		self._dflt_opts['plot_earth'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
-												'callback': self.setVisibility}
+												'callback': self.setVisibilityRecursive}
 		self._dflt_opts['plot_earth_sphere'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
@@ -155,21 +151,13 @@ class Earth3DAsset(base_assets.AbstractAsset):
 
 	#----- OPTIONS CALLBACKS -----#
 	def setEarthSphereColour(self, new_colour:tuple[float,float,float]) -> None:
-		print("Bugged")
-		print("Not implemented")
-		# nnc = colours.normaliseColour(new_colour)
-		# annc = (nnc[0], nnc[1], nnc[2], 1)
-		# self.opts['earth_sphere_colour']['value'] = new_colour
-		# c = color.Color(color=nnc, alpha=1)
-		# print(c)
-		# print(self.opts['earth_sphere_colour']['value'])
-		# self.visuals['earth'].mesh.set_data(vertex_colors=colours.normaliseColour(new_colour))
-		# # self.visuals['earth'].mesh.mesh_data._face_colors_indexed_by_faces[:] = colours.normaliseColour(new_colour)
-		# # self.visuals['earth'].mesh.mesh_data_changed()
-		# # self.visuals['earth'].mesh.mesh_data.set_vertex_colors(nnc)
-		# # self.visuals['earth'].mesh.mesh_data_changed()
-		# self.visuals['earth'].mesh.set_data(color=c)
-		# self.visuals['earth'].mesh.update()
+		print(f"Changing suearth sphere colour {self.opts['earth_sphere_colour']['value']} -> {new_colour}")
+		self.opts['earth_sphere_colour']['value'] = new_colour
+		n_faces = self.visuals['earth_sphere'].mesh._meshdata.n_faces
+		n_verts = self.visuals['earth_sphere'].mesh._meshdata.n_vertices
+		self.visuals['earth_sphere'].mesh._meshdata.set_face_colors(np.tile(colours.normaliseColour(new_colour),(n_faces,1)))
+		self.visuals['earth_sphere'].mesh._meshdata.set_vertex_colors(np.tile(colours.normaliseColour(new_colour),(n_verts,1)))
+		self.visuals['earth_sphere'].mesh.mesh_data_changed()
 
 	def setEarthAxisColour(self, new_colour:tuple[float,float,float]) -> None:
 		self.opts['earth_axis_colour']['value'] = colours.normaliseColour(new_colour)
@@ -252,12 +240,12 @@ class ParallelsGrid3DAsset(base_assets.AbstractSimpleAsset):
 		self.visuals['equator'] = \
 			scene.visuals.Line(self.data['init_eq_coords'],
 								color=colours.normaliseColour(self.opts['equator_colour']['value']),
-								antialias=self.opts['antialias']['value'],
+								antialias=True,
 								parent=None)
 		self.visuals['parallels'] = \
 			scene.visuals.Line(self.data['init_p_coords'],
 								color=colours.normaliseColour(self.opts['parallel_colour']['value']),
-								antialias=self.opts['antialias']['value'],
+								antialias=True,
 								connect=self.data['p_conn'],
 								parent=None)
 
@@ -270,10 +258,6 @@ class ParallelsGrid3DAsset(base_assets.AbstractSimpleAsset):
 
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
-		self._dflt_opts['antialias'] = {'value': True,
-										'type': 'boolean',
-										'help': '',
-										'callback': None}
 		self._dflt_opts['equator_colour'] = {'value': (0,0,0),
 											'type': 'colour',
 											'help': '',
@@ -386,7 +370,7 @@ class MeridiansGrid3DAsset(base_assets.AbstractSimpleAsset):
 		self.visuals['meridians'] = \
 			scene.visuals.Line(self.data['init_m_coords'],
 						 		color=colours.normaliseColour(self.opts['meridian_colour']['value']),
-								antialias=self.opts['antialias']['value'],
+								antialias=True,
 								connect=self.data['m_conn'],
 								parent=None)
 
@@ -405,10 +389,6 @@ class MeridiansGrid3DAsset(base_assets.AbstractSimpleAsset):
 
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
-		self._dflt_opts['antialias'] = {'value': True,
-										'type': 'boolean',
-										'help': '',
-										'callback': None}
 		self._dflt_opts['meridian_spacing'] = {'value': 30,
 											'type': 'integer',
 											'help': '',
@@ -432,7 +412,7 @@ class MeridiansGrid3DAsset(base_assets.AbstractSimpleAsset):
 			self.visuals['meridians'].parent = None
 
 	def setMeridiansColour(self, new_colour:tuple[float,float,float]) -> None:
-		self.opts['meridian_colour']['value'] = colours.normaliseColour(new_colour)
+		self.opts['meridian_colour']['value'] = new_colour
 		self._updateLineVisualsOptions()
 
 	def setMeridiansWidth(self, width:int) -> None:
@@ -447,8 +427,10 @@ class MeridiansGrid3DAsset(base_assets.AbstractSimpleAsset):
 		self.visuals['meridians'].transform = old_transform
 
 	def _updateLineVisualsOptions(self) -> None:
+		new_colour = colours.normaliseColour(self.opts['meridian_colour']['value'])
+		print(f'Meridians applied colour: {new_colour}')
 		self.visuals['meridians'].set_data(pos=self.data['init_m_coords'],
-						 					color=colours.normaliseColour(self.opts['meridian_colour']['value']),
+						 					color=new_colour,
 											connect=self.data['m_conn'],
 											width=self.opts['meridian_width']['value'])
 
