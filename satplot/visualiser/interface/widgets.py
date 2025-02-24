@@ -204,7 +204,7 @@ class TimeSlider(QtWidgets.QWidget):
 			self._sec_text_box.setText(datetime.strftime("%S"))
 
 class ColourPicker(QtWidgets.QWidget):
-	def __init__(self, label, dflt_col, parent: QtWidgets.QWidget=None) -> None:
+	def __init__(self, label, dflt_col, parent: QtWidgets.QWidget|None=None) -> None:
 		super().__init__(parent)
 		self._callbacks = []
 		self.curr_rgb = dflt_col
@@ -231,9 +231,12 @@ class ColourPicker(QtWidgets.QWidget):
 		closed_layout.addWidget(self._colour_box)
 		closed_layout.addWidget(self._text_box)
 		
+
 		self._colorpicker = QtWidgets.QColorDialog()
 		self._colorpicker.setOptions(QtWidgets.QColorDialog.DontUseNativeDialog)
-		self._colorpicker.currentColorChanged.connect(self._run_callbacks)
+		self._colour_box.pressed.connect(self._colorpicker.open)
+		self._colorpicker.colorSelected.connect(self._run_callbacks)
+		self._text_box.textEdited.connect(self._run_callbacks)
 		self._text_box.returnPressed.connect(self._run_callbacks)
 		
 		self.setLayout(closed_layout)
