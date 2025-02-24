@@ -82,6 +82,8 @@ class Earth3DAsset(base_assets.AbstractAsset):
 													connect=self.data['landmass_conn'],
 													parent=None)
 
+	# Use AbstractAsset.updateIndex()
+
 	def recomputeRedraw(self) -> None:
 		if self.isFirstDraw():
 			self._clearFirstDrawFlag()

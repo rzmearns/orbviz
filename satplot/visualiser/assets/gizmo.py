@@ -39,10 +39,12 @@ class BodyGizmo(base_assets.AbstractSimpleAsset):
 
 	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
 							 rotation:nptyping.NDArray=np.eye(3)) -> None:
-		T = np.eye(4)
-		T[0:3,0:3] = self.opts['gizmo_scale']['value']*rotation
-		T[0:3,3] = np.asarray(pos).reshape(-1,3)
-		self.visuals['gizmo'].transform = vTransforms.linear.MatrixTransform(T.T)
+		if self.isStale():
+			T = np.eye(4)
+			T[0:3,0:3] = self.opts['gizmo_scale']['value']*rotation
+			T[0:3,3] = np.asarray(pos).reshape(-1,3)
+			self.visuals['gizmo'].transform = vTransforms.linear.MatrixTransform(T.T)
+			self._clearStaleFlag()
 
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}

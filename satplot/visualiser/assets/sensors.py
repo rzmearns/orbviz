@@ -51,13 +51,15 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundAsset):
 
 	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
 							 rotation:nptyping.NDArray|None=None, quat:nptyping.NDArray|None=None) -> None:
-		if rotation is None and quat is None:
-			raise ValueError("Rotation and quaternion passed sensor suite cannot both be None")
-		if rotation is not None and quat is not None:
-			raise ValueError("Both rotation and quaternion passed to sensor suite, don't know which one to use")
+		if self.isStale():
+			if rotation is None and quat is None:
+				raise ValueError("Rotation and quaternion passed sensor suite cannot both be None")
+			if rotation is not None and quat is not None:
+				raise ValueError("Both rotation and quaternion passed to sensor suite, don't know which one to use")
 
-		for asset in self.assets.values():
-			asset.setTransform(pos=pos, rotation=rotation, quat=quat)
+			for asset in self.assets.values():
+				asset.setTransform(pos=pos, rotation=rotation, quat=quat)
+			self._clearStaleFlag()
 
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
@@ -120,6 +122,7 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 			T[0:3,0:3] = rot_mat
 			T[0:3,3] = np.asarray(pos).reshape(-1,3)
 			self.visuals['sensor_cone'].transform = vTransforms.linear.MatrixTransform(T.T)
+			self._clearStaleFlag()
 
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}

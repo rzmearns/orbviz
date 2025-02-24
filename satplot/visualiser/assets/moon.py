@@ -44,7 +44,7 @@ class Moon3DAsset(base_assets.AbstractAsset):
 
 	# Override AbstractAsset.updateIndex()
 	def updateIndex(self, index:int) -> None:
-		self._setStaleFlag()
+		self.setStaleFlagRecursive()
 		self.data['curr_index'] = index
 		self.data['curr_pos'] = self.data['pos'][self.data['curr_index']]
 		self._updateIndexChildren(index)
@@ -110,7 +110,8 @@ class Moon3DAsset(base_assets.AbstractAsset):
 	def setMoonDistance(self, distance:float) -> None:
 		self.opts['moon_distance_kms']['value'] = distance
 		# TODO: fix this to setStale then recomputeRedraw()
-		self.recompute()
+		self.setStaleFlagRecursive()
+		self.recomputeRedraw()
 
 	def setMoonSphereRadius(self, radius:float) -> None:
 		self.opts['moon_sphere_radius_kms']['value'] = radius
@@ -119,5 +120,6 @@ class Moon3DAsset(base_assets.AbstractAsset):
 		self.visuals['moon'].parent = self.data['v_parent']
 		self.requires_recompute = True
 		# TODO: fix this to setStale then recomputeRedraw()
-		self.recompute()
+		self.setStaleFlagRecursive()
+		self.recomputeRedraw()
 

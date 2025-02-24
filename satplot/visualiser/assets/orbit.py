@@ -74,7 +74,7 @@ class Orbit3DAsset(base_assets.AbstractAsset):
 	# Override AbstractAsset.updateIndex()
 	def updateIndex(self, index:int) -> None:
 		self.data['curr_index'] = index
-		self._setStaleFlag()
+		self.setStaleFlagRecursive()
 		self._sliceData()
 		self._updateIndexChildren(index)
 

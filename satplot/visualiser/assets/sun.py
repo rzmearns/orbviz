@@ -96,7 +96,7 @@ class Sun3DAsset(base_assets.AbstractAsset):
 
 	# Override AbstractAsset.updateIndex()
 	def updateIndex(self, index):
-		self._setStaleFlag()
+		self.setStaleFlagRecursive()
 		self.data['curr_index'] = index
 		self.data['curr_pos'] = self.data['pos'][self.data['curr_index']]
 		self._updateIndexChildren(index)

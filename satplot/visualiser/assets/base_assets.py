@@ -89,6 +89,7 @@ class AbstractSimpleAsset(ABC):
 		self._clearActiveFlag()
 
 	def _setStaleFlag(self) -> None:
+		print(f'Setting stale flag for {self}')
 		self.is_stale = True
 
 	def setStaleFlagRecursive(self) -> None:
@@ -96,6 +97,7 @@ class AbstractSimpleAsset(ABC):
 
 	def _clearStaleFlag(self) -> None:
 		self.is_stale = False
+		print(f'Clearing stale flag for {self}')
 
 	def isStale(self) -> bool:
 		return self.is_stale
@@ -486,6 +488,7 @@ class AbstractAsset(ABC):
 
 	def _setStaleFlag(self) -> None:
 		self.is_stale = True
+		print(f'Setting stale flag for {self}')
 
 	def setStaleFlagRecursive(self) -> None:
 		self._setStaleFlag()
@@ -494,6 +497,7 @@ class AbstractAsset(ABC):
 				asset.setStaleFlagRecursive()
 
 	def _clearStaleFlag(self) -> None:
+		print(f'clearing stale flag for {self}')
 		self.is_stale = False
 
 	def isStale(self) -> bool:
@@ -588,7 +592,7 @@ class AbstractAsset(ABC):
 				asset.updateIndex()
 			self.is_stale = True'''
 		self.data['curr_index'] = index
-		self._setStaleFlag()
+		self.setStaleFlagRecursive()
 		self._updateIndexChildren(index)
 
 	def _updateIndexChildren(self, index:int) -> None:
