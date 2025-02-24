@@ -38,12 +38,9 @@ class Orbit3DAsset(base_assets.AbstractAsset):
 			raise TypeError
 		if hasattr(first_sat_orbit,'pos'):
 			self.data['coords'] = first_sat_orbit.pos
+			print(f'Setting source:coordinates for {self}')
 		else:
 			raise ValueError('Orbit has no position data')
-		if hasattr(first_sat_orbit,'name'):
-			self.data['strings'] = [first_sat_orbit.name]
-		else:
-			self.data['strings'] = ['']
 
 	def _instantiateAssets(self) -> None:
 		# no sub assets
@@ -61,16 +58,6 @@ class Orbit3DAsset(base_assets.AbstractAsset):
 													width = self.opts['orbital_path_width']['value'],
 													parent=None)
 
-		self.visuals['marker'] = scene.visuals.Markers(parent=None,
-												 		scaling=True,
-														antialias=0)
-		self.visuals['marker'].set_data(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
-								  		edge_width=0,
-										face_color=colours.normaliseColour(self.opts['orbital_path_colour']['value']),
-										edge_color='white',
-										size=self.opts['orbital_position_marker_size']['value'],
-										symbol='o')
-
 	# Override AbstractAsset.updateIndex()
 	def updateIndex(self, index:int) -> None:
 		self.data['curr_index'] = index
@@ -84,25 +71,10 @@ class Orbit3DAsset(base_assets.AbstractAsset):
 		if self.isStale():
 			self.visuals['past'].set_data(pos=self.data['past_coords'])
 			self.visuals['future'].set_data(pos=self.data['future_coords'], connect=self.data['future_conn'])
-			self.visuals['marker'].set_data(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
-								   			size=self.opts['orbital_position_marker_size']['value'],
-											face_color=colours.normaliseColour(self.opts['orbital_path_colour']['value']))
 
 			# recomputeRedraw child assets
 			self._recomputeRedrawChildren()
 			self._clearStaleFlag()
-
-	def getScreenMouseOverInfo(self) -> dict[str, Any]:
-		curr_world_pos = (self.data['coords'][self.data['curr_index']]).reshape(1,3)
-		canvas_pos = self.visuals['marker'].get_transform('visual','canvas').map(curr_world_pos)
-		canvas_pos /= canvas_pos[:,3:]
-		mo_info = {'screen_pos':[], 'world_pos':[], 'strings':[], 'objects':[]}
-		mo_info['screen_pos'] = [(canvas_pos[0,0], canvas_pos[0,1])]
-		mo_info['world_pos'] = [curr_world_pos]
-		mo_info['strings'] = self.data['strings']
-		mo_info['objects'] = [self]
-		return mo_info
-		# return [(canvas_pos[0,0], canvas_pos[0,1])], ['SpIRIT']
 
 
 	def _setDefaultOptions(self) -> None:
@@ -141,14 +113,6 @@ class Orbit3DAsset(base_assets.AbstractAsset):
 										  		'type': 'boolean',
 												'help': '',
 												'callback': self.setOrbitalPathPastVisibility}
-		self._dflt_opts['plot_orbital_position_marker'] = {'value': True,
-										  		'type': 'boolean',
-												'help': '',
-												'callback': self.setOrbitalMarkerVisibility}
-		self._dflt_opts['orbital_position_marker_size'] = {'value': 500,
-										  		'type': 'integer',
-												'help': '',
-												'callback': self.setOrbitalMarkerSize}
 		self._dflt_opts['orbital_path_future_dash_size'] = {'value': 3,
 										  		'type': 'integer',
 												'help': '',
@@ -161,16 +125,6 @@ class Orbit3DAsset(base_assets.AbstractAsset):
 		self.opts['orbital_path_colour']['value'] = colours.normaliseColour(new_colour)
 		self.visuals['past'].set_data(color=colours.normaliseColour(new_colour))
 		self.visuals['future'].set_data(color=colours.normaliseColour(new_colour))
-		self.visuals['marker'].set_data(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
-								   			size=self.opts['orbital_position_marker_size']['value'],
-											face_color=colours.normaliseColour(self.opts['orbital_path_colour']['value']))
-
-	def setOrbitalMarkerSize(self, value:int) -> None:
-		self.opts['orbital_position_marker_size']['value'] = value
-		self.visuals['marker'].set_data(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
-								   			size=self.opts['orbital_position_marker_size']['value'],
-											face_color=colours.normaliseColour(self.opts['orbital_path_colour']['value']))
-		self.visuals['marker'].update()
 
 	def setFutureDashSize(self, value:int) -> None:
 		self.opts['orbital_path_future_dash_size']['value'] = value
@@ -187,9 +141,6 @@ class Orbit3DAsset(base_assets.AbstractAsset):
 
 	def setOrbitalPathPastVisibility(self, state:bool) -> None:
 		self.visuals['past'].visible = state
-
-	def setOrbitalMarkerVisibility(self, state:bool) -> None:
-		self.visuals['marker'].visible = state
 
 	
 

@@ -122,23 +122,25 @@ class History3DCanvasWrapper(BaseCanvas):
 			self.assets['moon'].makeActive()
 
 
-
 		# Update data source for primary orbit(s)
 		if len(self.data_model.getConfigValue('primary_satellite_ids')) > 0:
 			# TODO: extend to draw multiple primary satellites
 			self.assets['primary_orbit'].setSource(self.data_model.getOrbits())
 			self.assets['primary_orbit'].makeActive()
 
-		if self.data_model.getConfigValue('is_pointing_defined'):
-			self.assets['spacecraft'].setSource(self.data_model.getOrbits(),
-												self.data_model.getPointings(),
-												self.data_model.getConfigValue('pointing_invert_transform'))
-			self.assets['spacecraft'].makeActive()
-			self.assets['primary_orbit'].setOrbitalMarkerVisibility(False)
-		else:
-			# TODO: making this dormant at creation
-			self.assets['spacecraft'].makeDormant()
-			self.assets['primary_orbit'].setOrbitalMarkerVisibility(True)
+		if self.data_model.hasOrbits():
+			if self.data_model.getConfigValue('is_pointing_defined'):
+				self.assets['spacecraft'].setSource(self.data_model.getOrbits(),
+													self.data_model.getPointings(),
+													self.data_model.getConfigValue('pointing_invert_transform'))
+				self.assets['spacecraft'].makeActive()
+				self.assets['spacecraft'].setOrbitalMarkerVisibility(False)
+				self.assets['spacecraft'].setAttitudeAssetsVisibility(True)
+			else:
+				self.assets['spacecraft'].setSource(self.data_model.getOrbits())
+				self.assets['spacecraft'].makeActive()
+				self.assets['spacecraft'].setOrbitalMarkerVisibility(True)
+				self.assets['spacecraft'].setAttitudeAssetsVisibility(False)
 
 		if self.data_model.getConfigValue('has_supplemental_constellation'):
 			self.assets['constellation'].setSource(self.data_model.getConstellation().getOrbits(),

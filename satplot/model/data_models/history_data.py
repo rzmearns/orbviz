@@ -67,6 +67,12 @@ class HistoryData(BaseDataModel):
 		else:
 			return self.constellation
 
+	def hasOrbits(self) -> bool:
+		if len(self.orbits.values()) > 0:
+			return True
+		else:
+			return False
+
 	def getOrbits(self) -> dict[int,orbit.Orbit]:
 		if len(self.orbits.values()) == 0:
 			raise ValueError(f'History data:{self} has no orbits yet')
@@ -85,10 +91,12 @@ class HistoryData(BaseDataModel):
 			if self.getConfigValue('pointing_defines_timespan'):
 				console.send(f"Loading timespan from pointing file.")
 				self.timespan = timespan.TimeSpan.fromDatetime(pointing_dates)
+				print(f'Generating timespan from pointing file timestamps for: {self}')
 			else:
 				self.timespan = None
 
-		if self.timespan is None:
+		if self.timespan is None or not self.getConfigValue('is_pointing_defined'):
+			print(f'Generating timespan from configuration for: {self}')
 			period_start = self.getConfigValue('timespan_period_start').replace(microsecond=0)
 			period_end = self.getConfigValue('timespan_period_end').replace(microsecond=0)
 			self.updateConfig('timespan_period_start', period_start)

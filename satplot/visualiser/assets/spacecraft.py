@@ -25,6 +25,8 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 		else:
 			self.data['num_sens_suites'] = 0
 
+		self.data['pointing_defined'] = False
+
 		self._instantiateAssets()
 		self._createVisuals()
 
@@ -45,20 +47,37 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 		# args[2] pointing frame transformation direction
 			# True = ECI->BF
 			# False = BF->ECI
+
+		if len(args) > 1:
+			self.data['pointing_defined'] = True
+		else:
+			self.data['pointing_defined'] = False
+
 		sats_dict = args[0]
-		pointings_dict = args[1]
 		first_sat_orbit = list(sats_dict.values())[0]
-		first_sat_pointings = list(pointings_dict.values())[0]
-		invert_transform = args[2]
+
 		if type(first_sat_orbit) is not orbit.Orbit:
 			raise TypeError(f"setSource() of {self} requires a satellite dictionary, not: {first_sat_orbit}")
 		self.data['coords'] = first_sat_orbit.pos
+		print(f'Setting source:coordinates for {self}')
 
-		if type(first_sat_pointings) is not np.ndarray:
-			raise TypeError(f"setSource() of {self} requires a pointings dictionary, not: {first_sat_pointings}")
-		self.data['pointing'] = first_sat_pointings
-		self.data['pointing_invert_transform'] = invert_transform
+		if hasattr(first_sat_orbit,'name'):
+			self.data['strings'] = [first_sat_orbit.name]
+		else:
+			self.data['strings'] = ['']
 
+		if self.data['pointing_defined']:
+			pointings_dict = args[1]
+			first_sat_pointings = list(pointings_dict.values())[0]
+			invert_transform = args[2]
+			if type(first_sat_pointings) is not np.ndarray:
+				raise TypeError(f"setSource() of {self} requires a pointings dictionary, not: {first_sat_pointings}")
+			self.data['pointing'] = first_sat_pointings
+			self.data['pointing_invert_transform'] = invert_transform
+			print(f'Setting source:attitudes for {self}')
+		else:
+			self.data['pointing'] = None
+			self.data['pointing_invert_transform'] = None
 
 	def _instantiateAssets(self) -> None:
 		self.assets['body_frame'] = gizmo.BodyGizmo(scale=700,
@@ -76,9 +95,9 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 												 		antialias=0)
 		self.visuals['marker'].set_data(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
 								  		edge_width=0,
-										face_color=colours.normaliseColour(self.opts['spacecraft_point_colour']['value']),
+										face_color=colours.normaliseColour(self.opts['spacecraft_marker_colour']['value']),
 										edge_color='white',
-										size=self.opts['spacecraft_point_size']['value'],
+										size=self.opts['spacecraft_marker_size']['value'],
 										symbol='o')
 		# self.visuals['vector'] = scene.visuals.Line(self.data['v_coords'], color=colours.normaliseColour((255,0,255)),
 		# 											parent=None)
@@ -94,47 +113,66 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 		if self.isStale():
 			# set marker position
 			self.visuals['marker'].set_data(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
-								   			size=self.opts['spacecraft_point_size']['value'],
-											face_color=colours.normaliseColour(self.opts['spacecraft_point_colour']['value']))
+								   			size=self.opts['spacecraft_marker_size']['value'],
+											face_color=colours.normaliseColour(self.opts['spacecraft_marker_colour']['value']))
 			
-			# set gizmo and sensor orientations
-			#TODO: This check for last/next good pointing could be done better
-			if np.any(np.isnan(self.data['pointing'][self.data['curr_index'],:])):
-				non_nan_found = False
-				# look forwards
-				for ii in range(self.data['curr_index'], len(self.data['pointing'])):
-					if np.all(np.isnan(self.data['pointing'][ii,:])==False):
-						non_nan_found = True
-						quat = self.data['pointing'][ii,:].reshape(-1,4)
-						rotation = Rotation.from_quat(quat).as_matrix()
-						break
-					else:
-						rotation = np.eye(3)
-				if not non_nan_found:
-					# look backwards
-					for ii in range(self.data['curr_index'], -1, -1):
+			if self.data['pointing_defined']:
+				# set gizmo and sensor orientations
+				#TODO: This check for last/next good pointing could be done better
+				if np.any(np.isnan(self.data['pointing'][self.data['curr_index'],:])):
+					non_nan_found = False
+					# look forwards
+					for ii in range(self.data['curr_index'], len(self.data['pointing'])):
 						if np.all(np.isnan(self.data['pointing'][ii,:])==False):
+							non_nan_found = True
 							quat = self.data['pointing'][ii,:].reshape(-1,4)
 							rotation = Rotation.from_quat(quat).as_matrix()
 							break
 						else:
 							rotation = np.eye(3)
-				self.assets['body_frame'].setTemporaryGizmoXColour((255,0,255))
-				self.assets['body_frame'].setTemporaryGizmoYColour((255,0,255))
-				self.assets['body_frame'].setTemporaryGizmoZColour((255,0,255))
-			else:
-				quat = self.data['pointing'][self.data['curr_index']].reshape(-1,4)
-				if self.data['pointing_invert_transform']:
-					# Quat = ECI->BF
-					rotation = Rotation.from_quat(quat).as_matrix()
+					if not non_nan_found:
+						# look backwards
+						for ii in range(self.data['curr_index'], -1, -1):
+							if np.all(np.isnan(self.data['pointing'][ii,:])==False):
+								quat = self.data['pointing'][ii,:].reshape(-1,4)
+								rotation = Rotation.from_quat(quat).as_matrix()
+								break
+							else:
+								rotation = np.eye(3)
+					self.assets['body_frame'].setTemporaryGizmoXColour((255,0,255))
+					self.assets['body_frame'].setTemporaryGizmoYColour((255,0,255))
+					self.assets['body_frame'].setTemporaryGizmoZColour((255,0,255))
 				else:
-					# Quat = BF->ECI
-					rotation = Rotation.from_quat(quat).inv().as_matrix()
-				self.assets['body_frame'].restoreGizmoColours()
+					quat = self.data['pointing'][self.data['curr_index']].reshape(-1,4)
+					if self.data['pointing_invert_transform']:
+						# Quat = ECI->BF
+						rotation = Rotation.from_quat(quat).as_matrix()
+					else:
+						# Quat = BF->ECI
+						rotation = Rotation.from_quat(quat).inv().as_matrix()
+					self.assets['body_frame'].restoreGizmoColours()
 
-			# recomputeRedraw child assets
-			self._recomputeRedrawChildren(pos=self.data['coords'][self.data['curr_index']].reshape(1,3), rotation=rotation)
+				# recomputeRedraw child assets
+				self._recomputeRedrawChildren(pos=self.data['coords'][self.data['curr_index']].reshape(1,3), rotation=rotation)
+			else:
+				self._recomputeRedrawChildren(pos=self.data['coords'][self.data['curr_index']].reshape(1,3))
 			self._clearStaleFlag()
+
+	def getScreenMouseOverInfo(self) -> dict[str, Any]:
+		curr_world_pos = (self.data['coords'][self.data['curr_index']]).reshape(1,3)
+		canvas_pos = self.visuals['marker'].get_transform('visual','canvas').map(curr_world_pos)
+		canvas_pos /= canvas_pos[:,3:]
+		mo_info = {'screen_pos':[], 'world_pos':[], 'strings':[], 'objects':[]}
+		mo_info['screen_pos'] = [(canvas_pos[0,0], canvas_pos[0,1])]
+		mo_info['world_pos'] = [curr_world_pos]
+		mo_info['strings'] = self.data['strings']
+		mo_info['objects'] = [self]
+		return mo_info
+		# return [(canvas_pos[0,0], canvas_pos[0,1])], ['SpIRIT']
+
+	def setAttitudeAssetsVisibility(self, state):
+		self.setBodyFrameVisibility(state)
+		self.setAllSensorSuitesVisibility(state)
 
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
@@ -146,15 +184,15 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 										  		'type': 'boolean',
 												'help': '',
 												'callback': self.setVisibility}		
-		self._dflt_opts['spacecraft_point_colour'] = {'value': (255,0,0),
+		self._dflt_opts['spacecraft_marker_colour'] = {'value': (255,0,0),
 												'type': 'colour',
 												'help': '',
 												'callback': self.setMarkerColour}
-		self._dflt_opts['plot_spacecraft_point'] = {'value': True,
+		self._dflt_opts['plot_spacecraft_marker'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
 												'callback': self.setOrbitalMarkerVisibility}
-		self._dflt_opts['spacecraft_point_size'] = {'value': 250,
+		self._dflt_opts['spacecraft_marker_size'] = {'value': 500,
 										  		'type': 'number',
 												'help': '',
 												'callback': self.setOrbitalMarkerSize}
@@ -171,14 +209,13 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 
 	#----- OPTIONS CALLBACKS -----#	
 	def setMarkerColour(self, new_colour:tuple[float,float,float]) -> None:
-		self.opts['spacecraft_point_colour']['value'] = colours.normaliseColour(new_colour)
+		self.opts['spacecraft_marker_colour']['value'] = colours.normaliseColour(new_colour)
 		self.visuals['marker'].set_data(face_color=colours.normaliseColour(new_colour))
 
 	def setAllSensorSuitesVisibility(self, state:bool) -> None:
 		for key, asset in self.assets.items():
-			key_split = key.split('_')
-			if key_split[0] == 'sensor' and key_split[1] == 'suite':
-				asset.setVisibility(state)
+			if isinstance(asset, sensors.SensorSuite3DAsset):
+				asset.setVisibilityRecursive(state)
 
 	def setOrbitalMarkerVisibility(self, state:bool) -> None:
 		self.visuals['marker'].visible = state
@@ -187,10 +224,10 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 		self.assets['body_frame'].setVisibility(state)
 
 	def setOrbitalMarkerSize(self, value:int) -> None:
-		self.opts['spacecraft_point_size']['value'] = value
+		self.opts['spacecraft_marker_size']['value'] = value
 		self.visuals['marker'].set_data(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
-								   			size=self.opts['spacecraft_point_size']['value'],
-											face_color=colours.normaliseColour(self.opts['spacecraft_point_colour']['value']))
+								   			size=self.opts['spacecraft_marker_size']['value'],
+											face_color=colours.normaliseColour(self.opts['spacecraft_marker_colour']['value']))
 		self.visuals['marker'].update()
 
 	#----- HELPER FUNCTIONS -----#
