@@ -170,14 +170,6 @@ class History3DCanvasWrapper(BaseCanvas):
 			if asset.isActive():
 				asset.recomputeRedraw()
 
-		# Sun must be last so that umbra doesn't occlude objects
-		# if self.assets['sun'].isActive():
-		# 	self.assets['sun'].recomputeRedraw()
-
-	def forceRedraw(self) -> None:
-		for k,v in self.assets.items():
-			if v.isActive():
-				v.forceRedraw()
 
 	def setFirstDrawFlags(self) -> None:
 		for asset in self.assets.values():
@@ -259,7 +251,6 @@ class History3DCanvasWrapper(BaseCanvas):
 
 		self.mouseOverText.setVisible(False)
 		if mouse_over_is_highlighting:
-			self.forceRedraw()
 			mouse_over_is_highlighting = False
 		last_mevnt_time = time.monotonic()
 

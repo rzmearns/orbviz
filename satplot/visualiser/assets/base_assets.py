@@ -573,18 +573,6 @@ class AbstractAsset(ABC):
 			elif isinstance(asset, AbstractSimpleAsset) or isinstance(asset, AbstractCompoundAsset):
 				asset.setTransform(pos=pos, rotation=rotation)
 
-
-	# def forceRedraw(self):
-	# 	# Method to manually force the redraw of all assets
-
-	# 	self.is_stale = True
-	# 	self.recompute()
-	# 	for asset in self.assets.values():
-	# 		if isinstance(asset,AbstractAsset):
-	# 			asset.is_stale = True
-	# 			asset.recompute()
-
-
 	def updateIndex(self, index:int) -> None:
 		'''Update the stored curr_index value
 			Should include the following iteration in the overriding method
