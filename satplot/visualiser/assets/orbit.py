@@ -129,6 +129,7 @@ class Orbit3DAsset(base_assets.AbstractAsset):
 	def setFutureDashSize(self, value:int) -> None:
 		self.opts['orbital_path_future_dash_size']['value'] = value
 		self.updateIndex(self.data['curr_index'])
+		self.recomputeRedraw()
 
 	def setOrbitalPathWidth(self, value:int) -> None:
 		self.opts['orbital_path_width']['value'] = value
