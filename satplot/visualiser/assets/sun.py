@@ -46,8 +46,18 @@ class Sun3DAsset(base_assets.AbstractAsset):
 												self.data['vector_start_axis'],
 												45,
 												axis_sample=2,
-												theta_sample=30)	
+												theta_sample=30)
+		self.data['umbra_alpha_filter'] = None
 	
+	def _reInitUmbraData(self):
+		self.data['umbra_vertices'], self.data['umbra_faces'] = \
+						polyhedra.calcCylinderMesh((0,0,0),
+												self.opts['umbra_dist']['value'],
+												self.data['umbra_start_axis'],
+												c.R_EARTH+50,
+												axis_sample=2,
+												theta_sample=30)
+
 	def _instantiateAssets(self):
 		pass
 
@@ -67,12 +77,22 @@ class Sun3DAsset(base_assets.AbstractAsset):
 		# Umbra
 		self.visuals['umbra'] = vVisuals.Mesh(self.data['umbra_vertices'],
     											self.data['umbra_faces'],
-    											color=colours.normaliseColour(self.opts['umbra_colour']['value']),
+    											color=(0.25,0.25,0.25,0.25),
     											parent=None)
 		# Apply shrinking transform to hide umbra till it needs to be first drawn
 		self.visuals['umbra'].transform = vTransforms.STTransform(scale=(0.001,0.001,0.001))
-		alpha_filter = vFilters.Alpha(self.opts['umbra_alpha']['value'])
-		self.visuals['umbra'].attach(alpha_filter)
+		self.data['umbra_alpha_filter'] = vFilters.Alpha(self.opts['umbra_alpha']['value'])
+		self.visuals['umbra'].attach(self.data['umbra_alpha_filter'])
+
+		#TODO: Better shadow display, but shows through earth, maybe cut out spherical cap
+		# self.visuals['umbra'].set_gl_state(depth_test=False)
+		# self.visuals['umbra'].set_gl_state('translucent')
+		# self.visuals['umbra'].set_gl_state('translucent', cull_face=True)
+		# self.visuals['umbra'].set_gl_state('translucent', depth_test=False) <---
+		# self.visuals['umbra'].set_gl_state('translucent', blend=False)
+		# self.visuals['umbra'].set_gl_state('translucent', blend=False, depth_test=False)
+		# self.visuals['umbra'].set_gl_state('translucent', cull_face=True, depth_test=False)
+		# self.visuals['umbra'].set_gl_state('translucent', cull_face=True, blend=False)
 
 	def _createVectorVisual(self):
 		# Sun Vector
@@ -141,10 +161,6 @@ class Sun3DAsset(base_assets.AbstractAsset):
 
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}
-		self._dflt_opts['antialias'] = {'value': True,
-								  		'type': 'boolean',
-										'help': '',
-												'callback': self.setAntialias}
 		self._dflt_opts['plot_sun'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
@@ -182,13 +198,13 @@ class Sun3DAsset(base_assets.AbstractAsset):
 												'help': '',
 												'callback': self.setUmbraColour}
 		self._dflt_opts['umbra_alpha'] = {'value': 0.25,
-										  		'type': 'number',
+										  		'type': 'fraction',
 												'help': '',
 												'callback': self.setUmbraAlpha}
 		self._dflt_opts['umbra_dist'] = {'value': 3*c.R_EARTH,
 										  		'type': 'number',
 												'help': '',
-												'callback': self.setUmbraAlpha}		
+												'callback': self.setUmbraDistance}
 		self._dflt_opts['sun_distance_kms'] = {'value': 15000,
 										  		'type': 'number',
 												'help': '',
@@ -204,7 +220,9 @@ class Sun3DAsset(base_assets.AbstractAsset):
 
 	#----- OPTIONS CALLBACKS -----#	
 	def _updateLineVisualsOptions(self):
-		self.visuals['vector_body'].set_data(color=colours.normaliseColour(self.opts['sun_vector_colour']['value']),
+		new_colour = colours.normaliseColour(self.opts['sun_vector_colour']['value'])
+		print(f'Sun vector applied colour: {new_colour}')
+		self.visuals['vector_body'].set_data(color=new_colour,
 												width=self.opts['sun_vector_width']['value'])
 
 	def setSunSphereVisibility(self, state):
@@ -213,6 +231,7 @@ class Sun3DAsset(base_assets.AbstractAsset):
 	def setSunDistance(self, distance):
 		self.opts['sun_distance_kms']['value'] = distance
 		# TODO: fix this to set stale then recomputeredraw, maybe firstdraw as well
+		self.setStaleFlagRecursive()
 		self.recomputeRedraw()
 
 	def setSunVectorLength(self, distance):
@@ -230,41 +249,53 @@ class Sun3DAsset(base_assets.AbstractAsset):
 		self.recomputeRedraw()
 
 	def setSunSphereColour(self, new_colour):
-		raise NotImplementedError('Bugged')
-		# nnc = colours.normaliseColour(new_colour)
-		# annc = (nnc[0], nnc[1], nnc[2], 1)
-		# self.opts['earth_sphere_colour']['value'] = new_colour
-		# c = color.Color(color=nnc, alpha=1)
-		# print(c)
-		# print(self.opts['earth_sphere_colour']['value'])
-		# self.visuals['earth'].mesh.set_data(vertex_colors=colours.normaliseColour(new_colour))
-		# # self.visuals['earth'].mesh.mesh_data._face_colors_indexed_by_faces[:] = colours.normaliseColour(new_colour)
-		# # self.visuals['earth'].mesh.mesh_data_changed()
-		# # self.visuals['earth'].mesh.mesh_data.set_vertex_colors(nnc)
-		# # self.visuals['earth'].mesh.mesh_data_changed()
-		# self.visuals['earth'].mesh.set_data(color=c)
-		# self.visuals['earth'].mesh.update()
+		print(f"Changing sun sphere colour {self.opts['sun_sphere_colour']['value']} -> {new_colour}")
+		self.opts['sun_sphere_colour']['value'] = new_colour
+		n_faces = self.visuals['sun_sphere'].mesh._meshdata.n_faces
+		n_verts = self.visuals['sun_sphere'].mesh._meshdata.n_vertices
+		self.visuals['sun_sphere'].mesh._meshdata.set_face_colors(np.tile(colours.normaliseColour(new_colour),(n_faces,1)))
+		self.visuals['sun_sphere'].mesh._meshdata.set_vertex_colors(np.tile(colours.normaliseColour(new_colour),(n_verts,1)))
+		self.visuals['sun_sphere'].mesh.mesh_data_changed()
 
 	def setUmbraAlpha(self, alpha):
-		raise NotImplementedError
+		# Takes a little while to take effect.
+		print(f"Changing umbra alpha {self.opts['umbra_alpha']['value']} -> {alpha}")
+		self.opts['umbra_alpha']['value'] = alpha
+		self.data['umbra_alpha_filter'].alpha = alpha
 
-	def setUmbraColour(self, new_colour):		
+	def setUmbraColour(self, new_colour):
+		print(f"Changing umbra colour {self.opts['umbra_colour']['value']} -> {new_colour}")
 		self.opts['umbra_colour']['value'] = new_colour
-		self.visuals['umbra'].set_data(color=colours.normaliseColour(new_colour))
+		n_faces = self.visuals['umbra']._meshdata.n_faces
+		n_verts = self.visuals['umbra']._meshdata.n_vertices
+		self.visuals['umbra']._meshdata.set_face_colors(np.tile(colours.normaliseColour(new_colour),(n_faces,1)))
+		self.visuals['umbra']._meshdata.set_vertex_colors(np.tile(colours.normaliseColour(new_colour),(n_verts,1)))
+		self.visuals['umbra'].mesh_data_changed()
+
+	def setUmbraDistance(self, dist):
+		print(f"Changing umbra dist {self.opts['umbra_dist']['value']} -> {dist}")
+		self.opts['umbra_dist']['value'] = dist
+		self._reInitUmbraData()
+		self.visuals['umbra']._meshdata.set_faces(self.data['umbra_faces'])
+		self.visuals['umbra']._meshdata.set_vertices(self.data['umbra_vertices'])
+		self.visuals['umbra'].mesh_data_changed()
 
 	def setUmbraVisibility(self, state):
 		self.visuals['umbra'].visible = state
-
-	def setAntialias(self, state):
-		raise NotImplementedError
 
 	def setSunVectorVisibility(self, state):
 		self.visuals['vector_body'].visible = state
 		self.visuals['vector_head'].visible = state
 
 	def setSunVectorColour(self, new_colour):
+		print(f"Changing sun vector colour {self.opts['sun_vector_colour']['value']} -> {new_colour}")
 		self.opts['sun_vector_colour']['value'] = new_colour
 		self._updateLineVisualsOptions()
+		n_faces = self.visuals['vector_head']._meshdata.n_faces
+		n_verts = self.visuals['vector_head']._meshdata.n_vertices
+		self.visuals['vector_head']._meshdata.set_face_colors(np.tile(colours.normaliseColour(new_colour),(n_faces,1)))
+		self.visuals['vector_head']._meshdata.set_vertex_colors(np.tile(colours.normaliseColour(new_colour),(n_verts,1)))
+		self.visuals['vector_head'].mesh_data_changed()
 	
 	def setSunVectorWidth(self, value):
 		self.opts['sun_vector_width']['value'] = value

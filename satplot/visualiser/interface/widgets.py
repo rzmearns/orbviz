@@ -235,7 +235,7 @@ class ColourPicker(QtWidgets.QWidget):
 		self._colorpicker = QtWidgets.QColorDialog()
 		self._colorpicker.setOptions(QtWidgets.QColorDialog.DontUseNativeDialog)
 		self._colour_box.pressed.connect(self._colorpicker.open)
-		self._colorpicker.colorSelected.connect(self._run_callbacks)
+		self._colorpicker.colorSelected.connect(self._set_colour)
 		self._text_box.textEdited.connect(self._run_callbacks)
 		self._text_box.returnPressed.connect(self._run_callbacks)
 		
@@ -243,6 +243,10 @@ class ColourPicker(QtWidgets.QWidget):
 
 	def add_connect(self, callback):
 		self._callbacks.append(callback)
+
+	def _set_colour(self, colour):
+		self._text_box.setText(f'{colour.red()},{colour.green()},{colour.blue()}')
+		self._run_callbacks()
 
 	def _run_callbacks(self):
 		rgb_str = self._text_box.text().split(',')
@@ -257,10 +261,12 @@ class ColourPicker(QtWidgets.QWidget):
 			print("No Colour Picker callbacks are set")
 
 class ValueSpinner(QtWidgets.QWidget):
-	def __init__(self, label, dflt_val, integer=True, parent: QtWidgets.QWidget=None) -> None:
+	def __init__(self, label, dflt_val, integer=True, fraction=False, parent: QtWidgets.QWidget=None) -> None:
 		super().__init__(parent)
 		self._callbacks = []
 		self.allow_float = not integer
+		if fraction:
+			self.allow_float = True
 		
 		if self.allow_float:
 			self.curr_val = dflt_val
@@ -272,11 +278,15 @@ class ValueSpinner(QtWidgets.QWidget):
 		layout.setContentsMargins(2,1,2,1)
 		
 		self._label = QtWidgets.QLabel(label)
-		if self.allow_float:
+		if self.allow_float or fraction:
 			self._val_box = QtWidgets.QDoubleSpinBox()
 		else:
 			self._val_box = QtWidgets.QSpinBox()
-		self._val_box.setRange(1,1000000)
+		if not fraction:
+			self._val_box.setRange(1,1000000)
+		else:
+			self._val_box.setRange(0,1)
+			self._val_box.setSingleStep(0.1)
 		self._val_box.setValue(self.curr_val)		
 		self._val_box.setFixedWidth(80)
 		self._val_box.setFixedHeight(20)

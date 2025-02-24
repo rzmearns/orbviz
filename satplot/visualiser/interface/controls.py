@@ -283,6 +283,7 @@ class OptionConfigs(QtWidgets.QWidget):
 					widget = widgets.ColourPicker(w_str,
 												opt_dict['value'])
 					widget.add_connect(opt_dict['callback'])
+					print(f"Adding option callback {opt_dict['callback']} to {opt_key}")
 				except:
 					print(f"Can't make widget {w_str} for asset {opt_key}")
 					raise ValueError
@@ -299,6 +300,15 @@ class OptionConfigs(QtWidgets.QWidget):
 					widget = widgets.ValueSpinner(w_str,
 								  				opt_dict['value'],
 												integer=False)
+					widget.add_connect(opt_dict['callback'])
+				except:
+					print(f"Can't make widget {w_str} for asset {opt_key}")
+					raise ValueError
+			if opt_dict['type'] == 'fraction':
+				try:
+					widget = widgets.ValueSpinner(w_str,
+								  				opt_dict['value'],
+												fraction=True)
 					widget.add_connect(opt_dict['callback'])
 				except:
 					print(f"Can't make widget {w_str} for asset {opt_key}")
