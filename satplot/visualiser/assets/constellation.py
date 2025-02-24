@@ -3,6 +3,7 @@ import numpy.typing as nptyping
 from scipy.spatial.transform import Rotation
 from typing import Any
 
+import vispy.color.color_array as vcolor_array
 import vispy.scene as scene
 from vispy.scene.widgets.viewbox import ViewBox
 import vispy.scene.visuals as vVisuals
@@ -118,19 +119,7 @@ class Constellation(base_assets.AbstractAsset):
 			self._clearFirstDrawFlag()
 
 		if self.isStale():
-			if self.data['num_sats'] > 1:
-				self.visuals['markers'].set_data(pos=self.data['coords'][:,self.data['curr_index'],:].reshape(-1,3),
-												size=self.opts['constellation_position_marker_size']['value'],
-												face_color=colours.normaliseColour((self.opts['constellation_colour']['value'][0]/2,
-													self.opts['constellation_colour']['value'][1]/2,
-													self.opts['constellation_colour']['value'][2]/2)))
-			else:
-				self.visuals['markers'].set_data(pos=self.data['coords'][self.data['curr_index'],:].reshape(-1,3),
-												size=self.opts['constellation_position_marker_size']['value'],
-												face_color=colours.normaliseColour((self.opts['constellation_colour']['value'][0]/2,
-																					self.opts['constellation_colour']['value'][1]/2,
-																					self.opts['constellation_colour']['value'][2]/2)))
-			
+			self._updateMarkers()
 			# recomputeRedraw child assets
 			self._recomputeRedrawChildren()
 			self._clearStaleFlag()
@@ -164,10 +153,7 @@ class Constellation(base_assets.AbstractAsset):
 
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
-		self._dflt_opts['antialias'] = {'value': True,
-								  		'type': 'boolean',
-										'help': '',
-												'callback': None}
+
 		self._dflt_opts['plot_constellation'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
@@ -184,6 +170,10 @@ class Constellation(base_assets.AbstractAsset):
 										  		'type': 'number',
 												'help': '',
 												'callback': self.setConstellationMarkerSize}
+		self._dflt_opts['constellation_position_marker_colour'] = {'value': (0,255,0),
+												'type': 'colour',
+												'help': '',
+												'callback': self.setConstellationMarkerColour}
 		self._dflt_opts['plot_constellation_beams'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
@@ -196,8 +186,12 @@ class Constellation(base_assets.AbstractAsset):
 		pass
 	
 	def setConstellationColour(self, new_colour:tuple[int,int,int]) -> None:
-		self.opts['constellation_colour']['value'] = colours.normaliseColour(new_colour)
-		self.visuals['marker'].set_data(face_color=colours.normaliseColour(new_colour))
+		self.setConstellationMarkerColour(new_colour)
+		self.assets['beams'].setBeamsColour(new_colour)
+
+	def setConstellationMarkerColour(self, new_colour:tuple[int,int,int]) -> None:
+		self.opts['constellation_colour']['value'] = new_colour
+		self._updateMarkers()
 
 	def setConstellationAssetVisibility(self, state:bool) -> None:
 		self.setConstellationMarkersVisibility(state)
@@ -205,7 +199,7 @@ class Constellation(base_assets.AbstractAsset):
 
 	def setConstellationMarkerSize(self, value:int) -> None:
 		self.opts['constellation_position_marker_size']['value'] = value
-		self.recomputeRedraw()
+		self._updateMarkers()
 
 	def setConstellationMarkersVisibility(self, state:bool) -> None:
 		self.visuals['markers'].visible = state
@@ -213,9 +207,21 @@ class Constellation(base_assets.AbstractAsset):
 	def setConstellationBeamsVisibility(self, state:bool) -> None:
 		self.assets['beams'].setVisibility(state)
 
-	def setBeamsAlpha(self, alpha:float) -> None:
-		raise NotImplementedError
-	
+	def _updateMarkers(self):
+		darkness_factor = 1
+		if self.data['num_sats'] > 1:
+			self.visuals['markers'].set_data(pos=self.data['coords'][:,self.data['curr_index'],:].reshape(-1,3),
+											size=self.opts['constellation_position_marker_size']['value'],
+											face_color=colours.normaliseColour((self.opts['constellation_colour']['value'][0]/darkness_factor,
+												self.opts['constellation_colour']['value'][1]/darkness_factor,
+												self.opts['constellation_colour']['value'][2]/darkness_factor)))
+		else:
+			self.visuals['markers'].set_data(pos=self.data['coords'][self.data['curr_index'],:].reshape(-1,3),
+											size=self.opts['constellation_position_marker_size']['value'],
+											face_color=colours.normaliseColour((self.opts['constellation_colour']['value'][0]/darkness_factor,
+																				self.opts['constellation_colour']['value'][1]/darkness_factor,
+																				self.opts['constellation_colour']['value'][2]/darkness_factor)))
+
 	def _calcBeamHeight(self, half_beam_angle:float, vector_length:float|np.floating[Any]) -> float:
 		phi = np.deg2rad(half_beam_angle)
 		altitude = vector_length - c.R_EARTH
@@ -344,8 +350,9 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 													instance_positions=instance_positions,
 													instance_transforms=instance_transforms,
 													parent=None)
-		alpha_filter = vFilters.Alpha(self.opts['beams_alpha']['value'])
-		self.visuals['beams'].attach(alpha_filter)
+		print(self.visuals['beams']._meshdata.n_faces)
+		self.data['beams_alpha_filter'] = vFilters.Alpha(self.opts['beams_alpha']['value'])
+		self.visuals['beams'].attach(self.data['beams_alpha_filter'])
 
 	# Use AbstractAsset.updateIndex()
 
@@ -394,7 +401,7 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
 		self._dflt_opts['beams_alpha'] = {'value': 0.5,
-										'type': 'float',
+										'type': 'fraction',
 										'help': '',
 										'callback': self.setBeamsAlpha}
 		self._dflt_opts['beams_colour'] = {'value': (0, 255, 0),
@@ -409,21 +416,24 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 
 	#----- OPTIONS CALLBACKS -----#	
 	def setBeamsColour(self, new_colour:tuple[int,int,int]) -> None:
-		self.opts['beams_colour']['value'] = colours.normaliseColour(new_colour)
-		self.visuals['beams'].set_data(face_color=colours.normaliseColour(new_colour))		
+		print(f"Changing instanced beams colour {self.opts['beams_colour']['value']} -> {new_colour}")
+		self.opts['beams_colour']['value'] = new_colour
+		new_cols_array = vcolor_array.ColorArray([colours.normaliseColour(self.opts['beams_colour']['value'])]*self.data['num_sats'])
+		self.visuals['beams'].instance_colors = new_cols_array
+		self._updateLineVisualsOptions()
 
 	def setBeamsAlpha(self, alpha:float) -> None:
-		raise NotImplementedError
+		print(f"Changing instanced beams alpha {self.opts['beams_alpha']['value']} -> {alpha}")
+		self.opts['beams_alpha']['value'] = alpha
+		self.data['beams_alpha_filter'].alpha = alpha
 	
 	def setCirclesWidth(self, width:float) -> None:
 		self.opts['circle_width']['value'] = width
 		self._updateLineVisualsOptions()
 
 	def _updateLineVisualsOptions(self) -> None:
-		self.visuals['circles'].set_data(width=self.opts['circle_width']['value'])
-
-	def setVisibility(self, state:bool) -> None:
-		self.visuals['beams'].visible = state
+		self.visuals['circles'].set_data(width=self.opts['circle_width']['value'],
+										 color=colours.normaliseColour(self.opts['beams_colour']['value']))
 
 	def _genBeamCircles(self, instance_transforms:list[nptyping.NDArray]|nptyping.NDArray,
 							 instance_positions:list[nptyping.NDArray]|nptyping.NDArray) -> nptyping.NDArray | None:
@@ -519,7 +529,8 @@ class ConstellationBeams(base_assets.AbstractAsset):
 			beam_axis = -1 * pg.unitVector(self.data['coords'][self.data['curr_index'],:]).reshape(1,3)
 			instance_transforms = Rotation.align_vectors(self.data['start_beam_vec'],
 																beam_axis)[0].as_matrix()
-		alpha_filter = vFilters.Alpha(self.opts['beams_alpha']['value'])
+		self.data['beams_alpha_filter'] = vFilters.Alpha(self.opts['beams_alpha']['value'])
+
 		for ii in range(self.data['num_sats']):
 			vertices, faces = polyhedra.calcConeMesh((0,0,0),
 													self.data['beam_height'],
@@ -538,7 +549,7 @@ class ConstellationBeams(base_assets.AbstractAsset):
 			except:
 				print(f"T:{T}")
 			self.visuals['beams'][ii].transform = transform
-			self.visuals['beams'][ii].attach(alpha_filter)
+			self.visuals['beams'][ii].attach(self.data['beams_alpha_filter'])
 
 	# Use AbstractAsset.updateIndex()
 
@@ -578,7 +589,7 @@ class ConstellationBeams(base_assets.AbstractAsset):
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
 		self._dflt_opts['beams_alpha'] = {'value': 0.5,
-										'type': 'number',
+										'type': 'fraction',
 										'help': '',
 										'callback': self.setBeamsAlpha}
 		self._dflt_opts['beams_colour'] = {'value': (0, 255, 0),
@@ -589,12 +600,20 @@ class ConstellationBeams(base_assets.AbstractAsset):
 
 	#----- OPTIONS CALLBACKS -----#	
 	def setBeamsColour(self, new_colour:tuple[float,float,float]) -> None:
-		self.opts['beams_colour']['value'] = colours.normaliseColour(new_colour)
+		print(f"Changing beams colour {self.opts['beams_colour']['value']} -> {new_colour}")
+		self.opts['beams_colour']['value'] = new_colour
 		for ii in range(self.data['num_sats']):
-			self.visuals['beams'][ii].set_data(color=colours.normaliseColour(new_colour))		
+			n_faces = self.visuals['beams']._meshdata.n_faces
+			n_verts = self.visuals['beams']._meshdata.n_vertices
+			self.visuals['beams']._meshdata.set_face_colors(np.tile(colours.normaliseColour(new_colour),(n_faces,1)))
+			self.visuals['beams']._meshdata.set_vertex_colors(np.tile(colours.normaliseColour(new_colour),(n_verts,1)))
+		self.visuals['beams'].mesh_data_changed()
+		# self.visuals['circles'].set_data(color=colours.normaliseColour(new_colour))
 
 	def setBeamsAlpha(self, alpha:float) -> None:
-		raise NotImplementedError
+		print(f"Changing beams alpha {self.opts['beams_alpha']['value']} -> {alpha}")
+		self.opts['beams_alpha']['value'] = alpha
+		self.data['beams_alpha_filter'].alpha = alpha
 	
 	def setVisibility(self, state:bool) -> None:
 		for ii in range(self.data['num_sats']):

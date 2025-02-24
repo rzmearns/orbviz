@@ -112,9 +112,7 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 			self._clearFirstDrawFlag()
 		if self.isStale():
 			# set marker position
-			self.visuals['marker'].set_data(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
-								   			size=self.opts['spacecraft_marker_size']['value'],
-											face_color=colours.normaliseColour(self.opts['spacecraft_marker_colour']['value']))
+			self._updateMarkers()
 			
 			if self.data['pointing_defined']:
 				# set gizmo and sensor orientations
@@ -209,8 +207,8 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 
 	#----- OPTIONS CALLBACKS -----#	
 	def setMarkerColour(self, new_colour:tuple[float,float,float]) -> None:
-		self.opts['spacecraft_marker_colour']['value'] = colours.normaliseColour(new_colour)
-		self.visuals['marker'].set_data(face_color=colours.normaliseColour(new_colour))
+		self.opts['spacecraft_marker_colour']['value'] = new_colour
+		self._updateMarkers()
 
 	def setAllSensorSuitesVisibility(self, state:bool) -> None:
 		for key, asset in self.assets.items():
@@ -225,10 +223,12 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 
 	def setOrbitalMarkerSize(self, value:int) -> None:
 		self.opts['spacecraft_marker_size']['value'] = value
+		self._updateMarkers()
+
+	def _updateMarkers(self):
 		self.visuals['marker'].set_data(pos=self.data['coords'][self.data['curr_index']].reshape(1,3),
 								   			size=self.opts['spacecraft_marker_size']['value'],
 											face_color=colours.normaliseColour(self.opts['spacecraft_marker_colour']['value']))
-		self.visuals['marker'].update()
 
 	#----- HELPER FUNCTIONS -----#
 	def _addIndividualSensorSuitePlotOptions(self) -> None:

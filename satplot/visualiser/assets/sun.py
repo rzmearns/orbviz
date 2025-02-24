@@ -77,7 +77,7 @@ class Sun3DAsset(base_assets.AbstractAsset):
 		# Umbra
 		self.visuals['umbra'] = vVisuals.Mesh(self.data['umbra_vertices'],
     											self.data['umbra_faces'],
-    											color=(0.25,0.25,0.25,0.25),
+    											color=colours.normaliseColour(self.opts['umbra_colour']['value']),
     											parent=None)
 		# Apply shrinking transform to hide umbra till it needs to be first drawn
 		self.visuals['umbra'].transform = vTransforms.STTransform(scale=(0.001,0.001,0.001))

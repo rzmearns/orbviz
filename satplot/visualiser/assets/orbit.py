@@ -49,12 +49,12 @@ class Orbit3DAsset(base_assets.AbstractAsset):
 	def _createVisuals(self) -> None:
 		self.visuals['past'] = scene.visuals.Line(self.data['past_coords'],
 													color=colours.normaliseColour(self.opts['orbital_path_colour']['value']),
-													antialias=self.opts['antialias']['value'],
+													antialias=True,
 													width = self.opts['orbital_path_width']['value'],
 													parent=None)
 		self.visuals['future'] = scene.visuals.Line(self.data['future_coords'],
 													color=colours.normaliseColour(self.opts['orbital_path_colour']['value']),
-													antialias=self.opts['antialias']['value'],
+													antialias=True,
 													width = self.opts['orbital_path_width']['value'],
 													parent=None)
 
@@ -79,10 +79,6 @@ class Orbit3DAsset(base_assets.AbstractAsset):
 
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
-		self._dflt_opts['antialias'] = {'value': True,
-								  		'type': 'boolean',
-										'help': '',
-												'callback': None}
 		self._dflt_opts['plot_orbit'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
