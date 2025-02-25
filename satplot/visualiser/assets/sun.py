@@ -164,55 +164,81 @@ class Sun3DAsset(base_assets.AbstractAsset):
 		self._dflt_opts['plot_sun'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
-												'callback': self.setVisibility}
+												'static': True,
+												'callback': self.setVisibility,
+											'widget': None}
 		self._dflt_opts['plot_sun_sphere'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
-												'callback': self.setSunSphereVisibility}
+												'static': True,
+												'callback': self.setSunSphereVisibility,
+											'widget': None}
 		self._dflt_opts['sun_sphere_colour'] = {'value': (255,162,0),
 												'type': 'colour',
 												'help': '',
-												'callback': self.setSunSphereColour}
+												'static': True,
+												'callback': self.setSunSphereColour,
+											'widget': None}
 		self._dflt_opts['plot_sun_vector'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
-												'callback': self.setSunVectorVisibility}
+												'static': True,
+												'callback': self.setSunVectorVisibility,
+											'widget': None}
 		self._dflt_opts['sun_vector_colour'] = {'value': (255,162,0),
 												'type': 'colour',
 												'help': '',
-												'callback': self.setSunVectorColour}
+												'static': True,
+												'callback': self.setSunVectorColour,
+											'widget': None}
 		self._dflt_opts['sun_vector_width'] = {'value': 1,
 												'type': 'float',
 												'help': '',
-												'callback': self.setSunVectorWidth}
+												'static': True,
+												'callback': self.setSunVectorWidth,
+											'widget': None}
 		self._dflt_opts['sun_vector_length_kms'] = {'value': c.R_EARTH/3,
 												'type': 'integer',
 												'help': '',
-												'callback': self.setSunVectorLength}		
+												'static': True,
+												'callback': self.setSunVectorLength,
+											'widget': None}
 		self._dflt_opts['plot_umbra'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
-												'callback': self.setUmbraVisibility}
+												'static': True,
+												'callback': self.setUmbraVisibility,
+											'widget': None}
 		self._dflt_opts['umbra_colour'] = {'value': (10,10,10),
 												'type': 'colour',
 												'help': '',
-												'callback': self.setUmbraColour}
+												'static': True,
+												'callback': self.setUmbraColour,
+											'widget': None}
 		self._dflt_opts['umbra_alpha'] = {'value': 0.25,
 										  		'type': 'fraction',
 												'help': '',
-												'callback': self.setUmbraAlpha}
+												'static': True,
+												'callback': self.setUmbraAlpha,
+											'widget': None}
 		self._dflt_opts['umbra_dist'] = {'value': 3*c.R_EARTH,
 										  		'type': 'number',
 												'help': '',
-												'callback': self.setUmbraDistance}
+												'static': True,
+												'callback': self.setUmbraDistance,
+											'widget': None}
 		self._dflt_opts['sun_distance_kms'] = {'value': 15000,
 										  		'type': 'number',
 												'help': '',
-												'callback': self.setSunDistance}
+												'static': True,
+												'callback': self.setSunDistance,
+											'widget': None}
 		self._dflt_opts['sun_sphere_radius_kms'] = {'value': 786,
 										  		'type': 'number',
 												'help': '',
-												'callback': self.setSunSphereRadius}
+												'static': True,
+												'callback': self.setSunSphereRadius,
+											'widget': None}
 
 		# sun radius calculated using 6deg angular size
 

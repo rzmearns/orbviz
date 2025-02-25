@@ -520,6 +520,7 @@ class AbstractAsset(ABC):
 		return self.first_draw
 
 	def setVisibility(self, state:bool) -> None:
+		print(f'Setting visibility for {self} to {state}')
 		for visual in self.visuals.values():
 			visual.visible = state
 

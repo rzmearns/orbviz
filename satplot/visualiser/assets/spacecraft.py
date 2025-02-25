@@ -195,23 +195,33 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 		self._dflt_opts['spacecraft_marker_colour'] = {'value': (255,0,0),
 												'type': 'colour',
 												'help': '',
-												'callback': self.setMarkerColour}
+												'static': True,
+												'callback': self.setMarkerColour,
+											'widget': None}
 		self._dflt_opts['plot_spacecraft_marker'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
-												'callback': self.setOrbitalMarkerVisibility}
+												'static': True,
+												'callback': self.setOrbitalMarkerVisibility,
+											'widget': None}
 		self._dflt_opts['spacecraft_marker_size'] = {'value': 500,
 										  		'type': 'number',
 												'help': '',
-												'callback': self.setOrbitalMarkerSize}
+												'static': True,
+												'callback': self.setOrbitalMarkerSize,
+											'widget': None}
 		self._dflt_opts['plot_body_frame'] = {'value': True,
 												'type': 'boolean',
 												'help': '',
-												'callback': self.setBodyFrameVisibility}
+												'static': True,
+												'callback': self.setBodyFrameVisibility,
+											'widget': None}
 		self._dflt_opts['plot_all_sensor_suites'] = {'value': True,
 												'type': 'boolean',
 												'help': '',
-												'callback': self.setAllSensorSuitesVisibility}
+												'static': True,
+												'callback': self.setAllSensorSuitesVisibility,
+											'widget': None}
 
 		self.opts = self._dflt_opts.copy()
 
@@ -251,7 +261,9 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 			self.opts[f'plot_sensor_suite_{key}'] = {'value': True,
 													'type': 'boolean',
 													'help': '',
-													'callback': self.assets[f'sensor_suite_{key}'].setVisibilityRecursive}
+													'static': False,
+													'callback': self.assets[f'sensor_suite_{key}'].setVisibilityRecursive,
+													'widget': None}
 
 	def _removeOldSensorSuitePlotOptions(self, old_suite_names:list[str]) -> None:
 		for suite_name in old_suite_names:

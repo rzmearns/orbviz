@@ -41,10 +41,7 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundAsset):
 				self.assets[sensor] = Sensor3DAsset.cone(sensor, sens_dict, parent=self.data['v_parent'])
 			elif sens_dict['shape'] == 'square_pyramid':
 				self.assets[sensor] = Sensor3DAsset.squarePyramid(sensor, sens_dict, parent=self.data['v_parent'])
-			self.opts[f'plot_{sensor}'] = {'value': True,
-											'type': 'boolean',
-											'help': '',
-											'callback': self.assets[sensor].setVisibility}
+
 
 	def _createVisuals(self) -> None:
 		pass
@@ -132,11 +129,15 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 		self._dflt_opts['sensor_cone_colour'] = {'value': (10,10,10),
 												'type': 'colour',
 												'help': '',
-												'callback': self.setSensorConeColour}
+												'static': True,
+												'callback': self.setSensorConeColour,
+											'widget': None}
 		self._dflt_opts['sensor_cone_alpha'] = {'value': 0.5,
 										  		'type': 'number',
 												'help': '',
-												'callback': self.setSensorConeAlpha}
+												'static': True,
+												'callback': self.setSensorConeAlpha,
+											'widget': None}
 
 		self.opts = self._dflt_opts.copy()
 

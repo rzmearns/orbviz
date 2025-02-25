@@ -300,50 +300,65 @@ class OptionConfigs(QtWidgets.QWidget):
 	def _buildOptionWidgetDict(self, opts):
 		w_dict = {}
 		for opt_key, opt_dict in opts.items():
+			if opt_dict['widget'] is not None and opt_dict['static']:
+					continue
+
 			w_str = string.capwords(' '.join(opt_key.split('_')))
 			if opt_dict['type'] == 'boolean':
 				try:
 					widget = widgets.ToggleBox(w_str,
 												opt_dict['value'])
-					widget.add_connect(opt_dict['callback'])
-				except:
-					print(f"Can't make widget {w_str} for asset {opt_key}")
-					raise ValueError
-			if opt_dict['type'] == 'colour':
-				try:
-					widget = widgets.ColourPicker(w_str,
-												opt_dict['value'])
+					opt_dict['widget'] = widget
 					widget.add_connect(opt_dict['callback'])
 					print(f"Adding option callback {opt_dict['callback']} to {opt_key}")
 				except:
 					print(f"Can't make widget {w_str} for asset {opt_key}")
 					raise ValueError
-			if opt_dict['type'] == 'integer' or opt_dict['type'] == 'number':
+			elif opt_dict['type'] == 'colour':
 				try:
-					widget = widgets.ValueSpinner(w_str,
-								  				opt_dict['value'])
+					widget = widgets.ColourPicker(w_str,
+												opt_dict['value'])
+					opt_dict['widget'] = widget
 					widget.add_connect(opt_dict['callback'])
+					print(f"Adding option callback {opt_dict['callback']} to {opt_key}")
 				except:
 					print(f"Can't make widget {w_str} for asset {opt_key}")
 					raise ValueError
-			if opt_dict['type'] == 'float':
+			elif opt_dict['type'] == 'integer' or opt_dict['type'] == 'number':
+				try:
+					widget = widgets.ValueSpinner(w_str,
+								  				opt_dict['value'])
+					opt_dict['widget'] = widget
+					widget.add_connect(opt_dict['callback'])
+					print(f"Adding option callback {opt_dict['callback']} to {opt_key}")
+				except:
+					print(f"Can't make widget {w_str} for asset {opt_key}")
+					raise ValueError
+			elif opt_dict['type'] == 'float':
 				try:
 					widget = widgets.ValueSpinner(w_str,
 								  				opt_dict['value'],
 												integer=False)
+					opt_dict['widget'] = widget
 					widget.add_connect(opt_dict['callback'])
+					print(f"Adding option callback {opt_dict['callback']} to {opt_key}")
 				except:
 					print(f"Can't make widget {w_str} for asset {opt_key}")
 					raise ValueError
-			if opt_dict['type'] == 'fraction':
+			elif opt_dict['type'] == 'fraction':
 				try:
 					widget = widgets.ValueSpinner(w_str,
 								  				opt_dict['value'],
 												fraction=True)
+					opt_dict['widget'] = widget
 					widget.add_connect(opt_dict['callback'])
+					print(f"Adding option callback {opt_dict['callback']} to {opt_key}")
 				except:
 					print(f"Can't make widget {w_str} for asset {opt_key}")
 					raise ValueError
+			else:
+				print(f"Can't find widget type for {w_str}:{opt_dict['type']}")
+				continue
 
 			w_key = opt_key.split('_')
 			if len(w_key) > 0:

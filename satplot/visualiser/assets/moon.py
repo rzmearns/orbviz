@@ -65,19 +65,27 @@ class Moon3DAsset(base_assets.AbstractAsset):
 		self._dflt_opts['plot_moon'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
-												'callback': self.setVisibility}
+												'static': True,
+												'callback': self.setVisibility,
+											'widget': None}
 		self._dflt_opts['moon_sphere_colour'] = {'value': (61,61,61),
 												'type': 'colour',
 												'help': '',
-												'callback': self.setMoonSphereColour}
+												'static': True,
+												'callback': self.setMoonSphereColour,
+											'widget': None}
 		self._dflt_opts['moon_distance_kms'] = {'value': 15000,
 										  		'type': 'number',
 												'help': '',
-												'callback': self.setMoonDistance}
+												'static': True,
+												'callback': self.setMoonDistance,
+											'widget': None}
 		self._dflt_opts['moon_sphere_radius_kms'] = {'value': 786,
 										  		'type': 'number',
 												'help': '',
-												'callback': self.setMoonSphereRadius}
+												'static': True,
+												'callback': self.setMoonSphereRadius,
+											'widget': None}
 
 		# moon radius calculated using 6deg angular size
 

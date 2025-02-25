@@ -53,23 +53,33 @@ class BodyGizmo(base_assets.AbstractSimpleAsset):
 		self._dflt_opts['gizmo_X_axis_colour'] = {'value': (255,0,0),
 												'type': 'colour',
 												'help': '',
-												'callback': self.setGizmoXColour}
+												'static': True,
+												'callback': self.setGizmoXColour,
+											'widget': None}
 		self._dflt_opts['gizmo_Y_axis_colour'] = {'value': (0,255,0),
 												'type': 'colour',
 												'help': '',
-												'callback': self.setGizmoYColour}
+												'static': True,
+												'callback': self.setGizmoYColour,
+											'widget': None}
 		self._dflt_opts['gizmo_Z_axis_colour'] = {'value': (0,0,255),
 												'type': 'colour',
 												'help': '',
-												'callback': self.setGizmoZColour}
+												'static': True,
+												'callback': self.setGizmoZColour,
+											'widget': None}
 		self._dflt_opts['gizmo_width'] = {'value': 3,
 										  		'type': 'number',
 												'help': '',
-												'callback': self.setGizmoWidth}
+												'static': True,
+												'callback': self.setGizmoWidth,
+											'widget': None}
 		self._dflt_opts['gizmo_scale'] = {'value': 700,
 										  		'type': 'number',
 												'help': '',
-												'callback': self.setGizmoScale}
+												'static': True,
+												'callback': self.setGizmoScale,
+											'widget': None}
 
 		self.opts = self._dflt_opts.copy()
 

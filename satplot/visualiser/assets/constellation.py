@@ -157,27 +157,39 @@ class Constellation(base_assets.AbstractAsset):
 		self._dflt_opts['plot_constellation'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
-												'callback': self.setConstellationAssetVisibility}		
+												'static': True,
+												'callback': self.setConstellationAssetVisibility,
+											'widget': None}
 		self._dflt_opts['constellation_colour'] = {'value': (0,255,0),
 												'type': 'colour',
 												'help': '',
-												'callback': self.setConstellationColour}
+												'static': True,
+												'callback': self.setConstellationColour,
+											'widget': None}
 		self._dflt_opts['plot_constellation_position_markers'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
-												'callback': self.setConstellationMarkersVisibility}
+												'static': True,
+												'callback': self.setConstellationMarkersVisibility,
+											'widget': None}
 		self._dflt_opts['constellation_position_marker_size'] = {'value': 250,
 										  		'type': 'number',
 												'help': '',
-												'callback': self.setConstellationMarkerSize}
+												'static': True,
+												'callback': self.setConstellationMarkerSize,
+											'widget': None}
 		self._dflt_opts['constellation_position_marker_colour'] = {'value': (0,255,0),
 												'type': 'colour',
 												'help': '',
-												'callback': self.setConstellationMarkerColour}
+												'static': True,
+												'callback': self.setConstellationMarkerColour,
+											'widget': None}
 		self._dflt_opts['plot_constellation_beams'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
-												'callback': self.setConstellationBeamsVisibility}	
+												'static': True,
+												'callback': self.setConstellationBeamsVisibility,
+											'widget': None}
 
 		self.opts = self._dflt_opts.copy()
 		self._createOptHelp()
@@ -403,15 +415,21 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 		self._dflt_opts['beams_alpha'] = {'value': 0.5,
 										'type': 'fraction',
 										'help': '',
-										'callback': self.setBeamsAlpha}
+										'static': True,
+										'callback': self.setBeamsAlpha,
+											'widget': None}
 		self._dflt_opts['beams_colour'] = {'value': (0, 255, 0),
 										'type': 'colour',
 										'help': '',
-										'callback': self.setBeamsColour}
+										'static': True,
+										'callback': self.setBeamsColour,
+											'widget': None}
 		self._dflt_opts['circle_width'] = {'value': 0.5,
 										'type': 'float',
 										'help': '',
-										'callback': self.setCirclesWidth}
+										'static': True,
+										'callback': self.setCirclesWidth,
+											'widget': None}
 		self.opts = self._dflt_opts.copy()
 
 	#----- OPTIONS CALLBACKS -----#	
@@ -591,11 +609,15 @@ class ConstellationBeams(base_assets.AbstractAsset):
 		self._dflt_opts['beams_alpha'] = {'value': 0.5,
 										'type': 'fraction',
 										'help': '',
-										'callback': self.setBeamsAlpha}
+										'static': True,
+										'callback': self.setBeamsAlpha,
+											'widget': None}
 		self._dflt_opts['beams_colour'] = {'value': (0, 255, 0),
 										'type': 'colour',
 										'help': '',
-										'callback': self.setBeamsColour}
+										'static': True,
+										'callback': self.setBeamsColour,
+											'widget': None}
 		self.opts = self._dflt_opts.copy()
 
 	#----- OPTIONS CALLBACKS -----#	
