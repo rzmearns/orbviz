@@ -43,6 +43,7 @@ class BodyGizmo(base_assets.AbstractSimpleAsset):
 			T = np.eye(4)
 			T[0:3,0:3] = self.opts['gizmo_scale']['value']*rotation
 			T[0:3,3] = np.asarray(pos).reshape(-1,3)
+			print(f'setTransform:{pos=}')
 			self.visuals['gizmo'].transform = vTransforms.linear.MatrixTransform(T.T)
 			self._clearStaleFlag()
 
@@ -129,11 +130,11 @@ class BodyGizmo(base_assets.AbstractSimpleAsset):
 	def setGizmoScale(self, value:float) -> None:
 		old_scale = self.opts['gizmo_scale']['value']
 		old_transform_matrix = self.visuals['gizmo'].transform.matrix
-		base_rotation = old_transform_matrix[0:3,0:3] / old_scale
-		pos = old_transform_matrix[0:3,3]
+		unscaled_rotation = old_transform_matrix[0:3,0:3] / old_scale
+		pos = old_transform_matrix[3,0:3]
 		self.opts['gizmo_scale']['value'] = value
-		self.setTransform(pos=pos, rotation=base_rotation)
-		self.visuals['gizmo'].update()
+		self._setStaleFlag()
+		self.setTransform(pos=pos, rotation=unscaled_rotation)
 
 class ViewBoxGizmo(base_assets.AbstractAsset):
 	def __init__(self, canvas:scene.canvas.SceneCanvas|None=None,
