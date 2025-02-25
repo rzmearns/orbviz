@@ -243,23 +243,12 @@ class OptionConfigs(QtWidgets.QWidget):
 
 			w_dict = self._buildNestedOptionWidgetDict(asset, asset_key=section_key)
 
-			to_remove = []
-			for old_option_key in self.sections[section_title]['opts'].keys():
-				if old_option_key not in w_dict.keys():
-					to_remove.append(old_option_key)
-
 			for opt_key, widget in dict(sorted(w_dict.items())).items():
 				if opt_key not in self.sections[section_title]['opts']:
 					print(f'Option collapsible section {section_title}, adding: {opt_key}')
 					self.sections[section_title]['opts'][opt_key] = widget
 					# won't be in alphabetical order second time round
 					self.sections[section_title]['cb'].addWidget(widget)
-
-			for opt_key in to_remove:
-				print(f'Option collapsible section {section_title}, removing: {opt_key}')
-				self.sections[section_title]['opts'][opt_key].setParent(None)
-				del(self.sections[section_title]['opts'][opt_key])
-
 
 			if not self.sections[section_title]['added_to_layout']:
 				root_layout.addWidget(self.sections[section_title]['cb'])

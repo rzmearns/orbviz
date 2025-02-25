@@ -267,4 +267,6 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 
 	def _removeOldSensorSuitePlotOptions(self, old_suite_names:list[str]) -> None:
 		for suite_name in old_suite_names:
+			if self.opts[f'plot_sensor_suite_{suite_name}']['widget'] is not None:
+				self.opts[f'plot_sensor_suite_{suite_name}']['widget'].setParent(None)
 			del(self.opts[f'plot_sensor_suite_{suite_name}'])
