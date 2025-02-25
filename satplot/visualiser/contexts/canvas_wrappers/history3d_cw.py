@@ -131,7 +131,10 @@ class History3DCanvasWrapper(BaseCanvas):
 				self.assets['spacecraft'].setOrbitalMarkerVisibility(False)
 				self.assets['spacecraft'].setAttitudeAssetsVisibility(True)
 			else:
-				self.assets['spacecraft'].setSource(self.data_models['history'].getOrbits())
+				self.assets['spacecraft'].setSource(self.data_models['history'].getOrbits(),
+													None,
+													None,
+													list(self.data_models['history'].getPrimaryConfig().getAllSpacecraftConfigs().values())[0])
 				self.assets['spacecraft'].makeActive()
 				self.assets['spacecraft'].setOrbitalMarkerVisibility(True)
 				self.assets['spacecraft'].setAttitudeAssetsVisibility(False)

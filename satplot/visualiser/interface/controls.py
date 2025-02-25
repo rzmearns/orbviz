@@ -241,19 +241,35 @@ class OptionConfigs(QtWidgets.QWidget):
 				self.sections[section_title]['opts'] = {}
 				self.sections[section_title]['cb'] = widgets.CollapsibleSection(title=section_title)
 
+			for opt_key in list(self.sections[section_title]['opts'].keys()):
+				widget_struct = self.sections[section_title]['opts'][opt_key]
+				if widget_struct['mark_for_removal']:
+					print(f'deleting {opt_key}')
+					widget_struct['widget'].setParent(None)
+					del(self.sections[section_title]['opts'][opt_key])
+
+
 			w_dict = self._buildNestedOptionWidgetDict(asset, asset_key=section_key)
 
-			for opt_key, widget in dict(sorted(w_dict.items())).items():
+			for opt_key, widget_struct in dict(sorted(w_dict.items())).items():
 				if opt_key not in self.sections[section_title]['opts']:
 					print(f'Option collapsible section {section_title}, adding: {opt_key}')
-					self.sections[section_title]['opts'][opt_key] = widget
+					print(f'{section_title=}')
+					print(f'{opt_key=}')
+					self.sections[section_title]['opts'][opt_key] = widget_struct
 					# won't be in alphabetical order second time round
-					self.sections[section_title]['cb'].addWidget(widget)
+					self.sections[section_title]['cb'].addWidget(widget_struct['widget'])
 
 			if not self.sections[section_title]['added_to_layout']:
 				root_layout.addWidget(self.sections[section_title]['cb'])
 				self.sections[section_title]['added_to_layout'] = True
-		return
+
+		# for section_title, section in self.sections.items():
+		# 	print(f'{section_title}:')
+		# 	print(f"\tadded_to_layout:{section['added_to_layout']}")
+		# 	print(f"\topts:")
+		# 	for k,v in section['opts'].items():
+		# 		print(f"\t\t{k}:{v}")
 
 
 	def _buildNestedOptionWidgetDict(self, asset, asset_key=''):
@@ -278,11 +294,15 @@ class OptionConfigs(QtWidgets.QWidget):
 					sub_w_dict = self._buildNestedOptionWidgetDict(sub_asset, asset_key=sub_key)
 					cb = widgets.CollapsibleSection(title=f"{sub_key.capitalize()} Options")
 					for sub_w_key, widget in dict(sorted(sub_w_dict.items())).items():
-						cb.addWidget(widget)
+						cb.addWidget(widget['widget'])
 					if sub_key not in w_dict.keys():
-						w_dict[sub_key] = cb
+						w_dict[sub_key] = {}
+						w_dict[sub_key]['widget'] = cb
+						w_dict[sub_key]['mark_for_removal'] = False
 					else:
-						w_dict[f"{sub_key}_"] = cb
+						w_dict[f"{sub_key}_"] = {}
+						w_dict[f"{sub_key}_"]['widget'] = cb
+						w_dict[f"{sub_key}_"]['mark_for_removal'] = False
 
 		return w_dict
 
@@ -297,7 +317,7 @@ class OptionConfigs(QtWidgets.QWidget):
 				try:
 					widget = widgets.ToggleBox(w_str,
 												opt_dict['value'])
-					opt_dict['widget'] = widget
+					# opt_dict['widget'] = widget
 					widget.add_connect(opt_dict['callback'])
 					print(f"Adding option callback {opt_dict['callback']} to {opt_key}")
 				except:
@@ -307,7 +327,7 @@ class OptionConfigs(QtWidgets.QWidget):
 				try:
 					widget = widgets.ColourPicker(w_str,
 												opt_dict['value'])
-					opt_dict['widget'] = widget
+					# opt_dict['widget'] = widget
 					widget.add_connect(opt_dict['callback'])
 					print(f"Adding option callback {opt_dict['callback']} to {opt_key}")
 				except:
@@ -317,7 +337,7 @@ class OptionConfigs(QtWidgets.QWidget):
 				try:
 					widget = widgets.ValueSpinner(w_str,
 								  				opt_dict['value'])
-					opt_dict['widget'] = widget
+					# opt_dict['widget'] = widget
 					widget.add_connect(opt_dict['callback'])
 					print(f"Adding option callback {opt_dict['callback']} to {opt_key}")
 				except:
@@ -328,7 +348,7 @@ class OptionConfigs(QtWidgets.QWidget):
 					widget = widgets.ValueSpinner(w_str,
 								  				opt_dict['value'],
 												integer=False)
-					opt_dict['widget'] = widget
+					# opt_dict['widget'] = widget
 					widget.add_connect(opt_dict['callback'])
 					print(f"Adding option callback {opt_dict['callback']} to {opt_key}")
 				except:
@@ -339,7 +359,7 @@ class OptionConfigs(QtWidgets.QWidget):
 					widget = widgets.ValueSpinner(w_str,
 								  				opt_dict['value'],
 												fraction=True)
-					opt_dict['widget'] = widget
+					# opt_dict['widget'] = widget
 					widget.add_connect(opt_dict['callback'])
 					print(f"Adding option callback {opt_dict['callback']} to {opt_key}")
 				except:
@@ -356,7 +376,10 @@ class OptionConfigs(QtWidgets.QWidget):
 				else:
 					w_key = '_'.join(w_key)
 			try:
-				w_dict[w_key] = widget 				# type:ignore
+				w_dict[w_key] = {}
+				w_dict[w_key]['widget'] = widget 				# type:ignore
+				w_dict[w_key]['mark_for_removal'] = False
+				opt_dict['widget'] = w_dict[w_key]
 			except UnboundLocalError:
 				print(f"UnboundLocalError when generating options widget for {w_key}")
 				raise UnboundLocalError

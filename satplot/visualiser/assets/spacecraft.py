@@ -29,8 +29,12 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 			self.data['name'] = 'Spacecraft'
 		self.data['sens_suites'] = {}
 		self.data['coords'] = np.zeros((4,3))
+		self.data['strings'] = ['']
 		self.data['curr_index'] = 2
 		self.data['pointing'] = None
+		self.data['pointing_defined'] = False
+		self.data['old_pointing_defined'] = False
+		self.data['pointing_invert_transform'] = False
 		self.data['sc_config'] = None
 
 	def setSource(self, *args, **kwargs) -> None:
@@ -41,11 +45,14 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 			# False = BF->ECI
 		# args[3] spacecraft configuration
 
+		self.data['old_pointing_defined'] = self.data['pointing_defined']
+		if args[1] is not None:
 
-		if len(args) > 1:
 			self.data['pointing_defined'] = True
+			print(f'SPACECRAFT HAS POINTING')
 		else:
 			self.data['pointing_defined'] = False
+			print(f'SPACECRAFT NO POINTING')
 
 		sats_dict = args[0]
 		first_sat_orbit = list(sats_dict.values())[0]
@@ -78,12 +85,22 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 		else:
 			old_suite_names = []
 
-		if self.data['sc_config'] == args[3]:
+		if self.data['old_pointing_defined'] == self.data['pointing_defined'] and \
+			self.data['sc_config'] == args[3]:
 			# config has not changed -> don't need to re-instantiate sensors
+			print('Config has not changed')
+			config_changed = False
 			return
 		self.data['sc_config'] = args[3]
-		self._removeSensorAssets(old_suite_names)
-		self._instantiateSensorAssets()
+
+
+		if self.data['old_pointing_defined']:
+			# If pointing had previously been defined -> old sensors, options need to be removed
+			self._removeSensorAssets(old_suite_names)
+
+		if self.data['pointing_defined']:
+			# if no pointing, no point having sensors
+			self._instantiateSensorAssets()
 
 	def _instantiateAssets(self) -> None:
 		self.assets['body_frame'] = gizmo.BodyGizmo(scale=700,
@@ -267,6 +284,6 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 
 	def _removeOldSensorSuitePlotOptions(self, old_suite_names:list[str]) -> None:
 		for suite_name in old_suite_names:
-			if self.opts[f'plot_sensor_suite_{suite_name}']['widget'] is not None:
-				self.opts[f'plot_sensor_suite_{suite_name}']['widget'].setParent(None)
+			if self.opts[f'plot_sensor_suite_{suite_name}']['widget']['widget'] is not None:
+				self.opts[f'plot_sensor_suite_{suite_name}']['widget']['mark_for_removal'] = True
 			del(self.opts[f'plot_sensor_suite_{suite_name}'])
