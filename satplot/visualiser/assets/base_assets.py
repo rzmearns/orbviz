@@ -169,6 +169,11 @@ class AbstractSimpleAsset(ABC):
 		if visual_key is not None:
 			print(f"\tvisual {visual_key} parent scene:{self.visuals[visual_key].parent}")
 
+	def _printOptions(self) -> None:
+		for k,v in self.opts.items():
+			print(f'{k}:')
+			for k2,v2 in v.items():
+				print(f'\t{k2}:{v2}')
 
 
 class AbstractCompoundAsset(ABC):
@@ -376,6 +381,11 @@ class AbstractCompoundAsset(ABC):
 		if visual_key is not None:
 			print(f"\tvisual {visual_key} parent scene:{self.visuals[visual_key].parent}")
 
+	def _printOptions(self) -> None:
+		for k,v in self.opts.items():
+			print(f'{k}:')
+			for k2,v2 in v.items():
+				print(f'\t{k2}:{v2}')
 
 
 
@@ -632,3 +642,8 @@ class AbstractAsset(ABC):
 		if asset_key is not None:
 			print(f"\tasset {asset_key} parent scene:{self.assets[asset_key].data['v_parent']}")
 
+	def _printOptions(self) -> None:
+		for k,v in self.opts.items():
+			print(f'{k}:')
+			for k2,v2 in v.items():
+				print(f'\t{k2}:{v2}')
