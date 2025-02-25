@@ -218,6 +218,7 @@ class Controls(base.BaseControls):
 		self.menubar = controls.Menubar(self.context.window, self.action_dict, context_name=self.context.config['name'])
 
 		self.setHotkeys()
+		self._connectSliderCamUpdate()
 
 	def setHotkeys(self):
 		self.shortcuts={}
@@ -233,6 +234,9 @@ class Controls(base.BaseControls):
 		self.shortcuts['End'] = QtWidgets.QShortcut(QtGui.QKeySequence('End'), self.context.window)
 		self.shortcuts['End'].activated.connect(self.time_slider.setEnd)
 		self.shortcuts['End'].activated.connect(self._updateCam)
+
+	def _connectSliderCamUpdate(self):
+		self.time_slider.slider.valueChanged.connect(self._updateCam)
 
 	def _updateCam(self):
 		if self.context.sccam_state and self.context.canvas_wrapper is not None:
