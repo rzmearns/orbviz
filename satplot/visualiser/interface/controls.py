@@ -30,7 +30,7 @@ class OrbitConfigs(QtWidgets.QWidget):
 		self.button_layout = QtWidgets.QHBoxLayout()
 		self.submit_button = QtWidgets.QPushButton('Recalculate')
 		self.prim_orbit_selector = widgets.FilePicker('Primary Orbit',
-															dflt_file='SpIRIT.json',
+															dflt_file='SpIRIT_XYZ.json',
 															dflt_dir='data/primary_configs/',
 															save=False)
 		self.pointing_file_controls = PointingFileControls()
@@ -91,7 +91,7 @@ class PointingFileControls(QtWidgets.QWidget):
 		glayout.addWidget(self._enable,1,2)
 
 		self._pointing_file_selector = widgets.FilePicker(None,
-												   			dflt_file='20240223-030000_quaternion.csv',
+												   			dflt_file='20240801_test_quaternion_X_ECI_parallel_Z_Zenith.csv',
 															dflt_dir='data/pointing/',
 															save=False,
 															margins=[0,0,0,0])
@@ -213,7 +213,9 @@ class OptionConfigs(QtWidgets.QWidget):
 		# self.setFixedWidth(400)
 		self.pane_layout = QtWidgets.QVBoxLayout()
 		self.config_layout = QtWidgets.QVBoxLayout()
-		
+
+		self.sections = {}
+
 		self.buildWidgetPane(self.la_dict, self.pane_layout)
 		self.pane_layout.addStretch()
 		self.pane_groupbox.setLayout(self.pane_layout)
@@ -224,15 +226,44 @@ class OptionConfigs(QtWidgets.QWidget):
 		self.config_layout = QtWidgets.QVBoxLayout(self)
 		self.config_layout.addWidget(self.scroll_area)
 
+
 		self.setLayout(self.config_layout)
 	
+	def rebuild(self):
+		self.buildWidgetPane(self.la_dict, self.pane_layout)
+
 	def buildWidgetPane(self, root_dict, root_layout):
-		for key, asset in root_dict.items():
-			cb = widgets.CollapsibleSection(title=f"{key.capitalize()} Options")
-			w_dict = self._buildNestedOptionWidgetDict(asset, asset_key=key)
-			for key, widget in dict(sorted(w_dict.items())).items():
-				cb.addWidget(widget)
-			root_layout.addWidget(cb)
+		for section_key, asset in root_dict.items():
+			section_title = f"{section_key.capitalize()} Options"
+			if section_title not in self.sections.keys():
+				self.sections[section_title] = {}
+				self.sections[section_title]['added_to_layout'] = False
+				self.sections[section_title]['opts'] = {}
+				self.sections[section_title]['cb'] = widgets.CollapsibleSection(title=section_title)
+
+			w_dict = self._buildNestedOptionWidgetDict(asset, asset_key=section_key)
+
+			to_remove = []
+			for old_option_key in self.sections[section_title]['opts'].keys():
+				if old_option_key not in w_dict.keys():
+					to_remove.append(old_option_key)
+
+			for opt_key, widget in dict(sorted(w_dict.items())).items():
+				if opt_key not in self.sections[section_title]['opts']:
+					print(f'Option collapsible section {section_title}, adding: {opt_key}')
+					self.sections[section_title]['opts'][opt_key] = widget
+					# won't be in alphabetical order second time round
+					self.sections[section_title]['cb'].addWidget(widget)
+
+			for opt_key in to_remove:
+				print(f'Option collapsible section {section_title}, removing: {opt_key}')
+				self.sections[section_title]['opts'][opt_key].setParent(None)
+				del(self.sections[section_title]['opts'][opt_key])
+
+
+			if not self.sections[section_title]['added_to_layout']:
+				root_layout.addWidget(self.sections[section_title]['cb'])
+				self.sections[section_title]['added_to_layout'] = True
 		return
 
 

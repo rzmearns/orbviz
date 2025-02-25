@@ -12,18 +12,10 @@ import spherapy.orbit as orbit
 
 
 class Spacecraft3DAsset(base_assets.AbstractAsset):
-	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None, sens_suites:dict[str,Any]|None=None):
+	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)		
 		self._setDefaultOptions()
 		self._initData()
-
-		if sens_suites is not None and type(sens_suites) is not dict:
-			raise TypeError(f"sens_suites is not a dict -> {sens_suites}")
-		self.data['sens_suites'] = sens_suites
-		if sens_suites is not None:
-			self.data['num_sens_suites'] = len(sens_suites.keys())
-		else:
-			self.data['num_sens_suites'] = 0
 
 		self.data['pointing_defined'] = False
 
@@ -36,10 +28,10 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 		if self.data['name'] is None:
 			self.data['name'] = 'Spacecraft'
 		self.data['sens_suites'] = {}
-		self.data['num_sens_suites'] = 0
 		self.data['coords'] = np.zeros((4,3))
 		self.data['curr_index'] = 2
 		self.data['pointing'] = None
+		self.data['sc_config'] = None
 
 	def setSource(self, *args, **kwargs) -> None:
 		# args[0] orbit
@@ -47,6 +39,8 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 		# args[2] pointing frame transformation direction
 			# True = ECI->BF
 			# False = BF->ECI
+		# args[3] spacecraft configuration
+
 
 		if len(args) > 1:
 			self.data['pointing_defined'] = True
@@ -79,14 +73,38 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 			self.data['pointing'] = None
 			self.data['pointing_invert_transform'] = None
 
+		if self.data['sc_config'] is not None:
+			old_suite_names = list(self.data['sc_config'].getSensorSuites().keys())
+		else:
+			old_suite_names = []
+
+		if self.data['sc_config'] == args[3]:
+			# config has not changed -> don't need to re-instantiate sensors
+			return
+		self.data['sc_config'] = args[3]
+		self._removeSensorAssets(old_suite_names)
+		self._instantiateSensorAssets()
+
 	def _instantiateAssets(self) -> None:
 		self.assets['body_frame'] = gizmo.BodyGizmo(scale=700,
 													width=3,
 													v_parent=self.data['v_parent'])
-		for key, value in self.data['sens_suites'].items():
+		if self.data['sc_config'] is not None:
+			self._instantiateSensorAssets()
+
+	def _removeSensorAssets(self, old_suite_names:list[str]) -> None:
+		self._removeOldSensorSuitePlotOptions(old_suite_names)
+		for suite_name in old_suite_names:
+				self.assets[f'sensor_suite_{suite_name}'].detachFromParentViewRecursive()
+				del(self.assets[f'sensor_suite_{suite_name}'])
+
+	def _instantiateSensorAssets(self) -> None:
+		for key, value in self.data['sc_config'].getSensorSuites().items():
+			print(value)
 			self.assets[f'sensor_suite_{key}'] = sensors.SensorSuite3DAsset(value,
 																	name=key,
 													 				v_parent=self.data['v_parent'])
+			self.assets[f'sensor_suite_{key}'].setVisibility(False)
 		self._addIndividualSensorSuitePlotOptions()
 
 	def _createVisuals(self) -> None:
@@ -174,14 +192,6 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
-		self._dflt_opts['antialias'] = {'value': True,
-								  		'type': 'boolean',
-										'help': '',
-												'callback': None}
-		self._dflt_opts['plot_spacecraft'] = {'value': True,
-										  		'type': 'boolean',
-												'help': '',
-												'callback': self.setVisibility}		
 		self._dflt_opts['spacecraft_marker_colour'] = {'value': (255,0,0),
 												'type': 'colour',
 												'help': '',
@@ -215,6 +225,9 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 			if isinstance(asset, sensors.SensorSuite3DAsset):
 				asset.setVisibilityRecursive(state)
 
+	def setSensorSuiteVisibility(self, state:bool, sens_suite_name:str) -> None:
+		self.assets[sens_suite_name].setVisibility(state)
+
 	def setOrbitalMarkerVisibility(self, state:bool) -> None:
 		self.visuals['marker'].visible = state
 
@@ -232,9 +245,14 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 
 	#----- HELPER FUNCTIONS -----#
 	def _addIndividualSensorSuitePlotOptions(self) -> None:
-		for key, value in self.data['sens_suites'].items():
+		print(f'Adding sensor suite options dictionary entries for:')
+		for key, value in self.data['sc_config'].getSensorSuites().items():
+			print(f'\tsens_suite:{key}')
 			self.opts[f'plot_sensor_suite_{key}'] = {'value': True,
 													'type': 'boolean',
 													'help': '',
-													'callback': self.assets[f'sensor_suite_{key}'].setVisibility}
-			
+													'callback': self.assets[f'sensor_suite_{key}'].setVisibilityRecursive}
+
+	def _removeOldSensorSuitePlotOptions(self, old_suite_names:list[str]) -> None:
+		for suite_name in old_suite_names:
+			del(self.opts[f'plot_sensor_suite_{suite_name}'])

@@ -64,15 +64,56 @@ class SensorSuiteConfig():
 	def getSensorConfig(self, sensor_name) -> dict[str, Any]:
 		return self.sensors[sensor_name]
 
+	def __eq__(self, other) -> bool:
+		if self is None or other is None:
+			return False
+		if self.name != other.name:
+			return False
+
+		if self.sensors != other.sensors:
+			return False
+
+		return True
+
+class SpacecraftConfig():
+	def __init__(self, name:str, sat_id:int, sensor_suites_dict:dict[str, dict]):
+		self.name = name
+		self.id = sat_id
+		self.sensor_suites = {}
+
+		for suite_name, suite in sensor_suites_dict.items():
+			self.sensor_suites[suite_name] = SensorSuiteConfig(suite_name, suite)
+
+
+	def getNumSuites(self) -> int:
+		return len(self.sensor_suites)
+
+	def getSensorSuites(self):
+		return self.sensor_suites
+
+	def __eq__(self, other) -> bool:
+		if self is None or other is None:
+			return False
+		if self.name != other.name:
+			return False
+
+		if self.id != other.id:
+			return False
+
+		if self.sensor_suites != other.sensor_suites:
+			return False
+
+		return True
+
 class PrimaryConfig():
-	def __init__(self, name:str, satellites:dict[int, str], sensor_suites:dict[str, SensorSuiteConfig]):
+	def __init__(self, name:str, satellites:dict[int, str], sat_configs:dict[str, SpacecraftConfig]):
 		self.name = name
 		self.sats = satellites
-		self.sensor_suites = sensor_suites
+		self.sat_configs = sat_configs
 
 		print(f'{self.name=}')
 		print(f'{self.sats=}')
-		print(f'{self.sensor_suites=}')
+		print(f'{self.sat_configs}')
 
 	@classmethod
 	def fromJSON(cls, path:str | pathlib.Path):
@@ -84,30 +125,46 @@ class PrimaryConfig():
 		with open(p,'r') as fp:
 			data = json.load(fp)
 
-
 		if 'name' not in data.keys():
-			raise KeyError("Constellation json is ill-formatted: missing field 'name'")
-
-		if 'sensor_suites' not in data.keys():
-			raise KeyError("Constellation json is ill-formatted: missing field 'sensor_suites'")
+			raise KeyError("Primary configuration json is ill-formatted: missing field 'name'")
 
 		if 'satellites' not in data.keys():
-			raise KeyError("Constellation json is ill-formatted: missing field 'satellites'")
+			raise KeyError("Primary configuration json is ill-formatted: missing field 'satellites'")
 
 		sats = {}
 		for k,v in data['satellites'].items():
-			sats[v] = k
-		print(f'{sats=}')
+			sat_id = v['id']
+			sats[sat_id] = k
 
-		sens_suites = {}
-		for sat, suites in data['sensor_suites'].items():
-			print(f'{sat=}')
-			if sat not in sats.values():
-				raise KeyError(f"Sensor suites defined for {sat} not found in primary config")
-			for suite_name, suite in suites.items():
-				sens_suites[suite_name] = SensorSuiteConfig(suite_name, suite)
+		sat_configs = {}
+		for k,v in data['satellites'].items():
+			sat_configs['k'] = SpacecraftConfig(k, v['id'], v['sensor_suites'])
 
-		return cls(data['name'], sats, sens_suites)
+		return cls(data['name'], sats, sat_configs)
 
 	def getSatIDs(self) -> list[int]:
 		return list(self.sats.keys())
+
+	def getSatName(self, id:int) -> str:
+		return self.sats[id]
+
+	def getSpacecraftConfig(self, id:int) -> SpacecraftConfig:
+		return self.sat_configs[self.getSatName(id)]
+
+	def getAllSpacecraftConfigs(self):
+		return self.sat_configs
+
+	def __eq__(self, other) -> bool:
+		if self is None or other is None:
+			return False
+		if self.name != other.name:
+			return False
+
+		if self.sats != other.sats:
+			return False
+
+		if self.sat_configs != other.sat_configs:
+			return False
+
+		return True
+

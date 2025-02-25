@@ -28,23 +28,23 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundAsset):
 	def _initData(self, sens_suite_dict:dict[str,Any]) -> None:
 		if self.data['name'] is None:
 			self.data['name'] = 'SensorSuite'
-		self.data['sens_suite_dict'] = sens_suite_dict
+		self.data['sens_suite_config'] = sens_suite_dict
 
 	def setSource(self, *args, **kwargs) -> None:
 		pass
 
 	def _instantiateAssets(self) -> None:
-		for ii in range(len(self.data['sens_suite_dict']['spacecraft']['sensors'].keys())):
-			sens_name = list(self.data['sens_suite_dict']['spacecraft']['sensors'].keys())[ii]
-			sens_dict = list(self.data['sens_suite_dict']['spacecraft']['sensors'].values())[ii]
+		sensor_names = self.data['sens_suite_config'].getSensorNames()
+		for sensor in sensor_names:
+			sens_dict = self.data['sens_suite_config'].getSensorConfig(sensor)
 			if sens_dict['shape'] == 'cone':
-				self.assets[sens_name] = Sensor3DAsset.cone(sens_name, sens_dict, parent=self.data['v_parent'])
+				self.assets[sensor] = Sensor3DAsset.cone(sensor, sens_dict, parent=self.data['v_parent'])
 			elif sens_dict['shape'] == 'square_pyramid':
-				self.assets[sens_name] = Sensor3DAsset.squarePyramid(sens_name, sens_dict, parent=self.data['v_parent'])
-			self.opts[f'plot_{sens_name}'] = {'value': True,
+				self.assets[sensor] = Sensor3DAsset.squarePyramid(sensor, sens_dict, parent=self.data['v_parent'])
+			self.opts[f'plot_{sensor}'] = {'value': True,
 											'type': 'boolean',
 											'help': '',
-											'callback': self.assets[sens_name].setVisibility}
+											'callback': self.assets[sensor].setVisibility}
 
 	def _createVisuals(self) -> None:
 		pass
@@ -71,6 +71,8 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 		super().__init__(sensor_name, v_parent)
 
 		self._setDefaultOptions()
+		if sens_type is None or sens_type not in self.getValidTypes():
+			return ValueError(f"Sensor {sensor_name} has an ill-defined sensor type: {sens_type}")
 		self._initData(sens_type, sensor_name, mesh_verts, mesh_faces, bf_quat, colour)
 
 		if self.data['type'] is None:
@@ -147,7 +149,7 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 		raise NotImplementedError
 
 	@classmethod
-	def getValidTypes(cls) -> None:
+	def getValidTypes(cls) -> list[str]:
 		return ['cone','square_pyramid']
 
 	@classmethod

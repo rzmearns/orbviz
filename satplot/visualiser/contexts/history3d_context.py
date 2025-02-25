@@ -86,7 +86,7 @@ class History3DContext(base.BaseContext):
 		self.data.updateConfig('timespan_period_end', self.controls.orbit_controls.period_end.datetime)
 		self.data.updateConfig('sampling_period', self.controls.orbit_controls.sampling_period.period)
 		# Primary orbits configuration
-		self.data.setPrimarySatellites(self.controls.orbit_controls.getConfig())
+		self.data.setPrimaryConfig(self.controls.orbit_controls.getConfig())
 
 		# Supplemental configuration
 		has_supplemental_constellation = self.controls.orbit_controls.suppl_constellation_selector.isEnabled()
@@ -138,6 +138,7 @@ class History3DContext(base.BaseContext):
 
 	def _updateDataSources(self) -> None:
 		self.canvas_wrapper.modelUpdated()
+		self.controls.rebuildOptions()
 		self.canvas_wrapper.setFirstDrawFlags()
 		self._updateDisplayedIndex(self.controls.time_slider.slider.value())
 
@@ -197,10 +198,11 @@ class History3DContext(base.BaseContext):
 class Controls(base.BaseControls):
 	def __init__(self, parent_context:base.BaseContext, canvas_wrapper:BaseCanvas):
 		self.context = parent_context
+		self.cw = canvas_wrapper
 		super().__init__(self.context.config['name'])
 		# Prep config widgets
 		self.orbit_controls = controls.OrbitConfigs()
-		self.config_controls = controls.OptionConfigs(canvas_wrapper.assets)
+		self.config_controls = controls.OptionConfigs(self.cw.assets)
 
 		# Wrap config widgets in tabs
 		self.config_tabs = QtWidgets.QTabWidget()
@@ -255,3 +257,6 @@ class Controls(base.BaseControls):
 									state['time_slider']['num_ticks'])
 		self.time_slider.setValue(state['time_slider']['curr_index'])
 
+
+	def rebuildOptions(self):
+		self.config_controls.rebuild()

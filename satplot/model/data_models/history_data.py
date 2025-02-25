@@ -44,9 +44,9 @@ class HistoryData(BaseDataModel):
 
 		print("Finished initialising HistoryData")
 
-	def setPrimarySatellites(self, satellite_config:data_types.PrimaryConfig) -> None:
-		self.updateConfig('primary_satellite_config', satellite_config)
-		self.updateConfig('primary_satellite_ids', satellite_config.getSatIDs())
+	def setPrimaryConfig(self, primary_config:data_types.PrimaryConfig) -> None:
+		self.updateConfig('primary_satellite_config', primary_config)
+		self.updateConfig('primary_satellite_ids', primary_config.getSatIDs())
 
 	def setSupplementalConstellation(self, constellation_config:data_types.ConstellationConfig) -> None:
 		self.updateConfig('has_supplemental_constellation', True)
@@ -60,6 +60,9 @@ class HistoryData(BaseDataModel):
 		if self.timespan is None:
 			raise ValueError(f'History data:{self} does not have a timespan yet')
 		return self.timespan
+
+	def getPrimaryConfig(self) -> data_types.PrimaryConfig:
+		return self.getConfigValue('primary_satellite_config')
 
 	def getConstellation(self) -> constellation_data.ConstellationData:
 		if self.constellation is None:
