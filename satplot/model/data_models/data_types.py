@@ -4,6 +4,7 @@ import pathlib
 from typing import Any
 
 import satplot.visualiser.assets.sensors as sensor_asset
+import satplot.visualiser.interface.console as console
 
 class DataType(Enum):
 	BASE = 1
@@ -138,7 +139,11 @@ class PrimaryConfig():
 
 		sat_configs = {}
 		for k,v in data['satellites'].items():
-			sat_configs['k'] = SpacecraftConfig(k, v['id'], v['sensor_suites'])
+			if 'sensor_suites' in v.keys():
+				sat_configs['k'] = SpacecraftConfig(k, v['id'], v['sensor_suites'])
+			else:
+				console.send(f'Spacecraft definition has no sensor suites field.')
+				sat_configs['k'] = SpacecraftConfig(k, v['id'], {})
 
 		return cls(data['name'], sats, sat_configs)
 
