@@ -111,11 +111,11 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 		if self.isStale():
 			T = np.eye(4)
 			if quat is not None:
-				rotation = Rotation.from_quat(quat) * Rotation.from_quat(self.data['bf_quat']).inv()
+				rotation = Rotation.from_quat(quat) * Rotation.from_quat(self.data['bf_quat'])
 				rot_mat = rotation.as_matrix()
 			elif rotation is not None:
 				# bf_quat -> bodyframe to cam quaternion
-				rotation = Rotation.from_matrix(rotation) * Rotation.from_quat(self.data['bf_quat']).inv()
+				rotation = Rotation.from_matrix(rotation) * Rotation.from_quat(self.data['bf_quat'])
 				rot_mat = rotation.as_matrix()
 			else:
 				rot_mat = np.eye(3)
@@ -160,10 +160,10 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 			return []
 
 	@classmethod
-	def cone(cls, sensor_name:str, sensor_dict:dict[str,Any], parent:ViewBox|None=None) -> None:
+	def cone(cls, sensor_name:str, sensor_dict:dict[str,Any], parent:ViewBox|None=None):
 		mesh_verts, mesh_faces  = polyhedra.calcConeMesh((0,0,0),
 								  		sensor_dict['range'],
-										(0,0,1),
+										(1,0,0),
 										sensor_dict['opening_angle'])
 		
 		bf_quat = np.asarray([float(x) for x in sensor_dict['bf_quat'].replace('(','').replace(')','').split(',')]).reshape(1,4)
@@ -171,10 +171,10 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 		return cls(sensor_name, mesh_verts, mesh_faces, bf_quat, colour, sens_type='cone', v_parent=parent)
 
 	@classmethod
-	def squarePyramid(cls, sensor_name:str, sensor_dict:dict[str,Any], parent:ViewBox|None=None) -> None:
+	def squarePyramid(cls, sensor_name:str, sensor_dict:dict[str,Any], parent:ViewBox|None=None):
 		mesh_verts, mesh_faces  = polyhedra.calcSquarePyramidMesh((0,0,0),
 								  		sensor_dict['range'],
-										(0,0,1),
+										(1,0,0),
 										sensor_dict['height_opening_angle'],
 										sensor_dict['width_opening_angle'],
 										axis_sample=2)

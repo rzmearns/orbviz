@@ -99,7 +99,7 @@ def calcSquarePyramidPoints(apex:tuple[float,float,float] | nptyping.NDArray,
 
 	not_e3 = np.array([1,0,0])
 	if(e3 == not_e3).all():
-		not_e3 = np.array([0,1,0])
+		not_e3 = np.array([0,0,1])
 	e1 = pg.unitVector(np.cross(e3, not_e3))
 	e2 = pg.unitVector(np.cross(e3, e1))
 
