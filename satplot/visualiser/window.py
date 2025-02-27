@@ -127,6 +127,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
 	def closeEvent(self, event:QtCore.QEvent) -> None:
 		sys.stderr = sys.__stderr__
-		self.closing.emit()
+
+		if satplot.threadpool is not None:
+			# Clear any waiting jobs
+			satplot.threadpool.clear()
+			# Stop active jobs
+			satplot.threadpool.killAll()
+		print(f'CLOSING')
 		return super().closeEvent(event)
 	

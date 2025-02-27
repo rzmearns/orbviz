@@ -8,6 +8,7 @@ from PyQt5 import QtWidgets, QtCore
 from vispy import app, use
 
 import satplot
+import satplot.util.threading as threading
 from satplot.visualiser.contexts.canvas_wrappers.base_cw import (BaseCanvas)
 import satplot.visualiser.interface.console as console
 import satplot.visualiser.interface.dialogs as dialogs
@@ -30,7 +31,7 @@ class Application():
 		self.save_worker = None
 		self.save_worker_thread = None
 		self.save_file = None
-		satplot.threadpool = QtCore.QThreadPool()
+		satplot.threadpool = threading.Threadpool()
 		print(f"Creating threadpool with {satplot.threadpool.maxThreadCount()} threads")
 
 	def run(self) -> None:

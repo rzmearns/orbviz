@@ -26,7 +26,20 @@ class WorkerSignals(QtCore.QObject):
 	error = QtCore.pyqtSignal(tuple)
 	result = QtCore.pyqtSignal(object)
 	progress = QtCore.pyqtSignal(int)
+	report_finished = QtCore.pyqtSignal(object)
 
+class Flag():
+	def __init__(self, state:bool):
+		self.state:bool = state
+
+	def getState(self) -> bool:
+		return self.state
+
+	def setState(self, state:bool):
+		self.state = state
+
+	def __bool__(self) -> bool:
+		return self.getState()
 
 class Worker(QtCore.QRunnable):
 	"""Worker thread
@@ -47,7 +60,7 @@ class Worker(QtCore.QRunnable):
 		self.args = args
 		self.kwargs = kwargs
 		self.signals = WorkerSignals()
-		self.running = False
+		self.running = Flag(False)
 
 		# Add the callback to our kwargs
 		# self.kwargs['progress_callback'] = self.signals.progress
@@ -57,8 +70,9 @@ class Worker(QtCore.QRunnable):
 		"""Initalise the runner function with passed args, kwargs
 		"""
 		try:
-			self.running = True
-			result = self.fn(*self.args, **self.kwargs)
+			self.running.setState(True)
+			result = self.fn(*self.args, self.running, **self.kwargs)
+			self.running.setState(False)
 		except:
 			traceback.print_exc()
 			exctype, value = sys.exc_info()[:2]
@@ -66,8 +80,41 @@ class Worker(QtCore.QRunnable):
 		else:
 			self.signals.result.emit(result)
 		finally:
-			self.running = False
-			self.signals.finished.emit()
+			if not self.running:
+				self.running.setState(False)
+				self.signals.finished.emit()
+				self.signals.report_finished.emit(self)
 
 	def isRunning(self) -> bool:
-		return self.running
+		return self.running.getState()
+
+	def terminate(self):
+		print(f'SETTING FLAG {self}: FALSE')
+		self.running.setState(False)
+
+
+class Threadpool(QtCore.QThreadPool):
+
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self.running_threads = []
+
+	def getRunningThreads(self) -> list[Worker]:
+		return self.running_threads
+
+	def killAll(self) -> None:
+		if len(self.running_threads) == 0:
+			return
+
+		for ii in range(len(self.running_threads)-1,-1,-1):
+			print(f'Killing thread:{self.running_threads[ii]}')
+			self.running_threads[ii].terminate()
+			print(f'\tthread stopped')
+
+	def logStart(self, thread:Worker) -> None:
+		self.running_threads.append(thread)
+		thread.signals.report_finished.connect(self.clearThreadRecord)
+		self.start(thread)
+
+	def clearThreadRecord(self, thread:Worker) -> None:
+		self.running_threads.remove(thread)

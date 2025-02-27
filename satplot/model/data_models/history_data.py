@@ -146,7 +146,7 @@ class HistoryData(BaseDataModel):
 		for thread_name, thread in self._worker_threads.items():
 			if thread is not None:
 				print(f'Starting thread {thread_name}:{thread}')
-				satplot.threadpool.start(thread)
+				satplot.threadpool.logStart(thread)
 
 	def _procComplete(self) -> None:
 		print("TRIGGERED COMPLETION")
@@ -168,7 +168,7 @@ class HistoryData(BaseDataModel):
 
 		return pointing_dates, pointing_q
 
-	def _propagatePrimaryOrbits(self, timespan:timespan.TimeSpan, sat_ids:list[int]) -> dict[int, orbit.Orbit]:
+	def _propagatePrimaryOrbits(self, timespan:timespan.TimeSpan, sat_ids:list[int], running:threading.Flag) -> dict[int, orbit.Orbit]:
 		updated_list = updater.updateTLEs(sat_ids)
 		# TODO: check number of sats updated == number of sats requested
 		# if collections.Counter(updated_list) == collections.Counter(self.sat_ids):
@@ -180,11 +180,13 @@ class HistoryData(BaseDataModel):
 		console.send(f"Propagating orbit from {tle_paths[0].split('/')[-1]} ...")
 		orbits = {}
 		for ii, sat_id in enumerate(sat_ids):
+			if not running:
+				return orbits
 			orbits[sat_id] = orbit.Orbit.fromTLE(timespan, tle_paths[ii])
 
 		return orbits
 
-	def _propagateConstellationOrbits(self, timespan:timespan.TimeSpan, sat_ids:list[int]) -> dict[int, orbit.Orbit]:
+	def _propagateConstellationOrbits(self, timespan:timespan.TimeSpan, sat_ids:list[int], running:threading.Flag) -> dict[int, orbit.Orbit]:
 		updated_list = updater.updateTLEs(sat_ids)
 		# TODO: check number of sats updated == number of sats requested
 		# if collections.Counter(updated_list) == collections.Counter(self.sat_ids):
@@ -196,6 +198,10 @@ class HistoryData(BaseDataModel):
 		num_sats = len(sat_ids)
 		ii = 0
 		for sat_id in progressbar(sat_ids):
+			print(f'CHECKING FLAG {running}: {running.getState()}')
+			if not running:
+
+				return orbits
 			pc = ii/num_sats*100
 			bar_str = int(pc)*'='
 			space_str = (100-int(pc))*'  '
