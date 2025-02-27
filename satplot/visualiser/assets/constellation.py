@@ -136,7 +136,7 @@ class Constellation(base_assets.AbstractAsset):
 				world_poss.append(curr_world_pos)
 		else:
 			curr_world_pos = (self.data['coords'][self.data['curr_index']]).reshape(1,3)
-			canvas_pos = self.visuals['marker'].get_transform('visual','canvas').map(curr_world_pos)
+			canvas_pos = self.visuals['markers'].get_transform('visual','canvas').map(curr_world_pos)
 			canvas_pos /= canvas_pos[:,3:]
 			canvas_poss.append((canvas_pos[0,0],canvas_pos[0,1]))
 			world_poss.append(curr_world_pos)
@@ -325,7 +325,7 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 		else:
 			beam_axis = -1 * pg.unitVector(self.data['coords'][self.data['curr_index'],:]).reshape(1,3)
 			instance_transforms = Rotation.align_vectors(self.data['start_beam_vec'],
-																beam_axis)[0].as_matrix()
+																beam_axis)[0].as_matrix().reshape(1,3,3)
 		
 		vertices, faces = polyhedra.calcConeMesh((0,0,0),
 												self.data['beam_height'],
@@ -395,7 +395,7 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 			else:
 				beam_axis = -1 * pg.unitVector(self.data['coords'][self.data['curr_index'],:]).reshape(1,3)
 				instance_transforms = np.linalg.inv(Rotation.align_vectors(self.data['start_beam_vec'],
-																beam_axis)[0].as_matrix())
+																beam_axis)[0].as_matrix()).reshape(1,3,3)
 				instance_positions = self.data['coords'][self.data['curr_index'],:].reshape(-1,3)				
 
 			self.visuals['beams'].instance_transforms = instance_transforms
