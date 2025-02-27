@@ -287,10 +287,13 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 			raise TypeError(f"args[3]:beam_height is not a float -> {args[3]}")
 		self.data['beam_height'] = args[3]
 
+		if args[4] >= 180 or args[4] <= 0:
+			raise TypeError(f'args[4]: beam_angle_deg must be be 0<angle<180 -> {args[4]}')
+
 		if type(args[4]) is not float and type(args[4]) is not np.float64:
-			print(type(args[4]))
-			raise TypeError(f"args[4]:beam_angle_deg is not a float -> {args[4]}")
-		self.data['beam_angle_deg'] = args[4]
+			self.data['beam_angle_deg'] = float(args[4])
+		else:
+			self.data['beam_angle_deg'] = args[4]
 
 		# # Create instanced mesh
 		if self._first_creation:
