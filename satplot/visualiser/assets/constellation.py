@@ -63,6 +63,7 @@ class Constellation(base_assets.AbstractAsset):
 		self.data['coords'] = np.zeros((self.data['num_sats'],len(list(sats_dict.values())[0].pos),3))
 		for ii in range(self.data['num_sats']):
 			self.data['coords'][ii,:,:] = list(sats_dict.values())[ii].pos
+		print(f"{np.linalg.norm(self.data['coords'][0,0,:])=}")
 		self.data['beam_height'] = self._calcBeamHeight(self.data['beam_angle_deg']/2,
 												   			np.linalg.norm(list(sats_dict.values())[0].pos[0,:]))
 
@@ -212,9 +213,14 @@ class Constellation(base_assets.AbstractAsset):
 											self.opts['constellation_colour']['value'][2]/darkness_factor)))
 
 	def _calcBeamHeight(self, half_beam_angle:float, vector_length:float|np.floating[Any]) -> float:
-		phi = np.deg2rad(half_beam_angle)
-		altitude = vector_length - c.R_EARTH
-		beam_height = (np.cos(phi)**2 * (vector_length))
+		# calculates beam height such that edge of cone is tangent to the earth where it falls.
+		theta = np.deg2rad(half_beam_angle)
+		gamma = np.arcsin(vector_length*np.sin(theta)/c.R_EARTH)
+		# gamma must be in 2nd quadrant
+		gamma = np.pi - gamma
+		beta = np.pi - theta - gamma
+		cone_range = c.R_EARTH * np.sin(beta)/np.sin(theta)
+		beam_height = cone_range * np.sin(np.pi/2-theta)
 		return beam_height
 	
 class InstancedConstellationBeams(base_assets.AbstractAsset):
