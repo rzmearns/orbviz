@@ -143,6 +143,8 @@ class History3DCanvasWrapper(BaseCanvas):
 			self.assets['constellation'].setSource(self.data_models['history'].getConstellation().getOrbits(),
 													self.data_models['history'].getConstellation().getConfigValue('beam_angle_deg'))
 			self.assets['constellation'].makeActive()
+		else:
+			self.assets['constellation'].makeDormant()
 
 		# Update data source for sun asset
 		if len(self.data_models['history'].getConfigValue('primary_satellite_ids')) > 0:
