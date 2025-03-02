@@ -255,6 +255,11 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 		
 		if type(args[0]) is not int:
 			raise TypeError(f"args[0]:num_sats is not an int -> {args[0]}")
+
+		if self.data['num_sats'] != args[0]:
+			require_beam_reinstantiation = True
+		else:
+			require_beam_reinstantiation = False
 		self.data['num_sats'] = args[0]
 
 		if type(args[1]) is not np.ndarray:
@@ -279,7 +284,8 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 			self.data['beam_angle_deg'] = args[4]
 
 		# # Create instanced mesh
-		if self._first_creation:
+		if self._first_creation or require_beam_reinstantiation:
+			self._detachFromParentView()
 			self._createVisuals()
 			self._first_creation = False
 
