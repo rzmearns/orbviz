@@ -1,3 +1,4 @@
+from functools import reduce
 import numpy as np
 import numpy.typing as nptyping
 import logging
