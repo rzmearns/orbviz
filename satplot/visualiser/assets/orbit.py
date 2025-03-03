@@ -164,9 +164,11 @@ class Orbit3DAsset(base_assets.AbstractAsset):
 	def _sliceData(self) -> None:
 		self.data['past_coords'] = self.data['coords'][:self.data['curr_index']]
 		self.data['future_coords'] = self.data['coords'][self.data['curr_index']:]
-		future_len = len(self.data['future_coords'])
+
+		coords_len = len(self.data['coords'])
 		dash_size = self.opts['orbital_path_future_dash_size']['value']
-		padded_future_len = padded_future_len = future_len - future_len%(2*dash_size)
-		conn_picker = np.arange(padded_future_len).reshape(-1,dash_size*2)[:,:dash_size].reshape(1,-1)[0]
-		conn_picker[np.where(conn_picker < future_len)]
-		self.data['future_conn'] = np.array([np.arange(future_len-1),np.arange(1,future_len)]).T[conn_picker]
+		padded_len = coords_len - coords_len%(2*dash_size)
+
+		conn = np.arange(padded_len-1,-1,-1).reshape(-1,dash_size*2)[:,:dash_size].reshape(1,-1)[0]
+		conn = conn[np.where(conn > self.data['curr_index'])]
+		self.data['future_conn'] = np.vstack((conn,conn-1)).T - self.data['curr_index']
