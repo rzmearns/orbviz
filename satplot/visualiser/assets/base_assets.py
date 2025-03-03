@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import numpy as np
 import numpy.typing as nptyping
+from typing_extensions import Self
 from vispy.scene.widgets.viewbox import ViewBox
 
 class AbstractSimpleAsset(ABC):
@@ -603,9 +604,11 @@ class AbstractAsset(ABC):
 		mo_info = {'screen_pos':[], 'world_pos':[], 'strings':[], 'objects':[]}
 		return mo_info
 
-	def mouseOver(self, index: int) -> None:
-		return
+	def mouseOver(self, index: int) -> Self:
+		return self
 
+	def restoreMouseOver(self) -> None:
+		return
 
 	##### helper functions
 	def _listVisuals(self) -> tuple[list, list]:

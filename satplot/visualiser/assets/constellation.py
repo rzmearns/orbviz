@@ -2,6 +2,7 @@ import numpy as np
 import numpy.typing as nptyping
 from scipy.spatial.transform import Rotation
 from typing import Any
+from typing_extensions import Self
 
 import vispy.color.color_array as vcolor_array
 import vispy.scene as scene
@@ -133,8 +134,12 @@ class Constellation(base_assets.AbstractAsset):
 		mo_info['objects'] = [self]*self.data['num_sats']
 		return mo_info
 
-	def mouseOver(self, index:int) -> None:
+	def mouseOver(self, index:int) -> Self:
 		self.assets['beams'].mouseOver(index)
+		return self
+
+	def restoreMouseOver(self) -> None:
+		return self.assets['beams'].restoreMouseOver()
 
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
@@ -330,6 +335,7 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 												width=self.opts['circle_width']['value'],
 												parent=None)
 		self.data['num_generic_circle_points'] = len(self.data['generic_circle_points'])
+		# scircle is selected beam circle
 		self.data['s_c_conn'] = np.array((0,0)).reshape(-1,2)
 		self.visuals['scircle'] = vVisuals.Line(circles,
 												connect=self.data['s_c_conn'],
@@ -378,10 +384,17 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 			self._clearStaleFlag()
 
 
-	def mouseOver(self, index:int) -> None:
+	def mouseOver(self, index:int) -> Self:
 		self.data['s_c_conn'] = np.array([np.arange(self.data['num_generic_circle_points']-1),
 											np.arange(1,self.data['num_generic_circle_points'])]).T + index * self.data['num_generic_circle_points']
 		self.visuals['scircle'].set_data(connect=self.data['s_c_conn'])
+		return self
+
+
+	def restoreMouseOver(self) -> None:
+		self.data['s_c_conn'] = np.array((0,0)).reshape(-1,2)
+		self.visuals['scircle'].set_data(connect=self.data['s_c_conn'])
+		return
 
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}

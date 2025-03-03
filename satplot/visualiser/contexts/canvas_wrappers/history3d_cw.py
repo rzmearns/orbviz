@@ -55,6 +55,7 @@ class History3DCanvasWrapper(BaseCanvas):
 											colour=(253,255,189),
 											border_colour=(186,186,186),
 											font_size=10)
+		self.mouseOverObject = None
 
 	def _buildAssets(self) -> None:
 		self.assets['earth'] = earth.Earth3DAsset(v_parent=self.view_box.scene)
@@ -239,12 +240,14 @@ class History3DCanvasWrapper(BaseCanvas):
 						self.mouseOverText.setVisible(True)
 						self.mouseOverText.setText(mo_info['strings'][ii].lower().capitalize())
 						self.mouseOverText.setPos((pos[0]+5, pos[1]))
-						mo_info['objects'][ii].mouseOver(ii)
+						self.mouseOverObject = mo_info['objects'][ii].mouseOver(ii)
 						mouse_over_is_highlighting = True
 						return
 
 		self.mouseOverText.setVisible(False)
 		if mouse_over_is_highlighting:
+			if self.mouseOverObject is not None:
+				self.mouseOverObject = self.mouseOverObject.restoreMouseOver()
 			mouse_over_is_highlighting = False
 		last_mevnt_time = time.monotonic()
 
