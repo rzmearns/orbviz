@@ -3,6 +3,7 @@ import numpy as np
 from numpy import typing as nptyping
 import pathlib
 from progressbar import progressbar
+from typing import Any
 
 import satplot
 from satplot.model.data_models.base_models import (BaseDataModel)
@@ -214,6 +215,39 @@ class HistoryData(BaseDataModel):
 
 	def _storeOrbitData(self, orbits:dict[int,orbit.Orbit]) -> None:
 		self.orbits = orbits
+
+
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['timespan'] = self.timespan
+		state['orbits'] = self.orbits
+		state['pointings'] = self.pointings
+		if self.constellation is not None:
+			state['constellation'] = self.constellation.prepSerialisation()
+		else:
+			state['constellation'] = None
+		state['sun'] = self.sun
+		state['moon'] = self.moon
+		state['geo_locations'] = self.geo_locations
+		state['config'] = self.config
+
+		return state
+
+	def deSerialise(self, state):
+		self.timespan = state['timespan']
+		self.orbits = state['orbits']
+		self.pointings = state['pointings']
+		if state['constellation'] is not None:
+			self.constellation = constellation_data.ConstellationData.emptyForDeSerialisation()
+			self.constellation.deSerialise(state['constellation'])
+			self.constellation.setTimespan(self.timespan)
+		else:
+			self.constellation = None
+		self.sun = state['sun']
+		self.moon = state['moon']
+		self.geo_locations = state['geo_locations']
+		super().deSerialise(state)
+
 
 def date_parser(d_bytes) -> dt.datetime:
 	d_bytes = d_bytes[:d_bytes.index(b'.')+4]

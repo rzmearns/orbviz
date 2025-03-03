@@ -45,12 +45,12 @@ class BaseDataModel(QtCore.QObject):
 		self.data_err.emit()
 
 	@abstractmethod
-	def serialise(self):
+	def prepSerialisation(self) -> dict[str, Any]:
 		raise NotImplementedError()
 
-	@abstractmethod
-	def deSerialise(self):
-		raise NotImplementedError()
+	def deSerialise(self, state:dict) -> None:
+		for k,v in state['config'].items():
+			self.updateConfig(k,v)
 
 	def printConfig(self) -> None:
 		print(f"Data Config for {self.getConfigValue('data_type')}")

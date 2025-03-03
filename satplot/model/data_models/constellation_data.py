@@ -1,3 +1,5 @@
+from typing import Any
+
 from satplot.model.data_models.base_models import (BaseDataModel)
 import satplot.model.data_models.data_types as data_types
 import spherapy.orbit as orbit
@@ -40,3 +42,20 @@ class ConstellationData(BaseDataModel):
 
 	def _storeOrbitData(self, orbits:dict[int,orbit.Orbit]) -> None:
 		self.orbits = orbits
+
+
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['orbits'] = self.orbits
+		# don't serialise timespan, link it back to history data at deserialisation time
+		state['config'] = self.config
+
+		return state
+
+	def deSerialise(self,state):
+		self.orbits = state['orbits']
+		super().deSerialise(state)
+
+	@classmethod
+	def emptyForDeSerialisation(cls):
+		return cls({'name':'','beam_width':0,'satellites':{}})

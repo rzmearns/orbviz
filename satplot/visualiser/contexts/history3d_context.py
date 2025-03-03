@@ -155,7 +155,10 @@ class History3DContext(base.BaseContext):
 		pass
 
 	def deSerialise(self, state_dict: dict[str, Any]) -> None:
-		pass
+		self.data.deSerialise(state_dict['data'])
+		self.controls.deSerialise(state_dict['controls'])
+		self.canvas_wrapper.deSerialise(state_dict['camera'])
+		self._updateDataSources()
 		# self.data = state_dict['data']
 		# self.canvas_wrapper.setSource(self.data['timespan'],
 		# 								self.data['orbit'],
@@ -165,12 +168,12 @@ class History3DContext(base.BaseContext):
 		# 								self.data['constellation_beam_angle'])
 		# self.canvas_wrapper.setFirstDrawFlags()
 		# console.send(f"Drawing {self.data['name']} Assets...")
-		# self.controls.deSerialise(state_dict['controls'])
+
 		# self.canvas_wrapper.deSerialise(state_dict['camera'])
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
-		state['data'] = self.data
+		state['data'] = self.data.prepSerialisation()
 		state['controls'] = self.controls.prepSerialisation()
 		state['camera'] = self.canvas_wrapper.prepSerialisation()
 		return state

@@ -50,7 +50,7 @@ class BaseContext(ABC):
 		return state
 
 	def deSerialise(self, state_dict):
-		raise NotImplementedError()
+		pass
 	
 class BaseControls:
 	@abstractmethod
