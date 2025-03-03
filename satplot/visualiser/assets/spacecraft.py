@@ -138,7 +138,7 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 		# 											parent=None)
 		# self.visuals['vector_st'] = scene.visuals.Line(self.data['v_coords_st'], color=colours.normaliseColour((0,255,255)),
 		# 											parent=None)
-		
+		self._constructVisibilityStruct()
 
 	# Use AbstractAsset.updateIndex()
 
@@ -205,6 +205,7 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 
 	def setAttitudeAssetsVisibility(self, state):
 		self.setBodyFrameVisibility(state)
+
 		self.setAllSensorSuitesVisibility(state)
 
 	def _setDefaultOptions(self) -> None:
@@ -252,14 +253,13 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 			if isinstance(asset, sensors.SensorSuite3DAsset):
 				asset.setVisibilityRecursive(state)
 
-	def setSensorSuiteVisibility(self, state:bool, sens_suite_name:str) -> None:
-		self.assets[sens_suite_name].setVisibility(state)
-
 	def setOrbitalMarkerVisibility(self, state:bool) -> None:
 		self.visuals['marker'].visible = state
+		self._visuals_visibility['marker'] = state
 
 	def setBodyFrameVisibility(self, state:bool) -> None:
 		self.assets['body_frame'].setVisibility(state)
+		self._visuals_visibility['body_frame'] = state
 
 	def setOrbitalMarkerSize(self, value:int) -> None:
 		self.opts['spacecraft_marker_size']['value'] = value
@@ -279,7 +279,7 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 													'type': 'boolean',
 													'help': '',
 													'static': False,
-													'callback': self.assets[f'sensor_suite_{key}'].setVisibilityRecursive,
+													'callback': self.assets[f'sensor_suite_{key}'].setSuiteVisibility,
 													'widget': None}
 
 	def _removeOldSensorSuitePlotOptions(self, old_suite_names:list[str]) -> None:

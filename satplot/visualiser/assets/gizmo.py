@@ -36,6 +36,8 @@ class BodyGizmo(base_assets.AbstractSimpleAsset):
 														parent=None)
 		scale_vec = self.opts['gizmo_scale']['value']*np.ones((1,3))
 		self.visuals['gizmo'].transform = vTransforms.STTransform(scale=scale_vec).as_matrix()
+		self._constructVisibilityStruct()
+
 
 	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
 							 rotation:nptyping.NDArray=np.eye(3)) -> None:

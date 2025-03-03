@@ -3,6 +3,7 @@ import numpy as np
 import numpy.typing as nptyping
 from typing_extensions import Self
 from vispy.scene.widgets.viewbox import ViewBox
+import types
 
 class AbstractSimpleAsset(ABC):
 
@@ -14,6 +15,7 @@ class AbstractSimpleAsset(ABC):
 		self.is_active = False
 		# dict storing vispy visuals to be drawn as part of this asset
 		self.visuals = {}
+		self._visuals_visibility = {}
 		# dict storing crucial data for this asset
 		self.data = {}
 		self.data['name'] = None
@@ -117,8 +119,16 @@ class AbstractSimpleAsset(ABC):
 		return self.first_draw
 
 	def setVisibility(self, state:bool) -> None:
-		for visual in self.visuals.values():
-			visual.visible = state
+		print(f'Setting visibility for {self} to {state}')
+		for visual_name, visual in self.visuals.items():
+			if state:
+				if self._visuals_visibility[visual_name]:
+					visual.visible = state
+				else:
+					# visual was not visible before entire asset was toggled, keep it that way now that asset is visible
+					pass
+			else:
+				visual.visible = state
 
 	def setVisibilityRecursive(self, state:bool) -> None:
 		'''Sets the visibility of this asset and all child-assets'''
@@ -134,6 +144,11 @@ class AbstractSimpleAsset(ABC):
 	def _createVisuals(self) -> None:
 		'''Create visuals on canvas'''
 		raise NotImplementedError
+
+	def _constructVisibilityStruct(self) -> None:
+		for visual_name, visual in self.visuals.items():
+			if visual_name not in self._visuals_visibility.keys():
+				self._visuals_visibility[visual_name] = True
 
 	@abstractmethod
 	def _setDefaultOptions(self) -> None:
@@ -188,6 +203,7 @@ class AbstractCompoundAsset(ABC):
 		self.assets = {}
 		# dict storing vispy visuals to be drawn as part of this asset
 		self.visuals = {}
+		self._visuals_visibility = {}
 		# dict storing crucial data for this asset
 		self.data = {}
 		self.data['name'] = None
@@ -303,8 +319,16 @@ class AbstractCompoundAsset(ABC):
 		return self.first_draw
 
 	def setVisibility(self, state:bool) -> None:
-		for visual in self.visuals.values():
-			visual.visible = state
+		print(f'Setting visibility for {self} to {state}')
+		for visual_name, visual in self.visuals.items():
+			if state:
+				if self._visuals_visibility[visual_name]:
+					visual.visible = state
+				else:
+					# visual was not visible before entire asset was toggled, keep it that way now that asset is visible
+					pass
+			else:
+				visual.visible = state
 
 	def setVisibilityRecursive(self, state) -> None:
 		'''Sets the visibility of this asset and all child-assets'''
@@ -328,6 +352,11 @@ class AbstractCompoundAsset(ABC):
 	def _createVisuals(self) -> None:
 		'''Create visuals on canvas'''
 		raise NotImplementedError
+
+	def _constructVisibilityStruct(self) -> None:
+		for visual_name, visual in self.visuals.items():
+			if visual_name not in self._visuals_visibility.keys():
+				self._visuals_visibility[visual_name] = True
 
 	@abstractmethod
 	def _setDefaultOptions(self) -> None:
@@ -401,6 +430,7 @@ class AbstractAsset(ABC):
 		self.is_active = False
 		# dict storing vispy visuals to be drawn as part of this asset
 		self.visuals = {}
+		self._visuals_visibility = {}
 		# dict storing satplot child assets
 		self.assets = {}
 		# dict storing crucial data for this asset
@@ -532,8 +562,15 @@ class AbstractAsset(ABC):
 
 	def setVisibility(self, state:bool) -> None:
 		print(f'Setting visibility for {self} to {state}')
-		for visual in self.visuals.values():
-			visual.visible = state
+		for visual_name, visual in self.visuals.items():
+			if state:
+				if self._visuals_visibility[visual_name]:
+					visual.visible = state
+				else:
+					# visual was not visible before entire asset was toggled, keep it that way now that asset is visible
+					pass
+			else:
+				visual.visible = state
 
 	def setVisibilityRecursive(self, state:bool) -> None:
 		'''Sets the visibility of this asset and all child-assets'''
@@ -558,6 +595,11 @@ class AbstractAsset(ABC):
 	def _createVisuals(self) -> None:
 		'''Create visuals on canvas'''
 		raise NotImplementedError
+
+	def _constructVisibilityStruct(self) -> None:
+		for visual_name, visual in self.visuals.items():
+			if visual_name not in self._visuals_visibility.keys():
+				self._visuals_visibility[visual_name] = True
 
 	@abstractmethod
 	def _setDefaultOptions(self) -> None:

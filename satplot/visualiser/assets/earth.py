@@ -81,7 +81,7 @@ class Earth3DAsset(base_assets.AbstractAsset):
 													antialias=True,
 													connect=self.data['landmass_conn'],
 													parent=None)
-
+		self._constructVisibilityStruct()
 	# Use AbstractAsset.updateIndex()
 
 	def recomputeRedraw(self) -> None:
@@ -189,12 +189,15 @@ class Earth3DAsset(base_assets.AbstractAsset):
 
 	def setEarthAxisVisibility(self, state:bool) -> None:
 		self.visuals['earth_axis'].visible = state
+		self._visuals_visibility['earth_axis'] = state
 
 	def setLandmassVisibility(self, state:bool) -> None:
 		self.visuals['landmass'].visible = state
+		self._visuals_visibility['landmass'] = state
 
 	def setEarthSphereVisibility(self, state:bool) -> None:
 		self.visuals['earth_sphere'].visible = state
+		self._visuals_visibility['earth_sphere'] = state
 
 	#----- HELPER FUNCTIONS -----#
 	def _convertShapeFilePolys(self, poly):
@@ -268,6 +271,7 @@ class ParallelsGrid3DAsset(base_assets.AbstractSimpleAsset):
 								antialias=True,
 								connect=self.data['p_conn'],
 								parent=None)
+		self._constructVisibilityStruct()
 
 	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
 						 rotation:nptyping.NDArray=np.eye(3)) -> None:
@@ -316,12 +320,14 @@ class ParallelsGrid3DAsset(base_assets.AbstractSimpleAsset):
 			self.visuals['parallels'].parent = self.data['v_parent']
 		else:
 			self.visuals['parallels'].parent = None
+		self._visuals_visibility['parallels'] = state
 
 	def setEquatorVisibility(self, state:bool) -> None:
 		if state:
 			self.visuals['equator'].parent = self.data['v_parent']
 		else:
 			self.visuals['equator'].parent = None
+		self._visuals_visibility['equator'] = state
 
 	def _updateLineVisualsOptions(self) -> None:
 		self.visuals['equator'].set_data(pos=self.data['init_eq_coords'],
@@ -403,7 +409,7 @@ class MeridiansGrid3DAsset(base_assets.AbstractSimpleAsset):
 								antialias=True,
 								connect=self.data['m_conn'],
 								parent=None)
-
+		self._constructVisibilityStruct()
 		self.setTransform()
 
 	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),

@@ -57,6 +57,7 @@ class Orbit3DAsset(base_assets.AbstractAsset):
 													antialias=True,
 													width = self.opts['orbital_path_width']['value'],
 													parent=None)
+		self._constructVisibilityStruct()
 
 	# Override AbstractAsset.updateIndex()
 	def updateIndex(self, index:int) -> None:
@@ -150,10 +151,12 @@ class Orbit3DAsset(base_assets.AbstractAsset):
 
 	def setOrbitalPathFutureVisibility(self, state:bool) -> None:
 		self.visuals['future'].visible = state
+		self._visuals_visibility['future'] = state
 		
 
 	def setOrbitalPathPastVisibility(self, state:bool) -> None:
 		self.visuals['past'].visible = state
+		self._visuals_visibility['past'] = state
 
 	
 

@@ -42,9 +42,8 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundAsset):
 			elif sens_dict['shape'] == 'square_pyramid':
 				self.assets[sensor] = Sensor3DAsset.squarePyramid(sensor, sens_dict, parent=self.data['v_parent'])
 
-
 	def _createVisuals(self) -> None:
-		pass
+		self._constructVisibilityStruct()
 
 	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
 							 rotation:nptyping.NDArray|None=None, quat:nptyping.NDArray|None=None) -> None:
@@ -61,6 +60,10 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundAsset):
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
 		self.opts = self._dflt_opts.copy()
+
+	def setSuiteVisibility(self, state:bool) -> None:
+		for asset in self.assets.values():
+			asset.setSensorVisibility(state)
 
 class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 	def __init__(self, sensor_name, mesh_verts, mesh_faces,
@@ -102,6 +105,7 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 		alpha_filter = vFilters.Alpha(self.opts['sensor_cone_alpha']['value'])
 		self.visuals['sensor_cone'].attach(alpha_filter)
 		self.visuals['sensor_cone'].attach(wireframe_filter)
+		self._constructVisibilityStruct()
 
 	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
 							 rotation:nptyping.NDArray|None=None, quat:nptyping.NDArray|None=None) -> None:
@@ -148,6 +152,11 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 
 	def setSensorConeAlpha(self, alpha:float) -> None:
 		raise NotImplementedError
+
+	def setSensorVisibility(self, state):
+		for visual_name, visual in self.visuals.items():
+			visual.visible = state
+			self._visuals_visibility[visual_name] = state
 
 	@classmethod
 	def getValidTypes(cls) -> list[str]:

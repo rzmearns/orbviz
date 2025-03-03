@@ -95,6 +95,7 @@ class Constellation(base_assets.AbstractAsset):
 														symbol='o',
 														antialias=0,
 														parent=None)
+		self._constructVisibilityStruct()
 
 	# Use AbstractAsset.updateIndex()
 
@@ -205,9 +206,11 @@ class Constellation(base_assets.AbstractAsset):
 
 	def setConstellationMarkersVisibility(self, state:bool) -> None:
 		self.visuals['markers'].visible = state
+		self._visuals_visibility['markers'] = state
 
 	def setConstellationBeamsVisibility(self, state:bool) -> None:
 		self.assets['beams'].setVisibility(state)
+		self._visuals_visibility['beams'] = state
 
 	def _updateMarkers(self):
 		darkness_factor = 1
@@ -353,6 +356,9 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 		print(self.visuals['beams']._meshdata.n_faces)
 		self.data['beams_alpha_filter'] = vFilters.Alpha(self.opts['beams_alpha']['value'])
 		self.visuals['beams'].attach(self.data['beams_alpha_filter'])
+		self._constructVisibilityStruct()
+
+
 	# Use AbstractAsset.updateIndex()
 
 	def recomputeRedraw(self) -> None:
@@ -545,6 +551,8 @@ class ConstellationBeams(base_assets.AbstractAsset):
 				print(f"T:{T}")
 			self.visuals['beams'][ii].transform = transform
 			self.visuals['beams'][ii].attach(self.data['beams_alpha_filter'])
+		self._constructVisibilityStruct()
+
 
 	# Use AbstractAsset.updateIndex()
 
@@ -609,3 +617,4 @@ class ConstellationBeams(base_assets.AbstractAsset):
 	def setVisibility(self, state:bool) -> None:
 		for ii in range(self.data['num_sats']):
 			self.visuals['beams'][ii].visible = False
+		self._visuals_visibility['beams'] = state

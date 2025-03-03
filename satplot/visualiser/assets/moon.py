@@ -41,6 +41,7 @@ class Moon3DAsset(base_assets.AbstractAsset):
 												method='latitude',
 												color=colours.normaliseColour(self.opts['moon_sphere_colour']['value']),
 												parent=None)
+		self._constructVisibilityStruct()
 
 	# Override AbstractAsset.updateIndex()
 	def updateIndex(self, index:int) -> None:

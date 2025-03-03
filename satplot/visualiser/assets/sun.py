@@ -65,6 +65,7 @@ class Sun3DAsset(base_assets.AbstractAsset):
 		self._createSunVisual()
 		self._createUmbraVisual()
 		self._createVectorVisual()
+		self._constructVisibilityStruct()
 
 	def _createSunVisual(self):
 		# Sun Sphere
@@ -253,6 +254,7 @@ class Sun3DAsset(base_assets.AbstractAsset):
 
 	def setSunSphereVisibility(self, state):
 		self.visuals['sun_sphere'].visible = state
+		self._visuals_visibility['sun_sphere'] = state
 
 	def setSunDistance(self, distance):
 		self.opts['sun_distance_kms']['value'] = distance
@@ -308,10 +310,14 @@ class Sun3DAsset(base_assets.AbstractAsset):
 
 	def setUmbraVisibility(self, state):
 		self.visuals['umbra'].visible = state
+		self._visuals_visibility['umbra'] = state
 
 	def setSunVectorVisibility(self, state):
 		self.visuals['vector_body'].visible = state
 		self.visuals['vector_head'].visible = state
+		self._visuals_visibility['vector_body'] = state
+		self._visuals_visibility['vector_head'] = state
+
 
 	def setSunVectorColour(self, new_colour):
 		print(f"Changing sun vector colour {self.opts['sun_vector_colour']['value']} -> {new_colour}")
