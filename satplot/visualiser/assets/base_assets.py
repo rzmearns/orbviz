@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
+from inspect import Attribute
 import numpy as np
 import numpy.typing as nptyping
+from typing import Any
 from typing_extensions import Self
 from vispy.scene.widgets.viewbox import ViewBox
-import types
 
 class AbstractSimpleAsset(ABC):
 
@@ -121,6 +122,8 @@ class AbstractSimpleAsset(ABC):
 	def setVisibility(self, state:bool) -> None:
 		print(f'Setting visibility for {self} to {state}')
 		for visual_name, visual in self.visuals.items():
+			if visual is None:
+				continue
 			if state:
 				if self._visuals_visibility[visual_name]:
 					visual.visible = state
@@ -133,6 +136,17 @@ class AbstractSimpleAsset(ABC):
 	def setVisibilityRecursive(self, state:bool) -> None:
 		'''Sets the visibility of this asset and all child-assets'''
 		self.setVisibility(state)
+
+	def prepSerialisation(self) -> dict[str, Any]:
+		return self._visuals_visibility
+
+	def deSerialise(self, state):
+		print(f"Deserialisation of visibility for {self}")
+		for k,v in state.items():
+			print(f'\t{k}:{v}')
+			if k not in self._visuals_visibility.keys():
+				raise ValueError(f"During deserialisation: {k} visual name in saved data does not match existing asset visuals")
+			self._visuals_visibility[k] = v
 
 	@abstractmethod
 	def _initData(self, *args, **kwargs) -> None:
@@ -321,6 +335,8 @@ class AbstractCompoundAsset(ABC):
 	def setVisibility(self, state:bool) -> None:
 		print(f'Setting visibility for {self} to {state}')
 		for visual_name, visual in self.visuals.items():
+			if visual is None:
+				continue
 			if state:
 				if self._visuals_visibility[visual_name]:
 					visual.visible = state
@@ -335,6 +351,25 @@ class AbstractCompoundAsset(ABC):
 		self.setVisibility(state)
 		for asset in self.assets.values():
 			asset.setVisibilityRecursive(state)
+
+	def prepSerialisation(self) -> dict[str, Any]:
+		visibility_state = {}
+		for asset_name, asset in self.assets.items():
+			visibility_state[f'asset_visibility_{asset_name}'] = asset.prepSerialisation()
+		for k,v in self._visuals_visibility.items():
+			visibility_state[k] = v
+		return visibility_state
+
+	def deSerialise(self, state):
+		print(f"Deserialisation of visibility for {self}")
+		for k,v in state.items():
+			if 'asset_visibility' in k:
+				self.assets[k.removeprefix('asset_visibility_')].deSerialise(v)
+				continue
+			print(f'\t{k}:{v}')
+			if k not in self._visuals_visibility.keys():
+				raise ValueError(f"During deserialisation: {k} visual name in saved data does not match existing asset visuals")
+			self._visuals_visibility[k] = v
 
 	@abstractmethod
 	def _initData(self, *args, **kwargs) -> None:
@@ -563,6 +598,8 @@ class AbstractAsset(ABC):
 	def setVisibility(self, state:bool) -> None:
 		print(f'Setting visibility for {self} to {state}')
 		for visual_name, visual in self.visuals.items():
+			if visual is None:
+				continue
 			if state:
 				if self._visuals_visibility[visual_name]:
 					visual.visible = state
@@ -578,6 +615,25 @@ class AbstractAsset(ABC):
 		for asset in self.assets.values():
 			asset.setVisibilityRecursive(state)
 
+
+	def prepSerialisation(self) -> dict[str, Any]:
+		visibility_state = {}
+		for asset_name, asset in self.assets.items():
+			visibility_state[f'asset_visibility_{asset_name}'] = asset.prepSerialisation()
+		for k,v in self._visuals_visibility.items():
+			visibility_state[k] = v
+		return visibility_state
+
+	def deSerialise(self, state):
+		print(f"Deserialisation of visibility for {self}")
+		for k,v in state.items():
+			if 'asset_visibility' in k:
+				self.assets[k.removeprefix('asset_visibility_')].deSerialise(v)
+				continue
+			print(f'\t{k}:{v}')
+			if k not in self._visuals_visibility.keys():
+				raise ValueError(f"During deserialisation: {k} visual name in saved data does not match existing asset visuals")
+			self._visuals_visibility[k] = v
 
 	@abstractmethod
 	def _initData(self, *args, **kwargs):

@@ -159,6 +159,7 @@ class History3DContext(base.BaseContext):
 		self.controls.deSerialise(state_dict['controls'])
 		self.canvas_wrapper.deSerialise(state_dict['camera'])
 		self._updateDataSources()
+		self.canvas_wrapper.deSerialiseVisibility(state_dict['camera'])
 		# self.data = state_dict['data']
 		# self.canvas_wrapper.setSource(self.data['timespan'],
 		# 								self.data['orbit'],
