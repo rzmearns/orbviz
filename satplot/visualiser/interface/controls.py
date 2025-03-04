@@ -106,7 +106,7 @@ class PointingFileControls(QtWidgets.QWidget):
 		glayout.addWidget(self._enable,1,2)
 
 		self._pointing_file_selector = widgets.FilePicker(None,
-												   			dflt_file='20240801_test_quaternion_X_ECI_parallel_Z_Zenith.csv',
+												   			dflt_file='20240108_test_quaternion_X_ECI_parallel_Z_Zenith.csv',
 															dflt_dir='data/pointing/',
 															save=False,
 															margins=[0,0,0,0])
