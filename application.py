@@ -2,6 +2,7 @@ import argparse
 import datetime as dt
 import pathlib
 import pickle
+from typing import Any
 import warnings
 
 from PyQt5 import QtWidgets, QtCore
@@ -70,7 +71,7 @@ class Application():
 
 	def _saveState(self) -> None:
 		console.send(f'Saving State to {self.save_file}')
-		state = self.window.serialiseContexts()
+		state = self.prepSerialisation()
 		if self.save_file is not None:
 			with open(self.save_file, 'wb') as picklefp:
 				pickle.dump(state, picklefp)
@@ -87,7 +88,8 @@ class Application():
 		console.send(f'Loading State from {load_file}')
 		with open(load_file, 'rb') as picklefp:
 			state = pickle.load(picklefp)
-		self.window.deserialiseContexts(state)
+		self.deSerialise(state)
+
 
 	def _openFileDialog(self, caption: str, dir:pathlib.Path, dflt_filename:str|None, save=True) -> pathlib.Path:
 		if dflt_filename is None:
@@ -107,6 +109,22 @@ class Application():
 																"pickles (*.pickle)",
 																options=options)			
 		return pathlib.Path(filename)
+
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['window_contexts'] = self.window.serialiseContexts()
+		state['metadata'] = {}
+		state['metadata']['version'] = satplot.version
+		state['metadata']['gl_plus'] = satplot.gl_plus
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		if state['metadata']['version'] != satplot.version:
+			print(f"This satplot state was not created with this version of satplot: file {state['metadata']['version']}, satplot {satplot.verison}")
+		if state['metadata']['gl_plus'] != satplot.gl_plus:
+			print(f"WARNING: this file was created with a different GL mode: GL+ = {satplot.gl_plus}. It may not load correctly.")
+
+		self.window.deserialiseContexts(state['window_contexts'])
 
 def setDefaultPackageOptions() -> None:
 	satplot.running = True
@@ -130,6 +148,8 @@ if __name__ == '__main__':
 		satplot.gl_plus = False
 	if args.debug:
 		satplot.debug = True
+	print(f"Satplot:")
+	print(f"\tVersion:{satplot.version}")
 	application = Application()
 	application.run()
 
