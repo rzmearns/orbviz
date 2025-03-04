@@ -43,7 +43,7 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundAsset):
 				self.assets[sensor] = Sensor3DAsset.squarePyramid(sensor, sens_dict, parent=self.data['v_parent'])
 
 	def _createVisuals(self) -> None:
-		self._constructVisibilityStruct()
+		pass
 
 	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
 							 rotation:nptyping.NDArray|None=None, quat:nptyping.NDArray|None=None) -> None:
@@ -105,7 +105,6 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 		alpha_filter = vFilters.Alpha(self.opts['sensor_cone_alpha']['value'])
 		self.visuals['sensor_cone'].attach(alpha_filter)
 		self.visuals['sensor_cone'].attach(wireframe_filter)
-		self._constructVisibilityStruct()
 
 	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
 							 rotation:nptyping.NDArray|None=None, quat:nptyping.NDArray|None=None) -> None:
@@ -156,7 +155,6 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 	def setSensorVisibility(self, state):
 		for visual_name, visual in self.visuals.items():
 			visual.visible = state
-			self._visuals_visibility[visual_name] = state
 
 	@classmethod
 	def getValidTypes(cls) -> list[str]:

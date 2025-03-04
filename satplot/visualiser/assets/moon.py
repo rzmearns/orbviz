@@ -41,7 +41,6 @@ class Moon3DAsset(base_assets.AbstractAsset):
 												method='latitude',
 												color=colours.normaliseColour(self.opts['moon_sphere_colour']['value']),
 												parent=None)
-		self._constructVisibilityStruct()
 
 	# Override AbstractAsset.updateIndex()
 	def updateIndex(self, index:int) -> None:
@@ -67,7 +66,7 @@ class Moon3DAsset(base_assets.AbstractAsset):
 										  		'type': 'boolean',
 												'help': '',
 												'static': True,
-												'callback': self.setVisibility,
+												'callback': self.setMoonSphereVisibility,
 											'widget': None}
 		self._dflt_opts['moon_sphere_colour'] = {'value': (61,61,61),
 												'type': 'colour',
@@ -121,3 +120,6 @@ class Moon3DAsset(base_assets.AbstractAsset):
 		self.setStaleFlagRecursive()
 		self.recomputeRedraw()
 
+	def setMoonSphereVisibility(self, state:bool) -> None:
+		self.opts['plot_moon']['value'] = state
+		self.visuals['moon'].visible = self.opts['plot_moon']['value']

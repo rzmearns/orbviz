@@ -95,7 +95,6 @@ class Constellation(base_assets.AbstractAsset):
 														symbol='o',
 														antialias=0,
 														parent=None)
-		self._constructVisibilityStruct()
 
 	# Use AbstractAsset.updateIndex()
 
@@ -205,12 +204,12 @@ class Constellation(base_assets.AbstractAsset):
 		self._updateMarkers()
 
 	def setConstellationMarkersVisibility(self, state:bool) -> None:
-		self.visuals['markers'].visible = state
-		self._visuals_visibility['markers'] = state
+		self.opts['plot_constellation_position_markers']['value'] = state
+		self.visuals['markers'].visible = self.opts['plot_constellation_position_markers']['value']
 
 	def setConstellationBeamsVisibility(self, state:bool) -> None:
-		self.assets['beams'].setVisibility(state)
-		self._visuals_visibility['beams'] = state
+		self.opts['plot_constellation_beams']['value'] = state
+		self.assets['beams'].setVisibility(self.opts['plot_constellation_beams']['value'])
 
 	def _updateMarkers(self):
 		darkness_factor = 1
@@ -356,7 +355,6 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 		print(self.visuals['beams']._meshdata.n_faces)
 		self.data['beams_alpha_filter'] = vFilters.Alpha(self.opts['beams_alpha']['value'])
 		self.visuals['beams'].attach(self.data['beams_alpha_filter'])
-		self._constructVisibilityStruct()
 
 
 	# Use AbstractAsset.updateIndex()
@@ -428,9 +426,10 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 	def setBeamsColour(self, new_colour:tuple[int,int,int]) -> None:
 		print(f"Changing instanced beams colour {self.opts['beams_colour']['value']} -> {new_colour}")
 		self.opts['beams_colour']['value'] = new_colour
-		new_cols_array = vcolor_array.ColorArray([colours.normaliseColour(self.opts['beams_colour']['value'])]*self.data['num_sats'])
-		self.visuals['beams'].instance_colors = new_cols_array
-		self._updateLineVisualsOptions()
+		if self.data['num_sats'] > 0:
+			new_cols_array = vcolor_array.ColorArray([colours.normaliseColour(self.opts['beams_colour']['value'])]*self.data['num_sats'])
+			self.visuals['beams'].instance_colors = new_cols_array
+			self._updateLineVisualsOptions()
 
 	def setBeamsAlpha(self, alpha:float) -> None:
 		print(f"Changing instanced beams alpha {self.opts['beams_alpha']['value']} -> {alpha}")
@@ -442,8 +441,9 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 		self._updateLineVisualsOptions()
 
 	def _updateLineVisualsOptions(self) -> None:
-		self.visuals['circles'].set_data(width=self.opts['circle_width']['value'],
-										 color=colours.normaliseColour(self.opts['beams_colour']['value']))
+		if self.visuals['circles'] is not None:
+			self.visuals['circles'].set_data(width=self.opts['circle_width']['value'],
+											 color=colours.normaliseColour(self.opts['beams_colour']['value']))
 
 	def _genBeamCircles(self, instance_transforms:list[nptyping.NDArray]|nptyping.NDArray,
 							 instance_positions:list[nptyping.NDArray]|nptyping.NDArray) -> nptyping.NDArray | None:
@@ -551,7 +551,6 @@ class ConstellationBeams(base_assets.AbstractAsset):
 				print(f"T:{T}")
 			self.visuals['beams'][ii].transform = transform
 			self.visuals['beams'][ii].attach(self.data['beams_alpha_filter'])
-		self._constructVisibilityStruct()
 
 
 	# Use AbstractAsset.updateIndex()
@@ -601,20 +600,16 @@ class ConstellationBeams(base_assets.AbstractAsset):
 	def setBeamsColour(self, new_colour:tuple[float,float,float]) -> None:
 		print(f"Changing beams colour {self.opts['beams_colour']['value']} -> {new_colour}")
 		self.opts['beams_colour']['value'] = new_colour
-		for ii in range(self.data['num_sats']):
-			n_faces = self.visuals['beams']._meshdata.n_faces
-			n_verts = self.visuals['beams']._meshdata.n_vertices
-			self.visuals['beams']._meshdata.set_face_colors(np.tile(colours.normaliseColour(new_colour),(n_faces,1)))
-			self.visuals['beams']._meshdata.set_vertex_colors(np.tile(colours.normaliseColour(new_colour),(n_verts,1)))
-		self.visuals['beams'].mesh_data_changed()
+		if self.data['num_sats'] > 0:
+			for ii in range(self.data['num_sats']):
+				n_faces = self.visuals['beams']._meshdata.n_faces
+				n_verts = self.visuals['beams']._meshdata.n_vertices
+				self.visuals['beams']._meshdata.set_face_colors(np.tile(colours.normaliseColour(new_colour),(n_faces,1)))
+				self.visuals['beams']._meshdata.set_vertex_colors(np.tile(colours.normaliseColour(new_colour),(n_verts,1)))
+			self.visuals['beams'].mesh_data_changed()
 		# self.visuals['circles'].set_data(color=colours.normaliseColour(new_colour))
 
 	def setBeamsAlpha(self, alpha:float) -> None:
 		print(f"Changing beams alpha {self.opts['beams_alpha']['value']} -> {alpha}")
 		self.opts['beams_alpha']['value'] = alpha
 		self.data['beams_alpha_filter'].alpha = alpha
-	
-	def setVisibility(self, state:bool) -> None:
-		for ii in range(self.data['num_sats']):
-			self.visuals['beams'][ii].visible = False
-		self._visuals_visibility['beams'] = state

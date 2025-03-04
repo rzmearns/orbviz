@@ -138,7 +138,6 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 		# 											parent=None)
 		# self.visuals['vector_st'] = scene.visuals.Line(self.data['v_coords_st'], color=colours.normaliseColour((0,255,255)),
 		# 											parent=None)
-		self._constructVisibilityStruct()
 
 	# Use AbstractAsset.updateIndex()
 
@@ -254,12 +253,12 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 				asset.setVisibilityRecursive(state)
 
 	def setOrbitalMarkerVisibility(self, state:bool) -> None:
-		self.visuals['marker'].visible = state
-		self._visuals_visibility['marker'] = state
+		self.opts['plot_spacecraft_marker']['value'] = state
+		self.visuals['marker'].visible = self.opts['plot_spacecraft_marker']['value']
 
 	def setBodyFrameVisibility(self, state:bool) -> None:
-		self.assets['body_frame'].setVisibility(state)
-		self._visuals_visibility['body_frame'] = state
+		self.opts['plot_body_frame']['value'] = state
+		self.assets['body_frame'].setVisibility(self.opts['plot_body_frame']['value'])
 
 	def setOrbitalMarkerSize(self, value:int) -> None:
 		self.opts['spacecraft_marker_size']['value'] = value

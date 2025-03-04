@@ -198,11 +198,11 @@ class History3DCanvasWrapper(BaseCanvas):
 		state['cam-az'] = self.view_box.camera.azimuth
 		state['cam-el'] = self.view_box.camera.elevation
 		state['cam-roll'] = self.view_box.camera.roll
-		visibility_state = {}
+		asset_states = {}
 		for asset_name, asset in self.assets.items():
-			visibility_state[asset_name] = asset.prepSerialisation()
+			asset_states[asset_name] = asset.prepSerialisation()
 
-		state['visibility'] = visibility_state
+		state['asset_states'] = asset_states
 		return state
 
 	def deSerialise(self, state:dict[str,Any]) -> None:
@@ -211,12 +211,8 @@ class History3DCanvasWrapper(BaseCanvas):
 		self.view_box.camera.azimuth = state['cam-az']
 		self.view_box.camera.elevation = state['cam-el']
 		self.view_box.camera.roll = state['cam-roll']
-
-	def deSerialiseVisibility(self, state:dict[str, Any]) -> None:
 		for asset_name, asset in self.assets.items():
-			asset.deSerialise(state['visibility'][asset_name])
-			asset.setVisibilityRecursive(False)
-			asset.setVisibilityRecursive(True)
+			asset.deSerialise(state['asset_states'][asset_name])
 
 	def mapAssetPositionsToScreen(self) -> list:
 		mo_infos = []

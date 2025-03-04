@@ -16,7 +16,6 @@ class AbstractSimpleAsset(ABC):
 		self.is_active = False
 		# dict storing vispy visuals to be drawn as part of this asset
 		self.visuals = {}
-		self._visuals_visibility = {}
 		# dict storing crucial data for this asset
 		self.data = {}
 		self.data['name'] = None
@@ -124,29 +123,36 @@ class AbstractSimpleAsset(ABC):
 		for visual_name, visual in self.visuals.items():
 			if visual is None:
 				continue
-			if state:
-				if self._visuals_visibility[visual_name]:
-					visual.visible = state
-				else:
-					# visual was not visible before entire asset was toggled, keep it that way now that asset is visible
-					pass
-			else:
-				visual.visible = state
+			visual.visible = state
 
 	def setVisibilityRecursive(self, state:bool) -> None:
 		'''Sets the visibility of this asset and all child-assets'''
 		self.setVisibility(state)
 
 	def prepSerialisation(self) -> dict[str, Any]:
-		return self._visuals_visibility
+		state = {}
+		for k,v in self.opts.items():
+			state[f'opt_{k}'] = serialiseOption(self.opts[k])
+		return state
 
 	def deSerialise(self, state):
-		print(f"Deserialisation of visibility for {self}")
+		print(f"Deserialisation of asset {self}")
 		for k,v in state.items():
-			print(f'\t{k}:{v}')
-			if k not in self._visuals_visibility.keys():
-				raise ValueError(f"During deserialisation: {k} visual name in saved data does not match existing asset visuals")
-			self._visuals_visibility[k] = v
+			if 'opt_' in k:
+				print(f'\t{k}:{v}')
+				deSerialiseOption(k.removeprefix('opt_'),v,self)
+
+		self.runOptionCallbacks()
+
+	def runOptionCallbacks(self):
+		if not self.isActive():
+			return
+		for opt_str, opt in self.opts.items():
+			if opt['callback'] is not None:
+				try:
+					opt['callback'](opt['value'])
+				except NotImplementedError:
+					continue
 
 	@abstractmethod
 	def _initData(self, *args, **kwargs) -> None:
@@ -158,11 +164,6 @@ class AbstractSimpleAsset(ABC):
 	def _createVisuals(self) -> None:
 		'''Create visuals on canvas'''
 		raise NotImplementedError
-
-	def _constructVisibilityStruct(self) -> None:
-		for visual_name, visual in self.visuals.items():
-			if visual_name not in self._visuals_visibility.keys():
-				self._visuals_visibility[visual_name] = True
 
 	@abstractmethod
 	def _setDefaultOptions(self) -> None:
@@ -217,7 +218,6 @@ class AbstractCompoundAsset(ABC):
 		self.assets = {}
 		# dict storing vispy visuals to be drawn as part of this asset
 		self.visuals = {}
-		self._visuals_visibility = {}
 		# dict storing crucial data for this asset
 		self.data = {}
 		self.data['name'] = None
@@ -337,14 +337,7 @@ class AbstractCompoundAsset(ABC):
 		for visual_name, visual in self.visuals.items():
 			if visual is None:
 				continue
-			if state:
-				if self._visuals_visibility[visual_name]:
-					visual.visible = state
-				else:
-					# visual was not visible before entire asset was toggled, keep it that way now that asset is visible
-					pass
-			else:
-				visual.visible = state
+			visual.visible = state
 
 	def setVisibilityRecursive(self, state) -> None:
 		'''Sets the visibility of this asset and all child-assets'''
@@ -353,23 +346,33 @@ class AbstractCompoundAsset(ABC):
 			asset.setVisibilityRecursive(state)
 
 	def prepSerialisation(self) -> dict[str, Any]:
-		visibility_state = {}
+		state = {}
 		for asset_name, asset in self.assets.items():
-			visibility_state[f'asset_visibility_{asset_name}'] = asset.prepSerialisation()
-		for k,v in self._visuals_visibility.items():
-			visibility_state[k] = v
-		return visibility_state
+			state[f'asset_{asset_name}'] = asset.prepSerialisation()
+		for k,v in self.opts.items():
+			state[f'opt_{k}'] = serialiseOption(self.opts[k])
+		return state
 
 	def deSerialise(self, state):
-		print(f"Deserialisation of visibility for {self}")
+		print(f"Deserialisation of asset {self}")
 		for k,v in state.items():
-			if 'asset_visibility' in k:
-				self.assets[k.removeprefix('asset_visibility_')].deSerialise(v)
+			if 'asset_' in k:
+				self.assets[k.removeprefix('asset_')].deSerialise(v)
 				continue
-			print(f'\t{k}:{v}')
-			if k not in self._visuals_visibility.keys():
-				raise ValueError(f"During deserialisation: {k} visual name in saved data does not match existing asset visuals")
-			self._visuals_visibility[k] = v
+			elif 'opt_' in k:
+				print(f'\t{k}:{v}')
+				deSerialiseOption(k.removeprefix('opt_'),v,self)
+		self.runOptionCallbacks()
+
+	def runOptionCallbacks(self):
+		if not self.isActive():
+			return
+		for opt_str, opt in self.opts.items():
+			if opt['callback'] is not None:
+				try:
+					opt['callback'](opt['value'])
+				except NotImplementedError:
+					continue
 
 	@abstractmethod
 	def _initData(self, *args, **kwargs) -> None:
@@ -387,11 +390,6 @@ class AbstractCompoundAsset(ABC):
 	def _createVisuals(self) -> None:
 		'''Create visuals on canvas'''
 		raise NotImplementedError
-
-	def _constructVisibilityStruct(self) -> None:
-		for visual_name, visual in self.visuals.items():
-			if visual_name not in self._visuals_visibility.keys():
-				self._visuals_visibility[visual_name] = True
 
 	@abstractmethod
 	def _setDefaultOptions(self) -> None:
@@ -465,7 +463,6 @@ class AbstractAsset(ABC):
 		self.is_active = False
 		# dict storing vispy visuals to be drawn as part of this asset
 		self.visuals = {}
-		self._visuals_visibility = {}
 		# dict storing satplot child assets
 		self.assets = {}
 		# dict storing crucial data for this asset
@@ -600,14 +597,7 @@ class AbstractAsset(ABC):
 		for visual_name, visual in self.visuals.items():
 			if visual is None:
 				continue
-			if state:
-				if self._visuals_visibility[visual_name]:
-					visual.visible = state
-				else:
-					# visual was not visible before entire asset was toggled, keep it that way now that asset is visible
-					pass
-			else:
-				visual.visible = state
+			visual.visible = state
 
 	def setVisibilityRecursive(self, state:bool) -> None:
 		'''Sets the visibility of this asset and all child-assets'''
@@ -617,23 +607,36 @@ class AbstractAsset(ABC):
 
 
 	def prepSerialisation(self) -> dict[str, Any]:
-		visibility_state = {}
+		state = {}
 		for asset_name, asset in self.assets.items():
-			visibility_state[f'asset_visibility_{asset_name}'] = asset.prepSerialisation()
-		for k,v in self._visuals_visibility.items():
-			visibility_state[k] = v
-		return visibility_state
+			state[f'asset_{asset_name}'] = asset.prepSerialisation()
+		for k,v in self.opts.items():
+			state[f'opt_{k}'] = serialiseOption(self.opts[k])
+		return state
 
 	def deSerialise(self, state):
-		print(f"Deserialisation of visibility for {self}")
+		print(f"Deserialisation of asset {self}")
 		for k,v in state.items():
-			if 'asset_visibility' in k:
-				self.assets[k.removeprefix('asset_visibility_')].deSerialise(v)
+			if 'asset_' in k:
+				self.assets[k.removeprefix('asset_')].deSerialise(v)
 				continue
-			print(f'\t{k}:{v}')
-			if k not in self._visuals_visibility.keys():
-				raise ValueError(f"During deserialisation: {k} visual name in saved data does not match existing asset visuals")
-			self._visuals_visibility[k] = v
+			elif 'opt_' in k:
+				print(f'\t{k}:{v}')
+				deSerialiseOption(k.removeprefix('opt_'),v,self)
+
+		self.runOptionCallbacks()
+
+	def runOptionCallbacks(self):
+		if not self.isActive():
+			return
+		for opt_str, opt in self.opts.items():
+			if opt['callback'] is not None:
+				try:
+					opt['callback'](opt['value'])
+				except NotImplementedError:
+					continue
+				except KeyError:
+					continue
 
 	@abstractmethod
 	def _initData(self, *args, **kwargs):
@@ -651,11 +654,6 @@ class AbstractAsset(ABC):
 	def _createVisuals(self) -> None:
 		'''Create visuals on canvas'''
 		raise NotImplementedError
-
-	def _constructVisibilityStruct(self) -> None:
-		for visual_name, visual in self.visuals.items():
-			if visual_name not in self._visuals_visibility.keys():
-				self._visuals_visibility[visual_name] = True
 
 	@abstractmethod
 	def _setDefaultOptions(self) -> None:
@@ -748,3 +746,25 @@ class AbstractAsset(ABC):
 			print(f'{k}:')
 			for k2,v2 in v.items():
 				print(f'\t{k2}:{v2}')
+
+
+def serialiseOption(opt_dict:dict[str,Any]) -> dict[str,Any]:
+	opt_state = {}
+	opt_state['value'] = opt_dict['value']
+
+	# These don't need to be serialised
+	# opt_state['type'] = opt_dict['type']
+	# opt_state['help'] = opt_dict['help']
+	# opt_state['static'] = opt_dict['static']
+
+	# These can't be serialised
+	# opt_state['callback'] = opt_dict['callback']
+	# opt_state['widget'] = opt_dict['widget']
+
+	return opt_state
+
+def deSerialiseOption(opt_name:str, opt_state:dict[str, Any], asset:AbstractAsset|AbstractCompoundAsset|AbstractSimpleAsset) -> None:
+	for k,v in opt_state.items():
+		if k not in asset.opts[opt_name].keys():
+			continue
+		asset.opts[opt_name][k] = v
