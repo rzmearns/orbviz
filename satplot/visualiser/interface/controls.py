@@ -198,7 +198,7 @@ class ConstellationControls(QtWidgets.QWidget):
 		glayout.addWidget(self._enable,1,2)
 
 		self.suppl_constellation_selector = widgets.OptionBox('Supplementary Constellations',
-															options_list=self.constellation_options)		
+															options_list=self.constellation_options)
 		glayout.addWidget(self.suppl_constellation_selector,2,0,1,-1)
 
 		vlayout.addLayout(glayout)

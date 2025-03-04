@@ -58,10 +58,10 @@ def calcConePoints(apex:tuple[float,float,float] | nptyping.NDArray,
 	theta = np.linspace(0, 2*np.pi, theta_sample)
 
 	R = height*np.tan(phi)
-	coords = t[0]*np.outer(np.cos(theta),e1) + t[0]*np.outer(np.sin(theta),e2)	
+	coords = t[0]*np.outer(np.cos(theta),e1) + t[0]*np.outer(np.sin(theta),e2)
 	for ii in range(1,axis_sample):
 		R = t[ii]*np.tan(phi)
-		new_coords = R*np.outer(np.cos(theta),e1) + R*np.outer(np.sin(theta),e2)		
+		new_coords = R*np.outer(np.cos(theta),e1) + R*np.outer(np.sin(theta),e2)
 		coords = np.vstack((coords,(t[ii]*e3)+new_coords))
 	if sorted:
 		return np.unique(coords+apex,axis=0)

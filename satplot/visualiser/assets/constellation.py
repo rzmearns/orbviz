@@ -133,7 +133,6 @@ class Constellation(base_assets.AbstractAsset):
 		mo_info['strings'] = self.data['strings']
 		mo_info['objects'] = [self]*self.data['num_sats']
 		return mo_info
-
 	def mouseOver(self, index:int) -> Self:
 		self.assets['beams'].mouseOver(index)
 		return self
@@ -318,7 +317,7 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 												self.data['start_beam_vec'],
 												self.data['beam_angle_deg'],
 												theta_sample = 60)
-		
+
 		generic_cone_points = polyhedra.calcConePoints((0,0,0),
 													self.data['beam_height'],
 													self.data['start_beam_vec'],
@@ -345,7 +344,7 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 												self.opts['beams_colour']['value'][1]/2,
 												self.opts['beams_colour']['value'][2]/2)),
 												width=5.0,
-												parent=None)	
+												parent=None)
 		self.visuals['beams'] = vVisuals.InstancedMesh(vertices,
 													faces,
 													instance_colors=instance_colours,
@@ -452,9 +451,9 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 		circles = None
 		if self.data['c_conn'] is None:
 			gen_conn = True
-		
+
 		for ii in range(len(instance_transforms)):
-			circle = np.dot(instance_transforms[ii],self.data['generic_circle_points'].T).T + instance_positions[ii]	
+			circle = np.dot(instance_transforms[ii],self.data['generic_circle_points'].T).T + instance_positions[ii]
 			poly_len = len(circle)
 			new_conn = np.array([np.arange(poly_len-1),np.arange(1,poly_len)]).T + total_len
 			if gen_conn:

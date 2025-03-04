@@ -5,7 +5,6 @@ import PyQt5.QtWidgets as QtWidgets
 
 import satplot
 
-
 def createSpaceTrackCredentialsDialog():
 	SpaceTrackCredentialsDialog()
 

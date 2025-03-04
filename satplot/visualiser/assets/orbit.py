@@ -76,7 +76,6 @@ class Orbit3DAsset(base_assets.AbstractAsset):
 			self._recomputeRedrawChildren()
 			self._clearStaleFlag()
 
-
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
 		self._dflt_opts['plot_orbit'] = {'value': True,
