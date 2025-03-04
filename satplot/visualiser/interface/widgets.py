@@ -288,7 +288,6 @@ class ColourPicker(QtWidgets.QWidget):
 			print(f"{self} state was serialised as a {state['type']}, is now a ColourPicker")
 
 		self._text_box.blockSignals(True)
-		print(f"\t\t\t{state['value']}")
 		self.curr_rgb = state['value']
 		self.curr_hex = colours.rgb2hex(state['value'])
 		self._colour_box.setStyleSheet(f"background-color: {self.curr_hex}")
