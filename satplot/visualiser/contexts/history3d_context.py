@@ -248,22 +248,14 @@ class Controls(base.BaseControls):
 
 	def prepSerialisation(self):
 		state = {}
-		# state['orbit_controls'] = self.orbit_controls.prepSerialisation()
+		state['orbit_controls'] = self.orbit_controls.prepSerialisation()
 		state['config_controls'] = self.config_controls.prepSerialisation()
-		state['time_slider'] = {}
-		state['time_slider']['start_dt'] = self.time_slider.start_dt
-		state['time_slider']['end_dt'] = self.time_slider.end_dt
-		state['time_slider']['num_ticks'] = self.time_slider.num_ticks
-		state['time_slider']['curr_index'] = self.time_slider.getValue()
-		state['pointing'] = {}
-		state['pointing']['pointing_invert_transform'] = self.orbit_controls.pointing_file_controls.pointing_file_inv_toggle.isChecked()
+		state['time_slider'] = self.time_slider.prepSerialisation()
 		return state
 
 	def deSerialise(self, state):
-		self.time_slider.setRange(state['time_slider']['start_dt'],
-						 			state['time_slider']['end_dt'],
-									state['time_slider']['num_ticks'])
-		self.time_slider.setValue(state['time_slider']['curr_index'])
+		self.orbit_controls.deSerialise(state['orbit_controls'])
+		self.time_slider.deSerialise(state['time_slider'])
 		self.config_controls.deSerialise(state['config_controls'])
 
 

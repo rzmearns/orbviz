@@ -64,9 +64,23 @@ class OrbitConfigs(QtWidgets.QWidget):
 
 		# self.setLayout(self.config_layout)
 
-	def prepSerialisation(self):
+	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
+		state['period_start'] = self.period_start.prepSerialisation()
+		state['period_end'] = self.period_end.prepSerialisation()
+		state['sampling_period'] = self.sampling_period.prepSerialisation()
+		state['primary_config'] = self.prim_orbit_selector.prepSerialisation()
+		state['pointing_controls'] = self.pointing_file_controls.prepSerialisation()
+		state['suppl_constellation_controls'] = self.suppl_constellation_selector.prepSerialisation()
 		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		self.period_start.deSerialise(state['period_start'])
+		self.period_end.deSerialise(state['period_end'])
+		self.sampling_period.deSerialise(state['sampling_period'])
+		self.prim_orbit_selector.deSerialise(state['primary_config'])
+		self.pointing_file_controls.deSerialise(state['pointing_controls'])
+		self.suppl_constellation_selector.deSerialise(state['suppl_constellation_controls'])
 
 	def getConfig(self) -> data_types.PrimaryConfig:
 		return data_types.PrimaryConfig.fromJSON(self.prim_orbit_selector.path)
@@ -143,6 +157,22 @@ class PointingFileControls(QtWidgets.QWidget):
 	def pointingFileDefinesPeriod(self):
 		return self.use_pointing_period.isChecked()
 
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['enabled'] = {}
+		state['enabled']['value'] = self._enable.isChecked()
+		state['use_pointing_period'] = {}
+		state['use_pointing_period']['value'] = self.use_pointing_period.isChecked()
+		state['pointing_file'] = self._pointing_file_selector.prepSerialisation()
+		state['frame_inv'] = self.pointing_file_inv_toggle.prepSerialisation()
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		self._pointing_file_selector.deSerialise(state['pointing_file'])
+		self.pointing_file_inv_toggle.deSerialise(state['frame_inv'])
+		self.use_pointing_period.setChecked(state['use_pointing_period']['value'])
+		self._enable.setChecked(state['enabled']['value'])
+
 class ConstellationControls(QtWidgets.QWidget):
 	c_config_dir = 'data/constellation_configs/'
 	c_configs = os.listdir(c_config_dir)
@@ -203,6 +233,17 @@ class ConstellationControls(QtWidgets.QWidget):
 
 	def getCurrentIndex(self):
 		return self.suppl_constellation_selector.getCurrentIndex()
+
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['enabled'] = {}
+		state['enabled']['value'] = self._enable.isChecked()
+		state['constellation'] = self.suppl_constellation_selector.prepSerialisation()
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		self.suppl_constellation_selector.deSerialise(state['constellation'])
+		self._enable.setChecked(state['enabled']['value'])
 
 class OptionConfigs(QtWidgets.QWidget):
 	def __init__(self, asset_dict, parent: QtWidgets.QWidget|None=None) -> None:

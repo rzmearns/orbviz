@@ -120,6 +120,22 @@ class TimeSlider(QtWidgets.QWidget):
 		else:
 			print("No Time Slider callbacks are set")
 
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['type'] = 'timeSlider'
+		state['start_dt'] = self.start_dt
+		state['end_dt'] = self.end_dt
+		state['num_ticks'] = self.num_ticks
+		state['curr_index'] = self.getValue()
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		if state['type'] != 'timeSlider':
+			print(f"{self} state was serialised as a {state['type']}, is now a timeSlider")
+			return
+		self.setRange(state['start_dt'], state['end_dt'], state['num_ticks'])
+		self.setValue(state['curr_index'])
+
 	class SmallDatetimeEntry(QtWidgets.QWidget):
 		updated = QtCore.pyqtSignal(dt.datetime)
 
@@ -424,7 +440,6 @@ class OptionBox(QtWidgets.QWidget):
 		for item in options_list:
 			self._optionbox.addItem(item)
 		self._optionbox.setFocusPolicy(QtCore.Qt.StrongFocus)
-
 		hlayout1.addWidget(self._label)
 		hlayout1.addStretch()
 		hlayout2.addWidget(self._optionbox)
@@ -432,10 +447,14 @@ class OptionBox(QtWidgets.QWidget):
 		vlayout.addLayout(hlayout2)
 		self.setLayout(vlayout)
 
-		self._optionbox.currentIndexChanged.connect((self._run_callbacks))
-		
+		self._optionbox.currentIndexChanged.connect(self._run_callbacks)
+		self._optionbox.currentIndexChanged.connect(self.setCurrentIndex)
 
-	def getCurrentIndex(self):
+	def setCurrentIndex(self, idx:int) -> None:
+		print(f'{idx}')
+		self._curr_index = idx
+
+	def getCurrentIndex(self) -> int|None:
 		if self._curr_index > 0:
 			return self._curr_index-1
 		else:
@@ -452,6 +471,27 @@ class OptionBox(QtWidgets.QWidget):
 		if len(self._callbacks) > 0:
 			for callback in self._callbacks:
 				callback(index)
+
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['type'] = 'OptionBox'
+		curr_idx = self.getCurrentIndex()+1
+		if curr_idx is None:
+			state['value'] = None
+		else:
+			state['value'] = self._optionbox.getAllItems()[curr_idx]
+		print(f"{state['value']=}")
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		if state['type'] != 'OptionBox':
+			print(f"{self} state was serialised as a {state['type']}, is now an OptionBox")
+			return
+		if state['value'] is not None and state['value'] in self._optionbox.getAllItems():
+			print(f"{state['value']=}")
+			self._optionbox.setCurrentText(state['value'])
+		else:
+			print(f"{state['value']} is not a local valid option. Displaying data, but can't set options.", file=sys.stderr)
 
 class FilePicker(QtWidgets.QWidget):
 	def __init__(self, label, 
@@ -529,6 +569,18 @@ class FilePicker(QtWidgets.QWidget):
 		else:
 			print("No FilePicker callbacks are set")
 
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['type'] = 'filePicker'
+		state['value'] = self.path
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		if state['type'] != 'filePicker':
+			print(f"{self} state was serialised as a {state['type']}, is now a filePicker")
+			return
+		self._file_text_box.setText(state['value'])
+
 class PeriodBox(QtWidgets.QWidget):
 	def __init__(self, label, dflt_val, parent: QtWidgets.QWidget=None):
 		super().__init__(parent)
@@ -580,6 +632,18 @@ class PeriodBox(QtWidgets.QWidget):
 		S = int((self.period-H*3600-M*60))
 
 		return H,M,S
+
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['type'] = 'period'
+		state['value'] = self.period
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		if state['type'] != 'period':
+			print(f"{self} state was serialised as a {state['type']}, is now a period")
+			return
+		self.val_box.setValue(state['value'])
 
 class DatetimeEntry(QtWidgets.QWidget):
 	def __init__(self, label, dflt_datetime, parent: QtWidgets.QWidget=None) -> None:
@@ -686,6 +750,18 @@ class DatetimeEntry(QtWidgets.QWidget):
 				# callback(self._checkbox.isChecked())
 		else:
 			print("No Toggle Box callbacks are set")
+
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['type'] = 'DatetimeEntry'
+		state['value'] = self.datetime
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		if state['type'] != 'DatetimeEntry':
+			print(f"{self} state was serialised as a {state['type']}, is now a DatetimeEntry")
+			return
+		self.setDatetime(state['value'])
 
 class CollapsibleSection(QtWidgets.QWidget):
 # Ported to PyQT5 and modified, original widget by Caroline Beyne, github user: cbeyne
@@ -809,11 +885,26 @@ class Switch(QtWidgets.QPushButton):
 
 		painter.drawRoundedRect(sw_rect, radius, radius)
 
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['type'] = 'Switch'
+		state['value'] = self.isChecked()
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		if state['type'] != 'Switch':
+			print(f"{self} state was serialised as a {state['type']}, is now a Switch")
+			return
+		self.setChecked(state['value'])
+
 class NonScrollingComboBox(QtWidgets.QComboBox):
 	def __init__(self, scrollWidget=None, *args, **kwargs):
 		super(NonScrollingComboBox, self).__init__(*args, **kwargs)  
 		self.scrollWidget=scrollWidget
 		self.setFocusPolicy(QtCore.Qt.StrongFocus)
+
+	def getAllItems(self) -> list[str]:
+		return [self.itemText(ii) for ii in range(self.count())]
 
 	def setContainingScrollWidget(self, scrollwidget):
 		self.scrollWidget = scrollwidget
