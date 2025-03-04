@@ -273,13 +273,19 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 	def _addIndividualSensorSuitePlotOptions(self) -> None:
 		print(f'Adding sensor suite options dictionary entries for:')
 		for key, value in self.data['sc_config'].getSensorSuites().items():
-			print(f'\tsens_suite:{key}')
+			visibilityCallback = self._makeVisibilityCallback(key)
 			self.opts[f'plot_sensor_suite_{key}'] = {'value': True,
 													'type': 'boolean',
 													'help': '',
 													'static': False,
-													'callback': self.assets[f'sensor_suite_{key}'].setSuiteVisibility,
+													'callback': visibilityCallback,
 													'widget': None}
+
+	def _makeVisibilityCallback(self, suite_key:str):
+		def _visibilityCallback(state):
+			self.opts[f'plot_sensor_suite_{suite_key}']['value'] = state
+			self.assets[f'sensor_suite_{suite_key}'].setSuiteVisibility(state)
+		return _visibilityCallback
 
 	def _removeOldSensorSuitePlotOptions(self, old_suite_names:list[str]) -> None:
 		for suite_name in old_suite_names:

@@ -62,8 +62,7 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundAsset):
 		self.opts = self._dflt_opts.copy()
 
 	def setSuiteVisibility(self, state:bool) -> None:
-		for asset in self.assets.values():
-			asset.setSensorVisibility(state)
+		self.setVisibilityRecursive(state)
 
 class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 	def __init__(self, sensor_name, mesh_verts, mesh_faces,
