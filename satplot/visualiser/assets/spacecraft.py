@@ -91,10 +91,15 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 			print('Config has not changed')
 			config_changed = False
 			return
+
+		if self.data['sc_config'] is not None:
+			old_config_filestem = self.data['sc_config'].filestem
+		else:
+			old_config_filestem = None
 		self.data['sc_config'] = args[3]
 
-
-		if self.data['old_pointing_defined']:
+		if self.data['old_pointing_defined'] or \
+			(self.data['sc_config'].filestem != old_config_filestem):
 			# If pointing had previously been defined -> old sensors, options need to be removed
 			# if no pointing, no point having sensors
 			self._removeSensorAssets(old_suite_names)
