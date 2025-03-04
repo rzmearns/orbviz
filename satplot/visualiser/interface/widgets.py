@@ -1,5 +1,6 @@
 import datetime as dt
 import math
+from typing import Any
 
 from PyQt5 import QtWidgets, QtCore, QtGui
 
@@ -260,6 +261,25 @@ class ColourPicker(QtWidgets.QWidget):
 		else:
 			print("No Colour Picker callbacks are set")
 
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['type'] = 'ColourPicker'
+		state['value'] = self.curr_rgb
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		if state['type'] != 'ColourPicker':
+			print(f"{self} state was serialised as a {state['type']}, is now a ColourPicker")
+
+		self._text_box.blockSignals(True)
+		print(f"\t\t\t{state['value']}")
+		self.curr_rgb = state['value']
+		self.curr_hex = colours.rgb2hex(state['value'])
+		self._colour_box.setStyleSheet(f"background-color: {self.curr_hex}")
+		self._text_box.setText(f"{state['value'][0]},{state['value'][1]},{state['value'][2]}")
+		self._text_box.blockSignals(False)
+
+
 class ValueSpinner(QtWidgets.QWidget):
 	def __init__(self, label, dflt_val, integer=True, fraction=False, parent: QtWidgets.QWidget=None) -> None:
 		super().__init__(parent)
@@ -314,6 +334,25 @@ class ValueSpinner(QtWidgets.QWidget):
 		else:
 			print("No Value Spinner callbacks are set")
 
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['type'] = 'ValueSpinner'
+		state['value'] = self.curr_val
+		state['allow_float'] = self.allow_float
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		if state['type'] != 'ValueSpinner':
+			print(f"{self} state was serialised as a {state['type']}, is now a ValueSpinner")
+
+		self._val_box.blockSignals(True)
+		self.curr_val = state['value']
+		if self.allow_float:
+			self._val_box.setValue(float(self.curr_val))
+		else:
+			self._val_box.setValue(int(self.curr_val))
+		self._val_box.blockSignals(False)
+
 class ToggleBox(QtWidgets.QWidget):
 	def __init__(self, label, dflt_state, parent: QtWidgets.QWidget=None) -> None:
 		super().__init__(parent)
@@ -342,6 +381,21 @@ class ToggleBox(QtWidgets.QWidget):
 				callback(self._checkbox.isChecked())
 		else:
 			print("No Toggle Box callbacks are set")
+
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['type'] = 'ToggleBox'
+		state['value'] = self._checkbox.isChecked()
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		if state['type'] != 'ToggleBox':
+			print(f"{self} state was serialised as a {state['type']}, is now a ToggleBox")
+		self._checkbox.blockSignals(True)
+		self._checkbox.setChecked(state['value'])
+		a = QtWidgets.QCheckBox()
+		self._checkbox.blockSignals(False)
+
 
 class OptionBox(QtWidgets.QWidget):
 	def __init__(self, label, dflt_state=None, options_list=[], parent: QtWidgets.QWidget=None) -> None:

@@ -2,6 +2,7 @@ import datetime as dt
 import json
 import os
 import string
+from typing import Any
 
 from PyQt5 import QtWidgets, QtCore, QtGui
 
@@ -386,6 +387,31 @@ class OptionConfigs(QtWidgets.QWidget):
 
 
 		return w_dict
+
+	def prepSerialisation(self) -> dict[str,Any]:
+		state = {}
+
+		for section_title, section in self.sections.items():
+			state[section_title] = {}
+			for opt_key, opt in section['opts'].items():
+				if not isinstance(opt['widget'],widgets.CollapsibleSection):
+					state[section_title][opt_key] = opt['widget'].prepSerialisation()
+
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		print('Deserialising Config Options:')
+		for section_title, section in state.items():
+			print(f'\t{section_title}')
+			if section_title not in self.sections.keys():
+				print(f'{section_title} not a recognised context configuration section')
+				continue
+			for opt_key, opt_serialisation in section.items():
+				print(f'\t\t{opt_key}')
+				if opt_key not in self.sections[section_title]['opts'].keys():
+					print(f'{opt_key} not a recognised option for context configuration section {section_title}')
+					continue
+				self.sections[section_title]['opts'][opt_key]['widget'].deSerialise(opt_serialisation)
 
 class Toolbar(QtWidgets.QWidget):
 	# TODO: this should be in widgets, not controls	

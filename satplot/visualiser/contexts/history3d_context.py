@@ -156,9 +156,9 @@ class History3DContext(base.BaseContext):
 
 	def deSerialise(self, state_dict: dict[str, Any]) -> None:
 		self.data.deSerialise(state_dict['data'])
-		self.controls.deSerialise(state_dict['controls'])
 		self._updateDataSources()
 		self.canvas_wrapper.deSerialise(state_dict['camera'])
+		self.controls.deSerialise(state_dict['controls'])
 
 		# self.data = state_dict['data']
 		# self.canvas_wrapper.setSource(self.data['timespan'],
@@ -249,7 +249,7 @@ class Controls(base.BaseControls):
 	def prepSerialisation(self):
 		state = {}
 		# state['orbit_controls'] = self.orbit_controls.prepSerialisation()
-		# state['config_controls'] = self.config_controls.prepSerialisation()
+		state['config_controls'] = self.config_controls.prepSerialisation()
 		state['time_slider'] = {}
 		state['time_slider']['start_dt'] = self.time_slider.start_dt
 		state['time_slider']['end_dt'] = self.time_slider.end_dt
@@ -264,6 +264,7 @@ class Controls(base.BaseControls):
 						 			state['time_slider']['end_dt'],
 									state['time_slider']['num_ticks'])
 		self.time_slider.setValue(state['time_slider']['curr_index'])
+		self.config_controls.deSerialise(state['config_controls'])
 
 
 	def rebuildOptions(self):
