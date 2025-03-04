@@ -1,8 +1,11 @@
-from PyQt5 import QtWidgets, QtCore, QtGui
-import math
-import satplot.visualiser.colours as colours
 import datetime as dt
-import satplot.visualiser.controls.console as console
+import math
+from typing import Any
+
+from PyQt5 import QtWidgets, QtCore, QtGui
+
+import satplot.visualiser.colours as colours
+
 
 class TimeSlider(QtWidgets.QWidget):
 	def __init__(self, parent: QtWidgets.QWidget=None) -> None:
@@ -117,6 +120,22 @@ class TimeSlider(QtWidgets.QWidget):
 		else:
 			print("No Time Slider callbacks are set")
 
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['type'] = 'timeSlider'
+		state['start_dt'] = self.start_dt
+		state['end_dt'] = self.end_dt
+		state['num_ticks'] = self.num_ticks
+		state['curr_index'] = self.getValue()
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		if state['type'] != 'timeSlider':
+			print(f"{self} state was serialised as a {state['type']}, is now a timeSlider")
+			return
+		self.setRange(state['start_dt'], state['end_dt'], state['num_ticks'])
+		self.setValue(state['curr_index'])
+
 	class SmallDatetimeEntry(QtWidgets.QWidget):
 		updated = QtCore.pyqtSignal(dt.datetime)
 
@@ -202,7 +221,7 @@ class TimeSlider(QtWidgets.QWidget):
 			self._sec_text_box.setText(datetime.strftime("%S"))
 
 class ColourPicker(QtWidgets.QWidget):
-	def __init__(self, label, dflt_col, parent: QtWidgets.QWidget=None) -> None:
+	def __init__(self, label, dflt_col, parent: QtWidgets.QWidget|None=None) -> None:
 		super().__init__(parent)
 		self._callbacks = []
 		self.curr_rgb = dflt_col
@@ -229,15 +248,22 @@ class ColourPicker(QtWidgets.QWidget):
 		closed_layout.addWidget(self._colour_box)
 		closed_layout.addWidget(self._text_box)
 		
+
 		self._colorpicker = QtWidgets.QColorDialog()
 		self._colorpicker.setOptions(QtWidgets.QColorDialog.DontUseNativeDialog)
-		self._colorpicker.currentColorChanged.connect(self._run_callbacks)
+		self._colour_box.pressed.connect(self._colorpicker.open)
+		self._colorpicker.colorSelected.connect(self._set_colour)
+		self._text_box.textEdited.connect(self._run_callbacks)
 		self._text_box.returnPressed.connect(self._run_callbacks)
 		
 		self.setLayout(closed_layout)
 
 	def add_connect(self, callback):
 		self._callbacks.append(callback)
+
+	def _set_colour(self, colour):
+		self._text_box.setText(f'{colour.red()},{colour.green()},{colour.blue()}')
+		self._run_callbacks()
 
 	def _run_callbacks(self):
 		rgb_str = self._text_box.text().split(',')
@@ -251,11 +277,31 @@ class ColourPicker(QtWidgets.QWidget):
 		else:
 			print("No Colour Picker callbacks are set")
 
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['type'] = 'ColourPicker'
+		state['value'] = self.curr_rgb
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		if state['type'] != 'ColourPicker':
+			print(f"{self} state was serialised as a {state['type']}, is now a ColourPicker")
+
+		self._text_box.blockSignals(True)
+		self.curr_rgb = state['value']
+		self.curr_hex = colours.rgb2hex(state['value'])
+		self._colour_box.setStyleSheet(f"background-color: {self.curr_hex}")
+		self._text_box.setText(f"{state['value'][0]},{state['value'][1]},{state['value'][2]}")
+		self._text_box.blockSignals(False)
+
+
 class ValueSpinner(QtWidgets.QWidget):
-	def __init__(self, label, dflt_val, integer=True, parent: QtWidgets.QWidget=None) -> None:
+	def __init__(self, label, dflt_val, integer=True, fraction=False, parent: QtWidgets.QWidget=None) -> None:
 		super().__init__(parent)
 		self._callbacks = []
 		self.allow_float = not integer
+		if fraction:
+			self.allow_float = True
 		
 		if self.allow_float:
 			self.curr_val = dflt_val
@@ -267,11 +313,15 @@ class ValueSpinner(QtWidgets.QWidget):
 		layout.setContentsMargins(2,1,2,1)
 		
 		self._label = QtWidgets.QLabel(label)
-		if self.allow_float:
+		if self.allow_float or fraction:
 			self._val_box = QtWidgets.QDoubleSpinBox()
 		else:
 			self._val_box = QtWidgets.QSpinBox()
-		self._val_box.setRange(1,1000000)
+		if not fraction:
+			self._val_box.setRange(1,1000000)
+		else:
+			self._val_box.setRange(0,1)
+			self._val_box.setSingleStep(0.1)
 		self._val_box.setValue(self.curr_val)		
 		self._val_box.setFixedWidth(80)
 		self._val_box.setFixedHeight(20)
@@ -298,6 +348,25 @@ class ValueSpinner(QtWidgets.QWidget):
 				callback(self.curr_val)
 		else:
 			print("No Value Spinner callbacks are set")
+
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['type'] = 'ValueSpinner'
+		state['value'] = self.curr_val
+		state['allow_float'] = self.allow_float
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		if state['type'] != 'ValueSpinner':
+			print(f"{self} state was serialised as a {state['type']}, is now a ValueSpinner")
+
+		self._val_box.blockSignals(True)
+		self.curr_val = state['value']
+		if self.allow_float:
+			self._val_box.setValue(float(self.curr_val))
+		else:
+			self._val_box.setValue(int(self.curr_val))
+		self._val_box.blockSignals(False)
 
 class ToggleBox(QtWidgets.QWidget):
 	def __init__(self, label, dflt_state, parent: QtWidgets.QWidget=None) -> None:
@@ -328,6 +397,21 @@ class ToggleBox(QtWidgets.QWidget):
 		else:
 			print("No Toggle Box callbacks are set")
 
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['type'] = 'ToggleBox'
+		state['value'] = self._checkbox.isChecked()
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		if state['type'] != 'ToggleBox':
+			print(f"{self} state was serialised as a {state['type']}, is now a ToggleBox")
+		self._checkbox.blockSignals(True)
+		self._checkbox.setChecked(state['value'])
+		a = QtWidgets.QCheckBox()
+		self._checkbox.blockSignals(False)
+
+
 class OptionBox(QtWidgets.QWidget):
 	def __init__(self, label, dflt_state=None, options_list=[], parent: QtWidgets.QWidget=None) -> None:
 		super().__init__(parent)
@@ -355,7 +439,6 @@ class OptionBox(QtWidgets.QWidget):
 		for item in options_list:
 			self._optionbox.addItem(item)
 		self._optionbox.setFocusPolicy(QtCore.Qt.StrongFocus)
-
 		hlayout1.addWidget(self._label)
 		hlayout1.addStretch()
 		hlayout2.addWidget(self._optionbox)
@@ -363,10 +446,14 @@ class OptionBox(QtWidgets.QWidget):
 		vlayout.addLayout(hlayout2)
 		self.setLayout(vlayout)
 
-		self._optionbox.currentIndexChanged.connect((self._run_callbacks))
-		
+		self._optionbox.currentIndexChanged.connect(self._run_callbacks)
+		self._optionbox.currentIndexChanged.connect(self.setCurrentIndex)
 
-	def getCurrentIndex(self):
+	def setCurrentIndex(self, idx:int) -> None:
+		print(f'{idx}')
+		self._curr_index = idx
+
+	def getCurrentIndex(self) -> int|None:
 		if self._curr_index > 0:
 			return self._curr_index-1
 		else:
@@ -383,6 +470,27 @@ class OptionBox(QtWidgets.QWidget):
 		if len(self._callbacks) > 0:
 			for callback in self._callbacks:
 				callback(index)
+
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['type'] = 'OptionBox'
+		curr_idx = self.getCurrentIndex()+1
+		if curr_idx is None:
+			state['value'] = None
+		else:
+			state['value'] = self._optionbox.getAllItems()[curr_idx]
+		print(f"{state['value']=}")
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		if state['type'] != 'OptionBox':
+			print(f"{self} state was serialised as a {state['type']}, is now an OptionBox")
+			return
+		if state['value'] is not None and state['value'] in self._optionbox.getAllItems():
+			print(f"{state['value']=}")
+			self._optionbox.setCurrentText(state['value'])
+		else:
+			print(f"{state['value']} is not a local valid option. Displaying data, but can't set options.", file=sys.stderr)
 
 class FilePicker(QtWidgets.QWidget):
 	def __init__(self, label, 
@@ -460,6 +568,18 @@ class FilePicker(QtWidgets.QWidget):
 		else:
 			print("No FilePicker callbacks are set")
 
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['type'] = 'filePicker'
+		state['value'] = self.path
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		if state['type'] != 'filePicker':
+			print(f"{self} state was serialised as a {state['type']}, is now a filePicker")
+			return
+		self._file_text_box.setText(state['value'])
+
 class PeriodBox(QtWidgets.QWidget):
 	def __init__(self, label, dflt_val, parent: QtWidgets.QWidget=None):
 		super().__init__(parent)
@@ -511,6 +631,18 @@ class PeriodBox(QtWidgets.QWidget):
 		S = int((self.period-H*3600-M*60))
 
 		return H,M,S
+
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['type'] = 'period'
+		state['value'] = self.period
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		if state['type'] != 'period':
+			print(f"{self} state was serialised as a {state['type']}, is now a period")
+			return
+		self.val_box.setValue(state['value'])
 
 class DatetimeEntry(QtWidgets.QWidget):
 	def __init__(self, label, dflt_datetime, parent: QtWidgets.QWidget=None) -> None:
@@ -617,6 +749,18 @@ class DatetimeEntry(QtWidgets.QWidget):
 				# callback(self._checkbox.isChecked())
 		else:
 			print("No Toggle Box callbacks are set")
+
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['type'] = 'DatetimeEntry'
+		state['value'] = self.datetime
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		if state['type'] != 'DatetimeEntry':
+			print(f"{self} state was serialised as a {state['type']}, is now a DatetimeEntry")
+			return
+		self.setDatetime(state['value'])
 
 class CollapsibleSection(QtWidgets.QWidget):
 # Ported to PyQT5 and modified, original widget by Caroline Beyne, github user: cbeyne
@@ -740,11 +884,26 @@ class Switch(QtWidgets.QPushButton):
 
 		painter.drawRoundedRect(sw_rect, radius, radius)
 
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['type'] = 'Switch'
+		state['value'] = self.isChecked()
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		if state['type'] != 'Switch':
+			print(f"{self} state was serialised as a {state['type']}, is now a Switch")
+			return
+		self.setChecked(state['value'])
+
 class NonScrollingComboBox(QtWidgets.QComboBox):
 	def __init__(self, scrollWidget=None, *args, **kwargs):
 		super(NonScrollingComboBox, self).__init__(*args, **kwargs)  
 		self.scrollWidget=scrollWidget
 		self.setFocusPolicy(QtCore.Qt.StrongFocus)
+
+	def getAllItems(self) -> list[str]:
+		return [self.itemText(ii) for ii in range(self.count())]
 
 	def setContainingScrollWidget(self, scrollwidget):
 		self.scrollWidget = scrollwidget

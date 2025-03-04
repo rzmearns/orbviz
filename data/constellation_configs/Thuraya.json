@@ -1,0 +1,8 @@
+{
+	"name": "Thuraya",
+	"beam_width":15.0,
+	"satellites":{
+		"THURAYA-2": 27825,
+		"THURAYA-3": 32404
+	}
+}

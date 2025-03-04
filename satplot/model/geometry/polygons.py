@@ -1,7 +1,11 @@
 import numpy as np
+import numpy.typing as nptyping
 import satplot.model.geometry.primgeom as pg
 
-def generateCircle(center, radius, normal, sampling=180):
+def generateCircle(center:tuple[float,float,float] | nptyping.NDArray,
+					 radius:float,
+					 normal:tuple[float,float,float] | nptyping.NDArray,
+					 sampling:int=180):
 	coords = np.zeros((sampling,3))
 	theta = np.linspace(0, 2*np.pi, 180)
 	center = np.asarray(center)

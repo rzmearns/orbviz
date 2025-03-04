@@ -1,7 +1,7 @@
-from PyQt5 import QtWidgets, QtCore, QtGui
-import sys
 import string
+import sys
 
+from PyQt5 import QtWidgets, QtCore, QtGui
 
 consolefp = None
 printable = string.ascii_letters + string.digits + string.punctuation + ' '

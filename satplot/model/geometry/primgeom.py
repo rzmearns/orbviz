@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.typing as nptyping
 import scipy.spatial
 import math
 import warnings
@@ -23,7 +24,7 @@ Y = np.array([0, 1, 0])
 Z = np.array([0, 0, 1])
 
 
-def unitVector(vector):
+def unitVector(vector:nptyping.NDArray) -> nptyping.NDArray:
 	''' Returns the unit vector
 
 	Parameters
@@ -36,7 +37,7 @@ def unitVector(vector):
 
 	'''
 	if np.allclose(vector, np.zeros(vector.shape), rtol=1e-8):
-		raise exceptions.InputException("Cannot norm 0-vector")
+		raise exceptions.InputError("Cannot norm 0-vector")
 	
 	if len(vector.shape) == 1:
 		return vector / np.linalg.norm(vector)
@@ -48,7 +49,7 @@ def unitVector(vector):
 		raise exceptions.InputError("Vectors of shape {} are not supported by unitVector.".format(vector.shape))
 
 
-def randUnitVector():
+def randUnitVector() -> nptyping.NDArray:
 	''' Returns a unit vector pointing in a random direction
 	Maths powered by: mathworld.wolfram.com/SpherePointPicking.html
 	'''
@@ -66,7 +67,7 @@ def generateONBasisFromPointNormal(point, normal):
 	return e1,e2,e3
 
 
-def angleBetween(v1, v2, units="rad"):
+def angleBetween(v1:nptyping.NDArray, v2:nptyping.NDArray, units:str="rad") -> float:
 	'''angle_between(v1,v2,units="rad/")
 	returns the angle between numpy vectors v1 and v2
 	
@@ -92,7 +93,7 @@ def angleBetween(v1, v2, units="rad"):
 		raise NotImplementedError("{} is not a valid unit for the angle. units must be either 'rad' or 'deg'.".format(units))
 
 
-def seqPointsSignedAngle(prev_pnt, curr_pnt, next_pnt, norm=Z):
+def seqPointsSignedAngle(prev_pnt:nptyping.NDArray, curr_pnt:nptyping.NDArray, next_pnt:nptyping.NDArray, norm:nptyping.NDArray=Z) -> float:
 	'''
 	Returns the signed angle defined by the three points `prev`->`curr`->`next`.
 	curr_pnt is the vertex between edges defined by `prev_pnt` -> `curr_pnt` and `curr_pnt` -> `next_pnt`
@@ -125,7 +126,7 @@ def seqPointsSignedAngle(prev_pnt, curr_pnt, next_pnt, norm=Z):
 	return angle 
 
 
-def vectorSignedAngle(v1, v2, norm=Z):
+def vectorSignedAngle(v1:nptyping.NDArray, v2:nptyping.NDArray, norm:nptyping.NDArray=Z) -> float:
 	'''
 	Returns the signed angle between the vector v1 to the vector v2.
 	The direction of the sign is defined by `norm`
@@ -148,10 +149,10 @@ def vectorSignedAngle(v1, v2, norm=Z):
 
 	# check v* are vectors
 	if m1 == 1 or m1 > 3:
-		raise exceptions.InputException(f'{v1} is not a vector')
+		raise exceptions.InputError(f'{v1} is not a vector')
 	# Check v1 and v2 are same dimensions
 	if m1 != m2:
-		raise exceptions.InputException(f'Dimensions of {v1} and {v2} do not match')
+		raise exceptions.InputError(f'Dimensions of {v1} and {v2} do not match')
 
 	# If 2D pad to 3D, and set norm
 	if m1 == 2:
@@ -173,7 +174,7 @@ def vectorSignedAngle(v1, v2, norm=Z):
 	return sign * angle
 
 
-def orthogonalProjection(v1, v2):
+def orthogonalProjection(v1:nptyping.NDArray, v2:nptyping.NDArray) -> nptyping.NDArray:
 	'''
 	Returns the projection of v1 in the direction orthogonal to v2.
 	
@@ -219,7 +220,7 @@ def orthogonalProjection(v1, v2):
 	return ortho_proj
 
 
-def lineParam(line):
+def lineParam(line:nptyping.NDArray) -> tuple[float, float, float, float, float, float]:
 	'''
 	Returns the parametrised equation of the line:
 		x=a1+a2t
@@ -243,7 +244,7 @@ def lineParam(line):
 	return (a1,a2,b1,b2,c1,c2)
 
 
-def linesParam(lines):
+def linesParam(lines:nptyping.NDArray) -> nptyping.NDArray:
 	'''
 	A vectorised version of lines_param
 	Returns a (N,6) numpy array with each row giving the parameterisation of each line
@@ -269,7 +270,7 @@ def linesParam(lines):
 	return params
 
 
-def planeParam(poly):
+def planeParam(poly: nptyping.NDArray) -> tuple[float, float, float, float]:
 	'''
 	Returns the equation of the plane ax+by+cz+d=0 from a poly
 
@@ -295,7 +296,7 @@ def planeParam(poly):
 	return(a,b,c,d)
 
 
-def planes_param(polys):
+def planes_param(polys:nptyping.NDArray) -> nptyping.NDArray:
 	''' 
 	Returns the equation of the plane ax+by+cz+d=0 from many polygons
 	
@@ -321,7 +322,7 @@ def planes_param(polys):
 	return params
 		
 
-def is_point_on_plane(point, coeff):
+def is_point_on_plane(point:nptyping.NDArray, coeff:nptyping.NDArray) -> bool:
 	'''Test if point in plane
 	
 	Test if the point is a solution to the equation Ax+By+Cz+D=0

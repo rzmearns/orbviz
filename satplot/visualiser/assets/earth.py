@@ -1,23 +1,24 @@
-import satplot.util.constants as c
-import satplot.visualiser.colours as colours
-from satplot.visualiser.assets.base import BaseAsset, SimpleAsset
-from satplot.visualiser.assets import axis_indicator as axisInd
-
-from satplot.model.geometry import transformations as transforms
-from satplot.model.geometry import primgeom as pg
-from satplot.model.geometry import polygons
-import satplot.model.timespan as timespan
-
-import geopandas as gpd
+import numpy as np
+import numpy.typing as nptyping
 from skyfield.api import wgs84
 
 from vispy import scene, color
+from vispy.scene.widgets.viewbox import ViewBox
 from vispy.visuals import transforms as vTransforms
 
-import numpy as np
+import satplot.model.geometry.polygons as polygons
+import satplot.model.geometry.primgeom as pg
+import satplot.model.geometry.transformations as transforms
+import satplot.util.constants as c
+import satplot.util.paths as satplot_paths
+import satplot.visualiser.assets.base_assets as base_assets
+import satplot.visualiser.assets.axis_indicator as axisInd
+import satplot.visualiser.colours as colours
+import spherapy.timespan as timespan
 
-class Earth(BaseAsset):
-	def __init__(self, name=None, v_parent=None):
+
+class Earth3DAsset(base_assets.AbstractAsset):
+	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 						
 		self._setDefaultOptions()
@@ -29,9 +30,9 @@ class Earth(BaseAsset):
 		self.opts['plot_parallels']['callback'] = self.assets['parallels'].setVisibility
 		self.opts['plot_equator']['callback'] = self.assets['parallels'].setVisibility
 
-		self.attachToParentView()
+		self._attachToParentView()
 
-	def _initData(self):
+	def _initData(self) -> None:
 		if self.data['name'] is None:
 			self.data['name'] = 'Earth'		
 		self.data['ecef_rads'] = 0
@@ -42,32 +43,13 @@ class Earth(BaseAsset):
 		self.data['ea_coords'][1,2] = (c.R_EARTH+1000)
 
 		# landmass data
-		gdf = gpd.read_file('data/land_boundaries/ne_110m_land.shp')
-		conn = None
-		total_len = 0
-		all_coords = None
-		for ii in gdf.index:
-			polys = gdf.loc[ii].geometry
-			if polys.geom_type == 'Polygon':
-				coords = self._convertShapeFilePolys(polys)		
-				poly_len = len(coords)				
-				new_conn = np.array([np.arange(poly_len-1),np.arange(1,poly_len)]).T + total_len
-				if conn is not None:
-					conn = np.vstack((conn,new_conn))
-				else:
-					conn = new_conn
-				total_len += poly_len
-				if all_coords is not None:
-					all_coords = np.vstack((all_coords, coords))
-				else:
-					all_coords = coords
-		self.data['landmass'] = all_coords
-		self.data['landmass_conn'] = conn
+		self.data['landmass'] = np.load(f'{satplot_paths.data_dir}/land_boundaries/landmass_points.npy')
+		self.data['landmass_conn'] = np.load(f'{satplot_paths.data_dir}/land_boundaries/landmass_connections.npy')
 
 		# rotation data
 		self.data['nullisland_topos'] = wgs84.latlon(0,0)
 
-	def setSource(self, *args, **kwargs):		
+	def setSource(self, *args, **kwargs) -> None:
 		if type(args[0]) is not timespan.TimeSpan:
 			# args[0] assumed to be timespan
 			raise TypeError
@@ -79,11 +61,11 @@ class Earth(BaseAsset):
 		for asset in self.assets.values():
 			asset.setSource(self.data['datetimes'])
 
-	def _instantiateAssets(self):
-		self.assets['parallels'] = ParallelsGrid(v_parent=self.data['v_parent'])
-		self.assets['meridians'] = MeridiansGrid(v_parent=self.data['v_parent'])
+	def _instantiateAssets(self) -> None:
+		self.assets['parallels'] = ParallelsGrid3DAsset(v_parent=self.data['v_parent'])
+		self.assets['meridians'] = MeridiansGrid3DAsset(v_parent=self.data['v_parent'])
 
-	def _createVisuals(self):
+	def _createVisuals(self) -> None:
 		# Earth Sphere
 		self.visuals['earth_sphere'] = scene.visuals.Sphere(radius=c.R_EARTH,
 								method='latitude',
@@ -96,118 +78,125 @@ class Earth(BaseAsset):
 		# Landmass
 		self.visuals['landmass'] = scene.visuals.Line(self.data['landmass'],
 													color=colours.normaliseColour(self.opts['landmass_colour']['value']),
-													antialias=self.opts['antialias']['value'],
+													antialias=True,
 													connect=self.data['landmass_conn'],
 													parent=None)
+	# Use AbstractAsset.updateIndex()
 
-	# Override BaseAsset.updateIndex()
-	def updateIndex(self, index):
-		self.data['curr_index'] = index
-		nullisland_curr = self.data['nullisland_topos'].at(self.data['datetimes'][self.data['curr_index']]).xyz.km
-		rot_rad = np.arctan2(nullisland_curr[1], nullisland_curr[0])
-		self.data['ecef_rads'] = rot_rad
-		for asset in self.assets.values():
-			if isinstance(asset,BaseAsset):
-				asset.updateIndex(index)
-		self.requires_recompute = True
-		self.recompute()
-
-	def recompute(self):
-		if self.first_draw:
-			self.first_draw = False
-		if self.requires_recompute:
+	def recomputeRedraw(self) -> None:
+		if self.isFirstDraw():
+			self._clearFirstDrawFlag()
+		if self.isStale():
+			# calculate rotation of earth
+			nullisland_curr = self.data['nullisland_topos'].at(self.data['datetimes'][self.data['curr_index']]).xyz.km
+			rot_rad = np.arctan2(nullisland_curr[1], nullisland_curr[0])
+			self.data['ecef_rads'] = rot_rad
 			R = transforms.rotAround(self.data['ecef_rads'], pg.Z)
 			new_coords = R.dot(self.data['landmass'].T).T
-			self.visuals['landmass'].set_data(new_coords)
-			for asset in self.assets.values():
-				asset.setTransform(rotation=R)
-			
 
-			self.requires_recompute = False
+			# redraw necessary visuals
+			# only need to rotate landmass. axis and sphere don't need to rotate
+			self.visuals['landmass'].set_data(new_coords)
+
+			# recomputeRedraw child assets
+			self._recomputeRedrawChildren(rotation=R)
+			self._clearStaleFlag()
+
 	
-	def _setDefaultOptions(self):
+	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
-		self._dflt_opts['antialias'] = {'value': True,
-								  		'type': 'boolean',
-										'help': '',
-												'callback': None}
 		self._dflt_opts['plot_earth'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
-												'callback': self.setVisibility}
+												'static': True,
+												'callback': self.setVisibilityRecursive,
+											'widget': None}
 		self._dflt_opts['plot_earth_sphere'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
-												'callback': self.setEarthSphereVisibility}
+												'static': True,
+												'callback': self.setEarthSphereVisibility,
+											'widget': None}
 		self._dflt_opts['earth_sphere_colour'] = {'value': (220,220,220),
 												'type': 'colour',
 												'help': '',
-												'callback': self.setEarthSphereColour}
+												'static': True,
+												'callback': self.setEarthSphereColour,
+											'widget': None}
 		self._dflt_opts['plot_earth_axis'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
-												'callback': self.setEarthAxisVisibility}
+												'static': True,
+												'callback': self.setEarthAxisVisibility,
+											'widget': None}
 		self._dflt_opts['earth_axis_colour'] = {'value': (255,0,0),
 												'type': 'colour',
 												'help': '',
-												'callback': self.setEarthAxisColour}
+												'static': True,
+												'callback': self.setEarthAxisColour,
+											'widget': None}
 		self._dflt_opts['plot_parallels'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
-												'callback': None}
+												'static': True,
+												'callback': None,
+											'widget': None}
 		self._dflt_opts['plot_equator'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
-												'callback': None}
+												'static': True,
+												'callback': None,
+											'widget': None}
 		self._dflt_opts['plot_meridians'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
-												'callback': None}
+												'static': True,
+												'callback': None,
+											'widget': None}
 		self._dflt_opts['plot_landmass'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
-												'callback': self.setLandmassVisibility}
+												'static': True,
+												'callback': self.setLandmassVisibility,
+											'widget': None}
 		self._dflt_opts['landmass_colour'] = {'value': (0,0,0),
 												'type': 'colour',
 												'help': '',
-												'callback': self.setLandMassColour}
+												'static': True,
+												'callback': self.setLandMassColour,
+											'widget': None}
 
 		self.opts = self._dflt_opts.copy()
 
 	#----- OPTIONS CALLBACKS -----#
-	def setEarthSphereColour(self, new_colour):
-		print("Bugged")
-		print("Not implemented")
-		# nnc = colours.normaliseColour(new_colour)
-		# annc = (nnc[0], nnc[1], nnc[2], 1)
-		# self.opts['earth_sphere_colour']['value'] = new_colour
-		# c = color.Color(color=nnc, alpha=1)
-		# print(c)
-		# print(self.opts['earth_sphere_colour']['value'])
-		# self.visuals['earth'].mesh.set_data(vertex_colors=colours.normaliseColour(new_colour))
-		# # self.visuals['earth'].mesh.mesh_data._face_colors_indexed_by_faces[:] = colours.normaliseColour(new_colour)
-		# # self.visuals['earth'].mesh.mesh_data_changed()
-		# # self.visuals['earth'].mesh.mesh_data.set_vertex_colors(nnc)
-		# # self.visuals['earth'].mesh.mesh_data_changed()
-		# self.visuals['earth'].mesh.set_data(color=c)
-		# self.visuals['earth'].mesh.update()
+	def setEarthSphereColour(self, new_colour:tuple[float,float,float]) -> None:
+		print(f"Changing suearth sphere colour {self.opts['earth_sphere_colour']['value']} -> {new_colour}")
+		self.opts['earth_sphere_colour']['value'] = new_colour
+		n_faces = self.visuals['earth_sphere'].mesh._meshdata.n_faces
+		n_verts = self.visuals['earth_sphere'].mesh._meshdata.n_vertices
+		self.visuals['earth_sphere'].mesh._meshdata.set_face_colors(np.tile(colours.normaliseColour(new_colour),(n_faces,1)))
+		self.visuals['earth_sphere'].mesh._meshdata.set_vertex_colors(np.tile(colours.normaliseColour(new_colour),(n_verts,1)))
+		self.visuals['earth_sphere'].mesh.mesh_data_changed()
 
-	def setEarthAxisColour(self, new_colour):
+	def setEarthAxisColour(self, new_colour:tuple[float,float,float]) -> None:
 		self.opts['earth_axis_colour']['value'] = colours.normaliseColour(new_colour)
 		self.visuals['earth_axis'].set_data(color=colours.normaliseColour(new_colour))
 
-	def setLandMassColour(self, new_colour):
+	def setLandMassColour(self, new_colour:tuple[float,float,float]) -> None:
 		self.opts['landmass_colour']['value'] = colours.normaliseColour(new_colour)
 		self.visuals['landmass'].set_data(color=colours.normaliseColour(new_colour))
 
-	def setEarthAxisVisibility(self, state):
-		self.visuals['earth_axis'].visible = state
+	def setEarthAxisVisibility(self, state:bool) -> None:
+		self.opts['plot_earth_axis']['value'] = state
+		self.visuals['earth_axis'].visible = self.opts['plot_earth_axis']['value']
 
-	def setLandmassVisibility(self, state):
-		self.visuals['landmass'].visible = state
+	def setLandmassVisibility(self, state:bool) -> None:
+		self.opts['plot_landmass']['value'] = state
+		self.visuals['landmass'].visible = self.opts['plot_landmass']['value']
 
-	def setEarthSphereVisibility(self, state):
-		self.visuals['earth_sphere'].visible = state
+	def setEarthSphereVisibility(self, state:bool) -> None:
+		self.opts['plot_earth_sphere']['value'] = state
+		self.visuals['earth_sphere'].visible = self.opts['plot_earth_sphere']['value']
 
 	#----- HELPER FUNCTIONS -----#
 	def _convertShapeFilePolys(self, poly):
@@ -225,16 +214,15 @@ class Earth(BaseAsset):
 		return coords
 
 
-class ParallelsGrid(SimpleAsset):
-	def __init__(self,name=None, v_parent=None):
+class ParallelsGrid3DAsset(base_assets.AbstractSimpleAsset):
+	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 		self._setDefaultOptions()
 		self._initData()
-		self._instantiateAssets()
 		self._createVisuals()
-		self.attachToParentView()
+		self._attachToParentView()
 
-	def _initData(self):
+	def _initData(self) -> None:
 		if self.data['name'] is None:
 			self.data['name'] = 'Parallels'		
 		self.data['init_eq_coords'] = self._genParallel(0)
@@ -266,72 +254,80 @@ class ParallelsGrid(SimpleAsset):
 			total_len += poly_len
 			self.data['init_p_coords'] = np.vstack((self.data['init_p_coords'], new_coords))
 
-	def setSource(self, *args, **kwargs):
+	def setSource(self, *args, **kwargs) -> None:
 		# No updating, so no source
 		pass
 
-	def _instantiateAssets(self):
-		# No sub assets
-		pass
-
-	def _createVisuals(self):
+	def _createVisuals(self) -> None:
 		self.visuals['equator'] = \
 			scene.visuals.Line(self.data['init_eq_coords'],
 								color=colours.normaliseColour(self.opts['equator_colour']['value']),
-								antialias=self.opts['antialias']['value'],
+								antialias=True,
 								parent=None)
 		self.visuals['parallels'] = \
 			scene.visuals.Line(self.data['init_p_coords'],
 								color=colours.normaliseColour(self.opts['parallel_colour']['value']),
-								antialias=self.opts['antialias']['value'],
+								antialias=True,
 								connect=self.data['p_conn'],
 								parent=None)
 
-	def setTransform(self, pos=(0,0,0), rotation=np.eye(3)):
-		pass
+	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
+						 rotation:nptyping.NDArray=np.eye(3)) -> None:
+		if self.isFirstDraw():
+			self._clearFirstDrawFlag()
+		if self.isStale():
+			self._clearStaleFlag()
 
-	def _setDefaultOptions(self):
+	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
-		self._dflt_opts['antialias'] = {'value': True,
-										'type': 'boolean',
-										'help': '',
-										'callback': None}
 		self._dflt_opts['equator_colour'] = {'value': (0,0,0),
 											'type': 'colour',
 											'help': '',
-											'callback': self.setEquatorColour}
+											'static': True,
+											'callback': self.setEquatorColour,
+											'widget': None}
 		self._dflt_opts['equator_width'] = 	{'value': 2.0,
 											'type': 'float',
 											'help': '',
-											'callback': self.setEquatorWidth}
+											'static': True,
+											'callback': self.setEquatorWidth,
+											'widget': None}
 		self._dflt_opts['parallel_spacing'] = {'value': 15,
 											'type': 'integer',
 											'help': '',
-											'callback': self.setParallelsSpacing}
+											'static': True,
+											'callback': self.setParallelsSpacing,
+											'widget': None}
 		self._dflt_opts['parallel_colour'] = {'value': (0,0,0),
 											'type': 'colour',
 											'help': '',
-											'callback': self.setParallelsColour}
+											'static': True,
+											'callback': self.setParallelsColour,
+											'widget': None}
 		self._dflt_opts['parallel_width'] = {'value': 0.5,
 											'type': 'float',
 											'help': '',
-											'callback': self.setParallelsWidth}
+											'static': True,
+											'callback': self.setParallelsWidth,
+											'widget': None}
 		self.opts = self._dflt_opts.copy()
 	
 	#----- OPTIONS CALLBACKS -----#
-	def setParallelsVisibility(self, state):
-		if state:
+	def setParallelsVisibility(self, state:bool) -> None:
+		self.opts['plot_parallels']['value'] = state
+		if self.opts['plot_parallels']['value']:
 			self.visuals['parallels'].parent = self.data['v_parent']
 		else:
 			self.visuals['parallels'].parent = None
 
-	def setEquatorVisibility(self, state):
-		if state:
+	def setEquatorVisibility(self, state:bool) -> None:
+		self.opts['plot_equator']['value'] = state
+		if self.opts['plot_equator']['value']:
 			self.visuals['equator'].parent = self.data['v_parent']
 		else:
 			self.visuals['equator'].parent = None
 
-	def _updateLineVisualsOptions(self):
+	def _updateLineVisualsOptions(self) -> None:
 		self.visuals['equator'].set_data(pos=self.data['init_eq_coords'],
 											color=colours.normaliseColour(self.opts['equator_colour']['value']),
 											width=self.opts['equator_width']['value'])
@@ -340,23 +336,23 @@ class ParallelsGrid(SimpleAsset):
 											connect=self.data['p_conn'],
 											width=self.opts['parallel_width']['value'])
 		
-	def setEquatorColour(self, new_colour):
+	def setEquatorColour(self, new_colour:tuple[float,float,float]) -> None:
 		self.opts['equator_colour']['value'] = new_colour
 		self._updateLineVisualsOptions()
 
-	def setParallelsColour(self, new_colour):
+	def setParallelsColour(self, new_colour:tuple[float,float,float]) -> None:
 		self.opts['parallel_colour']['value'] = new_colour
 		self._updateLineVisualsOptions()
 
-	def setParallelsWidth(self, value):
+	def setParallelsWidth(self, value:int) -> None:
 		self.opts['parallel_width']['value'] = value
 		self._updateLineVisualsOptions()
 
-	def setEquatorWidth(self, value):
+	def setEquatorWidth(self, value:int) -> None:
 		self.opts['equator_width']['value'] = value
 		self._updateLineVisualsOptions()
 
-	def setParallelsSpacing(self, spacing):
+	def setParallelsSpacing(self, spacing:float) -> None:
 		self.opts['parallel_spacing']['value'] = spacing
 		old_transform = self.visuals['parallels'].transform
 		self._initData()
@@ -364,25 +360,24 @@ class ParallelsGrid(SimpleAsset):
 		self.visuals['parallels'].transform = old_transform
 
 	#----- HELPER FUNCTIONS -----#
-	def _genParallel(self, lat_degs):
+	def _genParallel(self, lat_degs:float) -> None:
 		R = c.R_EARTH * np.cos(np.deg2rad(lat_degs))
 		z = c.R_EARTH * np.sin(np.deg2rad(lat_degs))
 		coords = polygons.generateCircle((0,0,z), R, (0,0,1))
 		return coords
 	
 
-class MeridiansGrid(SimpleAsset):
-	def __init__(self, name=None, v_parent=None):
+class MeridiansGrid3DAsset(base_assets.AbstractSimpleAsset):
+	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 
 		self._setDefaultOptions()
 		self._initData()
-		self._instantiateAssets()
 		self._createVisuals()
 
-		self.attachToParentView()
+		self._attachToParentView()
 
-	def _initData(self):
+	def _initData(self) -> None:
 		if self.data['name'] is None:
 			self.data['name'] = 'Meridians'		
 		self.data['init_m_coords'] = None
@@ -402,80 +397,85 @@ class MeridiansGrid(SimpleAsset):
 			else:
 				self.data['init_m_coords'] = new_coords
 
-	def setSource(self, *args, **kwargs):		
+	def setSource(self, *args, **kwargs) -> None:
 		pass
 
-	def _instantiateAssets(self):
-		# No sub assets
-		pass
-
-	def _createVisuals(self):
+	def _createVisuals(self) -> None:
 		self.visuals['meridians'] = \
 			scene.visuals.Line(self.data['init_m_coords'],
 						 		color=colours.normaliseColour(self.opts['meridian_colour']['value']),
-								antialias=self.opts['antialias']['value'],
+								antialias=True,
 								connect=self.data['m_conn'],
 								parent=None)
-
 		self.setTransform()
 
-	def setTransform(self, pos=(0,0,0), rotation=np.eye(3)):
-		T = np.eye(4)
-		T[0:3,0:3] = rotation
-		T[0:3,3] = np.asarray(pos).reshape(-1,3)
-		self.visuals['meridians'].transform = vTransforms.linear.MatrixTransform(T.T)
+	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
+						 rotation:nptyping.NDArray=np.eye(3)) -> None:
+		if self.isFirstDraw():
+			self._clearFirstDrawFlag()
+		if self.isStale():
+			T = np.eye(4)
+			T[0:3,0:3] = rotation
+			T[0:3,3] = np.asarray(pos).reshape(-1,3)
+			self.visuals['meridians'].transform = vTransforms.linear.MatrixTransform(T.T)
+			self._clearStaleFlag()
 
-	def _setDefaultOptions(self):
+	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
-		self._dflt_opts['antialias'] = {'value': True,
-										'type': 'boolean',
-										'help': '',
-										'callback': None}
 		self._dflt_opts['meridian_spacing'] = {'value': 30,
 											'type': 'integer',
 											'help': '',
-											'callback': self.setMeridianSpacing}
+											'static': True,
+											'callback': self.setMeridianSpacing,
+											'widget': None}
 		self._dflt_opts['meridian_colour'] = {'value': (0,0,0),
 											'type': 'colour',
 											'help': '',
-											'callback': self.setMeridiansColour}
+											'static': True,
+											'callback': self.setMeridiansColour,
+											'widget': None}
 		self._dflt_opts['meridian_width'] = {'value': 0.5,
 											'type': 'float',
 											'help': '',
-											'callback': self.setMeridiansWidth}
+											'static': True,
+											'callback': self.setMeridiansWidth,
+											'widget': None}
 		self.opts = self._dflt_opts.copy()
 
 	#----- OPTIONS CALLBACKS -----#
 
-	def setMeridianVisibility(self, state):
-		if state:
+	def setMeridianVisibility(self, state:bool) -> None:
+		self.opts['plot_meridians']['value'] = state
+		if self.opts['plot_meridians']['value']:
 			self.visuals['meridians'].parent = self.data['v_parent']
 		else:
 			self.visuals['meridians'].parent = None
 
-	def setMeridiansColour(self, new_colour):
-		self.opts['meridian_colour']['value'] = colours.normaliseColour(new_colour)
+	def setMeridiansColour(self, new_colour:tuple[float,float,float]) -> None:
+		self.opts['meridian_colour']['value'] = new_colour
 		self._updateLineVisualsOptions()
 
-	def setMeridiansWidth(self, width):
+	def setMeridiansWidth(self, width:int) -> None:
 		self.opts['meridian_width']['value'] = width
 		self._updateLineVisualsOptions()
 
-	def setMeridianSpacing(self, spacing):
+	def setMeridianSpacing(self, spacing:float) -> None:
 		self.opts['meridian_spacing']['value'] = spacing
 		old_transform = self.visuals['meridians'].transform
 		self._initData()
 		self._updateLineVisualsOptions()
 		self.visuals['meridians'].transform = old_transform
 
-	def _updateLineVisualsOptions(self):
+	def _updateLineVisualsOptions(self) -> None:
+		new_colour = colours.normaliseColour(self.opts['meridian_colour']['value'])
+		print(f'Meridians applied colour: {new_colour}')
 		self.visuals['meridians'].set_data(pos=self.data['init_m_coords'],
-						 					color=colours.normaliseColour(self.opts['meridian_colour']['value']),
+						 					color=new_colour,
 											connect=self.data['m_conn'],
 											width=self.opts['meridian_width']['value'])
 
 	#----- HELPER FUNCTIONS -----#
-	def _genMeridian(self, long_degs):
+	def _genMeridian(self, long_degs:float) -> None:
 		R = c.R_EARTH * np.cos(np.deg2rad(long_degs))
 		coords = polygons.generateCircle((0,0,0), R, (0,0,1))
 

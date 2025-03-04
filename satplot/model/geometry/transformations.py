@@ -1,5 +1,6 @@
+from functools import reduce
 import numpy as np
-
+import numpy.typing as nptyping
 import logging
 
 import satplot.util.exceptions as exceptions
@@ -14,7 +15,7 @@ hull = (m,3) ndarray - m > 4, not all points coplanar
 '''
 
 
-def shiftPolytope(poly, delta):
+def shiftPolytope(poly:nptyping.NDArray, delta:tuple[float,float,float]|nptyping.NDArray) -> nptyping.NDArray:
 	'''Translate a polytope by the specified delta
 	
 	Parameters
@@ -38,7 +39,7 @@ def shiftPolytope(poly, delta):
 	return poly_out
 
 
-def expandPolyhedron(poly, factor):
+def expandPolyhedron(poly:nptyping.NDArray, factor:float) -> nptyping.NDArray:
 	'''Expand poly vertices from center by factor
 	
 	Parameters
@@ -58,7 +59,7 @@ def expandPolyhedron(poly, factor):
 	return new_poly
 
 
-def rotationMatrix(v1, v2): 
+def rotationMatrix(v1:nptyping.NDArray, v2:nptyping.NDArray) -> nptyping.NDArray:
 	"""
 	Calculates a rotation matrix that changes v1 into v2. 
 	
@@ -123,7 +124,7 @@ def rotationMatrix(v1, v2):
 	return M
 
 	
-def rotAround(angle, axis=pg.Z):
+def rotAround(angle:float, axis:nptyping.NDArray=pg.Z) -> nptyping.NDArray:
 	'''
 	Returns rotation matrix that rotates counterclockwise by an angle theta
 	around a chosen axis, following the right hand rule.
@@ -153,7 +154,7 @@ def rotAround(angle, axis=pg.Z):
 	return rot_mat
 	
 
-def rotMat(theta,rot_base,rot_axis):
+def rotMat(theta:float, rot_base:nptyping.NDArray, rot_axis:nptyping.NDArray) -> nptyping.NDArray:
 	'''
 	Returns rotation matrix around arbitrary Axis defined by a base point, rot_base and an axis, rot_axis
 	Rotation matrix will perform the following operations on the vector it is applied to:
@@ -236,7 +237,7 @@ def rotMat(theta,rot_base,rot_axis):
 	else:
 		return reduce(np.dot,[np.linalg.inv(T_P1),np.linalg.inv(T_xz),np.linalg.inv(T_z),R_z,T_z,T_xz,T_P1])
 
-def rotMat2xy(normal):
+def rotMat2xy(normal:nptyping.NDArray) -> nptyping.NDArray:
 	'''
 
 	'''

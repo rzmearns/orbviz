@@ -1,15 +1,17 @@
 import sys
+from typing import Any
+
 from PyQt5 import QtWidgets, QtCore
+
 import satplot
-from satplot.visualiser.controls import controls, widgets
-from satplot.visualiser import canvaswrappers
-from satplot.visualiser.contexts import (history3d, blank)
-import satplot.visualiser.controls.console as console
+from satplot.model.data_models import (history_data)
+from satplot.visualiser.contexts import (history3d_context, blank_context)
+import satplot.visualiser.interface.console as console
 
 class MainWindow(QtWidgets.QMainWindow):
 	closing = QtCore.pyqtSignal()
 
-	def __init__(self,	title="",
+	def __init__(self,	title:str="",
 						*args, **kwargs):
 		super().__init__(*args, **kwargs)
 		main_widget = QtWidgets.QWidget()
@@ -32,14 +34,16 @@ class MainWindow(QtWidgets.QMainWindow):
 		self.contexts_dict = {}
 		self.context_tabs = QtWidgets.QTabWidget()
 		
+		# Build data models
+		history_data_model = history_data.HistoryData()
 
 		# Build context panes
-		self.contexts_dict['3d-history'] = history3d.History3DContext('3d-history', self)
+		self.contexts_dict['3d-history'] = history3d_context.History3DContext('3d-history', self, history_data_model)
 		self.toolbars['3d-history'] = self.contexts_dict['3d-history'].controls.toolbar
 		self.menubars['3d-history'] = self.contexts_dict['3d-history'].controls.menubar
 		self.context_tabs.addTab(self.contexts_dict['3d-history'].widget, '3D History')
 
-		self.contexts_dict['blank'] = blank.BlankContext('blank', self)
+		self.contexts_dict['blank'] = blank_context.BlankContext('blank', self)
 		self.toolbars['blank'] = self.contexts_dict['blank'].controls.toolbar
 		self.menubars['blank'] = self.contexts_dict['blank'].controls.menubar
 		self.context_tabs.addTab(self.contexts_dict['blank'].widget, 'Blank')
@@ -85,7 +89,7 @@ class MainWindow(QtWidgets.QMainWindow):
 		self.setWindowTitle(title)
 		self._changeToolbarsToContext(0)
 
-	def _changeToolbarsToContext(self, new_context_index):
+	def _changeToolbarsToContext(self, new_context_index:int) -> None:
 		new_context_key = list(self.toolbars.keys())[new_context_index]
 		# process deselects first in order to clear parent pointer to menubar, otherwise menubar gets deleted (workaround for pyqt5)
 		for context_key in self.toolbars.keys():
@@ -104,25 +108,31 @@ class MainWindow(QtWidgets.QMainWindow):
 	# def changeTo3DHistoryContext(self):
 	# 	self._changeToolbarsToContext(0)
 
-	def printCol(self,val):
+	def printCol(self,val:Any) -> None:
 		print(val)
 
-	def serialiseContexts(self):
+	def serialiseContexts(self) -> dict[str,Any]:
 		state = {}
 		for context_key, context in self.contexts_dict.items():
 			state[context_key] = context.prepSerialisation()
 
 		return state
 
-	def deserialiseContexts(self, state):
+	def deserialiseContexts(self, state:dict[str,Any]) -> None:
 		for context_key, context_dict in state.items():
 			self.contexts_dict[context_key].deSerialise(context_dict)
 
-	def __del__(self):
+	def __del__(self) -> None:
 		sys.stderr = sys.__stderr__
 
-	def closeEvent(self, event):
+	def closeEvent(self, event:QtCore.QEvent) -> None:
 		sys.stderr = sys.__stderr__
-		self.closing.emit()
+
+		if satplot.threadpool is not None:
+			# Clear any waiting jobs
+			satplot.threadpool.clear()
+			# Stop active jobs
+			satplot.threadpool.killAll()
+		print(f'CLOSING')
 		return super().closeEvent(event)
 	

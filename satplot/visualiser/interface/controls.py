@@ -1,18 +1,21 @@
-from PyQt5 import QtWidgets, QtCore, QtGui
-from satplot.visualiser.controls import widgets
-from satplot.visualiser.assets import base
 import datetime as dt
+import json
 import os
 import string
-import json
-import satplot.visualiser.controls.console as console
-import satplot.util.spacetrack as spacetrack
+from typing import Any
+
+from PyQt5 import QtWidgets, QtCore, QtGui
+
+import satplot.model.data_models.data_types as data_types
+import satplot.visualiser.assets.base_assets as base_assets
+import satplot.visualiser.interface.widgets as widgets
+
 
 class OrbitConfigs(QtWidgets.QWidget):
 
 	prim_config_dir = 'data/primary_configs/'
 
-	def __init__(self, parent: QtWidgets.QWidget=None) -> None:
+	def __init__(self, parent: QtWidgets.QWidget|None=None) -> None:
 		super().__init__(parent)
 		self.pane_groupbox = QtWidgets.QGroupBox('Orbit Configuration')
 		# self.setFixedWidth(400)
@@ -28,7 +31,7 @@ class OrbitConfigs(QtWidgets.QWidget):
 		self.button_layout = QtWidgets.QHBoxLayout()
 		self.submit_button = QtWidgets.QPushButton('Recalculate')
 		self.prim_orbit_selector = widgets.FilePicker('Primary Orbit',
-															dflt_file='SpIRIT.json',
+															dflt_file='SpIRIT_XYZ.json',
 															dflt_dir='data/primary_configs/',
 															save=False)
 		self.pointing_file_controls = PointingFileControls()
@@ -61,12 +64,26 @@ class OrbitConfigs(QtWidgets.QWidget):
 
 		# self.setLayout(self.config_layout)
 
-	def prepSerialisation(self):
+	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
+		state['period_start'] = self.period_start.prepSerialisation()
+		state['period_end'] = self.period_end.prepSerialisation()
+		state['sampling_period'] = self.sampling_period.prepSerialisation()
+		state['primary_config'] = self.prim_orbit_selector.prepSerialisation()
+		state['pointing_controls'] = self.pointing_file_controls.prepSerialisation()
+		state['suppl_constellation_controls'] = self.suppl_constellation_selector.prepSerialisation()
 		return state
 
-	def getConfig(self):
-		return spacetrack.fetchConfig(self.prim_orbit_selector.path)
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		self.period_start.deSerialise(state['period_start'])
+		self.period_end.deSerialise(state['period_end'])
+		self.sampling_period.deSerialise(state['sampling_period'])
+		self.prim_orbit_selector.deSerialise(state['primary_config'])
+		self.pointing_file_controls.deSerialise(state['pointing_controls'])
+		self.suppl_constellation_selector.deSerialise(state['suppl_constellation_controls'])
+
+	def getConfig(self) -> data_types.PrimaryConfig:
+		return data_types.PrimaryConfig.fromJSON(self.prim_orbit_selector.path)
 
 class PointingFileControls(QtWidgets.QWidget):
 	def __init__(self, *args, **kwargs):
@@ -89,7 +106,7 @@ class PointingFileControls(QtWidgets.QWidget):
 		glayout.addWidget(self._enable,1,2)
 
 		self._pointing_file_selector = widgets.FilePicker(None,
-												   			dflt_file='20240223-030000_quaternion.csv',
+												   			dflt_file='20240108_test_quaternion_X_ECI_parallel_Z_Zenith.csv',
 															dflt_dir='data/pointing/',
 															save=False,
 															margins=[0,0,0,0])
@@ -140,6 +157,22 @@ class PointingFileControls(QtWidgets.QWidget):
 	def pointingFileDefinesPeriod(self):
 		return self.use_pointing_period.isChecked()
 
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['enabled'] = {}
+		state['enabled']['value'] = self._enable.isChecked()
+		state['use_pointing_period'] = {}
+		state['use_pointing_period']['value'] = self.use_pointing_period.isChecked()
+		state['pointing_file'] = self._pointing_file_selector.prepSerialisation()
+		state['frame_inv'] = self.pointing_file_inv_toggle.prepSerialisation()
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		self._pointing_file_selector.deSerialise(state['pointing_file'])
+		self.pointing_file_inv_toggle.deSerialise(state['frame_inv'])
+		self.use_pointing_period.setChecked(state['use_pointing_period']['value'])
+		self._enable.setChecked(state['enabled']['value'])
+
 class ConstellationControls(QtWidgets.QWidget):
 	c_config_dir = 'data/constellation_configs/'
 	c_configs = os.listdir(c_config_dir)
@@ -165,7 +198,7 @@ class ConstellationControls(QtWidgets.QWidget):
 		glayout.addWidget(self._enable,1,2)
 
 		self.suppl_constellation_selector = widgets.OptionBox('Supplementary Constellations',
-															options_list=self.constellation_options)		
+															options_list=self.constellation_options)
 		glayout.addWidget(self.suppl_constellation_selector,2,0,1,-1)
 
 		vlayout.addLayout(glayout)
@@ -201,8 +234,19 @@ class ConstellationControls(QtWidgets.QWidget):
 	def getCurrentIndex(self):
 		return self.suppl_constellation_selector.getCurrentIndex()
 
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['enabled'] = {}
+		state['enabled']['value'] = self._enable.isChecked()
+		state['constellation'] = self.suppl_constellation_selector.prepSerialisation()
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		self.suppl_constellation_selector.deSerialise(state['constellation'])
+		self._enable.setChecked(state['enabled']['value'])
+
 class OptionConfigs(QtWidgets.QWidget):
-	def __init__(self, asset_dict, parent: QtWidgets.QWidget=None) -> None:
+	def __init__(self, asset_dict, parent: QtWidgets.QWidget|None=None) -> None:
 		super().__init__(parent)
 
 		self.la_dict = asset_dict
@@ -211,7 +255,9 @@ class OptionConfigs(QtWidgets.QWidget):
 		# self.setFixedWidth(400)
 		self.pane_layout = QtWidgets.QVBoxLayout()
 		self.config_layout = QtWidgets.QVBoxLayout()
-		
+
+		self.sections = {}
+
 		self.buildWidgetPane(self.la_dict, self.pane_layout)
 		self.pane_layout.addStretch()
 		self.pane_groupbox.setLayout(self.pane_layout)
@@ -222,22 +268,56 @@ class OptionConfigs(QtWidgets.QWidget):
 		self.config_layout = QtWidgets.QVBoxLayout(self)
 		self.config_layout.addWidget(self.scroll_area)
 
+
 		self.setLayout(self.config_layout)
 	
+	def rebuild(self):
+		self.buildWidgetPane(self.la_dict, self.pane_layout)
+
 	def buildWidgetPane(self, root_dict, root_layout):
-		for key, asset in root_dict.items():
-			cb = widgets.CollapsibleSection(title=f"{key.capitalize()} Options")
-			w_dict = self._buildNestedOptionWidgetDict(asset, asset_key=key)
-			for key, widget in dict(sorted(w_dict.items())).items():
-				cb.addWidget(widget)
-			root_layout.addWidget(cb)
-		return
+		for section_key, asset in root_dict.items():
+			section_title = f"{section_key.capitalize()} Options"
+			if section_title not in self.sections.keys():
+				self.sections[section_title] = {}
+				self.sections[section_title]['added_to_layout'] = False
+				self.sections[section_title]['opts'] = {}
+				self.sections[section_title]['cb'] = widgets.CollapsibleSection(title=section_title)
+
+			for opt_key in list(self.sections[section_title]['opts'].keys()):
+				widget_struct = self.sections[section_title]['opts'][opt_key]
+				if widget_struct['mark_for_removal']:
+					print(f'deleting {opt_key}')
+					widget_struct['widget'].setParent(None)
+					del(self.sections[section_title]['opts'][opt_key])
+
+
+			w_dict = self._buildNestedOptionWidgetDict(asset, asset_key=section_key)
+
+			for opt_key, widget_struct in dict(sorted(w_dict.items())).items():
+				if opt_key not in self.sections[section_title]['opts']:
+					print(f'Option collapsible section {section_title}, adding: {opt_key}')
+					print(f'{section_title=}')
+					print(f'{opt_key=}')
+					self.sections[section_title]['opts'][opt_key] = widget_struct
+					# won't be in alphabetical order second time round
+					self.sections[section_title]['cb'].addWidget(widget_struct['widget'])
+
+			if not self.sections[section_title]['added_to_layout']:
+				root_layout.addWidget(self.sections[section_title]['cb'])
+				self.sections[section_title]['added_to_layout'] = True
+
+		# for section_title, section in self.sections.items():
+		# 	print(f'{section_title}:')
+		# 	print(f"\tadded_to_layout:{section['added_to_layout']}")
+		# 	print(f"\topts:")
+		# 	for k,v in section['opts'].items():
+		# 		print(f"\t\t{k}:{v}")
 
 
 	def _buildNestedOptionWidgetDict(self, asset, asset_key=''):
 		# returns unsorted_dict
 		w_dict = {}
-		if not isinstance(asset, base.BaseAsset) and not isinstance(asset, base.SimpleAsset):
+		if not isinstance(asset, base_assets.AbstractAsset) and not isinstance(asset, base_assets.AbstractSimpleAsset):
 			# no options or nested assets with options
 			return w_dict
 		
@@ -246,60 +326,90 @@ class OptionConfigs(QtWidgets.QWidget):
 		else:
 			w_opt_dict = None
 
-		w_dict.update(w_opt_dict)
+		w_dict.update(w_opt_dict) 	# type:ignore
 
 		if hasattr(asset, 'assets'):
-			for sub_key, sub_asset in asset.assets.items():
-				if not isinstance(sub_asset, base.BaseAsset) and not isinstance(sub_asset, base.SimpleAsset):
-					continue
-				sub_w_dict = self._buildNestedOptionWidgetDict(sub_asset, asset_key=sub_key)
-				cb = widgets.CollapsibleSection(title=f"{sub_key.capitalize()} Options")
-				for sub_w_key, widget in dict(sorted(sub_w_dict.items())).items():
-					cb.addWidget(widget)
-				if sub_key not in w_dict.keys():
-					w_dict[sub_key] = cb
-				else:
-					w_dict[f"{sub_key}_"] = cb
+			if asset is not type(base_assets.AbstractSimpleAsset):
+				for sub_key, sub_asset in asset.assets.items():  # type:ignore
+					if not isinstance(sub_asset, base_assets.AbstractAsset) and not isinstance(sub_asset, base_assets.AbstractSimpleAsset):
+						continue
+					sub_w_dict = self._buildNestedOptionWidgetDict(sub_asset, asset_key=sub_key)
+					cb = widgets.CollapsibleSection(title=f"{sub_key.capitalize()} Options")
+					for sub_w_key, widget in dict(sorted(sub_w_dict.items())).items():
+						cb.addWidget(widget['widget'])
+					if sub_key not in w_dict.keys():
+						w_dict[sub_key] = {}
+						w_dict[sub_key]['widget'] = cb
+						w_dict[sub_key]['mark_for_removal'] = False
+					else:
+						w_dict[f"{sub_key}_"] = {}
+						w_dict[f"{sub_key}_"]['widget'] = cb
+						w_dict[f"{sub_key}_"]['mark_for_removal'] = False
 
 		return w_dict
 
 	def _buildOptionWidgetDict(self, opts):
 		w_dict = {}
 		for opt_key, opt_dict in opts.items():
+			if opt_dict['widget'] is not None and opt_dict['static']:
+					continue
+
 			w_str = string.capwords(' '.join(opt_key.split('_')))
 			if opt_dict['type'] == 'boolean':
 				try:
 					widget = widgets.ToggleBox(w_str,
 												opt_dict['value'])
+					# opt_dict['widget'] = widget
 					widget.add_connect(opt_dict['callback'])
+					print(f"Adding option callback {opt_dict['callback']} to {opt_key}")
 				except:
 					print(f"Can't make widget {w_str} for asset {opt_key}")
 					raise ValueError
-			if opt_dict['type'] == 'colour':
+			elif opt_dict['type'] == 'colour':
 				try:
 					widget = widgets.ColourPicker(w_str,
 												opt_dict['value'])
+					# opt_dict['widget'] = widget
 					widget.add_connect(opt_dict['callback'])
+					print(f"Adding option callback {opt_dict['callback']} to {opt_key}")
 				except:
 					print(f"Can't make widget {w_str} for asset {opt_key}")
 					raise ValueError
-			if opt_dict['type'] == 'integer' or opt_dict['type'] == 'number':
+			elif opt_dict['type'] == 'integer' or opt_dict['type'] == 'number':
 				try:
 					widget = widgets.ValueSpinner(w_str,
 								  				opt_dict['value'])
+					# opt_dict['widget'] = widget
 					widget.add_connect(opt_dict['callback'])
+					print(f"Adding option callback {opt_dict['callback']} to {opt_key}")
 				except:
 					print(f"Can't make widget {w_str} for asset {opt_key}")
 					raise ValueError
-			if opt_dict['type'] == 'float':
+			elif opt_dict['type'] == 'float':
 				try:
 					widget = widgets.ValueSpinner(w_str,
 								  				opt_dict['value'],
 												integer=False)
+					# opt_dict['widget'] = widget
 					widget.add_connect(opt_dict['callback'])
+					print(f"Adding option callback {opt_dict['callback']} to {opt_key}")
 				except:
 					print(f"Can't make widget {w_str} for asset {opt_key}")
 					raise ValueError
+			elif opt_dict['type'] == 'fraction':
+				try:
+					widget = widgets.ValueSpinner(w_str,
+								  				opt_dict['value'],
+												fraction=True)
+					# opt_dict['widget'] = widget
+					widget.add_connect(opt_dict['callback'])
+					print(f"Adding option callback {opt_dict['callback']} to {opt_key}")
+				except:
+					print(f"Can't make widget {w_str} for asset {opt_key}")
+					raise ValueError
+			else:
+				print(f"Can't find widget type for {w_str}:{opt_dict['type']}")
+				continue
 
 			w_key = opt_key.split('_')
 			if len(w_key) > 0:
@@ -308,7 +418,10 @@ class OptionConfigs(QtWidgets.QWidget):
 				else:
 					w_key = '_'.join(w_key)
 			try:
-				w_dict[w_key] = widget
+				w_dict[w_key] = {}
+				w_dict[w_key]['widget'] = widget 				# type:ignore
+				w_dict[w_key]['mark_for_removal'] = False
+				opt_dict['widget'] = w_dict[w_key]
 			except UnboundLocalError:
 				print(f"UnboundLocalError when generating options widget for {w_key}")
 				raise UnboundLocalError
@@ -316,11 +429,33 @@ class OptionConfigs(QtWidgets.QWidget):
 
 		return w_dict
 
+	def prepSerialisation(self) -> dict[str,Any]:
+		state = {}
+
+		for section_title, section in self.sections.items():
+			state[section_title] = {}
+			for opt_key, opt in section['opts'].items():
+				if not isinstance(opt['widget'],widgets.CollapsibleSection):
+					state[section_title][opt_key] = opt['widget'].prepSerialisation()
+
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		for section_title, section in state.items():
+			if section_title not in self.sections.keys():
+				print(f'{section_title} not a recognised context configuration section')
+				continue
+			for opt_key, opt_serialisation in section.items():
+				if opt_key not in self.sections[section_title]['opts'].keys():
+					print(f'{opt_key} not a recognised option for context configuration section {section_title}')
+					continue
+				self.sections[section_title]['opts'][opt_key]['widget'].deSerialise(opt_serialisation)
+
 class Toolbar(QtWidgets.QWidget):
 	# TODO: this should be in widgets, not controls	
-	def __init__(self, parent_window, action_dict, context_name=None):
+	def __init__(self, parent_window:QtWidgets.QMainWindow|None, action_dict, context_name=None):
 		super().__init__()
-		self.window = parent_window
+		self.parent_window = parent_window
 		self.action_dict = action_dict
 		self.context_name = context_name
 		if self.context_name is None:
@@ -358,17 +493,23 @@ class Toolbar(QtWidgets.QWidget):
 				self.toolbar.addAction(self.button_dict[key])
 
 	def addToWindow(self):
-		self.window.addToolBar(self.toolbar)
+		if self.parent_window is not None:
+			self.parent_window.addToolBar(self.toolbar)
+		else:
+			raise ValueError("Can't add toolbar to window, context {context_name} doesn't have a window yet.")
 
 	def setActiveState(self, state):
-		self.toolbar.toggleViewAction().setChecked(not state)
-		self.toolbar.toggleViewAction().trigger()
+		if self.toolbar.toggleViewAction() is not None:
+			self.toolbar.toggleViewAction().setChecked(not state) # type:ignore
+			self.toolbar.toggleViewAction().trigger()					# type:ignore
+		else:
+			raise ValueError("Can't set toolbar active state for {context_name}")
 
 class Menubar(QtWidgets.QWidget):
 	# TODO: this should be in widgets, not controls
 	def __init__(self, parent_window, action_dict, context_name=None):
 		super().__init__()
-		self.window = parent_window
+		self.parent_window = parent_window
 		self.action_dict = action_dict
 		self.context_name = context_name
 		if self.context_name is None:
@@ -404,7 +545,7 @@ class Menubar(QtWidgets.QWidget):
 
 	def setActiveState(self, state):
 		if state:
-			self.window.setMenuBar(self.menubar)
+			self.parent_window.setMenuBar(self.menubar)
 		else:	
 			self.menubar.setParent(None)
 

@@ -3,7 +3,7 @@ import numpy as np
 
 GMST_epoch = dt.datetime(2000,1,1,12,0,0)
 
-def epoch2datetime(string):
+def epoch2datetime(string:str) -> dt.datetime:
 	"""Converts a fractional epoch string to a datetime object.
 	
 	[description]
@@ -34,7 +34,7 @@ def epoch2datetime(string):
 	return date
 
 
-def datetime2TLEepoch(date):
+def datetime2TLEepoch(date:dt.datetime) -> str:
 	"""Converts a datetime to a TLE epoch
 	
 	Parameters
@@ -55,7 +55,7 @@ def datetime2TLEepoch(date):
 	return year_str + day_str + fraction_str
 
 
-def datetime2sgp4epoch(date):
+def datetime2sgp4epoch(date:dt.datetime) -> float:
 	"""Converts a datetime to an sgp4 epoch
 	
 	Parameters

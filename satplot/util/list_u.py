@@ -1,9 +1,10 @@
 from bisect import bisect_left
 import numpy as np
+
 import satplot.util.exceptions as exceptions
 
 
-def flatten(nested_list):
+def flatten(nested_list:list[list|tuple]|tuple) -> list:
 	"""Flattens a list of lists into a single list
 	
 	Parameters
@@ -25,7 +26,7 @@ def flatten(nested_list):
 	return out
 
 
-def contain_sublist(sub_list, search_list):
+def contain_sublist(sub_list:list, search_list:list) -> bool:
 	"""Determines if list `search_list` contains sub_list `sub_list
 	
 	Parameters
@@ -59,7 +60,7 @@ def contain_sublist(sub_list, search_list):
 	return False
 
 
-def get_closest(myList, myNumber):
+def get_closest(myList:list, myNumber:float) -> tuple[int,int]:
 	"""Finds the closest value in a list
 	Assuming myList is a sorted list of floats. Returns closest value to myNumber.
 

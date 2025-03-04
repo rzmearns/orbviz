@@ -1,11 +1,12 @@
 import numpy as np
+import numpy.typing as nptyping
 
 max_colours = 10
 
-def normaliseColour(rgb_tuple):
+def normaliseColour(rgb_tuple:tuple[float,float,float]) -> list[float]:
 	return [rgb_tuple[ii]/255 for ii in [0,1,2]]
 
-def rgb2hex(rgb_tuple):
+def rgb2hex(rgb_tuple:tuple[int,int,int]) -> str:
 	hex_str="#"
 	for ii in range(3):
 		if rgb_tuple[ii] == 0:
@@ -15,14 +16,14 @@ def rgb2hex(rgb_tuple):
 
 	return hex_str
 
-def getNumberedColour(num, type='bright'):
+def getNumberedColour(num:int, type:str='bright') -> nptyping.NDArray | None:
 	return{
 		'bright': _brightColDict(num),
 		'paper': _paperColDict(num),
 	}.get(type, None)
 
 
-def _brightColDict(num):
+def _brightColDict(num:int) -> nptyping.NDArray:
 	return {
 		0: np.asarray([230, 25, 75]),
 		1: np.asarray([60,180,75]),
@@ -49,7 +50,7 @@ def _brightColDict(num):
 	}.get(num % max_colours, np.asarray([230,25,75]))
 
 
-def _paperColDict(num):
+def _paperColDict(num:int) -> nptyping.NDArray:
 	return {
 		0: np.asarray([227,26,28]),
 		1: np.asarray([31,120,180]),
@@ -64,7 +65,7 @@ def _paperColDict(num):
 	}.get(num % max_colours, np.asarray([128, 128, 128]))
 
 
-def getNumberedLinestyle(num):
+def getNumberedLinestyle(num:int) -> str:
 	return {
 		0: 'solid',
 		1: 'dash',
