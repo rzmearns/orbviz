@@ -96,10 +96,10 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 
 		if self.data['old_pointing_defined']:
 			# If pointing had previously been defined -> old sensors, options need to be removed
+			# if no pointing, no point having sensors
 			self._removeSensorAssets(old_suite_names)
 
 		if self.data['pointing_defined']:
-			# if no pointing, no point having sensors
 			self._instantiateSensorAssets()
 
 	def _instantiateAssets(self) -> None:
@@ -117,7 +117,7 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 
 	def _instantiateSensorAssets(self) -> None:
 		for key, value in self.data['sc_config'].getSensorSuites().items():
-			print(value)
+			print(f'Creating sensor suite sensor_suite_{key}')
 			self.assets[f'sensor_suite_{key}'] = sensors.SensorSuite3DAsset(value,
 																	name=key,
 													 				v_parent=self.data['v_parent'])
@@ -203,9 +203,9 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 		# return [(canvas_pos[0,0], canvas_pos[0,1])], ['SpIRIT']
 
 	def setAttitudeAssetsVisibility(self, state):
+		print(f'Setting attitude visibility')
 		self.setBodyFrameVisibility(state)
-
-		self.setAllSensorSuitesVisibility(state)
+		self.setAllSensorSuitesStatefulVisibility(state)
 
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
@@ -251,6 +251,16 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 		for key, asset in self.assets.items():
 			if isinstance(asset, sensors.SensorSuite3DAsset):
 				asset.setVisibilityRecursive(state)
+
+	def setAllSensorSuitesStatefulVisibility(self, state:bool) -> None:
+		for key, asset in self.assets.items():
+			if isinstance(asset, sensors.SensorSuite3DAsset):
+				if state and self.opts[f'plot_{key}']['value']:
+					# turning on, only if option state has it previously on
+					asset.setVisibilityRecursive(state)
+				elif not state:
+					# turning off
+					asset.setVisibilityRecursive(state)
 
 	def setOrbitalMarkerVisibility(self, state:bool) -> None:
 		self.opts['plot_spacecraft_marker']['value'] = state
