@@ -178,9 +178,12 @@ class History3DCanvasWrapper(BaseCanvas):
 		else:
 			sc_pos = tuple(self.assets['primary_orbit'].data['coords'][self.assets['primary_orbit'].data['curr_index']])
 
+		old_az = self.view_box.camera.azimuth
+
 		self.view_box.camera.center = sc_pos
 		if set_zoom:
 			self.setCameraZoom(2200)
+		self.view_box.camera.azimuth = old_az
 		self.canvas.update()
 
 

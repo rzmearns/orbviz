@@ -1,9 +1,15 @@
 from abc import ABC, abstractmethod
+import datetime as dt
+import imageio
 import json
+import pathlib
 from typing import Any
 
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, QtCore
 
+from vispy.gloo.util import _screenshot
+
+import satplot.util.paths as paths
 
 class BaseContext(ABC):
 
@@ -43,6 +49,35 @@ class BaseContext(ABC):
 	@abstractmethod
 	def _configureData(self) -> None:
 		raise NotImplementedError()
+
+	def setupScreenshot(self):
+		file = f"{dt.datetime.now().strftime('%Y-%m-%d_%H%M%S')}_{self.config['name']}.png"
+		self.saveScreenshot(pathlib.Path(f'{paths.data_dir}/screenshots/{file}'))
+
+	def saveScreenshot(self, file:pathlib.Path):
+		if self.canvas_wrapper is None:
+			raise AttributeError(f'{self} has no canvas to screenshot')
+		if self.window is None:
+			raise AttributeError(f'{self} is not in a window')
+
+		# calculate viewport of just the canvas
+		geom = self.canvas_wrapper.canvas.native.geometry()
+		ratio = self.canvas_wrapper.canvas.native.devicePixelRatio()
+		geom = (geom.x(), geom.y(), geom.width(), geom.height())
+		new_pos = self.canvas_wrapper.canvas.native.mapTo(self.window, QtCore.QPoint(0, 0))
+		new_y = self.window.height() - (new_pos.y() + geom[3])
+		viewport = (new_pos.x() * ratio, new_y * ratio, geom[2] * ratio, geom[3] * ratio)
+
+		im = _screenshot(viewport=viewport)
+		imageio.imsave(file, im, extension='.png')
+
+	@abstractmethod
+	def saveGif(self, file:pathlib.Path, loop=True, *args, **kwargs):
+		raise NotImplementedError
+
+	@abstractmethod
+	def setupGIFDialog(self):
+		raise NotImplementedError
 
 	def prepSerialisation(self) -> dict[str,Any]:
 		state = {}

@@ -3,7 +3,8 @@
 qt_tests/
 vispy_tests
 resources/
-data/spacetrack
+data/
+data/
 # Compiled source #
 ###################
 *.com

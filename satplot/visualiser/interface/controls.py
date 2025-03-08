@@ -470,26 +470,33 @@ class Toolbar(QtWidgets.QWidget):
 
 	def addButtons(self):
 		# Process 'all' actions first
+		old_containing = None
 		for key, action in self.action_dict.items():
 			if 'all' in action['contexts'] and action['button_icon'] is not None:
+				if old_containing is not None and old_containing != action['containing_menu']:
+					self.toolbar.addSeparator()
 				self.button_dict[key] = QtWidgets.QAction(QtGui.QIcon(action['button_icon']), action['tooltip'], self)
 				self.button_dict[key].setStatusTip(action['tooltip'])
 				self.button_dict[key].setCheckable(action['toggleable'])
 				if action['callback'] is not None:
 					self.button_dict[key].triggered.connect(action['callback'])
-
+				old_containing = action['containing_menu']
 				self.toolbar.addAction(self.button_dict[key])
 
 		self.toolbar.addSeparator()
 
+		old_containing = None
+
 		for key, action in self.action_dict.items():
+			if old_containing is not None and old_containing != action['containing_menu']:
+				self.toolbar.addSeparator()
 			if self.context_name in action['contexts'] and 'all' not in action['contexts'] and action['button_icon'] is not None:
 				self.button_dict[key] = QtWidgets.QAction(QtGui.QIcon(action['button_icon']), action['tooltip'], self)
 				self.button_dict[key].setStatusTip(action['tooltip'])
 				self.button_dict[key].setCheckable(action['toggleable'])
 				if action['callback'] is not None:
 					self.button_dict[key].triggered.connect(action['callback'])
-
+				old_containing = action['containing_menu']
 				self.toolbar.addAction(self.button_dict[key])
 
 	def addToWindow(self):

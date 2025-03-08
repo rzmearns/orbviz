@@ -1,5 +1,6 @@
 import datetime as dt
 import math
+import pathlib
 from typing import Any
 
 from PyQt5 import QtWidgets, QtCore, QtGui
@@ -29,7 +30,7 @@ class TimeSlider(QtWidgets.QWidget):
 		self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
 		self._start_dt_label = QtWidgets.QLabel('-')
 		self._end_dt_label = QtWidgets.QLabel('-')
-		self._curr_dt_picker = self.SmallDatetimeEntry(self.start_dt)
+		self._curr_dt_picker = SmallDatetimeEntry(self.start_dt)
 		self._curr_dt_picker.updated.connect(self.setIndex2Datetime)
 		self.setTimeLabels()
 
@@ -89,7 +90,7 @@ class TimeSlider(QtWidgets.QWidget):
 			self._start_dt_label.setText(self.start_dt.strftime("%Y-%m-%d   %H:%M:%S"))
 		else:
 			self._start_dt_label.setText('-')
-		if self.end_dt is not None:			
+		if self.end_dt is not None:
 			self._end_dt_label.setText(self.end_dt.strftime("%Y-%m-%d   %H:%M:%S"))
 		else:
 			self._end_dt_label.setText('-')
@@ -105,6 +106,9 @@ class TimeSlider(QtWidgets.QWidget):
 		self._curr_dt_picker.setDatetime(curr_datetime)
 		self.slider.setValue(prev_index)
 
+	def getDatetime(self) -> dt.datetime:
+		return self.curr_datetime
+
 	def setTicks(self, num_ticks):
 		self.num_ticks = num_ticks
 		self.slider.setMaximum(self.num_ticks-1)
@@ -112,7 +116,7 @@ class TimeSlider(QtWidgets.QWidget):
 	def add_connect(self, callback):
 		self._callbacks.append(callback)
 
-	def _run_callbacks(self):		
+	def _run_callbacks(self):
 		self._curr_dt_picker.setDatetime(self.start_dt + (self.slider.value()*self.tick_delta))
 		if len(self._callbacks) > 0:
 			for callback in self._callbacks:
@@ -136,89 +140,89 @@ class TimeSlider(QtWidgets.QWidget):
 		self.setRange(state['start_dt'], state['end_dt'], state['num_ticks'])
 		self.setValue(state['curr_index'])
 
-	class SmallDatetimeEntry(QtWidgets.QWidget):
-		updated = QtCore.pyqtSignal(dt.datetime)
+class SmallDatetimeEntry(QtWidgets.QWidget):
+	updated = QtCore.pyqtSignal(dt.datetime)
 
-		def __init__(self, dflt_datetime, parent: QtWidgets.QWidget=None) -> None:
-			super().__init__(parent)
-			self._callbacks = []
-			self.datetime = dflt_datetime
-			hlayout = QtWidgets.QHBoxLayout()
-			hlayout.setSpacing(0)
-			hlayout.setContentsMargins(2,1,2,1)
-			
-			self._mon_sp = QtWidgets.QLabel("-")
-			self._day_sp = QtWidgets.QLabel("-")
-			self._hr_sp = QtWidgets.QLabel("     ")
-			self._min_sp = QtWidgets.QLabel(":")
-			self._sec_sp = QtWidgets.QLabel(":")
-			self._yr_text_box = QtWidgets.QLineEdit('-')
-			self._mon_text_box = QtWidgets.QLineEdit('-')
-			self._day_text_box = QtWidgets.QLineEdit('-')
-			self._hr_text_box = QtWidgets.QLineEdit('-')
-			self._min_text_box = QtWidgets.QLineEdit('-')
-			self._sec_text_box = QtWidgets.QLineEdit('-')
-			
-			fixed_height = 20
+	def __init__(self, dflt_datetime, parent: QtWidgets.QWidget=None) -> None:
+		super().__init__(parent)
+		self._callbacks = []
+		self.datetime = dflt_datetime
+		hlayout = QtWidgets.QHBoxLayout()
+		hlayout.setSpacing(0)
+		hlayout.setContentsMargins(2,1,2,1)
 
-			self._yr_text_box.setFixedHeight(fixed_height)
-			self._yr_text_box.setFixedWidth(40)
-			self._mon_text_box.setFixedHeight(fixed_height)
-			self._mon_text_box.setFixedWidth(25)
-			self._day_text_box.setFixedHeight(fixed_height)
-			self._day_text_box.setFixedWidth(25)
-			self._hr_text_box.setFixedHeight(fixed_height)
-			self._hr_text_box.setFixedWidth(25)
-			self._min_text_box.setFixedHeight(fixed_height)
-			self._min_text_box.setFixedWidth(25)
-			self._sec_text_box.setFixedHeight(fixed_height)
-			self._sec_text_box.setFixedWidth(25)
+		self._mon_sp = QtWidgets.QLabel("-")
+		self._day_sp = QtWidgets.QLabel("-")
+		self._hr_sp = QtWidgets.QLabel("     ")
+		self._min_sp = QtWidgets.QLabel(":")
+		self._sec_sp = QtWidgets.QLabel(":")
+		self._yr_text_box = QtWidgets.QLineEdit('-')
+		self._mon_text_box = QtWidgets.QLineEdit('-')
+		self._day_text_box = QtWidgets.QLineEdit('-')
+		self._hr_text_box = QtWidgets.QLineEdit('-')
+		self._min_text_box = QtWidgets.QLineEdit('-')
+		self._sec_text_box = QtWidgets.QLineEdit('-')
 
-			hlayout.addStretch()
-			hlayout.addWidget(self._yr_text_box)
-			hlayout.addWidget(self._mon_sp)
-			hlayout.addWidget(self._mon_text_box)
-			hlayout.addWidget(self._day_sp)
-			hlayout.addWidget(self._day_text_box)
-			hlayout.addWidget(self._hr_sp)
-			hlayout.addWidget(self._hr_text_box)
-			hlayout.addWidget(self._min_sp)
-			hlayout.addWidget(self._min_text_box)
-			hlayout.addWidget(self._sec_sp)
-			hlayout.addWidget(self._sec_text_box)
-			hlayout.addStretch()
+		fixed_height = 20
 
-			self._yr_text_box.editingFinished.connect(self.updateDatetime)
-			self._mon_text_box.editingFinished.connect(self.updateDatetime)
-			self._day_text_box.editingFinished.connect(self.updateDatetime)
-			self._hr_text_box.editingFinished.connect(self.updateDatetime)
-			self._min_text_box.editingFinished.connect(self.updateDatetime)
-			self._sec_text_box.editingFinished.connect(self.updateDatetime)
+		self._yr_text_box.setFixedHeight(fixed_height)
+		self._yr_text_box.setFixedWidth(40)
+		self._mon_text_box.setFixedHeight(fixed_height)
+		self._mon_text_box.setFixedWidth(25)
+		self._day_text_box.setFixedHeight(fixed_height)
+		self._day_text_box.setFixedWidth(25)
+		self._hr_text_box.setFixedHeight(fixed_height)
+		self._hr_text_box.setFixedWidth(25)
+		self._min_text_box.setFixedHeight(fixed_height)
+		self._min_text_box.setFixedWidth(25)
+		self._sec_text_box.setFixedHeight(fixed_height)
+		self._sec_text_box.setFixedWidth(25)
 
-			self.setLayout(hlayout)
+		hlayout.addStretch()
+		hlayout.addWidget(self._yr_text_box)
+		hlayout.addWidget(self._mon_sp)
+		hlayout.addWidget(self._mon_text_box)
+		hlayout.addWidget(self._day_sp)
+		hlayout.addWidget(self._day_text_box)
+		hlayout.addWidget(self._hr_sp)
+		hlayout.addWidget(self._hr_text_box)
+		hlayout.addWidget(self._min_sp)
+		hlayout.addWidget(self._min_text_box)
+		hlayout.addWidget(self._sec_sp)
+		hlayout.addWidget(self._sec_text_box)
+		hlayout.addStretch()
 
-		def updateDatetime(self):
-			dt_str = f"{self._yr_text_box.text()}-"+ \
-			f"{self._mon_text_box.text()}-"+ \
-			f"{self._day_text_box.text()} "+ \
-			f"{self._hr_text_box.text()}:"+ \
-			f"{self._min_text_box.text()}:"+ \
-			f"{self._sec_text_box.text()}"
-			try:
-				self.datetime = dt.datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
-			except ValueError:
-				self.setDatetime(self.datetime)
-				return
-			self.updated.emit(self.datetime)
+		self._yr_text_box.editingFinished.connect(self.updateDatetime)
+		self._mon_text_box.editingFinished.connect(self.updateDatetime)
+		self._day_text_box.editingFinished.connect(self.updateDatetime)
+		self._hr_text_box.editingFinished.connect(self.updateDatetime)
+		self._min_text_box.editingFinished.connect(self.updateDatetime)
+		self._sec_text_box.editingFinished.connect(self.updateDatetime)
 
-		def setDatetime(self, datetime):
-			self.datetime = datetime
-			self._yr_text_box.setText(datetime.strftime("%Y"))
-			self._mon_text_box.setText(datetime.strftime("%m"))
-			self._day_text_box.setText(datetime.strftime("%d"))
-			self._hr_text_box.setText(datetime.strftime("%H"))
-			self._min_text_box.setText(datetime.strftime("%M"))
-			self._sec_text_box.setText(datetime.strftime("%S"))
+		self.setLayout(hlayout)
+
+	def updateDatetime(self):
+		dt_str = f"{self._yr_text_box.text()}-"+ \
+		f"{self._mon_text_box.text()}-"+ \
+		f"{self._day_text_box.text()} "+ \
+		f"{self._hr_text_box.text()}:"+ \
+		f"{self._min_text_box.text()}:"+ \
+		f"{self._sec_text_box.text()}"
+		try:
+			self.datetime = dt.datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
+		except ValueError:
+			self.setDatetime(self.datetime)
+			return
+		self.updated.emit(self.datetime)
+
+	def setDatetime(self, datetime):
+		self.datetime = datetime
+		self._yr_text_box.setText(datetime.strftime("%Y"))
+		self._mon_text_box.setText(datetime.strftime("%m"))
+		self._day_text_box.setText(datetime.strftime("%d"))
+		self._hr_text_box.setText(datetime.strftime("%H"))
+		self._min_text_box.setText(datetime.strftime("%M"))
+		self._sec_text_box.setText(datetime.strftime("%S"))
 
 class ColourPicker(QtWidgets.QWidget):
 	def __init__(self, label, dflt_col, parent: QtWidgets.QWidget|None=None) -> None:
@@ -233,7 +237,7 @@ class ColourPicker(QtWidgets.QWidget):
 		closed_layout.setContentsMargins(2,1,2,1)
 		# open_layout.setSpacing(0)
 		open_layout.setContentsMargins(2,1,2,1)
-		
+
 		self._label = QtWidgets.QLabel(label)
 		self._colour_box = QtWidgets.QPushButton()
 		self._colour_box.setStyleSheet(f"background-color : {self.curr_hex}")
@@ -247,7 +251,7 @@ class ColourPicker(QtWidgets.QWidget):
 		closed_layout.addWidget(self._label)
 		closed_layout.addWidget(self._colour_box)
 		closed_layout.addWidget(self._text_box)
-		
+
 
 		self._colorpicker = QtWidgets.QColorDialog()
 		self._colorpicker.setOptions(QtWidgets.QColorDialog.DontUseNativeDialog)
@@ -255,7 +259,7 @@ class ColourPicker(QtWidgets.QWidget):
 		self._colorpicker.colorSelected.connect(self._set_colour)
 		self._text_box.textEdited.connect(self._run_callbacks)
 		self._text_box.returnPressed.connect(self._run_callbacks)
-		
+
 		self.setLayout(closed_layout)
 
 	def add_connect(self, callback):
@@ -270,6 +274,7 @@ class ColourPicker(QtWidgets.QWidget):
 		self.curr_rgb = (int(rgb_str[0]), int(rgb_str[1]), int(rgb_str[2]))
 		self.curr_hex = colours.rgb2hex(self.curr_rgb)
 		self._colour_box.setStyleSheet(f"background-color: {self.curr_hex}")
+		print(self._colour_box.styleSheet())
 		# self._colour_box.setStyleSheet(f"onClicked: forceActiveFocus()")
 		if len(self._callbacks) > 0:
 			for callback in self._callbacks:
@@ -302,16 +307,16 @@ class ValueSpinner(QtWidgets.QWidget):
 		self.allow_float = not integer
 		if fraction:
 			self.allow_float = True
-		
+
 		if self.allow_float:
 			self.curr_val = dflt_val
 		else:
 			self.curr_val = int(dflt_val)
-		
 
-		layout = QtWidgets.QHBoxLayout()	
+
+		layout = QtWidgets.QHBoxLayout()
 		layout.setContentsMargins(2,1,2,1)
-		
+
 		self._label = QtWidgets.QLabel(label)
 		if self.allow_float or fraction:
 			self._val_box = QtWidgets.QDoubleSpinBox()
@@ -322,12 +327,12 @@ class ValueSpinner(QtWidgets.QWidget):
 		else:
 			self._val_box.setRange(0,1)
 			self._val_box.setSingleStep(0.1)
-		self._val_box.setValue(self.curr_val)		
+		self._val_box.setValue(self.curr_val)
 		self._val_box.setFixedWidth(80)
 		self._val_box.setFixedHeight(20)
 
 		layout.addWidget(self._label)
-		layout.addWidget(self._val_box)	
+		layout.addWidget(self._val_box)
 
 		self._val_box.textChanged.connect(self._run_callbacks)
 		self._val_box.valueChanged.connect(self._run_callbacks)
@@ -338,7 +343,7 @@ class ValueSpinner(QtWidgets.QWidget):
 		self._callbacks.append(callback)
 
 	def _run_callbacks(self):
-		
+
 		if self.allow_float:
 			self.curr_val = self._val_box.value()
 		else:
@@ -369,7 +374,7 @@ class ValueSpinner(QtWidgets.QWidget):
 		self._val_box.blockSignals(False)
 
 class ToggleBox(QtWidgets.QWidget):
-	def __init__(self, label, dflt_state, parent: QtWidgets.QWidget=None) -> None:
+	def __init__(self, label, dflt_state, parent: QtWidgets.QWidget=None, label_bold=False) -> None:
 		super().__init__(parent)
 		self._callbacks = []
 		self.curr_state = dflt_state
@@ -377,11 +382,17 @@ class ToggleBox(QtWidgets.QWidget):
 		layout.setSpacing(0)
 		layout.setContentsMargins(2,1,2,1)
 
-		self._label = QtWidgets.QLabel(label)
+		if label is not None:
+			self._label_font = QtGui.QFont()
+			if label_bold:
+				self._label_font.setWeight(QtGui.QFont.Medium)
+			self._label = QtWidgets.QLabel(label)
+			self._label.setFont(self._label_font)
+			layout.addWidget(self._label)
+			layout.addStretch()
+
 		self._checkbox = QtWidgets.QCheckBox()
 		self._checkbox.setChecked(dflt_state)
-		layout.addWidget(self._label)
-		layout.addStretch()
 		layout.addWidget(self._checkbox)
 		self._checkbox.stateChanged.connect((self._run_callbacks))
 
@@ -411,6 +422,14 @@ class ToggleBox(QtWidgets.QWidget):
 		a = QtWidgets.QCheckBox()
 		self._checkbox.blockSignals(False)
 
+	def setState(self, state:bool) -> None:
+		self._checkbox.setChecked(state)
+
+	def getState(self) -> bool:
+		return self._checkbox.isChecked()
+
+	def setLabel(self, new_label:str) -> None:
+		self._label.setText(new_label)
 
 class OptionBox(QtWidgets.QWidget):
 	def __init__(self, label, dflt_state=None, options_list=[], parent: QtWidgets.QWidget=None) -> None:
@@ -493,12 +512,13 @@ class OptionBox(QtWidgets.QWidget):
 			print(f"{state['value']} is not a local valid option. Displaying data, but can't set options.", file=sys.stderr)
 
 class FilePicker(QtWidgets.QWidget):
-	def __init__(self, label, 
-			  			dflt_file='',
-						dflt_dir=None, 
+	def __init__(self, label,
+						dflt_file='',
+						dflt_dir=None,
 						save=False,
 						margins=[0,0,0,0],
-						parent: QtWidgets.QWidget=None) -> None:
+						parent: QtWidgets.QWidget=None,
+						width=None) -> None:
 		super().__init__(parent)
 		self._callbacks = []
 		self.path = f'{dflt_dir}{dflt_file}'
@@ -517,8 +537,10 @@ class FilePicker(QtWidgets.QWidget):
 			hlayout1.addWidget(self._label)
 			hlayout1.addStretch()
 			vlayout.addLayout(hlayout1)
-		
+
 		self._file_text_box = QtWidgets.QLineEdit(self.path)
+		if width is not None:
+			self._file_text_box.setFixedWidth(width)
 		self._dialog_button = QtWidgets.QPushButton('...')
 		self.caption = f'Pick {label}'
 		self.dflt_dir = dflt_dir
@@ -539,18 +561,21 @@ class FilePicker(QtWidgets.QWidget):
 	def setPath(self):
 		self.path = self._file_text_box.text()
 
+	def getPath(self) -> pathlib.Path:
+		return pathlib.Path(self._file_text_box.text())
+
 	def openFilenameDialog(self):
 		options = QtWidgets.QFileDialog.Options()
 		options |= QtWidgets.QFileDialog.DontUseNativeDialog
 		if self.dialog_save:
 			filename, _ = QtWidgets.QFileDialog.getSaveFileName(self,
-													   			self.caption,
+																self.caption,
 																f'{self.dflt_dir}{self.dflt_filename}',
 																"All Files (*)",
 																options=options)
 		else:
 			filename, _ = QtWidgets.QFileDialog.getOpenFileName(self,
-													   			self.caption,
+																self.caption,
 																f'{self.dflt_dir}{self.dflt_filename}',
 																"All Files (*)",
 																options=options)
@@ -658,14 +683,14 @@ class DatetimeEntry(QtWidgets.QWidget):
 		hlayout2.setContentsMargins(2,1,2,1)
 		vlayout.setSpacing(0)
 		vlayout.setContentsMargins(2,1,2,1)
-		
+
 		if label is not None:
 			self._label_font = QtGui.QFont()
 			self._label_font.setWeight(QtGui.QFont.Medium)
 			self._label = QtWidgets.QLabel(label)
 			self._label.setFont(self._label_font)
 			hlayout1.addWidget(self._label)
-				
+
 		self._curr_dt = QtWidgets.QLabel(self.datetime.strftime("%Y-%m-%d   %H:%M:%S"))
 		self._mon_sp = QtWidgets.QLabel("-")
 		self._day_sp = QtWidgets.QLabel("-")
@@ -678,7 +703,7 @@ class DatetimeEntry(QtWidgets.QWidget):
 		self._hr_text_box = QtWidgets.QLineEdit(self.datetime.strftime("%H"))
 		self._min_text_box = QtWidgets.QLineEdit(self.datetime.strftime("%M"))
 		self._sec_text_box = QtWidgets.QLineEdit(self.datetime.strftime("%S"))
-		
+
 		# self._text_box.setFixedHeight(20)
 		self._yr_text_box.setFixedWidth(40)
 		self._mon_text_box.setFixedWidth(25)
@@ -762,19 +787,93 @@ class DatetimeEntry(QtWidgets.QWidget):
 			return
 		self.setDatetime(state['value'])
 
+class ValueBox(QtWidgets.QWidget):
+	def __init__(self, label, dflt_value, parent: QtWidgets.QWidget=None, label_bold=False, margins=[2,1,2,1]) -> None:
+		super().__init__(parent)
+		self._callbacks = []
+		self.value = str(dflt_value)
+		vlayout = QtWidgets.QVBoxLayout()
+		hlayout1 = QtWidgets.QHBoxLayout()
+		hlayout2 = QtWidgets.QHBoxLayout()
+		hlayout1.setSpacing(0)
+		hlayout1.setContentsMargins(margins[0],margins[1],margins[2],margins[3])
+		hlayout2.setSpacing(0)
+		hlayout2.setContentsMargins(margins[0],margins[1],margins[2],margins[3])
+		vlayout.setSpacing(0)
+		vlayout.setContentsMargins(margins[0],margins[1],margins[2],margins[3])
+
+		if label is not None:
+			self._label_font = QtGui.QFont()
+			if label_bold:
+				self._label_font.setWeight(QtGui.QFont.Medium)
+			self._label = QtWidgets.QLabel(label)
+			self._label.setFont(self._label_font)
+			hlayout1.addWidget(self._label)
+		hlayout1.addStretch()
+		vlayout.addLayout(hlayout1)
+
+		self._val_text_box = QtWidgets.QLineEdit(self.value)
+
+		hlayout2.addWidget(self._val_text_box)
+		hlayout2.addStretch()
+
+		vlayout.addLayout(hlayout2)
+
+		self.setLayout(vlayout)
+		self._val_text_box.editingFinished.connect(self._updateValue)
+
+
+	def getValue(self) -> float:
+		try:
+			ret_val = float(self.value)
+			return float(self.value)
+		except:
+			print(f"Can't return non float value")
+			return ''
+
+	def _updateValue(self):
+		self.value = self._val_text_box.text()
+
+	def setValue(self, val:float) -> None:
+		self.value = str(val)
+		self._val_text_box.setText(self.value)
+
+	def addConnect(self, callback):
+		self._callbacks.append(callback)
+
+	def _runCallbacks(self):
+		if len(self._callbacks) > 0:
+			for callback in self._callbacks:
+				pass
+				# callback(self._checkbox.isChecked())
+		else:
+			print("No ValueBox callbacks are set")
+
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['type'] = 'ValueBox'
+		state['value'] = str(self.value)
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		if state['type'] != 'ValueBox':
+			print(f"{self} state was serialised as a {state['type']}, is now a ValueBox")
+			return
+		self.setValue(state['value'])
+
 class CollapsibleSection(QtWidgets.QWidget):
 # Ported to PyQT5 and modified, original widget by Caroline Beyne, github user: cbeyne
 # https://github.com/By0ute/pyqt-collapsible-widget/blob/master/code/FrameLayout.py
 	def __init__(self, parent=None, title=None):
 		QtWidgets.QFrame.__init__(self, parent=parent)
 
-		self._is_collasped = True
+		self._is_collapsed = True
 		self._title_frame = None
 		self._content, self._content_layout = (None, None)
 
 		self.v_layout = QtWidgets.QVBoxLayout(self)
-		self.v_layout.addWidget(self.initTitleFrame(title, self._is_collasped))
-		self.v_layout.addWidget(self.initContent(self._is_collasped))
+		self.v_layout.addWidget(self.initTitleFrame(title, self._is_collapsed))
+		self.v_layout.addWidget(self.initContent(self._is_collapsed))
 		self.v_layout.setAlignment(QtCore.Qt.AlignLeft)
 		self.v_layout.setSpacing(5)
 		self._content_layout.setSpacing(5)
@@ -804,10 +903,22 @@ class CollapsibleSection(QtWidgets.QWidget):
 		self._title_frame._button.pressed.connect(self.toggleCollapsed)
 
 	def toggleCollapsed(self):
-		self._content.setVisible(self._is_collasped)
+		self._content.setVisible(self._is_collapsed)
 		self._content_layout.setAlignment(QtCore.Qt.AlignLeft)
 		self.v_layout.setAlignment(QtCore.Qt.AlignLeft)
-		self._is_collasped = not self._is_collasped
+		self._is_collapsed = not self._is_collapsed
+
+	def setCollapsed(self, state:bool):
+
+		if state:
+			# collapsed
+			self._is_collapsed = True
+			self._content.setVisible(False)
+		else:
+			self._is_collapsed = False
+			self._content.setVisible(True)
+			self._content_layout.setAlignment(QtCore.Qt.AlignLeft)
+			self.v_layout.setAlignment(QtCore.Qt.AlignLeft)
 
 	class TitleButton(QtWidgets.QWidget):
 		def __init__(self, parent=None, title="", collapsed=False):
@@ -818,15 +929,15 @@ class CollapsibleSection(QtWidgets.QWidget):
 			self._hlayout.setSpacing(0)
 
 			self._button = None
-			self._hlayout.addWidget(self.initTitle(title))	
-			self._hlayout.addStretch()		
+			self._hlayout.addWidget(self.initTitle(title))
+			self._hlayout.addStretch()
 
 		def initTitle(self, title=None):
 			self._button = QtWidgets.QToolButton(text=title, checkable=True, checked=False)
 			self._button.setStyleSheet('''
 					QToolButton {
-							  	border: 0px solid;
-		  						text-align: left
+								border: 0px solid;
+								text-align: left
 							}
 							  ''')
 			self._button.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
@@ -837,7 +948,7 @@ class CollapsibleSection(QtWidgets.QWidget):
 		@QtCore.pyqtSlot()
 		def on_pressed(self):
 			checked = self._button.isChecked()
-			if checked:				
+			if checked:
 				self._button.setArrowType(QtCore.Qt.RightArrow)
 			else:
 				self._button.setArrowType(QtCore.Qt.DownArrow)
@@ -898,7 +1009,7 @@ class Switch(QtWidgets.QPushButton):
 
 class NonScrollingComboBox(QtWidgets.QComboBox):
 	def __init__(self, scrollWidget=None, *args, **kwargs):
-		super(NonScrollingComboBox, self).__init__(*args, **kwargs)  
+		super(NonScrollingComboBox, self).__init__(*args, **kwargs)
 		self.scrollWidget=scrollWidget
 		self.setFocusPolicy(QtCore.Qt.StrongFocus)
 
@@ -914,6 +1025,313 @@ class NonScrollingComboBox(QtWidgets.QComboBox):
 			return QtWidgets.QComboBox.wheelEvent(self, *args, **kwargs)
 		elif self.scrollWidget is not None:
 			return self.scrollWidget.wheelEvent(*args, **kwargs)
+
+class RangeSlider(QtWidgets.QSlider):
+	sliderMoved = QtCore.pyqtSignal(int, int)
+
+	""" A slider for ranges.
+
+		This class provides a dual-slider for ranges, where there is a defined
+		maximum and minimum, as is a normal slider, but instead of having a
+		single slider value, there are 2 slider values.
+
+		This class emits the same signals as the QSlider base class, with the
+		exception of valueChanged
+	"""
+	def __init__(self, *args):
+		super(RangeSlider, self).__init__(*args)
+
+		self._low = self.minimum()
+		self._high = self.maximum()
+
+		self.pressed_control = QtWidgets.QStyle.SC_None
+		self.tick_interval = 0
+		self.tick_position = QtWidgets.QSlider.NoTicks
+		self.hover_control = QtWidgets.QStyle.SC_None
+		self.click_offset = 0
+
+		# 0 for the low, 1 for the high, -1 for both
+		self.active_slider = 0
+
+		self.start_stylesheet = '''
+						QSlider::handle:horizontal {
+							background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #40cc40, stop:1 #78cc78);
+							border: 1px solid #5c5c5c;
+							width: 18px;
+							margin: -2px 0;
+							border-radius: 3px;}
+    							'''
+
+		self.end_stylesheet = '''
+						QSlider::handle:horizontal {
+							background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #ff4040, stop:1 #ff7878);
+							border: 1px solid #5c5c5c;
+							width: 18px;
+							margin: -2px 0;
+							border-radius: 3px;}
+    							'''
+
+	def low(self):
+		return self._low
+
+	def setLow(self, low:int):
+		self._low = low
+		self.update()
+
+	def high(self):
+		return self._high
+
+	def setHigh(self, high):
+		self._high = high
+		self.update()
+
+	def getRange(self) -> tuple[int,int]:
+		return self.low(), self.high()
+
+	def paintEvent(self, event):
+		# based on http://qt.gitorious.org/qt/qt/blobs/master/src/gui/widgets/qslider.cpp
+
+		painter = QtGui.QPainter(self)
+		style = self.style()
+
+		# draw groove
+		opt = QtWidgets.QStyleOptionSlider()
+		self.initStyleOption(opt)
+		opt.siderValue = 0
+		opt.sliderPosition = 0
+		opt.subControls = QtWidgets.QStyle.SC_SliderGroove
+
+		# if self.tickPosition() != self.NoTicks:
+		opt.subControls |= QtWidgets.QStyle.SC_SliderTickmarks
+
+		style.drawComplexControl(QtWidgets.QStyle.CC_Slider, opt, painter, self)
+		groove = style.subControlRect(QtWidgets.QStyle.CC_Slider, opt, QtWidgets.QStyle.SC_SliderGroove, self)
+
+		# drawSpan
+		#opt = QtWidgets.QStyleOptionSlider()
+		self.initStyleOption(opt)
+		opt.subControls = QtWidgets.QStyle.SC_SliderGroove
+		if self.tickPosition() != self.NoTicks:
+		   opt.subControls |= QtWidgets.QStyle.SC_SliderTickmarks
+		opt.siderValue = 0
+		#print(self._low)
+		opt.sliderPosition = self._low
+		low_rect = style.subControlRect(QtWidgets.QStyle.CC_Slider, opt, QtWidgets.QStyle.SC_SliderHandle, self)
+		opt.sliderPosition = self._high
+		high_rect = style.subControlRect(QtWidgets.QStyle.CC_Slider, opt, QtWidgets.QStyle.SC_SliderHandle, self)
+
+		#print(low_rect, high_rect)
+		low_pos = self.__pick(low_rect.center())
+		high_pos = self.__pick(high_rect.center())
+
+		min_pos = min(low_pos, high_pos)
+		max_pos = max(low_pos, high_pos)
+
+		c = QtCore.QRect(low_rect.center(), high_rect.center()).center()
+		#print(min_pos, max_pos, c)
+		if opt.orientation == QtCore.Qt.Horizontal:
+			span_rect = QtCore.QRect(QtCore.QPoint(min_pos, c.y()-2), QtCore.QPoint(max_pos, c.y()+1))
+		else:
+			span_rect = QtCore.QRect(QtCore.QPoint(c.x()-2, min_pos), QtCore.QPoint(c.x()+1, max_pos))
+
+		#self.initStyleOption(opt)
+		#print(groove.x(), groove.y(), groove.width(), groove.height())
+		if opt.orientation == QtCore.Qt.Horizontal: groove.adjust(0, 0, -1, 0)
+		else: groove.adjust(0, 0, 0, -1)
+
+		if True: #self.isEnabled():
+			highlight = self.palette().color(QtGui.QPalette.Highlight)
+			# highlight.setAlpha(255)
+			painter.setBrush(QtGui.QBrush(highlight))
+			painter.setPen(QtGui.QPen(highlight, 0))
+			painter.setPen(QtGui.QPen(self.palette().color(QtGui.QPalette.Light), 0))
+			'''
+			if opt.orientation == QtCore.Qt.Horizontal:
+				self.setupPainter(painter, opt.orientation, groove.center().x(), groove.top(), groove.center().x(), groove.bottom())
+			else:
+				self.setupPainter(painter, opt.orientation, groove.left(), groove.center().y(), groove.right(), groove.center().y())
+			'''
+			#spanRect =
+			painter.drawRect(span_rect.intersected(groove))
+			#painter.drawRect(groove)
+
+		for i, value in enumerate([self._low, self._high]):
+			opt = QtWidgets.QStyleOptionSlider()
+			self.initStyleOption(opt)
+
+			# Only draw the groove for the first slider so it doesn't get drawn
+			# on top of the existing ones every time
+			if i == 0:
+				opt.subControls = QtWidgets.QStyle.SC_SliderHandle# | QtWidgets.QStyle.SC_SliderGroove
+			else:
+				opt.subControls = QtWidgets.QStyle.SC_SliderHandle
+
+			if self.tickPosition() != self.NoTicks:
+				opt.subControls |= QtWidgets.QStyle.SC_SliderTickmarks
+
+			if self.pressed_control:
+				opt.activeSubControls = self.pressed_control
+			else:
+				opt.activeSubControls = self.hover_control
+
+			opt.sliderPosition = value
+			opt.sliderValue = value
+			if i == 0:
+				self.setStyleSheet(self.start_stylesheet)
+			else:
+				self.setStyleSheet(self.end_stylesheet)
+			style.drawComplexControl(QtWidgets.QStyle.CC_Slider, opt, painter, self)
+
+	def mousePressEvent(self, event):
+		event.accept()
+
+		style = QtWidgets.QApplication.style()
+		button = event.button()
+
+		# In a normal slider control, when the user clicks on a point in the
+		# slider's total range, but not on the slider part of the control the
+		# control would jump the slider value to where the user clicked.
+		# For this control, clicks which are not direct hits will slide both
+		# slider parts
+
+		if button:
+			opt = QtWidgets.QStyleOptionSlider()
+			self.initStyleOption(opt)
+
+			self.active_slider = -1
+
+			for i, value in enumerate([self._low, self._high]):
+				opt.sliderPosition = value
+				hit = style.hitTestComplexControl(style.CC_Slider, opt, event.pos(), self)
+				if hit == style.SC_SliderHandle:
+					self.active_slider = i
+					self.pressed_control = hit
+
+					self.triggerAction(self.SliderMove)
+					self.setRepeatAction(self.SliderNoAction)
+					self.setSliderDown(True)
+					break
+
+			if self.active_slider < 0:
+				self.pressed_control = QtWidgets.QStyle.SC_SliderHandle
+				self.click_offset = self.__pixelPosToRangeValue(self.__pick(event.pos()))
+				self.triggerAction(self.SliderMove)
+				self.setRepeatAction(self.SliderNoAction)
+		else:
+			event.ignore()
+
+	def mouseMoveEvent(self, event):
+		if self.pressed_control != QtWidgets.QStyle.SC_SliderHandle:
+			event.ignore()
+			return
+
+		event.accept()
+		new_pos = self.__pixelPosToRangeValue(self.__pick(event.pos()))
+		opt = QtWidgets.QStyleOptionSlider()
+		self.initStyleOption(opt)
+
+		if self.active_slider < 0:
+			offset = new_pos - self.click_offset
+			self._high += offset
+			self._low += offset
+			if self._low < self.minimum():
+				diff = self.minimum() - self._low
+				self._low += diff
+				self._high += diff
+			if self._high > self.maximum():
+				diff = self.maximum() - self._high
+				self._low += diff
+				self._high += diff
+		elif self.active_slider == 0:
+			if new_pos >= self._high:
+				new_pos = self._high - 1
+			self._low = new_pos
+		else:
+			if new_pos <= self._low:
+				new_pos = self._low + 1
+			self._high = new_pos
+
+		self.click_offset = new_pos
+
+		self.update()
+
+		#self.emit(QtCore.SIGNAL('sliderMoved(int)'), new_pos)
+		self.sliderMoved.emit(self._low, self._high)
+
+	def __pick(self, pt):
+		if self.orientation() == QtCore.Qt.Horizontal:
+			return pt.x()
+		else:
+			return pt.y()
+
+
+	def __pixelPosToRangeValue(self, pos):
+		opt = QtWidgets.QStyleOptionSlider()
+		self.initStyleOption(opt)
+		style = QtWidgets.QApplication.style()
+
+		gr = style.subControlRect(style.CC_Slider, opt, style.SC_SliderGroove, self)
+		sr = style.subControlRect(style.CC_Slider, opt, style.SC_SliderHandle, self)
+
+		if self.orientation() == QtCore.Qt.Horizontal:
+			slider_length = sr.width()
+			slider_min = gr.x()
+			slider_max = gr.right() - slider_length + 1
+		else:
+			slider_length = sr.height()
+			slider_min = gr.y()
+			slider_max = gr.bottom() - slider_length + 1
+
+		return style.sliderValueFromPosition(self.minimum(), self.maximum(),
+											 pos-slider_min, slider_max-slider_min,
+											 opt.upsideDown)
+
+class LabelledRangeSlider(QtWidgets.QWidget):
+	def __init__(self, label, dflt_values:tuple, parent: QtWidgets.QWidget=None, label_bold=False, margins=[2,1,2,1]) -> None:
+		super().__init__(parent)
+		self._callbacks = []
+		self.values = [dflt_values[0], dflt_values[1]]
+		vlayout = QtWidgets.QVBoxLayout()
+		hlayout1 = QtWidgets.QHBoxLayout()
+		hlayout2 = QtWidgets.QHBoxLayout()
+		hlayout1.setSpacing(0)
+		hlayout1.setContentsMargins(margins[0],margins[1],margins[2],margins[3])
+		hlayout2.setSpacing(0)
+		hlayout2.setContentsMargins(margins[0],margins[1],margins[2],margins[3])
+		vlayout.setSpacing(0)
+		vlayout.setContentsMargins(margins[0],margins[1],margins[2],margins[3])
+
+		if label is not None:
+			self._label_font = QtGui.QFont()
+			if label_bold:
+				self._label_font.setWeight(QtGui.QFont.Medium)
+			self._label = QtWidgets.QLabel(label)
+			self._label.setFont(self._label_font)
+			hlayout1.addWidget(self._label)
+		hlayout1.addStretch()
+		vlayout.addLayout(hlayout1)
+
+		self._range_slider = RangeSlider(QtCore.Qt.Horizontal)
+		self._range_slider.setMaximum(self.values[1])
+		self._range_slider.setMinimum(self.values[0])
+		self._range_slider.setHigh(self.values[1])
+		self._range_slider.setLow(self.values[0])
+
+
+		hlayout2.addWidget(self._range_slider)
+
+		vlayout.addLayout(hlayout2)
+
+		self.setLayout(vlayout)
+
+	def setLow(self, val:int):
+		self._range_slider.setLow(val)
+
+	def setHigh(self, val:int):
+		self._range_slider.setHigh(val)
+
+	def getRange(self) -> tuple[int,int]:
+		return self._range_slider.getRange()
 
 def embedWidgetsInHBoxLayout(w_list, margin=5):
 	"""Embed a list of widgets into a layout to give it a frame"""
