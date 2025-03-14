@@ -9,6 +9,7 @@ from satplot.model.data_models.history_data import HistoryData
 import satplot.visualiser.contexts.base_context as base
 from satplot.visualiser.contexts.canvas_wrappers.base_cw import (BaseCanvas)
 import satplot.visualiser.contexts.canvas_wrappers.history3d_cw as history3d_cw
+import satplot.visualiser.contexts.canvas_wrappers.sensor_view3d_cw as sensor_view3d_cw
 import satplot.visualiser.interface.console as console
 import satplot.visualiser.interface.controls as controls
 import satplot.visualiser.interface.widgets as widgets
@@ -24,7 +25,14 @@ class History3DContext(base.BaseContext):
 		self.data = data
 		self.canvas_wrapper = history3d_cw.History3DCanvasWrapper()
 		self.canvas_wrapper.setModel(self.data)
+		# self.canvas_wrapper2 = history3d_cw.History3DCanvasWrapper()
+		self.canvas_wrapper2 = sensor_view3d_cw.SensorView3DCanvasWrapper()
+		self.canvas_wrapper2.setModel(self.data)
 		self.controls = Controls(self, self.canvas_wrapper)
+
+		self.cw_tabs = QtWidgets.QTabWidget()
+		self.cw_tabs.addTab(self.canvas_wrapper.getCanvas().native, 'History 3D 1')
+		self.cw_tabs.addTab(self.canvas_wrapper2.getCanvas().native, 'Sensor Views')
 
 		disp_hsplitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)
 		disp_hsplitter.setObjectName('disp_hsplitter')
@@ -43,7 +51,7 @@ class History3DContext(base.BaseContext):
 		# | ###
 		'''
 		disp_hsplitter.addWidget(self.controls.config_tabs)
-		disp_hsplitter.addWidget(self.canvas_wrapper.getCanvas().native)
+		disp_hsplitter.addWidget(self.cw_tabs)
 
 		# Build area down to bottom of time slider
 		'''
@@ -138,8 +146,10 @@ class History3DContext(base.BaseContext):
 
 	def _updateDataSources(self) -> None:
 		self.canvas_wrapper.modelUpdated()
+		self.canvas_wrapper2.modelUpdated()
 		self.controls.rebuildOptions()
 		self.canvas_wrapper.setFirstDrawFlags()
+		self.canvas_wrapper2.setFirstDrawFlags()
 		self._updateDisplayedIndex(self.controls.time_slider.slider.value())
 
 	def _updateDisplayedIndex(self, index:int) -> None:
@@ -147,6 +157,8 @@ class History3DContext(base.BaseContext):
 			ValueError(f"model data is not set for context {self.config['name']}:{self}")
 		self.canvas_wrapper.updateIndex(index)
 		self.canvas_wrapper.recomputeRedraw()
+		self.canvas_wrapper2.updateIndex(index)
+		self.canvas_wrapper2.recomputeRedraw()
 
 	def loadState(self) -> None:
 		pass

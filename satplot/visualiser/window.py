@@ -5,7 +5,7 @@ from PyQt5 import QtWidgets, QtCore
 
 import satplot
 from satplot.model.data_models import (history_data)
-from satplot.visualiser.contexts import (history3d_context, blank_context)
+from satplot.visualiser.contexts import (history3d_context, blank_context, sensor_view_context)
 import satplot.visualiser.interface.console as console
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -47,6 +47,13 @@ class MainWindow(QtWidgets.QMainWindow):
 		self.toolbars['blank'] = self.contexts_dict['blank'].controls.toolbar
 		self.menubars['blank'] = self.contexts_dict['blank'].controls.menubar
 		self.context_tabs.addTab(self.contexts_dict['blank'].widget, 'Blank')
+
+		# self.contexts_dict['sensor-view-3d'] = sensor_view_context.SensorView3DContext('sensor-view-3d', self)
+		# self.toolbars['sensor-view-3d'] = self.contexts_dict['sensor-view-3d'].controls.toolbar
+		# self.menubars['sensor-view-3d'] = self.contexts_dict['sensor-view-3d'].controls.menubar
+		# self.context_tabs.addTab(self.contexts_dict['sensor-view-3d'].widget, 'Sensor Views')
+
+		# self.contexts_dict['sensor-view-3d'].canvas_wrapper.setCanvas(self.contexts_dict['3d-history'].canvas_wrapper.canvas)
 
 		# self.toolbars['blank'] = self.contexts_dict['blank'].controls.toolbar
 		# self.menubars['blank'] = self.contexts_dict['blank'].controls.menubar

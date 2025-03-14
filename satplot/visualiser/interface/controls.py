@@ -31,7 +31,7 @@ class OrbitConfigs(QtWidgets.QWidget):
 		self.button_layout = QtWidgets.QHBoxLayout()
 		self.submit_button = QtWidgets.QPushButton('Recalculate')
 		self.prim_orbit_selector = widgets.FilePicker('Primary Orbit',
-															dflt_file='SpIRIT_XYZ.json',
+															dflt_file='SpIRIT_XYNegZ.json',
 															dflt_dir='data/primary_configs/',
 															save=False)
 		self.pointing_file_controls = PointingFileControls()
@@ -450,6 +450,40 @@ class OptionConfigs(QtWidgets.QWidget):
 					print(f'{opt_key} not a recognised option for context configuration section {section_title}')
 					continue
 				self.sections[section_title]['opts'][opt_key]['widget'].deSerialise(opt_serialisation)
+
+class SensorViewConfigs(QtWidgets.QWidget):
+
+	def __init__(self, parent: QtWidgets.QWidget|None=None) -> None:
+		super().__init__()
+		vlayout = QtWidgets.QVBoxLayout()
+
+		glayout = QtWidgets.QGridLayout()
+		glayout.setVerticalSpacing(1)
+		self._label_font = QtGui.QFont()
+		self._label_font.setWeight(QtGui.QFont.Medium)
+		self._label = QtWidgets.QLabel('Linked Sensor Views')
+		self._label.setFont(self._label_font)
+		glayout.addWidget(self._label,0,0,1,-1)
+		glayout.setContentsMargins(0,0,0,0)
+
+		self.view1_selector = widgets.OptionBox('View Box 1 Sensor:',
+															options_list=[])
+		glayout.addWidget(self.view1_selector,1,0,1,-1)
+
+		self.view2_selector = widgets.OptionBox('View Box 2 Sensor:',
+															options_list=[])
+		glayout.addWidget(self.view2_selector,2,0,1,-1)
+
+		self.view3_selector = widgets.OptionBox('View Box 3 Sensor:',
+															options_list=[])
+		glayout.addWidget(self.view3_selector,3,0,1,-1)
+
+		self.view4_selector = widgets.OptionBox('View Box 4 Sensor:',
+															options_list=[])
+		glayout.addWidget(self.view4_selector,4,0,1,-1)
+
+		vlayout.addLayout(glayout)
+		self.setLayout(vlayout)
 
 class Toolbar(QtWidgets.QWidget):
 	# TODO: this should be in widgets, not controls	

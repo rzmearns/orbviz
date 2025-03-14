@@ -7,6 +7,7 @@ import vispy.scene.visuals as vVisuals
 from vispy.scene.widgets.viewbox import ViewBox
 import vispy.visuals.filters as vFilters
 import vispy.visuals.transforms as vTransforms
+from vispy.util.quaternion import Quaternion
 
 import satplot.model.geometry.polyhedra as polyhedra
 import satplot.util.constants as c
@@ -36,6 +37,7 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundAsset):
 	def _instantiateAssets(self) -> None:
 		sensor_names = self.data['sens_suite_config'].getSensorNames()
 		for sensor in sensor_names:
+			print(f'{sensor=}')
 			sens_dict = self.data['sens_suite_config'].getSensorConfig(sensor)
 			if sens_dict['shape'] == 'cone':
 				self.assets[sensor] = Sensor3DAsset.cone(sensor, sens_dict, parent=self.data['v_parent'])
@@ -89,6 +91,8 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 		self.data['mesh_vertices'] = mesh_verts
 		self.data['mesh_faces'] = mesh_faces
 		self.data['bf_quat'] = bf_quat
+		self.data['vispy_quat'] = self.data['bf_quat']
+		print(f"{self.data['vispy_quat']=}")
 		self.opts['sensor_cone_colour']['value'] = colour
 
 	def setSource(self, *args, **kwargs) -> None:
@@ -111,15 +115,33 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 			self._clearFirstDrawFlag()
 		if self.isStale():
 			T = np.eye(4)
+			print(f'{rotation=}')
+			print(f'{quat=}')
+			sc_rotation = rotation
 			if quat is not None:
 				rotation = Rotation.from_quat(quat) * Rotation.from_quat(self.data['bf_quat'])
 				rot_mat = rotation.as_matrix()
+				as_quat = rotation.as_quat()
+				# as_quat = (Rotation.from_quat(self.data['bf_quat']) * Rotation.from_quat(quat)).as_quat()
 			elif rotation is not None:
 				# bf_quat -> bodyframe to cam quaternion
 				rotation = Rotation.from_matrix(rotation) * Rotation.from_quat(self.data['bf_quat'])
 				rot_mat = rotation.as_matrix()
+				# as_quat = (Rotation.from_matrix(rotation) * Rotation.from_quat(self.data['bf_quat'])).as_quat()
+				as_quat = rotation.as_quat()
 			else:
 				rot_mat = np.eye(3)
+				as_quat = (1,0,0,0)
+			print(f"{as_quat=}")
+			self.data['vispy_quat'] = as_quat
+			# if rotation is not None:
+			# 	self.data['vispy_quat'] = Rotation.from_matrix(sc_rotation).inv().as_quat()
+			# else:
+			# 	self.data['vispy_quat'] = quat
+			# self.data['vispy_quat'] = np.array((1,0,0,0))
+			# self.data['vispy_quat'] = np.array((0.707,0,0,0.707))
+			# self.data['vispy_quat'] = np.array((0.707,0,-0.707,0))
+			print(f"{self.data['vispy_quat']=}")
 			T[0:3,0:3] = rot_mat
 			T[0:3,3] = np.asarray(pos).reshape(-1,3)
 			self.visuals['sensor_cone'].transform = vTransforms.linear.MatrixTransform(T.T)
