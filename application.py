@@ -1,5 +1,6 @@
 import argparse
 import datetime as dt
+import logging
 import pathlib
 import pickle
 from typing import Any
@@ -9,12 +10,14 @@ from PyQt5 import QtWidgets, QtCore
 from vispy import app, use
 
 import satplot
+import satplot.util.logging as satplot_logging
 import satplot.util.threading as threading
 from satplot.visualiser.contexts.canvas_wrappers.base_cw import (BaseCanvas)
 import satplot.visualiser.interface.console as console
 import satplot.visualiser.interface.dialogs as dialogs
 import satplot.visualiser.window as window
 
+logger = logging.getLogger(__name__)
 
 warnings.filterwarnings("ignore", message="Optimal rotation is not uniquely or poorly defined for the given sets of vectors.")
 
@@ -33,7 +36,7 @@ class Application():
 		self.save_worker_thread = None
 		self.save_file = None
 		satplot.threadpool = threading.Threadpool()
-		print(f"Creating threadpool with {satplot.threadpool.maxThreadCount()} threads")
+		logger.info(f"Creating threadpool with {satplot.threadpool.maxThreadCount()} threads")
 
 	def run(self) -> None:
 		self.window.show()
@@ -120,9 +123,11 @@ class Application():
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['metadata']['version'] != satplot.version:
-			print(f"This satplot state was not created with this version of satplot: file {state['metadata']['version']}, satplot {satplot.verison}")
+			logger.error(f"This satplot state was not created with this version of satplot: file {state['metadata']['version']}, satplot {satplot.version}")
+			pass
 		if state['metadata']['gl_plus'] != satplot.gl_plus:
-			print(f"WARNING: this file was created with a different GL mode: GL+ = {satplot.gl_plus}. It may not load correctly.")
+			logger.error(f"WARNING: this file was created with a different GL mode: GL+ = {satplot.gl_plus}. It may not load correctly.")
+			pass
 
 		self.window.deserialiseContexts(state['window_contexts'])
 
@@ -138,6 +143,7 @@ def setDefaultPackageOptions() -> None:
 
 if __name__ == '__main__':
 	setDefaultPackageOptions()
+	satplot_logging.configureLogger()
 	parser = argparse.ArgumentParser(
 						prog='SatPlot',
 						description='Visualisation software for satellites; including orbits and pointing.')
@@ -148,8 +154,8 @@ if __name__ == '__main__':
 		satplot.gl_plus = False
 	if args.debug:
 		satplot.debug = True
-	print(f"Satplot:")
-	print(f"\tVersion:{satplot.version}")
+	logger.info(f"Satplot:")
+	logger.info(f"\tVersion:{satplot.version}")
 	application = Application()
 	application.run()
 
