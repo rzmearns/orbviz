@@ -32,6 +32,7 @@ class Moon3DAsset(base_assets.AbstractAsset):
 
 	def setSource(self, *args, **kwargs) -> None:
 		if type(args[0]) is not orbit.Orbit:
+			logger.error(f"setSource() of {self} requires an {orbit.Orbit} as value of dict from args[0], not: {type(args[0])}")
 			raise TypeError
 		self.data['pos'] = args[0].moon_pos
 

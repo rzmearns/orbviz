@@ -58,8 +58,11 @@ class MainWindow(QtWidgets.QMainWindow):
 		# check toolbar/menubar indices are the same
 		for ii, key in enumerate(self.toolbars.keys()):
 			if list(self.menubars.keys())[ii] != key:
+				logger.error(f'Context toolbars and menubar indices do not match for contexts')
+				logger.error(f'Toolbars: {self.toolbars.keys()}')
+				logger.error(f'Menubars: {self.menubars.keys()}')
 				raise ValueError('Toolbars and Menubars indices do not match')
-				# Should probably exit here
+				sys.exit()
 
 		self.context_tabs.currentChanged.connect(self._changeToolbarsToContext)
 

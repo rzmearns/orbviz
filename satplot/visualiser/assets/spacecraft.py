@@ -60,7 +60,8 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 		first_sat_orbit = list(sats_dict.values())[0]
 
 		if type(first_sat_orbit) is not orbit.Orbit:
-			raise TypeError(f"setSource() of {self} requires a satellite dictionary, not: {first_sat_orbit}")
+			logger.error(f"setSource() of {self} requires an {orbit.Orbit} as value of dict from args[0], not: {type(first_sat_orbit)}")
+			raise TypeError(f"setSource() of {self} requires an {orbit.Orbit} as value of dict from args[0], not: {type(first_sat_orbit)}")
 		self.data['coords'] = first_sat_orbit.pos
 		logger.debug(f'Setting source:coordinates for {self}')
 
@@ -74,7 +75,8 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 			first_sat_pointings = list(pointings_dict.values())[0]
 			invert_transform = args[2]
 			if type(first_sat_pointings) is not np.ndarray:
-				raise TypeError(f"setSource() of {self} requires a pointings dictionary, not: {first_sat_pointings}")
+				logger.error(f"setSource() of {self} requires an {np.ndarray} as value of dict from args[1], not: {type(first_sat_pointings)}")
+				raise TypeError(f"setSource() of {self} requires an {np.ndarray} as value of dict from args[1], not: {type(first_sat_pointings)}")
 			self.data['pointing'] = first_sat_pointings
 			self.data['pointing_invert_transform'] = invert_transform
 			logger.debug(f'Setting source:attitudes for {self}')

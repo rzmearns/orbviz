@@ -52,7 +52,8 @@ class TimeSlider(QtWidgets.QWidget):
 
 	def setRange(self, start_dt, end_dt, num_ticks):
 		if start_dt > end_dt:
-			raise ValueError(f"Period End {end_dt} must be after Period Start {start_dt}")
+			logger.warning(f"Period End {end_dt} must be after Period Start {start_dt} when setting timeslider range.")
+			raise ValueError(f"Period End {end_dt} must be after Period Start {start_dt} when setting timeslider range.")
 		self.start_dt = start_dt.replace(tzinfo=None)
 		self.end_dt = end_dt.replace(tzinfo=None)
 		self.range_delta = end_dt - start_dt

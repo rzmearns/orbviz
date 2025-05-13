@@ -53,6 +53,7 @@ class Earth3DAsset(base_assets.AbstractAsset):
 	def setSource(self, *args, **kwargs) -> None:
 		if type(args[0]) is not timespan.TimeSpan:
 			# args[0] assumed to be timespan
+			logger.error(f"setSource() of {self} requires a {timespan.Timespan} as args[0], not: {type(args[0])}")
 			raise TypeError
 		# TODO: add capability to produce array of skyfields)
 		times = []

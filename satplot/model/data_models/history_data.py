@@ -62,6 +62,7 @@ class HistoryData(BaseDataModel):
 
 	def getTimespan(self) -> timespan.TimeSpan:
 		if self.timespan is None:
+			logger.warning(f'History data:{self} does not have a timespan yet')
 			raise ValueError(f'History data:{self} does not have a timespan yet')
 		return self.timespan
 
@@ -70,6 +71,7 @@ class HistoryData(BaseDataModel):
 
 	def getConstellation(self) -> constellation_data.ConstellationData:
 		if self.constellation is None:
+			logger.warning(f'History data:{self} does not have a constellation yet')
 			raise ValueError(f'History data:{self} does not have a constellation yet')
 		else:
 			return self.constellation
@@ -82,11 +84,13 @@ class HistoryData(BaseDataModel):
 
 	def getOrbits(self) -> dict[int,orbit.Orbit]:
 		if len(self.orbits.values()) == 0:
+			logger.warning(f'History data:{self} has no orbits yet')
 			raise ValueError(f'History data:{self} has no orbits yet')
 		return self.orbits
 
 	def getPointings(self) -> dict[int, nptyping.NDArray[np.float64]]:
 		if len(self.pointings.values()) == 0:
+			logger.warning(f'History data:{self} has no pointings yet')
 			raise ValueError(f'History data:{self} has no pointings yet')
 		return self.pointings
 
@@ -119,7 +123,8 @@ class HistoryData(BaseDataModel):
 
 
 		if self.timespan is None:
-			raise AttributeError("Timespan has not been configured")
+			logger.warning(f"History data:{self}, timespan has not been configured")
+			raise AttributeError(f"History data:{self}, Timespan has not been configured")
 
 		console.send(f"\tDuration: {self.timespan.time_period}")
 		console.send(f"\tNumber of steps: {len(self.timespan)}")
@@ -134,7 +139,8 @@ class HistoryData(BaseDataModel):
 
 		if self.getConfigValue('has_supplemental_constellation'):
 			if self.constellation is None:
-				raise AttributeError("Constellation has not been configured")
+				logger.warning(f"History data:{self}, constellation has not been configured")
+				raise AttributeError(f"History data:{self},onstellation has not been configured")
 
 			self.constellation.setTimespan(self.timespan)
 			self._worker_threads['constellation'] = threading.Worker(self._propagateConstellationOrbits, self.timespan, self.constellation.getConfigValue('satellite_ids'))

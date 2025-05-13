@@ -69,6 +69,7 @@ class History3DContext(base.BaseContext):
 		self.controls.action_dict['center-spacecraft']['callback'] = self._toggleCameraSpacecraft
 		self.sccam_state = False
 		if self.data is None:
+			logger.warning(f'Context History3D: {self} does not have a data model.')
 			raise AttributeError(f'Context History3D: {self} does not have a data model.')
 		self.data.data_ready.connect(self._updateDataSources)
 		self.data.data_ready.connect(self._updateControls)
@@ -82,6 +83,7 @@ class History3DContext(base.BaseContext):
 		console.send('Setting up data configuration')
 		# Timespan configuration
 		if self.data is None:
+			logger.warning(f"model data is not set for context {self.config['name']}:{self}")
 			raise ValueError(f"model data is not set for context {self.config['name']}:{self}")
 
 		self.data.updateConfig('timespan_period_start', self.controls.orbit_controls.period_start.datetime)
@@ -124,6 +126,7 @@ class History3DContext(base.BaseContext):
 			self.controls.orbit_controls.submit_button.setEnabled(False)
 			self.data.process()
 		except Exception as e:
+			logger.warning(f"Error in configuring data for history3D: {e}")
 			print(f"Error in configuring data for history3D: {e}", file=sys.stderr)
 			self.controls.orbit_controls.submit_button.setEnabled(True)
 			raise e
@@ -146,6 +149,7 @@ class History3DContext(base.BaseContext):
 
 	def _updateDisplayedIndex(self, index:int) -> None:
 		if self.data is None:
+			logger.warning(f"model data is not set for context {self.config['name']}:{self}")
 			ValueError(f"model data is not set for context {self.config['name']}:{self}")
 		self.canvas_wrapper.updateIndex(index)
 		self.canvas_wrapper.recomputeRedraw()

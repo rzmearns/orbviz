@@ -498,6 +498,7 @@ class Toolbar(QtWidgets.QWidget):
 		if self.parent_window is not None:
 			self.parent_window.addToolBar(self.toolbar)
 		else:
+			logger.error("Can't add toolbar to window, context {context_name} doesn't have a window yet.")
 			raise ValueError("Can't add toolbar to window, context {context_name} doesn't have a window yet.")
 
 	def setActiveState(self, state):
@@ -505,6 +506,7 @@ class Toolbar(QtWidgets.QWidget):
 			self.toolbar.toggleViewAction().setChecked(not state) # type:ignore
 			self.toolbar.toggleViewAction().trigger()					# type:ignore
 		else:
+			logger.error("Can't add toolbar to window, context {context_name} doesn't have a window yet.")
 			raise ValueError("Can't set toolbar active state for {context_name}")
 
 class Menubar(QtWidgets.QWidget):

@@ -112,6 +112,7 @@ class Sun3DAsset(base_assets.AbstractAsset):
 		sats_dict = args[0]
 		first_sat_orbit = list(sats_dict.values())[0]
 		if type(first_sat_orbit) is not orbit.Orbit:
+			logger.error(f"data source for {self} is not an orbit.Orbit, can't extract sun location data")
 			raise TypeError
 		
 		self.data['pos'] = first_sat_orbit.sun_pos

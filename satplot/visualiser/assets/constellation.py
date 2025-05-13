@@ -50,14 +50,18 @@ class Constellation(base_assets.AbstractAsset):
 		beam_angle = args[1]
 
 		if type(sats_dict) is not dict:
+			logger.error(f'args[0] of Constellation.setSource() should be a dictionary of satellites ')
 			raise TypeError
 		for k, v in sats_dict.items():
 			if type(v) is not orbit.Orbit:
+				logger.error(f"setSource() of {self} requires an {orbit.Orbit} as value of dict from args[0], not: {type(first_sat_orbit)}")
 				raise TypeError
 
 		if hasattr(first_sat_orbit,'pos'):
 			pass
 		else:
+			print('Orbit has no position data', file=sys.stderr)
+			logger.warning(f'Constellation orbit has no position data')
 			raise ValueError('Constellation orbits have no position data')
 
 
@@ -261,6 +265,7 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 		# args[4] = beam_angle_deg
 		
 		if type(args[0]) is not int:
+			logger.error(f"InstancedConstellationBeams.setSource() args[0]:num_sats is not an int -> {args[0]}")
 			raise TypeError(f"args[0]:num_sats is not an int -> {args[0]}")
 
 		if self.data['num_sats'] != args[0]:
@@ -270,18 +275,22 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 		self.data['num_sats'] = args[0]
 
 		if type(args[1]) is not np.ndarray:
+			logger.error(f"InstancedConstellationBeams.setSource() args[1]:coords is not an ndarray -> {args[1]}")
 			raise TypeError(f"args[1]:coords is not an ndarray -> {args[1]}")
 		self.data['coords'] = args[1]
 
 		if type(args[2]) is not int:
+			logger.error(f"InstancedConstellationBeams.setSource() args[2]:curr_index is not an int -> {args[2]}")
 			raise TypeError(f"args[2]:curr_index is not an int -> {args[2]}")
 		self.data['curr_index'] = args[2]
 
 		if type(args[3]) is not float and type(args[3]) is not np.float64:
+			logger.error(f"InstancedConstellationBeams.setSource() args[3]:beam_height is not a float -> {args[3]}")
 			raise TypeError(f"args[3]:beam_height is not a float -> {args[3]}")
 		self.data['beam_height'] = args[3]
 
 		if args[4] >= 180 or args[4] <= 0:
+			logger.error(f"InstancedConstellationBeams.setSource() args[4]:beam_angle_deg must be be 0<angle<180 -> {args[4]}")
 			raise TypeError(f'args[4]: beam_angle_deg must be be 0<angle<180 -> {args[4]}')
 
 		if type(args[4]) is not float and type(args[4]) is not np.float64:

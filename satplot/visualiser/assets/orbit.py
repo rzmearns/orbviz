@@ -37,11 +37,14 @@ class Orbit3DAsset(base_assets.AbstractAsset):
 		sats_dict = args[0]
 		first_sat_orbit = list(sats_dict.values())[0]
 		if type(first_sat_orbit) is not orbit.Orbit:
+			logger.error(f"setSource() of {self} requires an {orbit.Orbit} as value of dict from args[0], not: {first_sat_orbit}")
 			raise TypeError
 		if hasattr(first_sat_orbit,'pos'):
 			self.data['coords'] = first_sat_orbit.pos
 			logger.debug(f'Setting source:coordinates for {self}')
 		else:
+			print('Orbit has no position data', file=sys.stderr)
+			logger.warning(f'Orbit has no position data')
 			raise ValueError('Orbit has no position data')
 
 	def _instantiateAssets(self) -> None:
