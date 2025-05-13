@@ -407,6 +407,16 @@ class OptionConfigs(QtWidgets.QWidget):
 				except:
 					print(f"Can't make widget {w_str} for asset {opt_key}")
 					raise ValueError
+			elif opt_dict['type'] == 'option':
+				try:
+					widget = widgets.BasicOptionBox(w_str,
+												dflt_option=opt_dict['value'],
+												options_list=opt_dict['options'])
+					widget.add_connect(opt_dict['callback'])
+					print(f"Adding option callback {opt_dict['callback']} to {opt_key}")
+				except:
+					print(f"Can't make widget {w_str} for asset {opt_key}")
+					raise ValueError
 			else:
 				print(f"Can't find widget type for {w_str}:{opt_dict['type']}")
 				continue
