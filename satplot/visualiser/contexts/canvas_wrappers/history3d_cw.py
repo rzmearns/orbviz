@@ -6,7 +6,7 @@ from typing import Any
 from PyQt5 import QtGui
 
 from vispy import scene
-from vispy.app.canvas import MouseEvent
+from vispy.app.canvas import MouseEvent, ResizeEvent
 
 from satplot.model.data_models.history_data import (HistoryData)
 import satplot.model.geometry.primgeom as pg
@@ -14,6 +14,7 @@ from satplot.model.data_models.data_types import PrimaryConfig
 from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 import satplot.util.constants as c
 import satplot.util.exceptions as exceptions
+# import satplot.visualiser.assets.axis_indicators as axis_indicators
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.assets.constellation as constellation
 import satplot.visualiser.assets.earth as earth
@@ -24,6 +25,7 @@ import satplot.visualiser.assets.spacecraft as spacecraft
 import satplot.visualiser.assets.sun as sun
 import satplot.visualiser.assets.widgets as widgets
 
+from vispy.visuals.transforms import STTransform
 
 create_time = time.monotonic()
 MIN_MOVE_UPDATE_THRESHOLD = 1
@@ -35,18 +37,18 @@ mouse_over_is_highlighting = False
 class History3DCanvasWrapper(BaseCanvas):
 	def __init__(self, w:int=800, h:int=600, keys:str='interactive', bgcolor:str='white'):
 		self.canvas = scene.canvas.SceneCanvas(size=(w,h),
-								  		keys=keys,
+										keys=keys,
 										bgcolor=bgcolor,
 										show=True)
 		self.canvas.events.mouse_move.connect(self.onMouseMove)
 		self.canvas.events.mouse_wheel.connect(self.onMouseScroll)
+		self.canvas.events.resize.connect(self.onResize)
 		self.grid = self.canvas.central_widget.add_grid()
 		self.view_box = self.canvas.central_widget.add_view()
 		self.view_box.camera = scene.cameras.TurntableCamera(parent=self.view_box.scene,
-													   		fov=60,
+															fov=60,
 															center=(0,0,0),
 															name='Turntable')
-
 		self.data_models: dict[str,Any] = {}
 		self.assets = {}
 		self._buildAssets()
@@ -67,13 +69,8 @@ class History3DCanvasWrapper(BaseCanvas):
 		self.assets['constellation'] = constellation.Constellation(v_parent=self.view_box.scene)
 		self.assets['sun'] = sun.Sun3DAsset(v_parent=self.view_box.scene)
 
-		# if self.is_asset_active['ECI_gizmo']:
-		# self.assets['ECI_gizmo'] = ViewBoxGizmo(canvas=self.canvas,
-		# 				   					parent=self.view_box.scene,
-		# 									translate=(c.R_EARTH,c.R_EARTH),
-		# 									scale=(2*c.R_EARTH,2*c.R_EARTH,2*c.R_EARTH,1))
+		self.assets['ECI_gizmo'] = gizmo.ViewBoxGizmo(v_parent=self.view_box)
 		self.setCameraZoom(5*c.R_EARTH)
-		# self.assets['ECI_gizmo'].attachCamera(self.view_box.camera)
 
 	def getActiveAssets(self) -> list[base_assets.AbstractAsset|base_assets.AbstractCompoundAsset|base_assets.AbstractSimpleAsset]:
 		active_assets = []
@@ -84,14 +81,14 @@ class History3DCanvasWrapper(BaseCanvas):
 
 	def setCameraMode(self, mode:str='turntable') -> None:
 		allowed_cam_modes = ['turntable',
-					   		'arcball',
+							'arcball',
 							'fly',
 							'panzoom',
 							'magnify',
 							'perspective']
 		if mode not in allowed_cam_modes:
 			raise NameError
-		
+
 		self.view_box.camera = mode
 
 	def setCameraZoom(self, zoom:float) -> None:
@@ -174,7 +171,7 @@ class History3DCanvasWrapper(BaseCanvas):
 		if self.canvas is None:
 			raise AttributeError(f"Canvas has not been set for History3D Canvas Wrapper. No camera to center")
 		if self.assets['spacecraft'].isActive():
-			sc_pos = tuple(self.assets['spacecraft'].data['coords'][self.assets['spacecraft'].data['curr_index']])			
+			sc_pos = tuple(self.assets['spacecraft'].data['coords'][self.assets['spacecraft'].data['curr_index']])
 		else:
 			sc_pos = tuple(self.assets['primary_orbit'].data['coords'][self.assets['primary_orbit'].data['curr_index']])
 
@@ -225,18 +222,22 @@ class History3DCanvasWrapper(BaseCanvas):
 	def onMouseMove(self, event:MouseEvent) -> None:
 		global last_mevnt_time
 		global mouse_over_is_highlighting
-		
+		# for asset_name,asset in self.assets.items():
+		# 	if asset.isActive():
+		# 		asset.onMouseMove(event)
+		self.assets['ECI_gizmo'].onMouseMove(event)
+
 		# cull if behind center of camera plane
 		az = np.deg2rad(self.view_box.camera.azimuth+179)
 		el = np.deg2rad(self.view_box.camera.elevation)
 		acamv = np.array([[0,0,0],[np.sin(-az)*np.cos(el),np.cos(-az)*np.cos(el),np.sin(el)]])
-		
+
 		# throttle mouse events to 100ms
 		if time.monotonic() - last_mevnt_time < 0.1:
 			return
 		mo_infos = self.mapAssetPositionsToScreen()
 		pp = event.pos
-		
+
 		for jj, mo_info in enumerate(mo_infos):
 			for ii, pos in enumerate(mo_info['screen_pos']):
 				if ((abs(pos[0] - pp[0]) < MOUSEOVER_DIST_THRESHOLD) and \
@@ -258,9 +259,8 @@ class History3DCanvasWrapper(BaseCanvas):
 			mouse_over_is_highlighting = False
 		last_mevnt_time = time.monotonic()
 
-		
-		# console.send("captured event")
-		# self.assets['ECI_gizmo'].onMouseMove(event)
+	def onResize(self, event:ResizeEvent) -> None:
+		self.assets['ECI_gizmo'].onResize(event)
 
 	def onMouseScroll(self, event:QtGui.QMouseEvent) -> None:
 		# print(self.view_box.camera.scale_factor)
