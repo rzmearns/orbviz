@@ -12,7 +12,6 @@ import satplot.model.geometry.transformations as transforms
 import satplot.util.constants as c
 import satplot.util.paths as satplot_paths
 import satplot.visualiser.assets.base_assets as base_assets
-import satplot.visualiser.assets.axis_indicator as axisInd
 import satplot.visualiser.colours as colours
 import spherapy.timespan as timespan
 
