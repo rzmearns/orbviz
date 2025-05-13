@@ -11,7 +11,6 @@ import satplot.model.geometry.primgeom as pg
 import satplot.model.geometry.polyhedra as polyhedra
 import satplot.util.constants as c
 import satplot.visualiser.assets.base_assets as base_assets
-import satplot.visualiser.interface.console as console
 import satplot.visualiser.colours as colours
 import spherapy.orbit as orbit
 
@@ -138,7 +137,6 @@ class Sun3DAsset(base_assets.AbstractAsset):
 			# move the sun
 			sun_pos = self.opts['sun_distance_kms']['value'] * pg.unitVector(self.data['curr_pos'])
 			self.visuals['sun_sphere'].transform = vTransforms.STTransform(translate=sun_pos)
-			console.send(sun_pos)
 			# move umbra
 			umbra_dir = (-1*self.data['curr_pos']).reshape(1,3)
 			rot_mat = Rotation.align_vectors(self.data['umbra_start_axis'], umbra_dir)[0].as_matrix()

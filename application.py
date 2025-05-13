@@ -74,6 +74,7 @@ class Application():
 			self._saveState()
 
 	def _saveState(self) -> None:
+		logger.info(f'Saving State to {self.save_file}')
 		console.send(f'Saving State to {self.save_file}')
 		state = self.prepSerialisation()
 		if self.save_file is not None:
@@ -89,6 +90,7 @@ class Application():
 			self._loadState(load_file)
 
 	def _loadState(self, load_file:pathlib.Path) -> None:
+		logger.info(f'Loading State from {load_file}')
 		console.send(f'Loading State from {load_file}')
 		with open(load_file, 'rb') as picklefp:
 			state = pickle.load(picklefp)

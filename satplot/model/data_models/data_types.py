@@ -151,6 +151,7 @@ class PrimaryConfig():
 			if 'sensor_suites' in v.keys():
 				sat_configs['k'] = SpacecraftConfig(p.stem, k, v['id'], v['sensor_suites'])
 			else:
+				logger.debug(f'Spacecraft definition has no sensor suites field.')
 				console.send(f'Spacecraft definition has no sensor suites field.')
 				sat_configs['k'] = SpacecraftConfig(p.stem, k, v['id'], {})
 

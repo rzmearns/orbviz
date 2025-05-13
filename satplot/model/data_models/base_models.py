@@ -43,6 +43,7 @@ class BaseDataModel(QtCore.QObject):
 		exctype = err[0]
 		value = err[1]
 		traceback = err[2]
+		logger.error(value)
 		console.send(value)
 		self.data_err.emit()
 

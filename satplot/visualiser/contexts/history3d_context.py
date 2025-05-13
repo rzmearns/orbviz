@@ -80,6 +80,7 @@ class History3DContext(base.BaseContext):
 			print(f"\t should be: {self.data_type}", file=sys.stderr)
 
 	def _configureData(self) -> None:
+		logger.info(f'Setting up data configuration for context: {self}')
 		console.send('Setting up data configuration')
 		# Timespan configuration
 		if self.data is None:
