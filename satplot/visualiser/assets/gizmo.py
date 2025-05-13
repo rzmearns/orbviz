@@ -37,7 +37,6 @@ class BodyGizmo(base_assets.AbstractSimpleAsset):
 		scale_vec = self.opts['gizmo_scale']['value']*np.ones((1,3))
 		self.visuals['gizmo'].transform = vTransforms.STTransform(scale=scale_vec).as_matrix()
 
-
 	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
 							 rotation:nptyping.NDArray=np.eye(3)) -> None:
 		if self.isStale():
@@ -174,13 +173,29 @@ class ViewBoxGizmo(base_assets.AbstractSimpleAsset):
 					[*colours.normaliseColour(self.opts['gizmo_Y_axis_colour']['value']),1],
 					[*colours.normaliseColour(self.opts['gizmo_Z_axis_colour']['value']),1],
 					[*colours.normaliseColour(self.opts['gizmo_Z_axis_colour']['value']),1]])
+
+		self.visuals['origin'] = scene.visuals.Markers(pos=np.array([[0,0,0]]).reshape(1,3),
+								  		edge_width=0,
+										face_color=colours.normaliseColour(self.opts['origin_colour']['value']),
+										edge_color=colours.normaliseColour(self.opts['origin_colour']['value']),
+										size=self.opts['origin_scale']['value'],
+										symbol='o')
+		t_origin = vTransforms.STTransform(translate=self.location,
+											scale=(self.opts['origin_scale']['value'],
+													self.opts['origin_scale']['value'],
+													self.opts['origin_scale']['value'], 1))
+		self.visuals['origin'].transform = t_origin.as_matrix()
+
+
 		self.visuals['gizmo'] = scene.visuals.XYZAxis(parent=None, width=self.opts['gizmo_width']['value'])
-		# self.visuals['center_ball']
-		t = vTransforms.STTransform(translate=self.location,
-									scale=(self.opts['gizmo_scale']['value'],
-											self.opts['gizmo_scale']['value'],
-											self.opts['gizmo_scale']['value'], 1))
-		self.visuals['gizmo'].transform = t.as_matrix()
+		self._updateAxesLengths()
+		t_gizmo = vTransforms.STTransform(translate=self.location,
+											scale=(self.opts['gizmo_scale']['value'],
+													self.opts['gizmo_scale']['value'],
+													self.opts['gizmo_scale']['value'], 1))
+		self.visuals['gizmo'].transform = t_gizmo.as_matrix()
+
+
 		self.setViewBoxTransform()
 
 	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
@@ -200,9 +215,11 @@ class ViewBoxGizmo(base_assets.AbstractSimpleAsset):
 
 	def setViewBoxTransform(self) -> None:
 		self.visuals['gizmo'].transform.reset()
+		self.visuals['origin'].transform.reset()
 		self._setRotationFromCamera()
 		self._setViewBoxPosition()
 		self.visuals['gizmo'].update()
+		self.visuals['origin'].update()
 
 	def _setViewBoxPosition(self) -> None:
 		if 'top' in self.opts['gizmo_location']['value']:
@@ -217,6 +234,18 @@ class ViewBoxGizmo(base_assets.AbstractSimpleAsset):
 
 		self.visuals['gizmo'].transform.scale((self.opts['gizmo_scale']['value'], self.opts['gizmo_scale']['value'], 0.001))
 		self.visuals['gizmo'].transform.translate((self.location[0], self.location[1]))
+		self.visuals['origin'].transform.scale((self.opts['origin_scale']['value'], self.opts['origin_scale']['value'], 0.001))
+		self.visuals['origin'].transform.translate((self.location[0], self.location[1]))
+
+	def _updateAxesLengths(self) -> None:
+		origin_radius = (self.opts['origin_scale']['value']/2)/self.opts['gizmo_scale']['value']
+		axes_pos = np.array([[origin_radius, 0, 0],
+					[1, 0, 0],
+					[0, origin_radius, 0],
+					[0, 1, 0],
+					[0, 0, origin_radius],
+					[0, 0, 1]])
+		self.visuals['gizmo'].set_data(pos=axes_pos)
 
 	def _setRotationFromCamera(self) -> None:
 		self.visuals['gizmo'].transform.rotate(90, (1, 0, 0))
@@ -246,7 +275,19 @@ class ViewBoxGizmo(base_assets.AbstractSimpleAsset):
 												'static': True,
 												'callback': self.setGizmoWidth,
 												'widget': None}
-		self._dflt_opts['gizmo_scale'] = {'value': 50,
+		self._dflt_opts['origin_scale'] = {'value': 12,
+												'type': 'number',
+												'help': '',
+												'static': True,
+												'callback': self.setOriginScale,
+												'widget': None}
+		self._dflt_opts['origin_colour'] = {'value': (0,0,0),
+												'type': 'colour',
+												'help': '',
+												'static': True,
+												'callback': self.setOriginColour,
+												'widget': None}
+		self._dflt_opts['gizmo_scale'] = {'value': 30,
 												'type': 'number',
 												'help': '',
 												'static': True,
@@ -291,6 +332,7 @@ class ViewBoxGizmo(base_assets.AbstractSimpleAsset):
 	
 	def setGizmoScale(self, scale:int) -> None:
 		self.opts['gizmo_scale']['value'] = scale
+		self._updateAxesLengths()
 		self.setViewBoxTransform()
 
 	def setGizmoLocation(self, opt:str) -> None:
@@ -329,3 +371,20 @@ class ViewBoxGizmo(base_assets.AbstractSimpleAsset):
 		self.visuals['gizmo'].set_data(color=axes_colour)
 		self.setViewBoxTransform()
 		self.opts['gizmo_Z_axis_colour']['value'] = colour
+
+	def setOriginScale(self, scale:int) -> None:
+		self.opts['origin_scale']['value'] = scale
+		self._updateOriginMarker()
+		self._updateAxesLengths()
+		self.setViewBoxTransform()
+
+	def _updateOriginMarker(self) -> None:
+		self.visuals['origin'].set_data(pos=np.array((0,0,0)).reshape(1,3),
+										size=self.opts['origin_scale']['value'],
+										face_color=colours.normaliseColour(self.opts['origin_colour']['value']),
+										edge_color=colours.normaliseColour(self.opts['origin_colour']['value']))
+
+	def setOriginColour(self, colour:tuple[float,float,float]) -> None:
+		self.opts['origin_colour']['value'] = colour
+		self._updateOriginMarker()
+		self.setViewBoxTransform()
