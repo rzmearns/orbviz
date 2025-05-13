@@ -335,8 +335,8 @@ class ViewBoxGizmo(base_assets.AbstractSimpleAsset):
 		self._updateAxesLengths()
 		self.setViewBoxTransform()
 
-	def setGizmoLocation(self, opt:str) -> None:
-		self.opts['gizmo_location'] = opt
+	def setGizmoLocation(self, opt_idx:int) -> None:
+		self.opts['gizmo_location']['value'] = self.opts['gizmo_location']['options'][opt_idx]
 		self.setViewBoxTransform()
 
 	def setGizmoXColour(self, colour:tuple[float,float,float]) -> None:

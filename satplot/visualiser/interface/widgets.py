@@ -492,6 +492,70 @@ class OptionBox(QtWidgets.QWidget):
 		else:
 			print(f"{state['value']} is not a local valid option. Displaying data, but can't set options.", file=sys.stderr)
 
+class BasicOptionBox(QtWidgets.QWidget):
+	def __init__(self, label, dflt_option=None, options_list=[], parent: QtWidgets.QWidget=None) -> None:
+		super().__init__(parent)
+		self._callbacks = []
+		self._curr_index = 0
+		layout = QtWidgets.QHBoxLayout()
+		layout.setContentsMargins(2,1,2,1)
+
+
+		self._label = QtWidgets.QLabel(label)
+
+		self._optionbox = NonScrollingComboBox()
+		for item in options_list:
+			self._optionbox.addItem(item)
+		self._optionbox.setFocusPolicy(QtCore.Qt.StrongFocus)
+
+		layout.addWidget(self._label)
+		layout.addWidget(self._optionbox)
+
+		self._optionbox.setCurrentIndex(options_list.index(dflt_option))
+		self._optionbox.currentIndexChanged.connect(self._run_callbacks)
+		self._optionbox.currentIndexChanged.connect(self.setCurrentIndex)
+
+		self.setLayout(layout)
+
+	def setCurrentIndex(self, idx:int) -> None:
+		self._curr_index = idx
+
+	def getCurrentIndex(self) -> int|None:
+		if self._curr_index > 0:
+			return self._curr_index-1
+		else:
+			return None
+
+	def add_connect(self, callback):
+		self._callbacks.append(callback)
+
+	def _run_callbacks(self, index):
+		self._curr_index = index
+		if len(self._callbacks) > 0:
+			for callback in self._callbacks:
+				callback(index)
+
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['type'] = 'BasicOptionBox'
+		curr_idx = self.getCurrentIndex()
+		if curr_idx is None:
+			state['value'] = None
+		else:
+			state['value'] = self._optionbox.getAllItems()[curr_idx]
+		print(f"{state['value']=}")
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		if state['type'] != 'BasicOptionBox':
+			print(f"{self} state was serialised as a {state['type']}, is now an OptionBox")
+			return
+		if state['value'] is not None and state['value'] in self._optionbox.getAllItems():
+			print(f"{state['value']=}")
+			self._optionbox.setCurrentText(state['value'])
+		else:
+			print(f"{state['value']} is not a local valid option. Displaying data, but can't set options.", file=sys.stderr)
+
 class FilePicker(QtWidgets.QWidget):
 	def __init__(self, label, 
 			  			dflt_file='',
