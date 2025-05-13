@@ -1,3 +1,4 @@
+import logging
 import sys
 from typing import Any
 
@@ -7,6 +8,8 @@ import satplot
 from satplot.model.data_models import (history_data)
 from satplot.visualiser.contexts import (history3d_context, blank_context)
 import satplot.visualiser.interface.console as console
+
+logger = logging.getLogger(__name__)
 
 class MainWindow(QtWidgets.QMainWindow):
 	closing = QtCore.pyqtSignal()
@@ -133,6 +136,6 @@ class MainWindow(QtWidgets.QMainWindow):
 			satplot.threadpool.clear()
 			# Stop active jobs
 			satplot.threadpool.killAll()
-		print(f'CLOSING')
+		logger.info('Closing satplot window')
 		return super().closeEvent(event)
 	

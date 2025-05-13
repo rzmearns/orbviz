@@ -263,5 +263,4 @@ class History3DCanvasWrapper(BaseCanvas):
 		self.assets['ECI_gizmo'].onResize(event)
 
 	def onMouseScroll(self, event:QtGui.QMouseEvent) -> None:
-		# print(self.view_box.camera.scale_factor)
 		pass		

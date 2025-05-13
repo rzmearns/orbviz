@@ -1,4 +1,5 @@
 import datetime as dt
+import logging
 import numpy as np
 from numpy import typing as nptyping
 import pathlib
@@ -14,6 +15,8 @@ import satplot.visualiser.interface.console as console
 import spherapy.timespan as timespan
 import spherapy.orbit as orbit
 import spherapy.updater as updater
+
+logger = logging.getLogger(__name__)
 
 class HistoryData(BaseDataModel):
 	def __init__(self, *args, **kwargs):
@@ -43,7 +46,7 @@ class HistoryData(BaseDataModel):
 		self._worker_threads: dict[str, threading.Worker | None] = {'primary': None,
 																	'constellation': None}
 
-		print("Finished initialising HistoryData")
+		logger.info("Finished initialising HistoryData")
 
 	def setPrimaryConfig(self, primary_config:data_types.PrimaryConfig) -> None:
 		self.updateConfig('primary_satellite_config', primary_config)
@@ -95,22 +98,20 @@ class HistoryData(BaseDataModel):
 			if self.getConfigValue('pointing_defines_timespan'):
 				console.send(f"Loading timespan from pointing file.")
 				self.timespan = timespan.TimeSpan.fromDatetime(pointing_dates)
-				print(f'Generating timespan from pointing file timestamps for: {self}')
+				logger.info(f'Generating timespan from pointing file timestamps for: {self}')
 			else:
 				self.timespan = None
 
 		if self.timespan is None or not self.getConfigValue('is_pointing_defined'):
-			print(f'Generating timespan from configuration for: {self}')
+			logger.info(f'Generating timespan from configuration for: {self}')
 			period_start = self.getConfigValue('timespan_period_start').replace(microsecond=0)
 			period_end = self.getConfigValue('timespan_period_end').replace(microsecond=0)
+			console.send(f"Creating Timespan from {period_start} -> {period_end} ...")
 			self.updateConfig('timespan_period_start', period_start)
 			self.updateConfig('timespan_period_end', period_end)
 			duration = int((self.getConfigValue('timespan_period_end') - self.getConfigValue('timespan_period_start')).total_seconds())
 			timestep = self.getConfigValue('sampling_period')
-			console.send(f"Creating Timespan from {period_start} -> {period_end} ...")
-			print(f'{duration=}')
-			print(f'{timestep=}')
-			print(f'{period_start=}')
+			logger.debug(f'Timespan has duration:{duration}s, timestep:{timestep}s, from {period_start}')
 			# TODO: need field checking here for end before start, etc.
 			self.timespan = timespan.TimeSpan(period_start,
 								timestep=f'{timestep}S',
@@ -146,13 +147,12 @@ class HistoryData(BaseDataModel):
 
 		for thread_name, thread in self._worker_threads.items():
 			if thread is not None:
-				print(f'Starting thread {thread_name}:{thread}')
+				logger.info(f'Starting thread {thread_name}:{thread}')
 				satplot.threadpool.logStart(thread)
 
 	def _procComplete(self) -> None:
-		print("TRIGGERED COMPLETION")
+		logger.info("Thread completion triggered processing of computed data ")
 		for thread in self._worker_threads.values():
-			# print(f'Inside _procComplete {thread_name}:{thread}')
 			if thread is not None:
 				if thread.isRunning():
 					return
@@ -199,7 +199,7 @@ class HistoryData(BaseDataModel):
 		num_sats = len(sat_ids)
 		ii = 0
 		for sat_id in progressbar(sat_ids):
-			print(f'CHECKING FLAG {running}: {running.getState()}')
+			logger.debug(f'Checking constellation data processing thread flag {running}: {running.getState()}')
 			if not running:
 
 				return orbits

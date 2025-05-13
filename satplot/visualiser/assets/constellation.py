@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 import numpy.typing as nptyping
 from scipy.spatial.transform import Rotation
@@ -19,6 +20,7 @@ import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.colours as colours
 import spherapy.orbit as orbit
 
+logger = logging.getLogger(__name__)
 
 class Constellation(base_assets.AbstractAsset):
 	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
@@ -64,7 +66,6 @@ class Constellation(base_assets.AbstractAsset):
 		self.data['coords'] = np.zeros((self.data['num_sats'],len(list(sats_dict.values())[0].pos),3))
 		for ii in range(self.data['num_sats']):
 			self.data['coords'][ii,:,:] = list(sats_dict.values())[ii].pos
-		print(f"{np.linalg.norm(self.data['coords'][0,0,:])=}")
 		self.data['beam_height'] = self._calcBeamHeight(self.data['beam_angle_deg']/2,
 												   			np.linalg.norm(list(sats_dict.values())[0].pos[0,:]))
 
@@ -277,7 +278,6 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 		self.data['curr_index'] = args[2]
 
 		if type(args[3]) is not float and type(args[3]) is not np.float64:
-			print(type(args[3]))
 			raise TypeError(f"args[3]:beam_height is not a float -> {args[3]}")
 		self.data['beam_height'] = args[3]
 
@@ -351,7 +351,6 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 													instance_positions=instance_positions,
 													instance_transforms=instance_transforms,
 													parent=None)
-		print(self.visuals['beams']._meshdata.n_faces)
 		self.data['beams_alpha_filter'] = vFilters.Alpha(self.opts['beams_alpha']['value'])
 		self.visuals['beams'].attach(self.data['beams_alpha_filter'])
 
@@ -423,7 +422,7 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 
 	#----- OPTIONS CALLBACKS -----#	
 	def setBeamsColour(self, new_colour:tuple[int,int,int]) -> None:
-		print(f"Changing instanced beams colour {self.opts['beams_colour']['value']} -> {new_colour}")
+		logger.debug(f"Changing instanced beams colour {self.opts['beams_colour']['value']} -> {new_colour}")
 		self.opts['beams_colour']['value'] = new_colour
 		if self.data['num_sats'] > 0:
 			new_cols_array = vcolor_array.ColorArray([colours.normaliseColour(self.opts['beams_colour']['value'])]*self.data['num_sats'])
@@ -431,7 +430,7 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 			self._updateLineVisualsOptions()
 
 	def setBeamsAlpha(self, alpha:float) -> None:
-		print(f"Changing instanced beams alpha {self.opts['beams_alpha']['value']} -> {alpha}")
+		logger.debug(f"Changing instanced beams alpha {self.opts['beams_alpha']['value']} -> {alpha}")
 		self.opts['beams_alpha']['value'] = alpha
 		self.data['beams_alpha_filter'].alpha = alpha
 	
@@ -507,12 +506,10 @@ class ConstellationBeams(base_assets.AbstractAsset):
 		self.data['curr_index'] = args[2]
 
 		if type(args[3]) is not float and type(args[3]) is not np.float64:
-			print(type(args[3]))
 			raise TypeError(f"args[3]:beam_height is not a float -> {args[3]}")
 		self.data['beam_height'] = args[3]
 
 		if type(args[4]) is not float and type(args[4]) is not np.float64:
-			print(type(args[4]))
 			raise TypeError(f"args[4]:beam_angle_deg is not a float -> {args[4]}")
 		self.data['beam_angle_deg'] = args[4]
 
@@ -544,10 +541,7 @@ class ConstellationBeams(base_assets.AbstractAsset):
 			T = np.eye(4)
 			T[0:3,0:3] = instance_transforms[ii]
 			T[3,0:3] = instance_positions[ii]
-			try:
-				transform = vTransforms.linear.MatrixTransform(T)
-			except:
-				print(f"T:{T}")
+			transform = vTransforms.linear.MatrixTransform(T)
 			self.visuals['beams'][ii].transform = transform
 			self.visuals['beams'][ii].attach(self.data['beams_alpha_filter'])
 
@@ -597,7 +591,7 @@ class ConstellationBeams(base_assets.AbstractAsset):
 
 	#----- OPTIONS CALLBACKS -----#	
 	def setBeamsColour(self, new_colour:tuple[float,float,float]) -> None:
-		print(f"Changing beams colour {self.opts['beams_colour']['value']} -> {new_colour}")
+		logger.debug(f"Changing beams colour {self.opts['beams_colour']['value']} -> {new_colour}")
 		self.opts['beams_colour']['value'] = new_colour
 		if self.data['num_sats'] > 0:
 			for ii in range(self.data['num_sats']):
@@ -609,6 +603,6 @@ class ConstellationBeams(base_assets.AbstractAsset):
 		# self.visuals['circles'].set_data(color=colours.normaliseColour(new_colour))
 
 	def setBeamsAlpha(self, alpha:float) -> None:
-		print(f"Changing beams alpha {self.opts['beams_alpha']['value']} -> {alpha}")
+		logger.debug(f"Changing beams alpha {self.opts['beams_alpha']['value']} -> {alpha}")
 		self.opts['beams_alpha']['value'] = alpha
 		self.data['beams_alpha_filter'].alpha = alpha

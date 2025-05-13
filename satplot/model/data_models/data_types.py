@@ -1,10 +1,13 @@
 from enum import Enum
 import json
+import logging
 import pathlib
 from typing import Any
 
 import satplot.visualiser.assets.sensors as sensor_asset
 import satplot.visualiser.interface.console as console
+
+logger = logging.getLogger(__name__)
 
 class DataType(Enum):
 	BASE = 1
@@ -49,7 +52,6 @@ class SensorSuiteConfig():
 		self.sensors = d
 
 		for k,v in self.sensors.items():
-			print(k)
 			# Check sensor is a valid type
 			if v['shape'] not in sensor_asset.Sensor3DAsset.getValidTypes():
 				raise ValueError(f"Sensor {k} of suite {self.name} has invalid shape: {v['shape']}. Should be one of {sensor_asset.Sensor3DAsset.getValidTypes()}")
@@ -114,9 +116,7 @@ class PrimaryConfig():
 		self.sats = satellites
 		self.sat_configs = sat_configs
 
-		print(f'{self.name=}')
-		print(f'{self.sats=}')
-		print(f'{self.sat_configs}')
+		logger.info(f'Created primary configuration with name:{self.name}, sats:{self.sats}, sat_configs:{self.sat_configs}')
 
 	@classmethod
 	def fromJSON(cls, path:str | pathlib.Path):

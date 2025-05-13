@@ -1,7 +1,10 @@
+import logging
 import sys
 import traceback
 
 from PyQt5 import QtCore
+
+logger = logging.getLogger(__name__)
 
 class WorkerSignals(QtCore.QObject):
 	'''
@@ -89,7 +92,7 @@ class Worker(QtCore.QRunnable):
 		return self.running.getState()
 
 	def terminate(self):
-		print(f'SETTING FLAG {self}: FALSE')
+		logger.info(f'SETTING FLAG {self}: FALSE')
 		self.running.setState(False)
 
 
@@ -107,9 +110,9 @@ class Threadpool(QtCore.QThreadPool):
 			return
 
 		for ii in range(len(self.running_threads)-1,-1,-1):
-			print(f'Killing thread:{self.running_threads[ii]}')
+			logger.info(f'Killing thread:{self.running_threads[ii]}')
 			self.running_threads[ii].terminate()
-			print(f'\tthread stopped')
+			logger.info(f'\tthread stopped')
 
 	def logStart(self, thread:Worker) -> None:
 		self.running_threads.append(thread)

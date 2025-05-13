@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 import numpy.typing as nptyping
 from skyfield.api import wgs84
@@ -15,6 +16,7 @@ import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.colours as colours
 import spherapy.timespan as timespan
 
+logger = logging.getLogger(__name__)
 
 class Earth3DAsset(base_assets.AbstractAsset):
 	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
@@ -169,7 +171,7 @@ class Earth3DAsset(base_assets.AbstractAsset):
 
 	#----- OPTIONS CALLBACKS -----#
 	def setEarthSphereColour(self, new_colour:tuple[float,float,float]) -> None:
-		print(f"Changing suearth sphere colour {self.opts['earth_sphere_colour']['value']} -> {new_colour}")
+		logger.debug(f"Changing earth sphere colour {self.opts['earth_sphere_colour']['value']} -> {new_colour}")
 		self.opts['earth_sphere_colour']['value'] = new_colour
 		n_faces = self.visuals['earth_sphere'].mesh._meshdata.n_faces
 		n_verts = self.visuals['earth_sphere'].mesh._meshdata.n_vertices
@@ -467,7 +469,7 @@ class MeridiansGrid3DAsset(base_assets.AbstractSimpleAsset):
 
 	def _updateLineVisualsOptions(self) -> None:
 		new_colour = colours.normaliseColour(self.opts['meridian_colour']['value'])
-		print(f'Meridians applied colour: {new_colour}')
+		logger.debug(f'Meridians applied colour: {new_colour}')
 		self.visuals['meridians'].set_data(pos=self.data['init_m_coords'],
 						 					color=new_colour,
 											connect=self.data['m_conn'],

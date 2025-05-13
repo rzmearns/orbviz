@@ -1,3 +1,4 @@
+import logging
 import sys
 from typing import Any
 
@@ -13,6 +14,7 @@ import satplot.visualiser.interface.console as console
 import satplot.visualiser.interface.controls as controls
 import satplot.visualiser.interface.widgets as widgets
 
+logger = logging.getLogger(__name__)
 
 class History3DContext(base.BaseContext):
 	data_type = data_types.DataType.HISTORY
@@ -60,7 +62,7 @@ class History3DContext(base.BaseContext):
 		self.layout.addWidget(content_widget)
 
 	def connectControls(self) -> None:
-		print(f"Connecting controls of {self.config['name']}")
+		logger.info(f"Connecting controls of {self.config['name']}")
 		self.controls.orbit_controls.submit_button.clicked.connect(self._configureData)
 		self.controls.time_slider.add_connect(self._updateDisplayedIndex)
 		self.controls.action_dict['center-earth']['callback'] = self._centerCameraEarth
@@ -101,7 +103,7 @@ class History3DContext(base.BaseContext):
 
 		# Historical pointing
 		if self.controls.orbit_controls.pointing_file_controls.isEnabled():
-			print(f'Pointing defined. Setting pointing configuration for {self}')
+			logger.info(f'Pointing defined. Setting pointing configuration for {self}')
 			self.data.updateConfig('is_pointing_defined', True)
 			pointing_file_path = self.controls.orbit_controls.pointing_file_controls._pointing_file_selector.path
 			if pointing_file_path is None or \
@@ -112,7 +114,7 @@ class History3DContext(base.BaseContext):
 			self.data.updateConfig('pointing_file', pointing_file_path)
 			self.data.updateConfig('pointing_invert_transform', self.controls.orbit_controls.pointing_file_controls.pointing_file_inv_toggle.isChecked())
 		else:
-			print(f'Pointing not defined. Clearing pointing configuration for {self}')
+			logger.info(f'Pointing not defined. Clearing pointing configuration for {self}')
 			self.data.updateConfig('is_pointing_defined', False)
 			self.data.updateConfig('pointing_defines_timespan', False)
 			self.data.updateConfig('pointing_file', None)
