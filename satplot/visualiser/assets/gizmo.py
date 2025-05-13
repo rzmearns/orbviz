@@ -44,7 +44,6 @@ class BodyGizmo(base_assets.AbstractSimpleAsset):
 			T = np.eye(4)
 			T[0:3,0:3] = self.opts['gizmo_scale']['value']*rotation
 			T[0:3,3] = np.asarray(pos).reshape(-1,3)
-			print(f'setTransform:{pos=}')
 			self.visuals['gizmo'].transform = vTransforms.linear.MatrixTransform(T.T)
 			self._clearStaleFlag()
 
@@ -203,8 +202,6 @@ class ViewBoxGizmo(base_assets.AbstractSimpleAsset):
 		self.visuals['gizmo'].transform.reset()
 		self._setRotationFromCamera()
 		self._setViewBoxPosition()
-		print(f"{self.data['v_parent'].width,self.data['v_parent'].height}")
-		print(f'{self.location=}')
 		self.visuals['gizmo'].update()
 
 	def _setViewBoxPosition(self) -> None:
