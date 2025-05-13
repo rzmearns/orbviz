@@ -98,14 +98,14 @@ class Orbit3DAsset(base_assets.AbstractAsset):
 											'widget': None}
 		self._dflt_opts['orbital_path_past_style'] = {'value': 'solid',
 												'type': 'option',
-												'options': 'dash', 'solid'
+												'options': ['dash', 'solid'],
 												'help': '',
 												'static': True,
 												'callback': None,
 											'widget': None}
 		self._dflt_opts['orbital_path_future_style'] = {'value': 'solid',
 												'type': 'option',
-												'options': 'dash', 'solid'
+												'options': ['dash', 'solid'],
 												'help': '',
 												'static': True,
 												'callback': None,
