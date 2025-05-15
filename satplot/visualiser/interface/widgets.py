@@ -490,7 +490,7 @@ class OptionBox(QtWidgets.QWidget):
 		if state['value'] is not None and state['value'] in self._optionbox.getAllItems():
 			self._optionbox.setCurrentText(state['value'])
 		else:
-			logger.error(f"{state['value']} is not a local valid option. Displaying data, but can't set options.", file=sys.stderr)
+			logger.error(f"{state['value']} is not a local valid option. Displaying data, but can't set options.")
 
 class BasicOptionBox(QtWidgets.QWidget):
 	def __init__(self, label, dflt_option=None, options_list=[], parent: QtWidgets.QWidget=None) -> None:
@@ -552,7 +552,7 @@ class BasicOptionBox(QtWidgets.QWidget):
 		if state['value'] is not None and state['value'] in self._optionbox.getAllItems():
 			self._optionbox.setCurrentText(state['value'])
 		else:
-			logger.error(f"{state['value']} is not a local valid option. Displaying data, but can't set options.", file=sys.stderr)
+			logger.error(f"{state['value']} is not a local valid option. Displaying data, but can't set options.")
 
 class FilePicker(QtWidgets.QWidget):
 	def __init__(self, label, 

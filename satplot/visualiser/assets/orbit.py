@@ -6,6 +6,7 @@ from vispy.scene.widgets.viewbox import ViewBox
 
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.colours as colours
+import satplot.visualiser.interface.console as console
 import spherapy.orbit as orbit
 
 logger = logging.getLogger(__name__)
@@ -43,7 +44,7 @@ class Orbit3DAsset(base_assets.AbstractAsset):
 			self.data['coords'] = first_sat_orbit.pos
 			logger.debug(f'Setting source:coordinates for {self}')
 		else:
-			print('Orbit has no position data', file=sys.stderr)
+			console.sendErr('Orbit has no position data')
 			logger.warning(f'Orbit has no position data')
 			raise ValueError('Orbit has no position data')
 

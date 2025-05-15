@@ -76,8 +76,8 @@ class History3DContext(base.BaseContext):
 
 	def _validateDataType(self) -> None:
 		if self.data is not None and self.data.getType() != self.data_type:
-			print(f"Error: history3D context has wrong data type: {self.data.getType()}", file=sys.stderr)
-			print(f"\t should be: {self.data_type}", file=sys.stderr)
+			console.sendErr(f"Error: history3D context has wrong data type: {self.data.getType()}")
+			console.sendErr(f"\t should be: {self.data_type}")
 
 	def _configureData(self) -> None:
 		logger.info(f'Setting up data configuration for context: {self}')
@@ -98,7 +98,7 @@ class History3DContext(base.BaseContext):
 		if has_supplemental_constellation:
 			c_config = self.controls.orbit_controls.suppl_constellation_selector.getConstellationConfig()
 			if c_config is None:
-				print("Please select a constellation.", file=sys.stderr)
+				console.sendErr("Supplementary constellation enabled: Please select a constellation.")
 				return
 			self.data.setSupplementalConstellation(c_config)
 		else:
@@ -111,7 +111,7 @@ class History3DContext(base.BaseContext):
 			pointing_file_path = self.controls.orbit_controls.pointing_file_controls._pointing_file_selector.path
 			if pointing_file_path is None or \
 				pointing_file_path == '':
-				print("Displaying spacecraft pointing requires a pointing file.", file=sys.stderr)
+				console.sendErr("Displaying spacecraft pointing requires a pointing file.")
 				return
 			self.data.updateConfig('pointing_defines_timespan', self.controls.orbit_controls.pointing_file_controls.pointingFileDefinesPeriod())
 			self.data.updateConfig('pointing_file', pointing_file_path)
@@ -128,7 +128,7 @@ class History3DContext(base.BaseContext):
 			self.data.process()
 		except Exception as e:
 			logger.warning(f"Error in configuring data for history3D: {e}")
-			print(f"Error in configuring data for history3D: {e}", file=sys.stderr)
+			console.sendErr(f"Error in configuring data for history3D: {e}")
 			self.controls.orbit_controls.submit_button.setEnabled(True)
 			raise e
 

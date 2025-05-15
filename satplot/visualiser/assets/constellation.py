@@ -18,6 +18,7 @@ import satplot.model.geometry.primgeom as pg
 import satplot.util.constants as c
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.colours as colours
+import satplot.visualiser.interface.console as console
 import spherapy.orbit as orbit
 
 logger = logging.getLogger(__name__)
@@ -60,7 +61,7 @@ class Constellation(base_assets.AbstractAsset):
 		if hasattr(first_sat_orbit,'pos'):
 			pass
 		else:
-			print('Orbit has no position data', file=sys.stderr)
+			console.sendErr('Orbit has no position data')
 			logger.warning(f'Constellation orbit has no position data')
 			raise ValueError('Constellation orbits have no position data')
 

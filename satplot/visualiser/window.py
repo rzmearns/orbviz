@@ -73,6 +73,7 @@ class MainWindow(QtWidgets.QMainWindow):
 		console.consolefp = console.EmittingConsoleStream(textWritten=self._console.writeOutput)
 		if not satplot.debug:
 			sys.stderr = console.EmittingConsoleStream(textWritten=self._console.writeErr)
+		console.consoleErrfp = console.EmittingConsoleStream(textWritten=self._console.writeErr)
 
 		# Build main layout
 		'''
