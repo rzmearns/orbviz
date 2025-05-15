@@ -1,5 +1,6 @@
 import datetime as dt
 import json
+import logging
 import os
 import string
 from typing import Any
@@ -10,6 +11,7 @@ import satplot.model.data_models.data_types as data_types
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.interface.widgets as widgets
 
+logger = logging.getLogger(__name__)
 
 class OrbitConfigs(QtWidgets.QWidget):
 
@@ -286,7 +288,7 @@ class OptionConfigs(QtWidgets.QWidget):
 			for opt_key in list(self.sections[section_title]['opts'].keys()):
 				widget_struct = self.sections[section_title]['opts'][opt_key]
 				if widget_struct['mark_for_removal']:
-					print(f'deleting {opt_key}')
+					logger.debug(f'deleting {opt_key}')
 					widget_struct['widget'].setParent(None)
 					del(self.sections[section_title]['opts'][opt_key])
 
@@ -295,9 +297,7 @@ class OptionConfigs(QtWidgets.QWidget):
 
 			for opt_key, widget_struct in dict(sorted(w_dict.items())).items():
 				if opt_key not in self.sections[section_title]['opts']:
-					print(f'Option collapsible section {section_title}, adding: {opt_key}')
-					print(f'{section_title=}')
-					print(f'{opt_key=}')
+					logger.debug(f'Option collapsible section {section_title}, adding: {opt_key}')
 					self.sections[section_title]['opts'][opt_key] = widget_struct
 					# won't be in alphabetical order second time round
 					self.sections[section_title]['cb'].addWidget(widget_struct['widget'])
@@ -305,14 +305,6 @@ class OptionConfigs(QtWidgets.QWidget):
 			if not self.sections[section_title]['added_to_layout']:
 				root_layout.addWidget(self.sections[section_title]['cb'])
 				self.sections[section_title]['added_to_layout'] = True
-
-		# for section_title, section in self.sections.items():
-		# 	print(f'{section_title}:')
-		# 	print(f"\tadded_to_layout:{section['added_to_layout']}")
-		# 	print(f"\topts:")
-		# 	for k,v in section['opts'].items():
-		# 		print(f"\t\t{k}:{v}")
-
 
 	def _buildNestedOptionWidgetDict(self, asset, asset_key=''):
 		# returns unsorted_dict
@@ -361,9 +353,9 @@ class OptionConfigs(QtWidgets.QWidget):
 												opt_dict['value'])
 					# opt_dict['widget'] = widget
 					widget.add_connect(opt_dict['callback'])
-					print(f"Adding option callback {opt_dict['callback']} to {opt_key}")
+					logger.debug(f"Adding option callback {opt_dict['callback']} to {opt_key}")
 				except:
-					print(f"Can't make widget {w_str} for asset {opt_key}")
+					logger.warning(f"Can't make widget {w_str} for asset {opt_key}")
 					raise ValueError
 			elif opt_dict['type'] == 'colour':
 				try:
@@ -371,9 +363,9 @@ class OptionConfigs(QtWidgets.QWidget):
 												opt_dict['value'])
 					# opt_dict['widget'] = widget
 					widget.add_connect(opt_dict['callback'])
-					print(f"Adding option callback {opt_dict['callback']} to {opt_key}")
+					logger.debug(f"Adding option callback {opt_dict['callback']} to {opt_key}")
 				except:
-					print(f"Can't make widget {w_str} for asset {opt_key}")
+					logger.warning(f"Can't make widget {w_str} for asset {opt_key}")
 					raise ValueError
 			elif opt_dict['type'] == 'integer' or opt_dict['type'] == 'number':
 				try:
@@ -381,9 +373,9 @@ class OptionConfigs(QtWidgets.QWidget):
 								  				opt_dict['value'])
 					# opt_dict['widget'] = widget
 					widget.add_connect(opt_dict['callback'])
-					print(f"Adding option callback {opt_dict['callback']} to {opt_key}")
+					logger.debug(f"Adding option callback {opt_dict['callback']} to {opt_key}")
 				except:
-					print(f"Can't make widget {w_str} for asset {opt_key}")
+					logger.warning(f"Can't make widget {w_str} for asset {opt_key}")
 					raise ValueError
 			elif opt_dict['type'] == 'float':
 				try:
@@ -392,9 +384,9 @@ class OptionConfigs(QtWidgets.QWidget):
 												integer=False)
 					# opt_dict['widget'] = widget
 					widget.add_connect(opt_dict['callback'])
-					print(f"Adding option callback {opt_dict['callback']} to {opt_key}")
+					logger.debug(f"Adding option callback {opt_dict['callback']} to {opt_key}")
 				except:
-					print(f"Can't make widget {w_str} for asset {opt_key}")
+					logger.warning(f"Can't make widget {w_str} for asset {opt_key}")
 					raise ValueError
 			elif opt_dict['type'] == 'fraction':
 				try:
@@ -403,9 +395,9 @@ class OptionConfigs(QtWidgets.QWidget):
 												fraction=True)
 					# opt_dict['widget'] = widget
 					widget.add_connect(opt_dict['callback'])
-					print(f"Adding option callback {opt_dict['callback']} to {opt_key}")
+					logger.debug(f"Adding option callback {opt_dict['callback']} to {opt_key}")
 				except:
-					print(f"Can't make widget {w_str} for asset {opt_key}")
+					logger.warning(f"Can't make widget {w_str} for asset {opt_key}")
 					raise ValueError
 			elif opt_dict['type'] == 'option':
 				try:
@@ -413,12 +405,12 @@ class OptionConfigs(QtWidgets.QWidget):
 												dflt_option=opt_dict['value'],
 												options_list=opt_dict['options'])
 					widget.add_connect(opt_dict['callback'])
-					print(f"Adding option callback {opt_dict['callback']} to {opt_key}")
+					logger.debug(f"Adding option callback {opt_dict['callback']} to {opt_key}")
 				except:
-					print(f"Can't make widget {w_str} for asset {opt_key}")
+					logger.warning(f"Can't make widget {w_str} for asset {opt_key}")
 					raise ValueError
 			else:
-				print(f"Can't find widget type for {w_str}:{opt_dict['type']}")
+				logger.warning(f"Can't find widget type for {w_str}:{opt_dict['type']}")
 				continue
 
 			w_key = opt_key.split('_')
@@ -433,7 +425,7 @@ class OptionConfigs(QtWidgets.QWidget):
 				w_dict[w_key]['mark_for_removal'] = False
 				opt_dict['widget'] = w_dict[w_key]
 			except UnboundLocalError:
-				print(f"UnboundLocalError when generating options widget for {w_key}")
+				logger.error(f"UnboundLocalError when generating options widget for {w_key}")
 				raise UnboundLocalError
 
 
@@ -453,11 +445,11 @@ class OptionConfigs(QtWidgets.QWidget):
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		for section_title, section in state.items():
 			if section_title not in self.sections.keys():
-				print(f'{section_title} not a recognised context configuration section')
+				logger.warning(f'{section_title} not a recognised context configuration section')
 				continue
 			for opt_key, opt_serialisation in section.items():
 				if opt_key not in self.sections[section_title]['opts'].keys():
-					print(f'{opt_key} not a recognised option for context configuration section {section_title}')
+					logger.warning(f'{opt_key} not a recognised option for context configuration section {section_title}')
 					continue
 				self.sections[section_title]['opts'][opt_key]['widget'].deSerialise(opt_serialisation)
 
@@ -506,6 +498,7 @@ class Toolbar(QtWidgets.QWidget):
 		if self.parent_window is not None:
 			self.parent_window.addToolBar(self.toolbar)
 		else:
+			logger.error("Can't add toolbar to window, context {context_name} doesn't have a window yet.")
 			raise ValueError("Can't add toolbar to window, context {context_name} doesn't have a window yet.")
 
 	def setActiveState(self, state):
@@ -513,6 +506,7 @@ class Toolbar(QtWidgets.QWidget):
 			self.toolbar.toggleViewAction().setChecked(not state) # type:ignore
 			self.toolbar.toggleViewAction().trigger()					# type:ignore
 		else:
+			logger.error("Can't add toolbar to window, context {context_name} doesn't have a window yet.")
 			raise ValueError("Can't set toolbar active state for {context_name}")
 
 class Menubar(QtWidgets.QWidget):

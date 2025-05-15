@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 from scipy.spatial.transform import Rotation
 
@@ -10,10 +11,10 @@ import satplot.model.geometry.primgeom as pg
 import satplot.model.geometry.polyhedra as polyhedra
 import satplot.util.constants as c
 import satplot.visualiser.assets.base_assets as base_assets
-import satplot.visualiser.interface.console as console
 import satplot.visualiser.colours as colours
 import spherapy.orbit as orbit
 
+logger = logging.getLogger(__name__)
 
 class Sun3DAsset(base_assets.AbstractAsset):
 	def __init__(self, name=None, v_parent=None):
@@ -110,6 +111,7 @@ class Sun3DAsset(base_assets.AbstractAsset):
 		sats_dict = args[0]
 		first_sat_orbit = list(sats_dict.values())[0]
 		if type(first_sat_orbit) is not orbit.Orbit:
+			logger.error(f"data source for {self} is not an orbit.Orbit, can't extract sun location data")
 			raise TypeError
 		
 		self.data['pos'] = first_sat_orbit.sun_pos
@@ -135,7 +137,6 @@ class Sun3DAsset(base_assets.AbstractAsset):
 			# move the sun
 			sun_pos = self.opts['sun_distance_kms']['value'] * pg.unitVector(self.data['curr_pos'])
 			self.visuals['sun_sphere'].transform = vTransforms.STTransform(translate=sun_pos)
-			console.send(sun_pos)
 			# move umbra
 			umbra_dir = (-1*self.data['curr_pos']).reshape(1,3)
 			rot_mat = Rotation.align_vectors(self.data['umbra_start_axis'], umbra_dir)[0].as_matrix()
@@ -247,7 +248,7 @@ class Sun3DAsset(base_assets.AbstractAsset):
 	#----- OPTIONS CALLBACKS -----#	
 	def _updateLineVisualsOptions(self):
 		new_colour = colours.normaliseColour(self.opts['sun_vector_colour']['value'])
-		print(f'Sun vector applied colour: {new_colour}')
+		logger.debug(f'Sun vector applied colour: {new_colour}')
 		self.visuals['vector_body'].set_data(color=new_colour,
 												width=self.opts['sun_vector_width']['value'])
 
@@ -263,7 +264,6 @@ class Sun3DAsset(base_assets.AbstractAsset):
 
 	def setSunVectorLength(self, distance):
 		self.opts['sun_vector_length_kms']['value'] = distance
-		print(f"{self.opts['sun_vector_length_kms']['value']=}")
 		self._setStaleFlag()
 		self.recomputeRedraw()
 
@@ -276,7 +276,7 @@ class Sun3DAsset(base_assets.AbstractAsset):
 		self.recomputeRedraw()
 
 	def setSunSphereColour(self, new_colour):
-		print(f"Changing sun sphere colour {self.opts['sun_sphere_colour']['value']} -> {new_colour}")
+		logger.debug(f"Changing sun sphere colour {self.opts['sun_sphere_colour']['value']} -> {new_colour}")
 		self.opts['sun_sphere_colour']['value'] = new_colour
 		n_faces = self.visuals['sun_sphere'].mesh._meshdata.n_faces
 		n_verts = self.visuals['sun_sphere'].mesh._meshdata.n_vertices
@@ -286,12 +286,12 @@ class Sun3DAsset(base_assets.AbstractAsset):
 
 	def setUmbraAlpha(self, alpha):
 		# Takes a little while to take effect.
-		print(f"Changing umbra alpha {self.opts['umbra_alpha']['value']} -> {alpha}")
+		logger.debug(f"Changing umbra alpha {self.opts['umbra_alpha']['value']} -> {alpha}")
 		self.opts['umbra_alpha']['value'] = alpha
 		self.data['umbra_alpha_filter'].alpha = alpha
 
 	def setUmbraColour(self, new_colour):
-		print(f"Changing umbra colour {self.opts['umbra_colour']['value']} -> {new_colour}")
+		logger.debug(f"Changing umbra colour {self.opts['umbra_colour']['value']} -> {new_colour}")
 		self.opts['umbra_colour']['value'] = new_colour
 		n_faces = self.visuals['umbra']._meshdata.n_faces
 		n_verts = self.visuals['umbra']._meshdata.n_vertices
@@ -300,7 +300,7 @@ class Sun3DAsset(base_assets.AbstractAsset):
 		self.visuals['umbra'].mesh_data_changed()
 
 	def setUmbraDistance(self, dist):
-		print(f"Changing umbra dist {self.opts['umbra_dist']['value']} -> {dist}")
+		logger.debug(f"Changing umbra dist {self.opts['umbra_dist']['value']} -> {dist}")
 		self.opts['umbra_dist']['value'] = dist
 		self._reInitUmbraData()
 		self.visuals['umbra']._meshdata.set_faces(self.data['umbra_faces'])
@@ -318,7 +318,7 @@ class Sun3DAsset(base_assets.AbstractAsset):
 
 
 	def setSunVectorColour(self, new_colour):
-		print(f"Changing sun vector colour {self.opts['sun_vector_colour']['value']} -> {new_colour}")
+		logger.debug(f"Changing sun vector colour {self.opts['sun_vector_colour']['value']} -> {new_colour}")
 		self.opts['sun_vector_colour']['value'] = new_colour
 		self._updateLineVisualsOptions()
 		n_faces = self.visuals['vector_head']._meshdata.n_faces

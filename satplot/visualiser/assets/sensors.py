@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 import numpy.typing as nptyping
 from scipy.spatial.transform import Rotation
@@ -13,6 +14,7 @@ import satplot.util.constants as c
 import satplot.visualiser.colours as colours
 import satplot.visualiser.assets.base_assets as base_assets
 
+logger = logging.getLogger(__name__)
 
 class SensorSuite3DAsset(base_assets.AbstractCompoundAsset):
 	def __init__(self, sens_suite_dict:dict[str,Any], name:str|None=None, v_parent:ViewBox|None=None):
@@ -49,9 +51,11 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundAsset):
 							 rotation:nptyping.NDArray|None=None, quat:nptyping.NDArray|None=None) -> None:
 		if self.isStale():
 			if rotation is None and quat is None:
-				raise ValueError("Rotation and quaternion passed sensor suite cannot both be None")
+				logger.warning(f"Rotation and quaternion passed to sensor suite: {self.data['name']} cannot both be None")
+				raise ValueError(f"Rotation and quaternion passed sensor suite: {self.data['name']} cannot both be None")
 			if rotation is not None and quat is not None:
-				raise ValueError("Both rotation and quaternion passed to sensor suite, don't know which one to use")
+				logger.warning(f"Both rotation and quaternion passed to sensor suite: {self.data['name']}, don't know which one to use")
+				raise ValueError(f"Both rotation and quaternion passed to sensor suite: {self.data['name']}, don't know which one to use")
 
 			for asset in self.assets.values():
 				asset.setTransform(pos=pos, rotation=rotation, quat=quat)
@@ -71,11 +75,13 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 
 		self._setDefaultOptions()
 		if sens_type is None or sens_type not in self.getValidTypes():
+			logger.error(f"Sensor {sensor_name} has an ill-defined sensor type: {sens_type}")
 			return ValueError(f"Sensor {sensor_name} has an ill-defined sensor type: {sens_type}")
 		self._initData(sens_type, sensor_name, mesh_verts, mesh_faces, bf_quat, colour)
 
 		if self.data['type'] is None:
-			raise ValueError('Sensor() should not be called directly, use one of the constructor methods')		
+			logger.error('Sensor() should not be called directly, use one of the constructor methods')
+			raise ValueError('Sensor() should not be called directly, use one of the constructor methods')
 
 		self._createVisuals()
 

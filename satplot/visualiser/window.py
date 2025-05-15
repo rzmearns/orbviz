@@ -1,3 +1,4 @@
+import logging
 import sys
 from typing import Any
 
@@ -7,6 +8,8 @@ import satplot
 from satplot.model.data_models import (history_data)
 from satplot.visualiser.contexts import (history3d_context, blank_context)
 import satplot.visualiser.interface.console as console
+
+logger = logging.getLogger(__name__)
 
 class MainWindow(QtWidgets.QMainWindow):
 	closing = QtCore.pyqtSignal()
@@ -55,8 +58,11 @@ class MainWindow(QtWidgets.QMainWindow):
 		# check toolbar/menubar indices are the same
 		for ii, key in enumerate(self.toolbars.keys()):
 			if list(self.menubars.keys())[ii] != key:
+				logger.error(f'Context toolbars and menubar indices do not match for contexts')
+				logger.error(f'Toolbars: {self.toolbars.keys()}')
+				logger.error(f'Menubars: {self.menubars.keys()}')
 				raise ValueError('Toolbars and Menubars indices do not match')
-				# Should probably exit here
+				sys.exit()
 
 		self.context_tabs.currentChanged.connect(self._changeToolbarsToContext)
 
@@ -67,6 +73,7 @@ class MainWindow(QtWidgets.QMainWindow):
 		console.consolefp = console.EmittingConsoleStream(textWritten=self._console.writeOutput)
 		if not satplot.debug:
 			sys.stderr = console.EmittingConsoleStream(textWritten=self._console.writeErr)
+		console.consoleErrfp = console.EmittingConsoleStream(textWritten=self._console.writeErr)
 
 		# Build main layout
 		'''
@@ -133,6 +140,6 @@ class MainWindow(QtWidgets.QMainWindow):
 			satplot.threadpool.clear()
 			# Stop active jobs
 			satplot.threadpool.killAll()
-		print(f'CLOSING')
+		logger.info('Closing satplot window')
 		return super().closeEvent(event)
 	

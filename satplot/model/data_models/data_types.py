@@ -1,10 +1,13 @@
 from enum import Enum
 import json
+import logging
 import pathlib
 from typing import Any
 
 import satplot.visualiser.assets.sensors as sensor_asset
 import satplot.visualiser.interface.console as console
+
+logger = logging.getLogger(__name__)
 
 class DataType(Enum):
 	BASE = 1
@@ -28,12 +31,15 @@ class ConstellationConfig():
 			data = json.load(fp)
 
 		if 'name' not in data.keys():
+			logger.error("Constellation json is ill-formatted: missing field 'name'")
 			raise AttributeError("Constellation json is ill-formatted: missing field 'name'")
 
 		if 'beam_width' not in data.keys():
+			logger.error("Constellation json is ill-formatted: missing field 'beam_width'")
 			raise AttributeError("Constellation json is ill-formatted: missing field 'beam_width'")
 
 		if 'satellites' not in data.keys():
+			logger.error("Constellation json is ill-formatted: missing field 'satellites'")
 			raise AttributeError("Constellation json is ill-formatted: missing field 'satellites'")
 
 		# swap key and values of satellites dict
@@ -49,13 +55,14 @@ class SensorSuiteConfig():
 		self.sensors = d
 
 		for k,v in self.sensors.items():
-			print(k)
 			# Check sensor is a valid type
 			if v['shape'] not in sensor_asset.Sensor3DAsset.getValidTypes():
+				logger.error(f"Sensor {k} of suite {self.name} has invalid shape: {v['shape']}. Should be one of {sensor_asset.Sensor3DAsset.getValidTypes()}")
 				raise ValueError(f"Sensor {k} of suite {self.name} has invalid shape: {v['shape']}. Should be one of {sensor_asset.Sensor3DAsset.getValidTypes()}")
 			required_keys =  sensor_asset.Sensor3DAsset.getTypeConfigFields(v['shape'])
 			for key in required_keys:
 				if key not in v.keys():
+					logger.error(f"Sensor {k} of suite {self.name} has missing sensor config field: {key}")
 					raise KeyError(f"Sensor {k} of suite {self.name} has missing sensor config field: {key}")
 
 
@@ -114,9 +121,7 @@ class PrimaryConfig():
 		self.sats = satellites
 		self.sat_configs = sat_configs
 
-		print(f'{self.name=}')
-		print(f'{self.sats=}')
-		print(f'{self.sat_configs}')
+		logger.info(f'Created primary configuration with name:{self.name}, sats:{self.sats}, sat_configs:{self.sat_configs}')
 
 	@classmethod
 	def fromJSON(cls, path:str | pathlib.Path):
@@ -129,9 +134,11 @@ class PrimaryConfig():
 			data = json.load(fp)
 
 		if 'name' not in data.keys():
+			logger.error("Primary configuration json is ill-formatted: missing field 'name'")
 			raise KeyError("Primary configuration json is ill-formatted: missing field 'name'")
 
 		if 'satellites' not in data.keys():
+			logger.error("Primary configuration json is ill-formatted: missing field 'satellites'")
 			raise KeyError("Primary configuration json is ill-formatted: missing field 'satellites'")
 
 		sats = {}
@@ -144,6 +151,7 @@ class PrimaryConfig():
 			if 'sensor_suites' in v.keys():
 				sat_configs['k'] = SpacecraftConfig(p.stem, k, v['id'], v['sensor_suites'])
 			else:
+				logger.debug(f'Spacecraft definition has no sensor suites field.')
 				console.send(f'Spacecraft definition has no sensor suites field.')
 				sat_configs['k'] = SpacecraftConfig(p.stem, k, v['id'], {})
 

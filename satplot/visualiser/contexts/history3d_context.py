@@ -1,3 +1,4 @@
+import logging
 import sys
 from typing import Any
 
@@ -13,6 +14,7 @@ import satplot.visualiser.interface.console as console
 import satplot.visualiser.interface.controls as controls
 import satplot.visualiser.interface.widgets as widgets
 
+logger = logging.getLogger(__name__)
 
 class History3DContext(base.BaseContext):
 	data_type = data_types.DataType.HISTORY
@@ -60,26 +62,29 @@ class History3DContext(base.BaseContext):
 		self.layout.addWidget(content_widget)
 
 	def connectControls(self) -> None:
-		print(f"Connecting controls of {self.config['name']}")
+		logger.info(f"Connecting controls of {self.config['name']}")
 		self.controls.orbit_controls.submit_button.clicked.connect(self._configureData)
 		self.controls.time_slider.add_connect(self._updateDisplayedIndex)
 		self.controls.action_dict['center-earth']['callback'] = self._centerCameraEarth
 		self.controls.action_dict['center-spacecraft']['callback'] = self._toggleCameraSpacecraft
 		self.sccam_state = False
 		if self.data is None:
+			logger.warning(f'Context History3D: {self} does not have a data model.')
 			raise AttributeError(f'Context History3D: {self} does not have a data model.')
 		self.data.data_ready.connect(self._updateDataSources)
 		self.data.data_ready.connect(self._updateControls)
 
 	def _validateDataType(self) -> None:
 		if self.data is not None and self.data.getType() != self.data_type:
-			print(f"Error: history3D context has wrong data type: {self.data.getType()}", file=sys.stderr)
-			print(f"\t should be: {self.data_type}", file=sys.stderr)
+			console.sendErr(f"Error: history3D context has wrong data type: {self.data.getType()}")
+			console.sendErr(f"\t should be: {self.data_type}")
 
 	def _configureData(self) -> None:
+		logger.info(f'Setting up data configuration for context: {self}')
 		console.send('Setting up data configuration')
 		# Timespan configuration
 		if self.data is None:
+			logger.warning(f"model data is not set for context {self.config['name']}:{self}")
 			raise ValueError(f"model data is not set for context {self.config['name']}:{self}")
 
 		self.data.updateConfig('timespan_period_start', self.controls.orbit_controls.period_start.datetime)
@@ -93,7 +98,7 @@ class History3DContext(base.BaseContext):
 		if has_supplemental_constellation:
 			c_config = self.controls.orbit_controls.suppl_constellation_selector.getConstellationConfig()
 			if c_config is None:
-				print("Please select a constellation.", file=sys.stderr)
+				console.sendErr("Supplementary constellation enabled: Please select a constellation.")
 				return
 			self.data.setSupplementalConstellation(c_config)
 		else:
@@ -101,18 +106,18 @@ class History3DContext(base.BaseContext):
 
 		# Historical pointing
 		if self.controls.orbit_controls.pointing_file_controls.isEnabled():
-			print(f'Pointing defined. Setting pointing configuration for {self}')
+			logger.info(f'Pointing defined. Setting pointing configuration for {self}')
 			self.data.updateConfig('is_pointing_defined', True)
 			pointing_file_path = self.controls.orbit_controls.pointing_file_controls._pointing_file_selector.path
 			if pointing_file_path is None or \
 				pointing_file_path == '':
-				print("Displaying spacecraft pointing requires a pointing file.", file=sys.stderr)
+				console.sendErr("Displaying spacecraft pointing requires a pointing file.")
 				return
 			self.data.updateConfig('pointing_defines_timespan', self.controls.orbit_controls.pointing_file_controls.pointingFileDefinesPeriod())
 			self.data.updateConfig('pointing_file', pointing_file_path)
 			self.data.updateConfig('pointing_invert_transform', self.controls.orbit_controls.pointing_file_controls.pointing_file_inv_toggle.isChecked())
 		else:
-			print(f'Pointing not defined. Clearing pointing configuration for {self}')
+			logger.info(f'Pointing not defined. Clearing pointing configuration for {self}')
 			self.data.updateConfig('is_pointing_defined', False)
 			self.data.updateConfig('pointing_defines_timespan', False)
 			self.data.updateConfig('pointing_file', None)
@@ -122,7 +127,8 @@ class History3DContext(base.BaseContext):
 			self.controls.orbit_controls.submit_button.setEnabled(False)
 			self.data.process()
 		except Exception as e:
-			print(f"Error in configuring data for history3D: {e}", file=sys.stderr)
+			logger.warning(f"Error in configuring data for history3D: {e}")
+			console.sendErr(f"Error in configuring data for history3D: {e}")
 			self.controls.orbit_controls.submit_button.setEnabled(True)
 			raise e
 
@@ -144,6 +150,7 @@ class History3DContext(base.BaseContext):
 
 	def _updateDisplayedIndex(self, index:int) -> None:
 		if self.data is None:
+			logger.warning(f"model data is not set for context {self.config['name']}:{self}")
 			ValueError(f"model data is not set for context {self.config['name']}:{self}")
 		self.canvas_wrapper.updateIndex(index)
 		self.canvas_wrapper.recomputeRedraw()

@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 from typing import Any
 from vispy import scene
@@ -5,8 +6,10 @@ from vispy.scene.widgets.viewbox import ViewBox
 
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.colours as colours
+import satplot.visualiser.interface.console as console
 import spherapy.orbit as orbit
 
+logger = logging.getLogger(__name__)
 
 class Orbit3DAsset(base_assets.AbstractAsset):
 	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
@@ -35,11 +38,14 @@ class Orbit3DAsset(base_assets.AbstractAsset):
 		sats_dict = args[0]
 		first_sat_orbit = list(sats_dict.values())[0]
 		if type(first_sat_orbit) is not orbit.Orbit:
+			logger.error(f"setSource() of {self} requires an {orbit.Orbit} as value of dict from args[0], not: {first_sat_orbit}")
 			raise TypeError
 		if hasattr(first_sat_orbit,'pos'):
 			self.data['coords'] = first_sat_orbit.pos
-			print(f'Setting source:coordinates for {self}')
+			logger.debug(f'Setting source:coordinates for {self}')
 		else:
+			console.sendErr('Orbit has no position data')
+			logger.warning(f'Orbit has no position data')
 			raise ValueError('Orbit has no position data')
 
 	def _instantiateAssets(self) -> None:

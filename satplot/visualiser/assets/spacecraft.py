@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 from scipy.spatial.transform import Rotation
 from typing import Any
@@ -10,6 +11,7 @@ import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.assets.gizmo as gizmo
 import spherapy.orbit as orbit
 
+logger = logging.getLogger(__name__)
 
 class Spacecraft3DAsset(base_assets.AbstractAsset):
 	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
@@ -49,18 +51,19 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 		if args[1] is not None:
 
 			self.data['pointing_defined'] = True
-			print(f'SPACECRAFT HAS POINTING')
+			logger.debug(f'spacecraft has pointing')
 		else:
 			self.data['pointing_defined'] = False
-			print(f'SPACECRAFT NO POINTING')
+			logger.debug(f'spacecraft has NO pointing')
 
 		sats_dict = args[0]
 		first_sat_orbit = list(sats_dict.values())[0]
 
 		if type(first_sat_orbit) is not orbit.Orbit:
-			raise TypeError(f"setSource() of {self} requires a satellite dictionary, not: {first_sat_orbit}")
+			logger.error(f"setSource() of {self} requires an {orbit.Orbit} as value of dict from args[0], not: {type(first_sat_orbit)}")
+			raise TypeError(f"setSource() of {self} requires an {orbit.Orbit} as value of dict from args[0], not: {type(first_sat_orbit)}")
 		self.data['coords'] = first_sat_orbit.pos
-		print(f'Setting source:coordinates for {self}')
+		logger.debug(f'Setting source:coordinates for {self}')
 
 		if hasattr(first_sat_orbit,'name'):
 			self.data['strings'] = [first_sat_orbit.name]
@@ -72,10 +75,11 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 			first_sat_pointings = list(pointings_dict.values())[0]
 			invert_transform = args[2]
 			if type(first_sat_pointings) is not np.ndarray:
-				raise TypeError(f"setSource() of {self} requires a pointings dictionary, not: {first_sat_pointings}")
+				logger.error(f"setSource() of {self} requires an {np.ndarray} as value of dict from args[1], not: {type(first_sat_pointings)}")
+				raise TypeError(f"setSource() of {self} requires an {np.ndarray} as value of dict from args[1], not: {type(first_sat_pointings)}")
 			self.data['pointing'] = first_sat_pointings
 			self.data['pointing_invert_transform'] = invert_transform
-			print(f'Setting source:attitudes for {self}')
+			logger.debug(f'Setting source:attitudes for {self}')
 		else:
 			self.data['pointing'] = None
 			self.data['pointing_invert_transform'] = None
@@ -88,7 +92,7 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 		if self.data['old_pointing_defined'] == self.data['pointing_defined'] and \
 			self.data['sc_config'] == args[3]:
 			# config has not changed -> don't need to re-instantiate sensors
-			print('Config has not changed')
+			logger.debug('Spacecraft pointing related config has not changed')
 			config_changed = False
 			return
 
@@ -122,7 +126,7 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 
 	def _instantiateSensorAssets(self) -> None:
 		for key, value in self.data['sc_config'].getSensorSuites().items():
-			print(f'Creating sensor suite sensor_suite_{key}')
+			logger.debug(f'Creating sensor suite sensor_suite_{key}')
 			self.assets[f'sensor_suite_{key}'] = sensors.SensorSuite3DAsset(value,
 																	name=key,
 													 				v_parent=self.data['v_parent'])
@@ -208,7 +212,7 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 		# return [(canvas_pos[0,0], canvas_pos[0,1])], ['SpIRIT']
 
 	def setAttitudeAssetsVisibility(self, state):
-		print(f'Setting attitude visibility')
+		logger.debug(f'Setting attitude visibility')
 		self.setBodyFrameVisibility(state)
 		self.setAllSensorSuitesStatefulVisibility(state)
 
@@ -286,7 +290,7 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 
 	#----- HELPER FUNCTIONS -----#
 	def _addIndividualSensorSuitePlotOptions(self) -> None:
-		print(f'Adding sensor suite options dictionary entries for:')
+		logger.debug(f'Adding sensor suite options dictionary entries for:')
 		for key, value in self.data['sc_config'].getSensorSuites().items():
 			visibilityCallback = self._makeVisibilityCallback(key)
 			self.opts[f'plot_sensor_suite_{key}'] = {'value': True,

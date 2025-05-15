@@ -1,4 +1,5 @@
 import json
+import logging
 import numpy as np
 import time
 from typing import Any
@@ -26,6 +27,8 @@ import satplot.visualiser.assets.sun as sun
 import satplot.visualiser.assets.widgets as widgets
 
 from vispy.visuals.transforms import STTransform
+
+logger = logging.getLogger(__name__)
 
 create_time = time.monotonic()
 MIN_MOVE_UPDATE_THRESHOLD = 1
@@ -87,6 +90,7 @@ class History3DCanvasWrapper(BaseCanvas):
 							'magnify',
 							'perspective']
 		if mode not in allowed_cam_modes:
+			logger.error(f'specified camera mode is not a valid mode: {mode}')
 			raise NameError
 
 		self.view_box.camera = mode
@@ -101,6 +105,7 @@ class History3DCanvasWrapper(BaseCanvas):
 	def modelUpdated(self) -> None:
 		# Update data source for earth asset
 		if self.data_models['history'] is None:
+			logger.error(f'canvas wrapper: {self} does not have a history data model yet')
 			raise exceptions.InvalidDataError
 
 		if self.data_models['history'].timespan is not None:
@@ -169,6 +174,7 @@ class History3DCanvasWrapper(BaseCanvas):
 
 	def centerCameraSpacecraft(self, set_zoom:bool=True) -> None:
 		if self.canvas is None:
+			logger.warning(f"Canvas has not been set for History3D Canvas Wrapper. No camera to center")
 			raise AttributeError(f"Canvas has not been set for History3D Canvas Wrapper. No camera to center")
 		if self.assets['spacecraft'].isActive():
 			sc_pos = tuple(self.assets['spacecraft'].data['coords'][self.assets['spacecraft'].data['curr_index']])
@@ -183,6 +189,7 @@ class History3DCanvasWrapper(BaseCanvas):
 
 	def centerCameraEarth(self) -> None:
 		if self.canvas is None:
+			logger.warning(f"Canvas has not been set for History3D Canvas Wrapper. No camera to center")
 			raise AttributeError(f"Canvas has not been set for History3D Canvas Wrapper. No camera to center")
 		self.view_box.camera.center = (0,0,0)
 		self.setCameraZoom(5*c.R_EARTH)
@@ -263,5 +270,4 @@ class History3DCanvasWrapper(BaseCanvas):
 		self.assets['ECI_gizmo'].onResize(event)
 
 	def onMouseScroll(self, event:QtGui.QMouseEvent) -> None:
-		# print(self.view_box.camera.scale_factor)
 		pass		

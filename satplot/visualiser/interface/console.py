@@ -4,12 +4,17 @@ import sys
 from PyQt5 import QtWidgets, QtCore, QtGui
 
 consolefp = None
+consoleErrfp = None
 printable = string.ascii_letters + string.digits + string.punctuation + ' '
 
 
 def send(str):
 	if consolefp is not None:
 		print(str, file=consolefp)
+
+def sendErr(str):
+	if consolefp is not None:
+		print(str, file=consoleErrfp)
 
 def hex_escape(s):
     return ''.join(c if c in printable else r'\x{0:02x}'.format(ord(c)) for c in s)

@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 
 import vispy.scene as scene
@@ -10,6 +11,7 @@ import satplot.visualiser.colours as colours
 import satplot.visualiser.assets.base_assets as base_assets
 import spherapy.orbit as orbit
 
+logger = logging.getLogger(__name__)
 
 class Moon3DAsset(base_assets.AbstractAsset):
 	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
@@ -30,6 +32,7 @@ class Moon3DAsset(base_assets.AbstractAsset):
 
 	def setSource(self, *args, **kwargs) -> None:
 		if type(args[0]) is not orbit.Orbit:
+			logger.error(f"setSource() of {self} requires an {orbit.Orbit} as value of dict from args[0], not: {type(args[0])}")
 			raise TypeError
 		self.data['pos'] = args[0].moon_pos
 
@@ -93,7 +96,7 @@ class Moon3DAsset(base_assets.AbstractAsset):
 	
 	#----- OPTIONS CALLBACKS -----#
 	def setMoonSphereColour(self, new_colour:tuple[float,float,float]) -> None:
-		print(f"Changing moon sphere colour {self.opts['moon_sphere_colour']['value']} -> {new_colour}")
+		logger.debug(f"Changing moon sphere colour {self.opts['moon_sphere_colour']['value']} -> {new_colour}")
 		self.opts['moon_sphere_colour']['value'] = new_colour
 		n_faces = self.visuals['moon'].mesh._meshdata.n_faces
 		n_verts = self.visuals['moon'].mesh._meshdata.n_vertices
