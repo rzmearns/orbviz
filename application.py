@@ -17,10 +17,10 @@ import satplot.visualiser.interface.console as console
 import satplot.visualiser.interface.dialogs as dialogs
 import satplot.visualiser.window as window
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('satplot')
 
 warnings.filterwarnings("ignore", message="Optimal rotation is not uniquely or poorly defined for the given sets of vectors.")
-
+satplot_logging.configureLogger()
 use(gl='gl+')
 
 class Application():
@@ -146,7 +146,6 @@ def setDefaultPackageOptions() -> None:
 
 if __name__ == '__main__':
 	setDefaultPackageOptions()
-	satplot_logging.configureLogger()
 	parser = argparse.ArgumentParser(
 						prog='SatPlot',
 						description='Visualisation software for satellites; including orbits and pointing.')
