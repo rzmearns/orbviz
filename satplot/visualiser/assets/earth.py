@@ -51,6 +51,7 @@ class Earth3DAsset(base_assets.AbstractAsset):
 
 		# rotation data
 		self.data['nullisland_topos'] = wgs84.latlon(0,0)
+		self.old_rot_rad = 0
 
 	def setSource(self, *args, **kwargs) -> None:
 		if type(args[0]) is not timespan.TimeSpan:
@@ -93,6 +94,7 @@ class Earth3DAsset(base_assets.AbstractAsset):
 		if self.isStale():
 			# calculate rotation of earth
 			nullisland_curr = self.data['nullisland_topos'].at(self.data['datetimes'][self.data['curr_index']]).xyz.km
+
 			rot_rad = np.arctan2(nullisland_curr[1], nullisland_curr[0])
 			self.data['ecef_rads'] = rot_rad
 			R = transforms.rotAround(self.data['ecef_rads'], pg.Z)
@@ -538,7 +540,8 @@ class Earth2DAsset(base_assets.AbstractAsset):
 			texture_format="auto",
 			parent=None,
 		)
-		self.visuals['earth'].order = 100
+		self.visuals['earth'].order = 0
+		print(f"{self.visuals['earth'].order=}")
 		(w,h) = self.visuals['earth'].size
 		self.data['width'] = w
 		self.data['height'] = h
