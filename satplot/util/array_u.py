@@ -23,6 +23,29 @@ def uniqueRows(arr:nptyping.NDArray, to_decimal:int=8) -> nptyping.NDArray:
 	unique_arr = np.unique(arr.round(decimals=to_decimal), axis=0)
 	return unique_arr
 
+def uniqueRowsOrdered(arr:nptyping.NDArray, to_decimal:int=8) -> nptyping.NDArray:
+	'''
+	Return the unique rows in an array, rounding to the specified tolerance
+	to avoid floating point errors.
+	But keep row order.
+
+	Parameters
+	----------
+	arr : (n,3) ndarray
+
+	to_decimal: int
+		Tolerance for floating point errors.
+
+	Returns
+	-------
+	(m,3) ndarray
+		m<=n
+	'''
+
+	unique_idxs = np.unique(arr.round(decimals=to_decimal), axis=0, return_index=True)[1]
+	sorted_unique_idxs = np.sort(unique_idxs)
+
+	return arr[sorted_unique_idxs,:]
 
 def arrayOverlap(a:nptyping.NDArray, b:nptyping.NDArray) -> nptyping.NDArray:
 	'''[summary]
