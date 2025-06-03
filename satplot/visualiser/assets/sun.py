@@ -444,7 +444,12 @@ class Sun2DAsset(base_assets.AbstractAsset):
 
 			self.data['terminator_edge'][:,0] = (terminator_boundary[:,0]+180) * self.data['horiz_pixel_scale']
 			self.data['terminator_edge'][:,1] = (terminator_boundary[:,1]+90) * self.data['vert_pixel_scale']
-			self.visuals['terminator'].pos=self.data['terminator_edge']
+			t_data = {}
+			t_data['vertices'] = self.data['terminator_edge']
+			t_data['segments'] = np.hstack((np.arange(len(t_data['vertices'])-1).reshape(-1,1),np.arange(1,len(t_data['vertices'])).reshape(-1,1)))
+			t_data['segments'] = np.vstack((t_data['segments'],[len(t_data['segments']-1),0]))
+			t = tr.triangulate(t_data,'pq10')
+			self.visuals['terminator']._mesh.set_data(vertices=t['vertices'], faces=t['triangles'])
 
 			patch1, patch2 = self.calcEclipseOutline(self.data['coords'][self.data['curr_index']], 466)
 			self.data['eclipse_edge1'] = patch1
