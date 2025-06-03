@@ -4,7 +4,7 @@ import pymap3d
 from scipy.spatial import ConvexHull as ConvexHull
 from scipy.spatial.transform import Rotation
 
-import triangle as tr
+
 
 import vispy
 from vispy import scene
@@ -13,10 +13,12 @@ from vispy.scene import visuals as vVisuals
 from vispy.visuals import filters as vFilters
 
 import satplot.model.geometry.primgeom as pg
+import satplot.model.geometry.polygons as polygeom
 import satplot.model.geometry.polyhedra as polyhedra
 import satplot.model.geometry.spherical as spherical_geom
 import satplot.util.array_u as array_u
 import satplot.util.constants as c
+
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.colours as colours
 import spherapy.orbit as orbit
@@ -444,12 +446,9 @@ class Sun2DAsset(base_assets.AbstractAsset):
 
 			self.data['terminator_edge'][:,0] = (terminator_boundary[:,0]+180) * self.data['horiz_pixel_scale']
 			self.data['terminator_edge'][:,1] = (terminator_boundary[:,1]+90) * self.data['vert_pixel_scale']
-			t_data = {}
-			t_data['vertices'] = self.data['terminator_edge']
-			t_data['segments'] = np.hstack((np.arange(len(t_data['vertices'])-1).reshape(-1,1),np.arange(1,len(t_data['vertices'])).reshape(-1,1)))
-			t_data['segments'] = np.vstack((t_data['segments'],[len(t_data['segments']-1),0]))
-			t = tr.triangulate(t_data,'pq10')
-			self.visuals['terminator']._mesh.set_data(vertices=t['vertices'], faces=t['triangles'])
+
+			verts, faces = polygeom.polygonTriangulate(self.data['terminator_edge'])
+			self.visuals['terminator']._mesh.set_data(vertices=verts, faces=faces)
 
 			patch1, patch2 = self.calcEclipseOutline(self.data['coords'][self.data['curr_index']], 466)
 			self.data['eclipse_edge1'] = patch1
@@ -460,22 +459,14 @@ class Sun2DAsset(base_assets.AbstractAsset):
 			self.data['eclipse_edge2'][:,1] = (patch2[:,1]+90) * self.data['vert_pixel_scale']
 
 			if len(patch1)>3:
-				t_data = {}
-				t_data['vertices'] = self.data['eclipse_edge1']
-				t_data['segments'] = np.hstack((np.arange(len(t_data['vertices'])-1).reshape(-1,1),np.arange(1,len(t_data['vertices'])).reshape(-1,1)))
-				t_data['segments'] = np.vstack((t_data['segments'],[len(t_data['segments']-1),0]))
-				t = tr.triangulate(t_data,'pq10')
-				self.visuals['eclipse_patch1']._mesh.set_data(vertices=t['vertices'], faces=t['triangles'])
+				verts, faces = polygeom.polygonTriangulate(self.data['eclipse_edge1'])
+				self.visuals['eclipse_patch1']._mesh.set_data(vertices=verts, faces=faces)
 			else:
 				self.visuals['eclipse_patch1']._mesh.set_data(vertices=np.array([[0,0],[-1,-1],[-1,0]]), faces=np.array([[0,1,2]]))
 
 			if len(patch2)>3:
-				t_data = {}
-				t_data['vertices'] = self.data['eclipse_edge2']
-				t_data['segments'] = np.hstack((np.arange(len(t_data['vertices'])-1).reshape(-1,1),np.arange(1,len(t_data['vertices'])).reshape(-1,1)))
-				t_data['segments'] = np.vstack((t_data['segments'],[len(t_data['segments']-1),0]))
-				t = tr.triangulate(t_data,'pq10')
-				self.visuals['eclipse_patch2']._mesh.set_data(vertices=t['vertices'], faces=t['triangles'])
+				verts, faces = polygeom.polygonTriangulate(self.data['eclipse_edge2'])
+				self.visuals['eclipse_patch2']._mesh.set_data(vertices=verts, faces=faces)
 			else:
 				self.visuals['eclipse_patch2']._mesh.set_data(vertices=np.array([[0,0],[-1,-1],[-1,0]]), faces=np.array([[0,1,2]]))
 
@@ -638,118 +629,119 @@ class Sun2DAsset(base_assets.AbstractAsset):
 
 		lats, lons1, lons2 = spherical_geom.genSmallCircleCenterSubtendedAngle(phi_h*2, eclipse_center_lat, eclipse_center_lon)
 
-		patch1, patch2 = self._splitPatches(eclipse_center_lon, eclipse_center_lat, lats, lons1, lons2)
+		patch1, patch2 = self._splitEclipsePatches(eclipse_center_lon, eclipse_center_lat, lats, lons1, lons2)
 
 		return patch1, patch2
 
-	def _splitPatches(self, eclipse_lon, eclipse_lat, lats, lons1, lons2):
-		print(f'{eclipse_lat=}')
-		print(f'{eclipse_lon=}')
-		print(f'{lats=}')
-		print(f'{lons1=}')
-		print(f'{lons2=}')
+	def _splitEclipsePatches(self, eclipse_lon, eclipse_lat, lats, lons1, lons2):
 		side1 = np.hstack((lons1.reshape(-1,1),lats.reshape(-1,1)))
 		side2 = np.flip(np.hstack((lons2.reshape(-1,1),lats.reshape(-1,1))),axis=0)
 
 		num_side1_crossings = None
 		num_side2_crossings = None
-		print(f'{eclipse_lon}')
+		hemisphere_sign = np.sign(eclipse_lat)
+		hemisphere_boundary = hemisphere_sign * 90
 		if eclipse_lon > 0:
-			# -180 break on first side
+			if (side1[:,0]>180).all():
+				# all points are to right of edge of map
+				num_side1_crossings = -1
+			else:
+				num_side1_crossings = len(np.where(np.diff(side1[:,0]>180))[0])
 
-			num_side1_crossings = len(np.where(np.diff(side1[:,0]>180))[0])
-			if num_side1_crossings > 0:
-				side1_break1_idx = np.where(np.diff(side1[:,0]>180))[0][0]+1
-				side1_break2_idx = np.where(np.diff(side1[:,0]>180))[0][-1]+1
+			if num_side1_crossings == -1:
+				patch1 = side1
+				patch1[:,0] -= 360
+				patch1 = np.insert(patch1, [0, len(patch1)], [-180, np.nan], axis=0)
+				patch1[:,1] = array_u.nonMonotonicInterpNans(patch1[:,0], patch1[:,1])
 
-				side1 = np.insert(side1, side1_break1_idx, [180, np.nan], axis=0)
-				if num_side1_crossings == 2:
-					side1 = np.insert(side1, side1_break2_idx+1, [180, np.nan], axis=0)
-				side1[:,1] = array_u.nonMonotonicInterpNans(side1[:,0], side1[:,1])
-
-				patch1 = side1[side1[:,0]>180,:]
-				patch2 = np.vstack((side1[side1[:,0]<=180,:],side2,))
-				patch1[:,0] = patch1[:,0]-360
-
-
-		elif eclipse_lon < 0:
-			# -180 break on second side
-
-			num_side2_crossings = len(np.where(np.diff(side2[:,0]<-180))[0])
-			if num_side2_crossings > 0:
-				side2_break1_idx = np.where(np.diff(side2[:,0]<-180))[0][0]+1
-				side2_break2_idx = np.where(np.diff(side2[:,0]<-180))[0][-1]+1
-
-				side2 = np.insert(side2, side2_break1_idx, [-180, np.nan], axis=0)
-				if num_side2_crossings == 2:
-					side2 = np.insert(side2, side2_break2_idx+1, [-180, np.nan], axis=0)
-				side2[:,1] = array_u.nonMonotonicInterpNans(side2[:,0], side2[:,1])
-
-				patch2 = side2[side2[:,0]<-180,:]
-				patch2[:,0] = patch2[:,0]+360
-				patch1 = np.vstack((side1,side2[side2[:,0]>=-180,:]))
-
-		else:
-			print('3rd')
-
-		if (num_side1_crossings==0 and num_side2_crossings is None) or \
-			(num_side2_crossings==0 and num_side1_crossings is None):
-			if eclipse_lat < 0:
-				patch1 = np.vstack((side1, side2))
-				patch2 = np.array(([[-180,-90],[-181,-90],[-181,-91]]))
-			elif eclipse_lat > 0:
+				patch2 = side2
+				patch2 = np.insert(patch2, [0, len(patch2)], [180, np.nan], axis=0)
+				patch2[:,1] = array_u.nonMonotonicInterpNans(patch2[:,0], patch2[:,1])
+			elif num_side1_crossings == 0:
+				# eclipse wholly within map
 				patch2 = np.vstack((side2, side1))
 				patch1 = np.array(([[-180,-90],[-181,-90],[-181,-91]]))
 
+			elif num_side1_crossings == 1:
+			  	# eclipse is over pole (a saddle clamp like shape)
+				side1_break1_idx = np.where(np.diff(side1[:,0]>180))[0][0]+1
+				side1 = np.insert(side1, side1_break1_idx, [180, np.nan], axis=0)
+				side1[:,1] = array_u.nonMonotonicInterpNans(side1[:,0], side1[:,1])
 
-		elif (num_side1_crossings==1 and num_side2_crossings is None) or \
-				(num_side2_crossings==1 and num_side1_crossings is None):
-			if eclipse_lat < 0:
-				patch2=np.vstack((patch2,[patch2[0,0],-90]))
-				patch1=np.vstack((patch1,[patch1[-1,0],-90]))
-			elif eclipse_lat > 0:
-				patch1=np.vstack((patch1,[patch1[-1,0],90]))
-				patch2=np.vstack((patch2,[patch2[0,0],90]))
+				patch1 = side1[side1[:,0]>=180,:]
+				patch1[:,0] = patch1[:,0]-360
+				patch1 = np.vstack((patch1, [patch1[-1,0], hemisphere_boundary]))
+
+				patch2 = np.vstack((side1[side1[:,0]<=180,:],side2))
+				patch2 = np.vstack((patch2, [patch2[0,0], hemisphere_boundary]))
+
+			elif num_side1_crossings == 2:
+				# eclipse is circle on 2d map, but split by edge of map
+				side1_break1_idx = np.where(np.diff(side1[:,0]>180))[0][0]+1
+				side1_break2_idx = np.where(np.diff(side1[:,0]>180))[0][-1]+1
+				side1 = np.insert(side1, side1_break1_idx, [180, np.nan], axis=0)
+				side1 = np.insert(side1, side1_break2_idx+1, [180, np.nan], axis=0)
+				side1[:,1] = array_u.nonMonotonicInterpNans(side1[:,0], side1[:,1])
+
+				patch1 = side1[side1[:,0]>=180,:]
+				patch1[:,0] = patch1[:,0]-360
+				patch1 = np.insert(patch1, [0, len(patch1)], [-180, np.nan], axis=0)
+				patch1[:,1] = array_u.nonMonotonicInterpNans(patch1[:,0], patch1[:,1])
+
+				patch2 = np.vstack((side2,side1[side1[:,0]<=180,:]))
+
+		elif eclipse_lon < 0:
+			if (side2[:,0]<-180).all():
+				# all points are to left of edge of map
+				num_side2_crossings = -1
+			else:
+				num_side2_crossings = len(np.where(np.diff(side2[:,0]<-180))[0])
+
+			if num_side2_crossings == -1:
+				# all points are to left of edge of map
+				patch2 = side2
+				patch2[:,0] += 360
+				patch2 = np.insert(patch2, [0, len(patch2)], [180, np.nan], axis=0)
+				patch2[:,1] = array_u.nonMonotonicInterpNans(patch2[:,0], patch2[:,1])
+
+				patch1 = side1
+				patch1 = np.insert(patch1, [0, len(patch1)], [-180, np.nan], axis=0)
+				patch1[:,1] = array_u.nonMonotonicInterpNans(patch1[:,0], patch1[:,1])
+
+			elif num_side2_crossings == 0:
+				# eclipse wholly within map
+				patch1 = np.vstack((side1, side2))
+				patch2 = np.array(([[-180,-90],[-181,-90],[-181,-91]]))
+
+			elif num_side2_crossings == 1:
+				# eclipse is over pole (a saddle clamp like shape)
+				side2_break1_idx = np.where(np.diff(side2[:,0]<-180))[0][0]+1
+				side2 = np.insert(side2, side2_break1_idx, [-180, np.nan], axis=0)
+				side2[:,1] = array_u.nonMonotonicInterpNans(side2[:,0], side2[:,1])
+
+				patch2 = side2[side2[:,0]<=-180,:]
+				patch2[:,0] = patch2[:,0]+360
+				patch2 = np.vstack((patch2, [patch2[0,0], hemisphere_boundary]))
+
+				patch1 = np.vstack((side1,side2[side2[:,0]>=-180,:]))
+				patch1 = np.vstack((patch1, [patch1[-1,0], hemisphere_boundary]))
+
+			elif num_side2_crossings == 2:
+				# eclipse is circle on 2d map, but split by edge of map
+				side2_break1_idx = np.where(np.diff(side2[:,0]<-180))[0][0]+1
+				side2_break2_idx = np.where(np.diff(side2[:,0]<-180))[0][-1]+1
+				side2 = np.insert(side2, side2_break1_idx, [-180, np.nan], axis=0)
+				side2 = np.insert(side2, side2_break2_idx+1, [-180, np.nan], axis=0)
+				side2[:,1] = array_u.nonMonotonicInterpNans(side2[:,0], side2[:,1])
+
+				patch2 = side2[side2[:,0]<=-180,:]
+				patch2[:,0] = patch2[:,0]+360
+				patch2 = np.insert(patch2, [0, len(patch2)], [180, np.nan], axis=0)
+				patch2[:,1] = array_u.nonMonotonicInterpNans(patch2[:,0], patch2[:,1])
+
+				patch1 = np.vstack((side1,side2[side2[:,0]>=-180,:]))
+
+		else:
+			print("eclipse center is 0")
 
 		return patch1, patch2
-
-
-	# def _splitPatches(self, eclipse_lon, eclipse_lat, lats, lons1, lons2):
-	# 	side1 = np.hstack((lons1.reshape(-1,1),lats.reshape(-1,1)))
-	# 	side2 = np.flip(np.hstack((lons2.reshape(-1,1),lats.reshape(-1,1))),axis=0)
-
-	# 	if eclipse_lon > 0:
-	# 		# -180 break on first side
-
-	# 		num_side1_crossings = np.where(np.diff(side1[:,0]<-180))
-
-	# 		patch1 = side1[side1[:,0]>180,:]
-	# 		patch2 = np.vstack((side1[side1[:,0]<=180,:],side2,))
-	# 		patch1[:,0] = patch1[:,0]-360
-
-	# 	elif eclipse_lon < 0:
-	# 		# -180 break on second side
-
-	# 		# find if crosses -180 once or twice
-	# 		num_side2_crossings = np.where(np.diff(side2[:,0]<-180))
-	# 		break1_idx = np.where(np.diff(side2[:,0]<-180))[0]
-	# 		break2_idx = np.where(np.diff(side2[:,0]<-180))[-1]
-
-	# 		side2 = np.insert(side2, break1_idx, [-180, np.nan], axis=0)
-
-	# 		patch2 = side2[side2[:,0]<-180,:]
-	# 		patch2[:,0] = patch2[:,0]+360
-	# 		patch1 = np.vstack((side1,side2[side2[:,0]>=-180,:]))
-
-	# 	else:
-	# 		print('3rd')
-
-	# 	if np.sum(np.diff(side2[:,0]<-180))==1 or np.sum(np.diff(side1[:,0]>180))==1:
-	# 		if eclipse_lat < 0:
-	# 			patch2=np.vstack((patch2,[patch2[0,0],-90]))
-	# 			patch1=np.vstack((patch1,[patch1[-1,0],-90]))
-	# 		elif eclipse_lat > 0:
-	# 			patch2=np.vstack((patch2,[patch2[0,0],90]))
-	# 			patch1=np.vstack((patch1,[patch1[-1,0],90]))
-
-	# 	return patch1, patch2
