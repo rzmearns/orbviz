@@ -3,7 +3,6 @@ import numpy as np
 import pymap3d
 from scipy.spatial import ConvexHull as ConvexHull
 from scipy.spatial.transform import Rotation
-from scipy.interpolate import interp1d
 
 import triangle as tr
 
@@ -16,6 +15,7 @@ from vispy.visuals import filters as vFilters
 import satplot.model.geometry.primgeom as pg
 import satplot.model.geometry.polyhedra as polyhedra
 import satplot.model.geometry.spherical as spherical_geom
+import satplot.util.array_u as array_u
 import satplot.util.constants as c
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.colours as colours
@@ -606,49 +606,6 @@ class Sun2DAsset(base_assets.AbstractAsset):
 		ha = earth_lon - solar_lon
 		return np.arctan(-np.cos(ha)/np.tan(solar_lat))
 
-	def _splitPatches(self, eclipse_lon, eclipse_lat, lats, lons1, lons2):
-		side1 = np.hstack((lons1.reshape(-1,1),lats.reshape(-1,1)))
-		side2 = np.flip(np.hstack((lons2.reshape(-1,1),lats.reshape(-1,1))),axis=0)
-
-		if eclipse_lon > 0:
-			# -180 break on first side
-			patch1 = side1[side1[:,0]>180,:]
-			patch2 = np.vstack((side1[side1[:,0]<=180,:],side2,))
-			patch1[:,0] = patch1[:,0]-360
-
-		elif eclipse_lon < 0:
-			# -180 break on second side
-			patch2 = side2[side2[:,0]<-180,:]
-			patch2[:,0] = patch2[:,0]+360
-			patch1 = np.vstack((side1,side2[side2[:,0]>=-180,:]))
-
-		else:
-			print('3rd')
-
-		if np.sum(np.diff(side2[:,0]<-180))==1 or np.sum(np.diff(side1[:,0]>180))==1:
-			if eclipse_lat < 0:
-				patch2=np.vstack((patch2,[patch2[0,0],-90]))
-				patch1=np.vstack((patch1,[patch1[-1,0],-90]))
-			elif eclipse_lat > 0:
-				patch2=np.vstack((patch2,[patch2[0,0],90]))
-				patch1=np.vstack((patch1,[patch1[-1,0],90]))
-
-		return patch1, patch2
-
-	def calcEclipseOutline(self, solar_lonlat, sat_altitude) -> tuple[np.ndarray, np.ndarray]:
-		# sat altitude in km
-		# half subtended angle = phi_h
-		eclipse_center_lat = -solar_lonlat[1]
-		eclipse_center_lon = np.rad2deg(spherical_geom.wrapToCircleRange(np.deg2rad(solar_lonlat[0] + 180)))
-		solar_lat = solar_lonlat[1]
-		phi_h = np.rad2deg(np.arcsin(c.R_EARTH/(c.R_EARTH+sat_altitude)))
-
-		lats, lons1, lons2 = spherical_geom.genSmallCircleCenterSubtendedAngle(phi_h*2, eclipse_center_lat, eclipse_center_lon)
-
-		patch1, patch2 = self._splitPatches(eclipse_center_lon, eclipse_center_lat, lats, lons1, lons2)
-
-		return patch1, patch2
-
 	def calcTerminatorOutline(self, solar_lonlat) -> np.ndarray:
 		terminator_boundary = np.zeros((361,2))
 		solar_lat = solar_lonlat[1]
@@ -670,3 +627,129 @@ class Sun2DAsset(base_assets.AbstractAsset):
 			pass
 
 		return terminator_boundary
+
+	def calcEclipseOutline(self, solar_lonlat, sat_altitude) -> tuple[np.ndarray, np.ndarray]:
+		# sat altitude in km
+		# half subtended angle = phi_h
+		eclipse_center_lat = -solar_lonlat[1]
+		eclipse_center_lon = np.rad2deg(spherical_geom.wrapToCircleRange(np.deg2rad(solar_lonlat[0] + 180)))
+		solar_lat = solar_lonlat[1]
+		phi_h = np.rad2deg(np.arcsin(c.R_EARTH/(c.R_EARTH+sat_altitude)))
+
+		lats, lons1, lons2 = spherical_geom.genSmallCircleCenterSubtendedAngle(phi_h*2, eclipse_center_lat, eclipse_center_lon)
+
+		patch1, patch2 = self._splitPatches(eclipse_center_lon, eclipse_center_lat, lats, lons1, lons2)
+
+		return patch1, patch2
+
+	def _splitPatches(self, eclipse_lon, eclipse_lat, lats, lons1, lons2):
+		print(f'{eclipse_lat=}')
+		print(f'{eclipse_lon=}')
+		print(f'{lats=}')
+		print(f'{lons1=}')
+		print(f'{lons2=}')
+		side1 = np.hstack((lons1.reshape(-1,1),lats.reshape(-1,1)))
+		side2 = np.flip(np.hstack((lons2.reshape(-1,1),lats.reshape(-1,1))),axis=0)
+
+		num_side1_crossings = None
+		num_side2_crossings = None
+		print(f'{eclipse_lon}')
+		if eclipse_lon > 0:
+			# -180 break on first side
+
+			num_side1_crossings = len(np.where(np.diff(side1[:,0]>180))[0])
+			if num_side1_crossings > 0:
+				side1_break1_idx = np.where(np.diff(side1[:,0]>180))[0][0]+1
+				side1_break2_idx = np.where(np.diff(side1[:,0]>180))[0][-1]+1
+
+				side1 = np.insert(side1, side1_break1_idx, [180, np.nan], axis=0)
+				if num_side1_crossings == 2:
+					side1 = np.insert(side1, side1_break2_idx+1, [180, np.nan], axis=0)
+				side1[:,1] = array_u.nonMonotonicInterpNans(side1[:,0], side1[:,1])
+
+				patch1 = side1[side1[:,0]>180,:]
+				patch2 = np.vstack((side1[side1[:,0]<=180,:],side2,))
+				patch1[:,0] = patch1[:,0]-360
+
+
+		elif eclipse_lon < 0:
+			# -180 break on second side
+
+			num_side2_crossings = len(np.where(np.diff(side2[:,0]<-180))[0])
+			if num_side2_crossings > 0:
+				side2_break1_idx = np.where(np.diff(side2[:,0]<-180))[0][0]+1
+				side2_break2_idx = np.where(np.diff(side2[:,0]<-180))[0][-1]+1
+
+				side2 = np.insert(side2, side2_break1_idx, [-180, np.nan], axis=0)
+				if num_side2_crossings == 2:
+					side2 = np.insert(side2, side2_break2_idx+1, [-180, np.nan], axis=0)
+				side2[:,1] = array_u.nonMonotonicInterpNans(side2[:,0], side2[:,1])
+
+				patch2 = side2[side2[:,0]<-180,:]
+				patch2[:,0] = patch2[:,0]+360
+				patch1 = np.vstack((side1,side2[side2[:,0]>=-180,:]))
+
+		else:
+			print('3rd')
+
+		if (num_side1_crossings==0 and num_side2_crossings is None) or \
+			(num_side2_crossings==0 and num_side1_crossings is None):
+			if eclipse_lat < 0:
+				patch1 = np.vstack((side1, side2))
+				patch2 = np.array(([[-180,-90],[-181,-90],[-181,-91]]))
+			elif eclipse_lat > 0:
+				patch2 = np.vstack((side2, side1))
+				patch1 = np.array(([[-180,-90],[-181,-90],[-181,-91]]))
+
+
+		elif (num_side1_crossings==1 and num_side2_crossings is None) or \
+				(num_side2_crossings==1 and num_side1_crossings is None):
+			if eclipse_lat < 0:
+				patch2=np.vstack((patch2,[patch2[0,0],-90]))
+				patch1=np.vstack((patch1,[patch1[-1,0],-90]))
+			elif eclipse_lat > 0:
+				patch1=np.vstack((patch1,[patch1[-1,0],90]))
+				patch2=np.vstack((patch2,[patch2[0,0],90]))
+
+		return patch1, patch2
+
+
+	# def _splitPatches(self, eclipse_lon, eclipse_lat, lats, lons1, lons2):
+	# 	side1 = np.hstack((lons1.reshape(-1,1),lats.reshape(-1,1)))
+	# 	side2 = np.flip(np.hstack((lons2.reshape(-1,1),lats.reshape(-1,1))),axis=0)
+
+	# 	if eclipse_lon > 0:
+	# 		# -180 break on first side
+
+	# 		num_side1_crossings = np.where(np.diff(side1[:,0]<-180))
+
+	# 		patch1 = side1[side1[:,0]>180,:]
+	# 		patch2 = np.vstack((side1[side1[:,0]<=180,:],side2,))
+	# 		patch1[:,0] = patch1[:,0]-360
+
+	# 	elif eclipse_lon < 0:
+	# 		# -180 break on second side
+
+	# 		# find if crosses -180 once or twice
+	# 		num_side2_crossings = np.where(np.diff(side2[:,0]<-180))
+	# 		break1_idx = np.where(np.diff(side2[:,0]<-180))[0]
+	# 		break2_idx = np.where(np.diff(side2[:,0]<-180))[-1]
+
+	# 		side2 = np.insert(side2, break1_idx, [-180, np.nan], axis=0)
+
+	# 		patch2 = side2[side2[:,0]<-180,:]
+	# 		patch2[:,0] = patch2[:,0]+360
+	# 		patch1 = np.vstack((side1,side2[side2[:,0]>=-180,:]))
+
+	# 	else:
+	# 		print('3rd')
+
+	# 	if np.sum(np.diff(side2[:,0]<-180))==1 or np.sum(np.diff(side1[:,0]>180))==1:
+	# 		if eclipse_lat < 0:
+	# 			patch2=np.vstack((patch2,[patch2[0,0],-90]))
+	# 			patch1=np.vstack((patch1,[patch1[-1,0],-90]))
+	# 		elif eclipse_lat > 0:
+	# 			patch2=np.vstack((patch2,[patch2[0,0],90]))
+	# 			patch1=np.vstack((patch1,[patch1[-1,0],90]))
+
+	# 	return patch1, patch2
