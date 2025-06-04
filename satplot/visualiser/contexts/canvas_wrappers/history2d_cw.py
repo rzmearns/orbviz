@@ -25,6 +25,7 @@ import satplot.visualiser.assets.moon as moon
 import satplot.visualiser.assets.spacecraft as spacecraft
 import satplot.visualiser.assets.sun as sun
 import satplot.visualiser.assets.widgets as widgets
+import satplot.visualiser.cameras.RestrictedPanZoom as RestrictedPanZoom
 
 from vispy.visuals.transforms import STTransform
 
@@ -53,8 +54,16 @@ class History2DCanvasWrapper(BaseCanvas):
 		self.grid = self.canvas.central_widget.add_grid()
 
 		self.view_box = self.grid.add_view(0, 0, bgcolor='#008eaf')
-		self.view_box.camera = "panzoom"
+		self.view_box.camera = RestrictedPanZoom.RestrictedPanZoomCamera(limits=(0, IMAGE_SHAPE[0], 0, IMAGE_SHAPE[1]))
 		self.view_box.camera.set_range(x=(0, IMAGE_SHAPE[0]), y=(0, IMAGE_SHAPE[1]), margin=0)
+		self.vb_aspect_ratio = self.view_box.camera.aspect
+		rect = self.view_box.camera.rect
+		self.vb_max_extents = [int(rect.width), int(rect.height)]
+		self.vb_min_extents = [0, 0]
+		print(f'{rect.bottom=}')
+		print(f'{rect.left=}')
+		print(f'{self.vb_max_extents=}')
+		print(f'{self.vb_min_extents=}')
 
 
 		# self.view_box = self.canvas.central_widget.add_view()
@@ -80,14 +89,7 @@ class History2DCanvasWrapper(BaseCanvas):
 		self.assets['earth'] = earth.Earth2DAsset(v_parent=self.view_box.scene)
 		self.assets['primary_orbit'] = orbit.Orbit2DAsset(v_parent=self.view_box.scene)
 		# self.assets['moon'] = moon.Moon3DAsset(v_parent=self.view_box.scene)
-
-		# self.assets['spacecraft'] = spacecraft.Spacecraft3DAsset(v_parent=self.view_box.scene)
-
-		# self.assets['constellation'] = constellation.Constellation(v_parent=self.view_box.scene)
 		self.assets['sun'] = sun.Sun2DAsset(v_parent=self.view_box.scene)
-
-		# self.assets['ECI_gizmo'] = gizmo.ViewBoxGizmo(v_parent=self.view_box)
-		# self.setCameraZoom(5*c.R_EARTH)
 
 	def getActiveAssets(self) -> list[base_assets.AbstractAsset|base_assets.AbstractCompoundAsset|base_assets.AbstractSimpleAsset]:
 		active_assets = []
@@ -96,27 +98,8 @@ class History2DCanvasWrapper(BaseCanvas):
 				active_assets.append(k)
 		return active_assets
 
-	def setCameraMode(self, mode:str='turntable') -> None:
-		# allowed_cam_modes = ['turntable',
-		# 					'arcball',
-		# 					'fly',
-		# 					'panzoom',
-		# 					'magnify',
-		# 					'perspective']
-		# if mode not in allowed_cam_modes:
-		# 	logger.error(f'specified camera mode is not a valid mode: {mode}')
-		# 	raise NameError
-
-		# self.view_box.camera = mode
-		pass
-
-	def setCameraZoom(self, zoom:float) -> None:
-		# self.view_box.camera.scale_factor = zoom
-		pass
-
 	def setModel(self, hist_data:HistoryData) -> None:
 		self.data_models['history'] = hist_data
-		# self.modelUpdated()
 
 	def modelUpdated(self) -> None:
 		if self.data_models['history'] is None:
@@ -186,34 +169,9 @@ class History2DCanvasWrapper(BaseCanvas):
 			if asset.isActive():
 				asset.recomputeRedraw()
 
-
 	def setFirstDrawFlags(self) -> None:
 		for asset in self.assets.values():
 			asset.setFirstDrawFlagRecursive()
-
-	def centerCameraSpacecraft(self, set_zoom:bool=True) -> None:
-		# if self.canvas is None:
-		# 	logger.warning(f"Canvas has not been set for History3D Canvas Wrapper. No camera to center")
-		# 	raise AttributeError(f"Canvas has not been set for History3D Canvas Wrapper. No camera to center")
-		# if self.assets['spacecraft'].isActive():
-		# 	sc_pos = tuple(self.assets['spacecraft'].data['coords'][self.assets['spacecraft'].data['curr_index']])
-		# else:
-		# 	sc_pos = tuple(self.assets['primary_orbit'].data['coords'][self.assets['primary_orbit'].data['curr_index']])
-
-		# self.view_box.camera.center = sc_pos
-		# if set_zoom:
-		# 	self.setCameraZoom(2200)
-		# self.canvas.update()
-		pass
-
-	def centerCameraEarth(self) -> None:
-		# if self.canvas is None:
-		# 	logger.warning(f"Canvas has not been set for History3D Canvas Wrapper. No camera to center")
-		# 	raise AttributeError(f"Canvas has not been set for History3D Canvas Wrapper. No camera to center")
-		# self.view_box.camera.center = (0,0,0)
-		# self.setCameraZoom(5*c.R_EARTH)
-		# self.canvas.update()
-		pass
 
 	def prepSerialisation(self) -> dict[str,Any]:
 		# state = {}
@@ -290,13 +248,7 @@ class History2DCanvasWrapper(BaseCanvas):
 		pass
 
 	def onResize(self, event:ResizeEvent) -> None:
-		# self.assets['ECI_gizmo'].onResize(event)
 		pass
 
 	def onMouseScroll(self, event:QtGui.QMouseEvent) -> None:
 		pass
-
-def _generate_random_image_data(shape, dtype=np.float32):
-    rng = np.random.default_rng()
-    data = rng.random(shape, dtype=dtype)
-    return data
