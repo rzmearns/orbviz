@@ -141,6 +141,7 @@ class History3DContext(base.BaseContext):
 		self.controls.orbit_controls.period_end.setDatetime(self.data.getConfigValue('timespan_period_end'))
 		self.controls.time_slider._curr_dt_picker.setDatetime(self.data.getTimespan().start)
 		self.controls.orbit_controls.submit_button.setEnabled(True)
+		self.controls.time_slider.setValue(int(self.controls.time_slider.num_ticks/2))
 
 	def _updateDataSources(self) -> None:
 		self.canvas_wrapper.modelUpdated()
@@ -233,12 +234,12 @@ class Controls(base.BaseControls):
 
 	def setHotkeys(self):
 		self.shortcuts={}
-		self.shortcuts['PgDown'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgDown'), self.context.window)
-		self.shortcuts['PgDown'].activated.connect(self.time_slider.incrementValue)
-		self.shortcuts['PgDown'].activated.connect(self._updateCam)
-		self.shortcuts['PgUp'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgUp'), self.context.window)
-		self.shortcuts['PgUp'].activated.connect(self.time_slider.decrementValue)
-		self.shortcuts['PgUp'].activated.connect(self._updateCam)
+		# self.shortcuts['PgDown'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgDown'), self.context.window)
+		# self.shortcuts['PgDown'].activated.connect(self.time_slider.incrementValue)
+		# self.shortcuts['PgDown'].activated.connect(self._updateCam)
+		# self.shortcuts['PgUp'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgUp'), self.context.window)
+		# self.shortcuts['PgUp'].activated.connect(self.time_slider.decrementValue)
+		# self.shortcuts['PgUp'].activated.connect(self._updateCam)
 		self.shortcuts['Home'] = QtWidgets.QShortcut(QtGui.QKeySequence('Home'), self.context.window)
 		self.shortcuts['Home'].activated.connect(self.time_slider.setBeginning)
 		self.shortcuts['Home'].activated.connect(self._updateCam)

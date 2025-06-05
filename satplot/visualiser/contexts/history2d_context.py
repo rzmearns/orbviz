@@ -143,6 +143,7 @@ class History2DContext(base.BaseContext):
 		self.controls.orbit_controls.period_end.setDatetime(self.data.getConfigValue('timespan_period_end'))
 		self.controls.time_slider._curr_dt_picker.setDatetime(self.data.getTimespan().start)
 		self.controls.orbit_controls.submit_button.setEnabled(True)
+		self.controls.time_slider.setValue(int(self.controls.time_slider.num_ticks/2))
 
 	def _updateDataSources(self) -> None:
 		self.canvas_wrapper.modelUpdated()
