@@ -199,6 +199,8 @@ class History2DCanvasWrapper(BaseCanvas):
 		for asset_name, asset in self.assets.items():
 			if asset.isActive():
 				mo_infos.append(asset.getScreenMouseOverInfo())
+				for ii, world_pos in enumerate(mo_infos[-1]['world_pos']):
+					mo_infos[-1]['screen_pos'][ii] = self.mapWorldPosToScreen(world_pos)
 
 		return mo_infos
 
@@ -210,6 +212,19 @@ class History2DCanvasWrapper(BaseCanvas):
 		world_y = self.vb_max_extents[1] - ((self.vb_max_extents[1]-curr_screen_rect.top) + screen_pos[1]/canvas_height * curr_screen_rect.height)
 		return world_x, world_y
 
+	def mapWorldPosToScreen(self, world_pos):
+		if len(world_pos) == 0:
+			return (None, None)
+		curr_screen_rect = self.view_box.camera.rect
+		canvas_height = self.canvas.native.height()
+		canvas_width = self.canvas.native.width()
+		world_pixels_x = (world_pos[0]+180)*self.horiz_pixel_scale
+		world_pixels_y = (world_pos[1]+90)*self.vert_pixel_scale
+		screen_pos_x = (world_pixels_x - curr_screen_rect.left)*canvas_width/curr_screen_rect.width
+		screen_pos_y = ((self.vb_max_extents[1] - world_pixels_y) - (self.vb_max_extents[1]-curr_screen_rect.top))*canvas_height/curr_screen_rect.height
+
+		return screen_pos_x, screen_pos_y
+
 	def _setMouseOverVisible(self):
 		self.mouseOverText.setVisible(True)
 		self.mouseOverTimer.stop()
@@ -217,50 +232,38 @@ class History2DCanvasWrapper(BaseCanvas):
 	def onMouseMove(self, event:MouseEvent) -> None:
 		global last_mevnt_time
 		global mouse_over_is_highlighting
-		# # for asset_name,asset in self.assets.items():
-		# # 	if asset.isActive():
-		# # 		asset.onMouseMove(event)
-		# self.assets['ECI_gizmo'].onMouseMove(event)
 
 		# throttle mouse events to 50ms
 		if time.monotonic() - last_mevnt_time < 0.05:
 			return
 
 		# reset mouseOver
-		self.mouseOverText.setVisible(False)
 		self.mouseOverTimer.stop()
 
-		# mo_infos = self.mapAssetPositionsToScreen()
+		mo_infos = self.mapAssetPositionsToScreen()
 		pp = event.pos
 		event_world_x, event_world_y = self.mapScreenPosToWorld(pp)
 		event_lon = (event_world_x/self.horiz_pixel_scale - 180)
 		event_lat = (event_world_y/self.vert_pixel_scale - 90)
 		text = f'{event_lon:.2f}, {event_lat:.2f}'
 
+		for jj, mo_info in enumerate(mo_infos):
+			for ii, pos in enumerate(mo_info['screen_pos']):
+				if ((abs(pos[0] - pp[0]) < MOUSEOVER_DIST_THRESHOLD) and \
+					(abs(pos[1] - pp[1]) < MOUSEOVER_DIST_THRESHOLD)):
+					last_mevnt_time = time.monotonic()
+					self.mouseOverText.setText(mo_info['strings'][ii].lower().capitalize())
+					self.mouseOverText.setAnchorPosWithinCanvas(pp, self.canvas)
+					self.mouseOverObject = mo_info['objects'][ii].mouseOver(ii)
+					self.mouseOverTimer.start(300)
+					mouse_over_is_highlighting = True
+					return
+
 		self.mouseOverText.setText(text)
 		self.mouseOverText.setAnchorPosWithinCanvas(pp, self.canvas)
 		self.mouseOverTimer.start(300)
 
-
-		# for jj, mo_info in enumerate(mo_infos):
-		# 	for ii, pos in enumerate(mo_info['screen_pos']):
-		# 		if ((abs(pos[0] - pp[0]) < MOUSEOVER_DIST_THRESHOLD) and \
-		# 			(abs(pos[1] - pp[1]) < MOUSEOVER_DIST_THRESHOLD)):
-		# 			dot = np.dot(pg.unitVector(mo_info['world_pos'][ii]),acamv[1,:])[0]
-		# 			if dot >=0:
-		# 				last_mevnt_time = time.monotonic()
-		# 				self.mouseOverText.setVisible(True)
-		# 				self.mouseOverText.setText(mo_info['strings'][ii].lower().capitalize())
-		# 				self.mouseOverText.setPos((pos[0]+5, pos[1]))
-		# 				self.mouseOverObject = mo_info['objects'][ii].mouseOver(ii)
-		# 				mouse_over_is_highlighting = True
-		# 				return
-
-		# self.mouseOverText.setVisible(False)
-		# if mouse_over_is_highlighting:
-		# 	if self.mouseOverObject is not None:
-		# 		self.mouseOverObject = self.mouseOverObject.restoreMouseOver()
-		# 	mouse_over_is_highlighting = False
+		self.mouseOverText.setVisible(False)
 		last_mevnt_time = time.monotonic()
 		pass
 

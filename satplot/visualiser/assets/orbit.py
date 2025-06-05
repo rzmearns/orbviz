@@ -223,6 +223,11 @@ class Orbit2DAsset(base_assets.AbstractAsset):
 			logger.warning(f'Orbit has no position data')
 			raise ValueError('Orbit has no position data')
 
+		if hasattr(first_sat_orbit,'name'):
+			self.data['strings'] = [first_sat_orbit.name]
+		else:
+			self.data['strings'] = ['']
+
 	def setScale(self, horizontal_size, vertical_size):
 		self.data['horiz_pixel_scale'] = horizontal_size/360
 		self.data['vert_pixel_scale'] = vertical_size/180
@@ -272,6 +277,15 @@ class Orbit2DAsset(base_assets.AbstractAsset):
 			self.visuals['future'].set_data(pos=self.data['future_coords'], connect=self.data['future_conn'])
 			self._recomputeRedrawChildren()
 			self._clearStaleFlag()
+
+	def getScreenMouseOverInfo(self) -> dict[str, Any]:
+		curr_world_pos = (self.data['coords'][self.data['curr_index']]).reshape(1,2)
+		mo_info = {'screen_pos':[], 'world_pos':[], 'strings':[], 'objects':[]}
+		mo_info['screen_pos'] = [(None, None)]
+		mo_info['world_pos'] = [curr_world_pos.reshape(2,)]
+		mo_info['strings'] = self.data['strings']
+		mo_info['objects'] = [self]
+		return mo_info
 
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
