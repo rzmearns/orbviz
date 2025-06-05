@@ -9,6 +9,7 @@ from satplot.model.data_models.history_data import HistoryData
 
 import satplot.visualiser.contexts.base_context as base
 from satplot.visualiser.contexts.canvas_wrappers.base_cw import (BaseCanvas)
+from satplot.visualiser.contexts.canvas_wrappers.cw_container import (CWContainer)
 import satplot.visualiser.contexts.canvas_wrappers.history2d_cw as history2d_cw
 import satplot.visualiser.interface.console as console
 import satplot.visualiser.interface.controls as controls
@@ -45,8 +46,9 @@ class History2DContext(base.BaseContext):
 		# | ###
 		'''
 		disp_hsplitter.addWidget(self.controls.config_tabs)
-		disp_hsplitter.addWidget(self.canvas_wrapper.getCanvas().native)
-
+		self.cw_container = CWContainer()
+		self.cw_container.addWidget(self.canvas_wrapper.getCanvas().native)
+		disp_hsplitter.addWidget(self.cw_container)
 		# Build area down to bottom of time slider
 		'''
 		# | ###
@@ -71,6 +73,8 @@ class History2DContext(base.BaseContext):
 			raise AttributeError(f'Context History3D: {self} does not have a data model.')
 		self.data.data_ready.connect(self._updateDataSources)
 		self.data.data_ready.connect(self._updateControls)
+
+		self.cw_container.left.connect(self.canvas_wrapper.stopMouseOverTimer)
 
 	def _validateDataType(self) -> None:
 		if self.data is not None and self.data.getType() != self.data_type:
