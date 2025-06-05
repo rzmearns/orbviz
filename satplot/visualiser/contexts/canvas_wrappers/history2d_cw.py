@@ -84,7 +84,7 @@ class History2DCanvasWrapper(BaseCanvas):
 		print(f'building 2d assets')
 		self.assets['earth'] = earth.Earth2DAsset(v_parent=self.view_box.scene)
 		self.assets['primary_orbit'] = orbit.Orbit2DAsset(v_parent=self.view_box.scene)
-		# self.assets['moon'] = moon.Moon3DAsset(v_parent=self.view_box.scene)
+		self.assets['moon'] = moon.Moon2DAsset(v_parent=self.view_box.scene)
 		self.assets['sun'] = sun.Sun2DAsset(v_parent=self.view_box.scene)
 
 	def getActiveAssets(self) -> list[base_assets.AbstractAsset|base_assets.AbstractCompoundAsset|base_assets.AbstractSimpleAsset]:
@@ -103,47 +103,22 @@ class History2DCanvasWrapper(BaseCanvas):
 			raise exceptions.InvalidDataError
 
 		if self.data_models['history'].timespan is not None:
-			# self.assets['earth'].setSource(self.data_models['history'].timespan)
 			self.assets['earth'].makeActive()
 
-		# # Update data source for moon asset
-		# if len(self.data_models['history'].getConfigValue('primary_satellite_ids')) > 0:
-		# 	self.assets['moon'].setSource(list(self.data_models['history'].orbits.values())[0])
-		# 	self.assets['moon'].makeActive()
+		# Update data source for moon asset
+		if len(self.data_models['history'].getConfigValue('primary_satellite_ids')) > 0:
+			self.assets['moon'].setScale(*self.assets['earth'].getDimensions())
+			self.assets['moon'].setSource(self.data_models['history'].getOrbits())
+			self.assets['moon'].makeActive()
 
-		# # Update data source for primary orbit(s)
+		# Update data source for primary orbit(s)
 		if len(self.data_models['history'].getConfigValue('primary_satellite_ids')) > 0:
 			# TODO: extend to draw multiple primary satellites
 			self.assets['primary_orbit'].setScale(*self.assets['earth'].getDimensions())
 			self.assets['primary_orbit'].setSource(self.data_models['history'].getOrbits())
 			self.assets['primary_orbit'].makeActive()
 
-		# if self.data_models['history'].hasOrbits():
-		# 	if self.data_models['history'].getConfigValue('is_pointing_defined'):
-		# 		self.assets['spacecraft'].setSource(self.data_models['history'].getOrbits(),
-		# 											self.data_models['history'].getPointings(),
-		# 											self.data_models['history'].getConfigValue('pointing_invert_transform'),
-		# 											list(self.data_models['history'].getPrimaryConfig().getAllSpacecraftConfigs().values())[0])
-		# 		self.assets['spacecraft'].makeActive()
-		# 		self.assets['spacecraft'].setOrbitalMarkerVisibility(False)
-		# 		self.assets['spacecraft'].setAttitudeAssetsVisibility(True)
-		# 	else:
-		# 		self.assets['spacecraft'].setSource(self.data_models['history'].getOrbits(),
-		# 											None,
-		# 											None,
-		# 											list(self.data_models['history'].getPrimaryConfig().getAllSpacecraftConfigs().values())[0])
-		# 		self.assets['spacecraft'].makeActive()
-		# 		self.assets['spacecraft'].setOrbitalMarkerVisibility(True)
-		# 		self.assets['spacecraft'].setAttitudeAssetsVisibility(False)
-
-		# if self.data_models['history'].getConfigValue('has_supplemental_constellation'):
-		# 	self.assets['constellation'].setSource(self.data_models['history'].getConstellation().getOrbits(),
-		# 											self.data_models['history'].getConstellation().getConfigValue('beam_angle_deg'))
-		# 	self.assets['constellation'].makeActive()
-		# else:
-		# 	self.assets['constellation'].makeDormant()
-
-		# # Update data source for sun asset
+		# Update data source for sun asset
 		if len(self.data_models['history'].getConfigValue('primary_satellite_ids')) > 0:
 			self.assets['sun'].makeDormant()
 			self.assets['sun'].setScale(*self.assets['earth'].getDimensions())
@@ -160,8 +135,6 @@ class History2DCanvasWrapper(BaseCanvas):
 
 	def recomputeRedraw(self) -> None:
 		for asset_name, asset in self.assets.items():
-			# if asset_name == 'sun':
-			# 	continue
 			if asset.isActive():
 				asset.recomputeRedraw()
 
