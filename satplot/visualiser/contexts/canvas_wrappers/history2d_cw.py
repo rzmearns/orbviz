@@ -1,9 +1,11 @@
 import json
 import logging
+from PyQt5.QtCore import QTimer
 import numpy as np
 import time
 from typing import Any
 
+from PyQt5 import QtCore
 from PyQt5 import QtGui
 
 from vispy import scene
@@ -60,26 +62,20 @@ class History2DCanvasWrapper(BaseCanvas):
 		rect = self.view_box.camera.rect
 		self.vb_max_extents = [int(rect.width), int(rect.height)]
 		self.vb_min_extents = [0, 0]
-		print(f'{rect.bottom=}')
-		print(f'{rect.left=}')
-		print(f'{self.vb_max_extents=}')
-		print(f'{self.vb_min_extents=}')
+		self.horiz_pixel_scale = rect.width/360
+		self.vert_pixel_scale = rect.height/180
 
-
-		# self.view_box = self.canvas.central_widget.add_view()
-		# self.view_box.camera = scene.cameras.TurntableCamera(parent=self.view_box.scene,
-		# 													fov=60,
-		# 													center=(0,0,0),
-		# 													name='Turntable')
 		self.data_models: dict[str,Any] = {}
 		self.assets = {}
 		self._buildAssets()
-		# self.mouseOverText = widgets.PopUpTextBox(v_parent=self.view_box,
-		# 									padding=[3,3,3,3],
-		# 									colour=(253,255,189),
-		# 									border_colour=(186,186,186),
-		# 									font_size=10)
-		# self.mouseOverObject = None
+		self.mouseOverText = widgets.PopUpTextBox(v_parent=self.view_box,
+											padding=[3,3,3,3],
+											colour=(253,255,189),
+											border_colour=(186,186,186),
+											font_size=10)
+		self.mouseOverTimer = QtCore.QTimer()
+		self.mouseOverTimer.timeout.connect(self._setMouseOverVisible)
+		self.mouseOverObject = None
 
 	def printOut(self, value):
 		print(f'fps:{value}')
@@ -206,24 +202,45 @@ class History2DCanvasWrapper(BaseCanvas):
 
 		return mo_infos
 
+	def mapScreenPosToWorld(self, screen_pos):
+		curr_screen_rect = self.view_box.camera.rect
+		canvas_height = self.canvas.native.height()
+		canvas_width = self.canvas.native.width()
+		world_x = curr_screen_rect.left + screen_pos[0]/canvas_width * curr_screen_rect.width
+		world_y = self.vb_max_extents[1] - ((self.vb_max_extents[1]-curr_screen_rect.top) + screen_pos[1]/canvas_height * curr_screen_rect.height)
+		return world_x, world_y
+
+	def _setMouseOverVisible(self):
+		self.mouseOverText.setVisible(True)
+		self.mouseOverTimer.stop()
+
 	def onMouseMove(self, event:MouseEvent) -> None:
-		# global last_mevnt_time
-		# global mouse_over_is_highlighting
+		global last_mevnt_time
+		global mouse_over_is_highlighting
 		# # for asset_name,asset in self.assets.items():
 		# # 	if asset.isActive():
 		# # 		asset.onMouseMove(event)
 		# self.assets['ECI_gizmo'].onMouseMove(event)
 
-		# # cull if behind center of camera plane
-		# az = np.deg2rad(self.view_box.camera.azimuth+179)
-		# el = np.deg2rad(self.view_box.camera.elevation)
-		# acamv = np.array([[0,0,0],[np.sin(-az)*np.cos(el),np.cos(-az)*np.cos(el),np.sin(el)]])
+		# throttle mouse events to 50ms
+		if time.monotonic() - last_mevnt_time < 0.05:
+			return
 
-		# # throttle mouse events to 100ms
-		# if time.monotonic() - last_mevnt_time < 0.1:
-		# 	return
+		# reset mouseOver
+		self.mouseOverText.setVisible(False)
+		self.mouseOverTimer.stop()
+
 		# mo_infos = self.mapAssetPositionsToScreen()
-		# pp = event.pos
+		pp = event.pos
+		event_world_x, event_world_y = self.mapScreenPosToWorld(pp)
+		event_lon = (event_world_x/self.horiz_pixel_scale - 180)
+		event_lat = (event_world_y/self.vert_pixel_scale - 90)
+		text = f'{event_lon:.2f}, {event_lat:.2f}'
+
+		self.mouseOverText.setText(text)
+		self.mouseOverText.setAnchorPosWithinCanvas(pp, self.canvas)
+		self.mouseOverTimer.start(300)
+
 
 		# for jj, mo_info in enumerate(mo_infos):
 		# 	for ii, pos in enumerate(mo_info['screen_pos']):
@@ -244,7 +261,7 @@ class History2DCanvasWrapper(BaseCanvas):
 		# 	if self.mouseOverObject is not None:
 		# 		self.mouseOverObject = self.mouseOverObject.restoreMouseOver()
 		# 	mouse_over_is_highlighting = False
-		# last_mevnt_time = time.monotonic()
+		last_mevnt_time = time.monotonic()
 		pass
 
 	def onResize(self, event:ResizeEvent) -> None:
