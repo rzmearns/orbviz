@@ -52,7 +52,6 @@ class History2DCanvasWrapper(BaseCanvas):
 		self.canvas.events.mouse_move.connect(self.onMouseMove)
 		self.canvas.events.mouse_wheel.connect(self.onMouseScroll)
 		self.canvas.events.resize.connect(self.onResize)
-		self.canvas.measure_fps(window=1, callback=self.printOut)
 		self.grid = self.canvas.central_widget.add_grid()
 
 		self.view_box = self.grid.add_view(0, 0, bgcolor='#008eaf')
@@ -76,9 +75,6 @@ class History2DCanvasWrapper(BaseCanvas):
 		self.mouseOverTimer = QtCore.QTimer()
 		self.mouseOverTimer.timeout.connect(self._setMouseOverVisible)
 		self.mouseOverObject = None
-
-	def printOut(self, value):
-		print(f'fps:{value}')
 
 	def _buildAssets(self) -> None:
 		print(f'building 2d assets')
@@ -200,6 +196,9 @@ class History2DCanvasWrapper(BaseCanvas):
 
 	def _setMouseOverVisible(self):
 		self.mouseOverText.setVisible(True)
+		self.mouseOverTimer.stop()
+
+	def stopMouseOverTimer(self) -> None:
 		self.mouseOverTimer.stop()
 
 	def onMouseMove(self, event:MouseEvent) -> None:
