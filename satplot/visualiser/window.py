@@ -56,7 +56,8 @@ class MainWindow(QtWidgets.QMainWindow):
 		self.menubars['blank'] = self.contexts_dict['blank'].controls.menubar
 		self.context_tabs.addTab(self.contexts_dict['blank'].widget, 'Blank')
 
-		self.context_tabs.setCurrentIndex(1)
+
+
 		# self.toolbars['blank'] = self.contexts_dict['blank'].controls.toolbar
 		# self.menubars['blank'] = self.contexts_dict['blank'].controls.menubar
 		# self.context_tabs.addTab(QtWidgets.QWidget(), 'Blank')
@@ -100,7 +101,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
 		self.setWindowTitle(title)
-		self._changeToolbarsToContext(0)
+		self.context_tabs.setCurrentIndex(1)
+		self._changeToolbarsToContext(1)
 
 	def _changeToolbarsToContext(self, new_context_index:int) -> None:
 		new_context_key = list(self.toolbars.keys())[new_context_index]

@@ -65,8 +65,6 @@ class History2DContext(base.BaseContext):
 		logger.info(f"Connecting controls of {self.config['name']}")
 		self.controls.orbit_controls.submit_button.clicked.connect(self._configureData)
 		self.controls.time_slider.add_connect(self._updateDisplayedIndex)
-		self.controls.action_dict['center-earth']['callback'] = self._centerCameraEarth
-		self.controls.action_dict['center-spacecraft']['callback'] = self._toggleCameraSpacecraft
 		self.sccam_state = False
 		if self.data is None:
 			logger.warning(f'Context History3D: {self} does not have a data model.')
@@ -167,43 +165,12 @@ class History2DContext(base.BaseContext):
 		self.canvas_wrapper.deSerialise(state_dict['camera'])
 		self.controls.deSerialise(state_dict['controls'])
 
-		# self.data = state_dict['data']
-		# self.canvas_wrapper.setSource(self.data['timespan'],
-		# 								self.data['orbit'],
-		# 								self.data['pointing'],
-		# 								self.data['pointing_invert_transform'],
-		# 								self.data['constellation_list'],
-		# 								self.data['constellation_beam_angle'])
-		# self.canvas_wrapper.setFirstDrawFlags()
-		# console.send(f"Drawing {self.data['name']} Assets...")
-
-		# self.canvas_wrapper.deSerialise(state_dict['camera'])
-
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
 		state['data'] = self.data.prepSerialisation()
 		state['controls'] = self.controls.prepSerialisation()
 		state['camera'] = self.canvas_wrapper.prepSerialisation()
 		return state
-
-
-
-	def _centerCameraEarth(self) -> None:
-		if self.sccam_state and self.controls.toolbar.button_dict['center-spacecraft'].isChecked():
-			# if center cam on sc is on, turn it off when selecting center cam on earth.
-			self.controls.toolbar.button_dict['center-spacecraft'].setChecked(False)
-		self.sccam_state = False
-		self.canvas_wrapper.centerCameraEarth()	
-
-	def _toggleCameraSpacecraft(self) -> None:
-		self.sccam_state = not self.sccam_state
-
-		if self.sccam_state:
-			self.canvas_wrapper.centerCameraSpacecraft()
-			# setting button to checkable in case camera set to center via menu
-			self.controls.toolbar.button_dict['center-spacecraft'].setChecked(True)
-
-
 
 		
 class Controls(base.BaseControls):
@@ -233,11 +200,11 @@ class Controls(base.BaseControls):
 
 	def setHotkeys(self):
 		self.shortcuts={}
-		# self.shortcuts['PgDown'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgDown'), self.context.window)
-		# self.shortcuts['PgDown'].activated.connect(self.time_slider.incrementValue)
+		self.shortcuts['PgDown'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgDown'), self.context.window)
+		self.shortcuts['PgDown'].activated.connect(self.time_slider.incrementValue)
 		# self.shortcuts['PgDown'].activated.connect(self._updateCam)
-		# self.shortcuts['PgUp'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgUp'), self.context.window)
-		# self.shortcuts['PgUp'].activated.connect(self.time_slider.decrementValue)
+		self.shortcuts['PgUp'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgUp'), self.context.window)
+		self.shortcuts['PgUp'].activated.connect(self.time_slider.decrementValue)
 		# self.shortcuts['PgUp'].activated.connect(self._updateCam)
 		# self.shortcuts['Home'] = QtWidgets.QShortcut(QtGui.QKeySequence('Home'), self.context.window)
 		# self.shortcuts['Home'].activated.connect(self.time_slider.setBeginning)
