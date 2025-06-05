@@ -27,9 +27,9 @@ class OrbitConfigs(QtWidgets.QWidget):
 		self.pane_layout.setSpacing(10)
 
 		# Add widgets here
-		self.period_start = widgets.DatetimeEntry("Period Start:", dt.datetime.now())
-		self.period_end = widgets.DatetimeEntry("Period End:", (dt.datetime.now()+dt.timedelta(seconds=1)))
-		self.sampling_period = widgets.PeriodBox("Sampling Period:", 1)
+		self.period_start = widgets.DatetimeEntry("Period Start:", dt.datetime.now()-dt.timedelta(seconds=1.5*60*60))
+		self.period_end = widgets.DatetimeEntry("Period End:", (dt.datetime.now()+dt.timedelta(seconds=1.5*60*60)))
+		self.sampling_period = widgets.PeriodBox("Sampling Period:", 10)
 		self.button_layout = QtWidgets.QHBoxLayout()
 		self.submit_button = QtWidgets.QPushButton('Recalculate')
 		self.prim_orbit_selector = widgets.FilePicker('Primary Orbit',

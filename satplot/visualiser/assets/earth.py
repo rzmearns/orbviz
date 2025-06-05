@@ -2,8 +2,10 @@ import logging
 import numpy as np
 import numpy.typing as nptyping
 from skyfield.api import wgs84
+from typing import Tuple
 
 from vispy import scene, color
+from vispy.io import load_data_file, read_png
 from vispy.scene.widgets.viewbox import ViewBox
 from vispy.visuals import transforms as vTransforms
 
@@ -49,6 +51,7 @@ class Earth3DAsset(base_assets.AbstractAsset):
 
 		# rotation data
 		self.data['nullisland_topos'] = wgs84.latlon(0,0)
+		self.old_rot_rad = 0
 
 	def setSource(self, *args, **kwargs) -> None:
 		if type(args[0]) is not timespan.TimeSpan:
@@ -91,6 +94,7 @@ class Earth3DAsset(base_assets.AbstractAsset):
 		if self.isStale():
 			# calculate rotation of earth
 			nullisland_curr = self.data['nullisland_topos'].at(self.data['datetimes'][self.data['curr_index']]).xyz.km
+
 			rot_rad = np.arctan2(nullisland_curr[1], nullisland_curr[0])
 			self.data['ecef_rads'] = rot_rad
 			R = transforms.rotAround(self.data['ecef_rads'], pg.Z)
@@ -492,3 +496,161 @@ class MeridiansGrid3DAsset(base_assets.AbstractSimpleAsset):
 		coords = rot_mat.dot(coords.T).T
 
 		return coords
+
+class Earth2DAsset(base_assets.AbstractAsset):
+	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
+		super().__init__(name, v_parent)
+
+		self._setDefaultOptions()
+		self._initData()
+		self._instantiateAssets()
+		self._createVisuals()
+		# These callbacks need to be set after asset creation as the option dict is populated during draw()
+
+		self._attachToParentView()
+		print(f'finished initialising 2D asset')
+
+	def _initData(self) -> None:
+		if self.data['name'] is None:
+			self.data['name'] = 'Earth'
+
+	def setSource(self, *args, **kwargs) -> None:
+		if type(args[0]) is not timespan.TimeSpan:
+			# args[0] assumed to be timespan
+			logger.error(f"setSource() of {self} requires a {timespan.Timespan} as args[0], not: {type(args[0])}")
+			raise TypeError
+		# TODO: add capability to produce array of skyfields)
+		times = []
+		for ii in range(len(args[0])):
+			times.append(args[0].asSkyfield(ii))
+		self.data['datetimes'] = np.asarray(times)
+		for asset in self.assets.values():
+			asset.setSource(self.data['datetimes'])
+
+	def _instantiateAssets(self) -> None:
+		pass
+
+	def _createVisuals(self) -> None:
+		# Earth Sphere
+		img_data = np.flip(read_png(f'{satplot_paths.data_dir}/earth2D/equirectangular.jpg'),0)
+		print(f'loaded image')
+		self.visuals['earth'] = scene.visuals.Image(
+			img_data,
+			interpolation = 'nearest',
+			texture_format="auto",
+			parent=None,
+		)
+		self.visuals['earth'].order = 0
+		print(f"{self.visuals['earth'].order=}")
+		(w,h) = self.visuals['earth'].size
+		self.data['width'] = w
+		self.data['height'] = h
+		print(f'created visual')
+
+	def getDimensions(self) -> Tuple[int, int]:
+		return self.data['width'], self.data['height']
+
+	def recomputeRedraw(self) -> None:
+		if self.isFirstDraw():
+			self._clearFirstDrawFlag()
+		if self.isStale():
+
+			# recomputeRedraw child assets
+			self._recomputeRedrawChildren(rotation=None)
+			self._clearStaleFlag()
+		pass
+
+	def _setDefaultOptions(self) -> None:
+		self._dflt_opts = {}
+		self._dflt_opts['plot_earth'] = {'value': True,
+										  		'type': 'boolean',
+												'help': '',
+												'static': True,
+												'callback': self.setVisibilityRecursive,
+											'widget': None}
+		self._dflt_opts['plot_earth_sphere'] = {'value': True,
+										  		'type': 'boolean',
+												'help': '',
+												'static': True,
+												'callback': self.setEarthSphereVisibility,
+											'widget': None}
+		self._dflt_opts['earth_sphere_colour'] = {'value': (220,220,220),
+												'type': 'colour',
+												'help': '',
+												'static': True,
+												'callback': self.setEarthSphereColour,
+											'widget': None}
+		self._dflt_opts['plot_earth_axis'] = {'value': True,
+										  		'type': 'boolean',
+												'help': '',
+												'static': True,
+												'callback': self.setEarthAxisVisibility,
+											'widget': None}
+		self._dflt_opts['earth_axis_colour'] = {'value': (255,0,0),
+												'type': 'colour',
+												'help': '',
+												'static': True,
+												'callback': self.setEarthAxisColour,
+											'widget': None}
+		self._dflt_opts['plot_parallels'] = {'value': True,
+										  		'type': 'boolean',
+												'help': '',
+												'static': True,
+												'callback': None,
+											'widget': None}
+		self._dflt_opts['plot_equator'] = {'value': True,
+										  		'type': 'boolean',
+												'help': '',
+												'static': True,
+												'callback': None,
+											'widget': None}
+		self._dflt_opts['plot_meridians'] = {'value': True,
+										  		'type': 'boolean',
+												'help': '',
+												'static': True,
+												'callback': None,
+											'widget': None}
+		self._dflt_opts['plot_landmass'] = {'value': True,
+										  		'type': 'boolean',
+												'help': '',
+												'static': True,
+												'callback': self.setLandmassVisibility,
+											'widget': None}
+		self._dflt_opts['landmass_colour'] = {'value': (0,0,0),
+												'type': 'colour',
+												'help': '',
+												'static': True,
+												'callback': self.setLandMassColour,
+											'widget': None}
+
+		self.opts = self._dflt_opts.copy()
+
+	#----- OPTIONS CALLBACKS -----#
+	def setEarthSphereColour(self, new_colour:tuple[float,float,float]) -> None:
+		logger.debug(f"Changing earth sphere colour {self.opts['earth_sphere_colour']['value']} -> {new_colour}")
+		self.opts['earth_sphere_colour']['value'] = new_colour
+		n_faces = self.visuals['earth_sphere'].mesh._meshdata.n_faces
+		n_verts = self.visuals['earth_sphere'].mesh._meshdata.n_vertices
+		self.visuals['earth_sphere'].mesh._meshdata.set_face_colors(np.tile(colours.normaliseColour(new_colour),(n_faces,1)))
+		self.visuals['earth_sphere'].mesh._meshdata.set_vertex_colors(np.tile(colours.normaliseColour(new_colour),(n_verts,1)))
+		self.visuals['earth_sphere'].mesh.mesh_data_changed()
+
+	def setEarthAxisColour(self, new_colour:tuple[float,float,float]) -> None:
+		self.opts['earth_axis_colour']['value'] = colours.normaliseColour(new_colour)
+		self.visuals['earth_axis'].set_data(color=colours.normaliseColour(new_colour))
+
+	def setLandMassColour(self, new_colour:tuple[float,float,float]) -> None:
+		self.opts['landmass_colour']['value'] = colours.normaliseColour(new_colour)
+		self.visuals['landmass'].set_data(color=colours.normaliseColour(new_colour))
+
+	def setEarthAxisVisibility(self, state:bool) -> None:
+		self.opts['plot_earth_axis']['value'] = state
+		self.visuals['earth_axis'].visible = self.opts['plot_earth_axis']['value']
+
+	def setLandmassVisibility(self, state:bool) -> None:
+		self.opts['plot_landmass']['value'] = state
+		self.visuals['landmass'].visible = self.opts['plot_landmass']['value']
+
+	def setEarthSphereVisibility(self, state:bool) -> None:
+		self.opts['plot_earth_sphere']['value'] = state
+		self.visuals['earth_sphere'].visible = self.opts['plot_earth_sphere']['value']

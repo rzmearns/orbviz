@@ -709,7 +709,8 @@ class DatetimeEntry(QtWidgets.QWidget):
 	def __init__(self, label, dflt_datetime, parent: QtWidgets.QWidget=None) -> None:
 		super().__init__(parent)
 		self._callbacks = []
-		self.datetime = dflt_datetime
+		# datetime should always be in UTC
+		self.datetime = dflt_datetime.replace(tzinfo=dt.timezone.utc)
 		vlayout = QtWidgets.QVBoxLayout()
 		hlayout1 = QtWidgets.QHBoxLayout()
 		hlayout2 = QtWidgets.QHBoxLayout()
@@ -727,7 +728,7 @@ class DatetimeEntry(QtWidgets.QWidget):
 			self._label.setFont(self._label_font)
 			hlayout1.addWidget(self._label)
 				
-		self._curr_dt = QtWidgets.QLabel(self.datetime.strftime("%Y-%m-%d   %H:%M:%S"))
+		self._curr_dt = QtWidgets.QLabel(self.datetime.strftime("%Y-%m-%d   %H:%M:%S UTC"))
 		self._mon_sp = QtWidgets.QLabel("-")
 		self._day_sp = QtWidgets.QLabel("-")
 		self._hr_sp = QtWidgets.QLabel("     ")
@@ -784,21 +785,21 @@ class DatetimeEntry(QtWidgets.QWidget):
 		f"{self._sec_text_box.text()}"
 		try:
 			self.datetime = dt.datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
+			self.datetime = self.datetime.replace(tzinfo=dt.timezone.utc)
 		except ValueError:
 			self.setDatetime(self.datetime)
 			return
-		self.datetime = dt.datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
-		self._curr_dt.setText(self.datetime.strftime("%Y-%m-%d   %H:%M:%S"))
+		self._curr_dt.setText(self.datetime.strftime("%Y-%m-%d   %H:%M:%S UTC"))
 
 	def setDatetime(self, datetime):
-		self.datetime = datetime
+		self.datetime = datetime.replace(tzinfo=dt.timezone.utc)
 		self._yr_text_box.setText(datetime.strftime("%Y"))
 		self._mon_text_box.setText(datetime.strftime("%m"))
 		self._day_text_box.setText(datetime.strftime("%d"))
 		self._hr_text_box.setText(datetime.strftime("%H"))
 		self._min_text_box.setText(datetime.strftime("%M"))
 		self._sec_text_box.setText(datetime.strftime("%S"))
-		self._curr_dt.setText(self.datetime.strftime("%Y-%m-%d   %H:%M:%S"))
+		self._curr_dt.setText(self.datetime.strftime("%Y-%m-%d   %H:%M:%S UTC"))
 
 	def addConnect(self, callback):
 		self._callbacks.append(callback)
