@@ -1,6 +1,7 @@
 import logging
 import numpy as np
 import pymap3d
+from typing import Any
 from scipy.spatial import ConvexHull as ConvexHull
 from scipy.spatial.transform import Rotation
 
@@ -373,6 +374,7 @@ class Sun2DAsset(base_assets.AbstractAsset):
 
 		self.data['eclipse_edge1'] = self.data['eclipse_edge'].copy()
 		self.data['eclipse_edge2'] = self.data['eclipse_edge'].copy()
+		self.data['strings'] = [self.data['name']]
 
 	def _instantiateAssets(self):
 		pass
@@ -472,6 +474,15 @@ class Sun2DAsset(base_assets.AbstractAsset):
 
 			self._recomputeRedrawChildren()
 			self._clearStaleFlag()
+
+	def getScreenMouseOverInfo(self) -> dict[str, Any]:
+		curr_world_pos = (self.data['coords'][self.data['curr_index']]).reshape(1,2)
+		mo_info = {'screen_pos':[], 'world_pos':[], 'strings':[], 'objects':[]}
+		mo_info['screen_pos'] = [(None, None)]
+		mo_info['world_pos'] = [curr_world_pos.reshape(2,)]
+		mo_info['strings'] = self.data['strings']
+		mo_info['objects'] = [self]
+		return mo_info
 
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}
