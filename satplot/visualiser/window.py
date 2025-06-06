@@ -1,3 +1,4 @@
+import logging
 import sys
 from typing import Any
 
@@ -5,8 +6,10 @@ from PyQt5 import QtWidgets, QtCore
 
 import satplot
 from satplot.model.data_models import (history_data)
-from satplot.visualiser.contexts import (history3d_context, blank_context, sensor_view_context)
+from satplot.visualiser.contexts import (history3d_context, history2d_context, blank_context, sensor_view_context)
 import satplot.visualiser.interface.console as console
+
+logger = logging.getLogger(__name__)
 
 class MainWindow(QtWidgets.QMainWindow):
 	closing = QtCore.pyqtSignal()
@@ -43,6 +46,11 @@ class MainWindow(QtWidgets.QMainWindow):
 		self.menubars['3d-history'] = self.contexts_dict['3d-history'].controls.menubar
 		self.context_tabs.addTab(self.contexts_dict['3d-history'].widget, '3D History')
 
+		self.contexts_dict['2d-history'] = history2d_context.History2DContext('2d-history', self, history_data_model)
+		self.toolbars['2d-history'] = self.contexts_dict['2d-history'].controls.toolbar
+		self.menubars['2d-history'] = self.contexts_dict['2d-history'].controls.menubar
+		self.context_tabs.addTab(self.contexts_dict['2d-history'].widget, '2D History')
+
 		self.contexts_dict['blank'] = blank_context.BlankContext('blank', self)
 		self.toolbars['blank'] = self.contexts_dict['blank'].controls.toolbar
 		self.menubars['blank'] = self.contexts_dict['blank'].controls.menubar
@@ -55,6 +63,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
 		# self.contexts_dict['sensor-view-3d'].canvas_wrapper.setCanvas(self.contexts_dict['3d-history'].canvas_wrapper.canvas)
 
+
 		# self.toolbars['blank'] = self.contexts_dict['blank'].controls.toolbar
 		# self.menubars['blank'] = self.contexts_dict['blank'].controls.menubar
 		# self.context_tabs.addTab(QtWidgets.QWidget(), 'Blank')
@@ -62,8 +71,11 @@ class MainWindow(QtWidgets.QMainWindow):
 		# check toolbar/menubar indices are the same
 		for ii, key in enumerate(self.toolbars.keys()):
 			if list(self.menubars.keys())[ii] != key:
+				logger.error(f'Context toolbars and menubar indices do not match for contexts')
+				logger.error(f'Toolbars: {self.toolbars.keys()}')
+				logger.error(f'Menubars: {self.menubars.keys()}')
 				raise ValueError('Toolbars and Menubars indices do not match')
-				# Should probably exit here
+				sys.exit()
 
 		self.context_tabs.currentChanged.connect(self._changeToolbarsToContext)
 
@@ -74,6 +86,7 @@ class MainWindow(QtWidgets.QMainWindow):
 		console.consolefp = console.EmittingConsoleStream(textWritten=self._console.writeOutput)
 		if not satplot.debug:
 			sys.stderr = console.EmittingConsoleStream(textWritten=self._console.writeErr)
+		console.consoleErrfp = console.EmittingConsoleStream(textWritten=self._console.writeErr)
 
 		# Build main layout
 		'''
@@ -94,7 +107,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
 		self.setWindowTitle(title)
-		self._changeToolbarsToContext(0)
+		self.context_tabs.setCurrentIndex(1)
+		self._changeToolbarsToContext(1)
 
 	def _changeToolbarsToContext(self, new_context_index:int) -> None:
 		new_context_key = list(self.toolbars.keys())[new_context_index]
@@ -140,6 +154,6 @@ class MainWindow(QtWidgets.QMainWindow):
 			satplot.threadpool.clear()
 			# Stop active jobs
 			satplot.threadpool.killAll()
-		print(f'CLOSING')
+		logger.info('Closing satplot window')
 		return super().closeEvent(event)
 	

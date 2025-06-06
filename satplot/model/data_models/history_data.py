@@ -1,4 +1,5 @@
 import datetime as dt
+import logging
 import numpy as np
 from numpy import typing as nptyping
 import pathlib
@@ -14,6 +15,8 @@ import satplot.visualiser.interface.console as console
 import spherapy.timespan as timespan
 import spherapy.orbit as orbit
 import spherapy.updater as updater
+
+logger = logging.getLogger(__name__)
 
 class HistoryData(BaseDataModel):
 	def __init__(self, *args, **kwargs):
@@ -43,7 +46,7 @@ class HistoryData(BaseDataModel):
 		self._worker_threads: dict[str, threading.Worker | None] = {'primary': None,
 																	'constellation': None}
 
-		print("Finished initialising HistoryData")
+		logger.info("Finished initialising HistoryData")
 
 	def setPrimaryConfig(self, primary_config:data_types.PrimaryConfig) -> None:
 		self.updateConfig('primary_satellite_config', primary_config)
@@ -59,6 +62,7 @@ class HistoryData(BaseDataModel):
 
 	def getTimespan(self) -> timespan.TimeSpan:
 		if self.timespan is None:
+			logger.warning(f'History data:{self} does not have a timespan yet')
 			raise ValueError(f'History data:{self} does not have a timespan yet')
 		return self.timespan
 
@@ -67,6 +71,7 @@ class HistoryData(BaseDataModel):
 
 	def getConstellation(self) -> constellation_data.ConstellationData:
 		if self.constellation is None:
+			logger.warning(f'History data:{self} does not have a constellation yet')
 			raise ValueError(f'History data:{self} does not have a constellation yet')
 		else:
 			return self.constellation
@@ -79,11 +84,13 @@ class HistoryData(BaseDataModel):
 
 	def getOrbits(self) -> dict[int,orbit.Orbit]:
 		if len(self.orbits.values()) == 0:
+			logger.warning(f'History data:{self} has no orbits yet')
 			raise ValueError(f'History data:{self} has no orbits yet')
 		return self.orbits
 
 	def getPointings(self) -> dict[int, nptyping.NDArray[np.float64]]:
 		if len(self.pointings.values()) == 0:
+			logger.warning(f'History data:{self} has no pointings yet')
 			raise ValueError(f'History data:{self} has no pointings yet')
 		return self.pointings
 
@@ -95,22 +102,20 @@ class HistoryData(BaseDataModel):
 			if self.getConfigValue('pointing_defines_timespan'):
 				console.send(f"Loading timespan from pointing file.")
 				self.timespan = timespan.TimeSpan.fromDatetime(pointing_dates)
-				print(f'Generating timespan from pointing file timestamps for: {self}')
+				logger.info(f'Generating timespan from pointing file timestamps for: {self}')
 			else:
 				self.timespan = None
 
 		if self.timespan is None or not self.getConfigValue('is_pointing_defined'):
-			print(f'Generating timespan from configuration for: {self}')
+			logger.info(f'Generating timespan from configuration for: {self}')
 			period_start = self.getConfigValue('timespan_period_start').replace(microsecond=0)
 			period_end = self.getConfigValue('timespan_period_end').replace(microsecond=0)
+			console.send(f"Creating Timespan from {period_start} -> {period_end} ...")
 			self.updateConfig('timespan_period_start', period_start)
 			self.updateConfig('timespan_period_end', period_end)
 			duration = int((self.getConfigValue('timespan_period_end') - self.getConfigValue('timespan_period_start')).total_seconds())
 			timestep = self.getConfigValue('sampling_period')
-			console.send(f"Creating Timespan from {period_start} -> {period_end} ...")
-			print(f'{duration=}')
-			print(f'{timestep=}')
-			print(f'{period_start=}')
+			logger.debug(f'Timespan has duration:{duration}s, timestep:{timestep}s, from {period_start}')
 			# TODO: need field checking here for end before start, etc.
 			self.timespan = timespan.TimeSpan(period_start,
 								timestep=f'{timestep}S',
@@ -118,7 +123,8 @@ class HistoryData(BaseDataModel):
 
 
 		if self.timespan is None:
-			raise AttributeError("Timespan has not been configured")
+			logger.warning(f"History data:{self}, timespan has not been configured")
+			raise AttributeError(f"History data:{self}, Timespan has not been configured")
 
 		console.send(f"\tDuration: {self.timespan.time_period}")
 		console.send(f"\tNumber of steps: {len(self.timespan)}")
@@ -133,7 +139,8 @@ class HistoryData(BaseDataModel):
 
 		if self.getConfigValue('has_supplemental_constellation'):
 			if self.constellation is None:
-				raise AttributeError("Constellation has not been configured")
+				logger.warning(f"History data:{self}, constellation has not been configured")
+				raise AttributeError(f"History data:{self},onstellation has not been configured")
 
 			self.constellation.setTimespan(self.timespan)
 			self._worker_threads['constellation'] = threading.Worker(self._propagateConstellationOrbits, self.timespan, self.constellation.getConfigValue('satellite_ids'))
@@ -146,13 +153,12 @@ class HistoryData(BaseDataModel):
 
 		for thread_name, thread in self._worker_threads.items():
 			if thread is not None:
-				print(f'Starting thread {thread_name}:{thread}')
+				logger.info(f'Starting thread {thread_name}:{thread}')
 				satplot.threadpool.logStart(thread)
 
 	def _procComplete(self) -> None:
-		print("TRIGGERED COMPLETION")
+		logger.info("Thread completion triggered processing of computed data ")
 		for thread in self._worker_threads.values():
-			# print(f'Inside _procComplete {thread_name}:{thread}')
 			if thread is not None:
 				if thread.isRunning():
 					return
@@ -199,7 +205,7 @@ class HistoryData(BaseDataModel):
 		num_sats = len(sat_ids)
 		ii = 0
 		for sat_id in progressbar(sat_ids):
-			print(f'CHECKING FLAG {running}: {running.getState()}')
+			logger.debug(f'Checking constellation data processing thread flag {running}: {running.getState()}')
 			if not running:
 
 				return orbits
@@ -209,6 +215,7 @@ class HistoryData(BaseDataModel):
 			console.send(f'Loading {pc:.2f}% ({ii} of {num_sats}) |{bar_str}{space_str}|\r')
 			orbits[sat_id] = orbit.Orbit.fromTLE(timespan, tle_paths[ii])
 			ii+=1
+		logger.info(f"\tLoaded {len(sat_ids)} satellites .")
 		console.send(f"\tLoaded {len(sat_ids)} satellites .")
 
 		return orbits

@@ -9,15 +9,15 @@ from satplot.model.data_models.history_data import HistoryData
 
 import satplot.visualiser.contexts.base_context as base
 from satplot.visualiser.contexts.canvas_wrappers.base_cw import (BaseCanvas)
-import satplot.visualiser.contexts.canvas_wrappers.history3d_cw as history3d_cw
-import satplot.visualiser.contexts.canvas_wrappers.sensor_view3d_cw as sensor_view3d_cw
+from satplot.visualiser.contexts.canvas_wrappers.cw_container import (CWContainer)
+import satplot.visualiser.contexts.canvas_wrappers.history2d_cw as history2d_cw
 import satplot.visualiser.interface.console as console
 import satplot.visualiser.interface.controls as controls
 import satplot.visualiser.interface.widgets as widgets
 
 logger = logging.getLogger(__name__)
 
-class History3DContext(base.BaseContext):
+class History2DContext(base.BaseContext):
 	data_type = data_types.DataType.HISTORY
 
 	def __init__(self, name:str, parent_window:QtWidgets.QMainWindow, data:HistoryData):
@@ -25,16 +25,9 @@ class History3DContext(base.BaseContext):
 		self.window = parent_window
 		self._validateDataType()
 		self.data = data
-		self.canvas_wrapper = history3d_cw.History3DCanvasWrapper()
+		self.canvas_wrapper = history2d_cw.History2DCanvasWrapper()
 		self.canvas_wrapper.setModel(self.data)
-		# self.canvas_wrapper2 = history3d_cw.History3DCanvasWrapper()
-		self.canvas_wrapper2 = sensor_view3d_cw.SensorView3DCanvasWrapper()
-		self.canvas_wrapper2.setModel(self.data)
 		self.controls = Controls(self, self.canvas_wrapper)
-
-		self.cw_tabs = QtWidgets.QTabWidget()
-		self.cw_tabs.addTab(self.canvas_wrapper.getCanvas().native, 'History 3D 1')
-		self.cw_tabs.addTab(self.canvas_wrapper2.getCanvas().native, 'Sensor Views')
 
 		disp_hsplitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)
 		disp_hsplitter.setObjectName('disp_hsplitter')
@@ -53,8 +46,9 @@ class History3DContext(base.BaseContext):
 		# | ###
 		'''
 		disp_hsplitter.addWidget(self.controls.config_tabs)
-		disp_hsplitter.addWidget(self.cw_tabs)
-
+		self.cw_container = CWContainer()
+		self.cw_container.addWidget(self.canvas_wrapper.getCanvas().native)
+		disp_hsplitter.addWidget(self.cw_container)
 		# Build area down to bottom of time slider
 		'''
 		# | ###
@@ -73,14 +67,14 @@ class History3DContext(base.BaseContext):
 		logger.info(f"Connecting controls of {self.config['name']}")
 		self.controls.orbit_controls.submit_button.clicked.connect(self._configureData)
 		self.controls.time_slider.add_connect(self._updateDisplayedIndex)
-		self.controls.action_dict['center-earth']['callback'] = self._centerCameraEarth
-		self.controls.action_dict['center-spacecraft']['callback'] = self._toggleCameraSpacecraft
 		self.sccam_state = False
 		if self.data is None:
 			logger.warning(f'Context History3D: {self} does not have a data model.')
 			raise AttributeError(f'Context History3D: {self} does not have a data model.')
 		self.data.data_ready.connect(self._updateDataSources)
 		self.data.data_ready.connect(self._updateControls)
+
+		self.cw_container.left.connect(self.canvas_wrapper.stopMouseOverTimer)
 
 	def _validateDataType(self) -> None:
 		if self.data is not None and self.data.getType() != self.data_type:
@@ -153,10 +147,8 @@ class History3DContext(base.BaseContext):
 
 	def _updateDataSources(self) -> None:
 		self.canvas_wrapper.modelUpdated()
-		self.canvas_wrapper2.modelUpdated()
 		self.controls.rebuildOptions()
 		self.canvas_wrapper.setFirstDrawFlags()
-		self.canvas_wrapper2.setFirstDrawFlags()
 		self._updateDisplayedIndex(self.controls.time_slider.slider.value())
 
 	def _updateDisplayedIndex(self, index:int) -> None:
@@ -165,8 +157,6 @@ class History3DContext(base.BaseContext):
 			ValueError(f"model data is not set for context {self.config['name']}:{self}")
 		self.canvas_wrapper.updateIndex(index)
 		self.canvas_wrapper.recomputeRedraw()
-		self.canvas_wrapper2.updateIndex(index)
-		self.canvas_wrapper2.recomputeRedraw()
 
 	def loadState(self) -> None:
 		pass
@@ -180,43 +170,12 @@ class History3DContext(base.BaseContext):
 		self.canvas_wrapper.deSerialise(state_dict['camera'])
 		self.controls.deSerialise(state_dict['controls'])
 
-		# self.data = state_dict['data']
-		# self.canvas_wrapper.setSource(self.data['timespan'],
-		# 								self.data['orbit'],
-		# 								self.data['pointing'],
-		# 								self.data['pointing_invert_transform'],
-		# 								self.data['constellation_list'],
-		# 								self.data['constellation_beam_angle'])
-		# self.canvas_wrapper.setFirstDrawFlags()
-		# console.send(f"Drawing {self.data['name']} Assets...")
-
-		# self.canvas_wrapper.deSerialise(state_dict['camera'])
-
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
 		state['data'] = self.data.prepSerialisation()
 		state['controls'] = self.controls.prepSerialisation()
 		state['camera'] = self.canvas_wrapper.prepSerialisation()
 		return state
-
-
-
-	def _centerCameraEarth(self) -> None:
-		if self.sccam_state and self.controls.toolbar.button_dict['center-spacecraft'].isChecked():
-			# if center cam on sc is on, turn it off when selecting center cam on earth.
-			self.controls.toolbar.button_dict['center-spacecraft'].setChecked(False)
-		self.sccam_state = False
-		self.canvas_wrapper.centerCameraEarth()	
-
-	def _toggleCameraSpacecraft(self) -> None:
-		self.sccam_state = not self.sccam_state
-
-		if self.sccam_state:
-			self.canvas_wrapper.centerCameraSpacecraft()
-			# setting button to checkable in case camera set to center via menu
-			self.controls.toolbar.button_dict['center-spacecraft'].setChecked(True)
-
-
 
 		
 class Controls(base.BaseControls):
@@ -246,18 +205,18 @@ class Controls(base.BaseControls):
 
 	def setHotkeys(self):
 		self.shortcuts={}
-		# self.shortcuts['PgDown'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgDown'), self.context.window)
-		# self.shortcuts['PgDown'].activated.connect(self.time_slider.incrementValue)
+		self.shortcuts['PgDown'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgDown'), self.context.window)
+		self.shortcuts['PgDown'].activated.connect(self.time_slider.incrementValue)
 		# self.shortcuts['PgDown'].activated.connect(self._updateCam)
-		# self.shortcuts['PgUp'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgUp'), self.context.window)
-		# self.shortcuts['PgUp'].activated.connect(self.time_slider.decrementValue)
+		self.shortcuts['PgUp'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgUp'), self.context.window)
+		self.shortcuts['PgUp'].activated.connect(self.time_slider.decrementValue)
 		# self.shortcuts['PgUp'].activated.connect(self._updateCam)
-		self.shortcuts['Home'] = QtWidgets.QShortcut(QtGui.QKeySequence('Home'), self.context.window)
-		self.shortcuts['Home'].activated.connect(self.time_slider.setBeginning)
-		self.shortcuts['Home'].activated.connect(self._updateCam)
-		self.shortcuts['End'] = QtWidgets.QShortcut(QtGui.QKeySequence('End'), self.context.window)
-		self.shortcuts['End'].activated.connect(self.time_slider.setEnd)
-		self.shortcuts['End'].activated.connect(self._updateCam)
+		# self.shortcuts['Home'] = QtWidgets.QShortcut(QtGui.QKeySequence('Home'), self.context.window)
+		# self.shortcuts['Home'].activated.connect(self.time_slider.setBeginning)
+		# self.shortcuts['Home'].activated.connect(self._updateCam)
+		# self.shortcuts['End'] = QtWidgets.QShortcut(QtGui.QKeySequence('End'), self.context.window)
+		# self.shortcuts['End'].activated.connect(self.time_slider.setEnd)
+		# self.shortcuts['End'].activated.connect(self._updateCam)
 
 	def _connectSliderCamUpdate(self):
 		self.time_slider.slider.valueChanged.connect(self._updateCam)

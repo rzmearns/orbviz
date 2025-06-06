@@ -32,11 +32,13 @@ class ConstellationData(BaseDataModel):
 
 	def getTimespan(self) -> timespan.TimeSpan:
 		if self.timespan is None:
+			logger.error(f'Constellation data:{self} does not have a timespan yet')
 			raise ValueError(f'Constellation data:{self} does not have a timespan yet')
 		return self.timespan
 
 	def getOrbits(self) -> dict[int,orbit.Orbit]:
 		if len(self.orbits.values()) == 0:
+			logger.error(f'Constellation data:{self} has no orbits yet')
 			raise ValueError(f'Constellation data:{self} has no orbits yet')
 		return self.orbits
 

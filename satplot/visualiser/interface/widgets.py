@@ -1,4 +1,5 @@
 import datetime as dt
+import logging
 import math
 from typing import Any
 
@@ -6,6 +7,7 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 
 import satplot.visualiser.colours as colours
 
+logger = logging.getLogger(__name__)
 
 class TimeSlider(QtWidgets.QWidget):
 	def __init__(self, parent: QtWidgets.QWidget=None) -> None:
@@ -50,7 +52,8 @@ class TimeSlider(QtWidgets.QWidget):
 
 	def setRange(self, start_dt, end_dt, num_ticks):
 		if start_dt > end_dt:
-			raise ValueError(f"Period End {end_dt} must be after Period Start {start_dt}")
+			logger.warning(f"Period End {end_dt} must be after Period Start {start_dt} when setting timeslider range.")
+			raise ValueError(f"Period End {end_dt} must be after Period Start {start_dt} when setting timeslider range.")
 		self.start_dt = start_dt.replace(tzinfo=None)
 		self.end_dt = end_dt.replace(tzinfo=None)
 		self.range_delta = end_dt - start_dt
@@ -118,7 +121,7 @@ class TimeSlider(QtWidgets.QWidget):
 			for callback in self._callbacks:
 				callback(self.slider.value())
 		else:
-			print("No Time Slider callbacks are set")
+			logger.warning("No Time Slider callbacks are set")
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
@@ -131,7 +134,7 @@ class TimeSlider(QtWidgets.QWidget):
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['type'] != 'timeSlider':
-			print(f"{self} state was serialised as a {state['type']}, is now a timeSlider")
+			logger.error(f"{self} state was serialised as a {state['type']}, is now a timeSlider")
 			return
 		self.setRange(state['start_dt'], state['end_dt'], state['num_ticks'])
 		self.setValue(state['curr_index'])
@@ -275,7 +278,7 @@ class ColourPicker(QtWidgets.QWidget):
 			for callback in self._callbacks:
 				callback(self.curr_rgb)
 		else:
-			print("No Colour Picker callbacks are set")
+			logger.warning("No Colour Picker callbacks are set")
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
@@ -285,7 +288,7 @@ class ColourPicker(QtWidgets.QWidget):
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['type'] != 'ColourPicker':
-			print(f"{self} state was serialised as a {state['type']}, is now a ColourPicker")
+			logger.error(f"{self} state was serialised as a {state['type']}, is now a ColourPicker")
 
 		self._text_box.blockSignals(True)
 		self.curr_rgb = state['value']
@@ -347,7 +350,7 @@ class ValueSpinner(QtWidgets.QWidget):
 			for callback in self._callbacks:
 				callback(self.curr_val)
 		else:
-			print("No Value Spinner callbacks are set")
+			logger.warning("No Value Spinner callbacks are set")
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
@@ -358,7 +361,7 @@ class ValueSpinner(QtWidgets.QWidget):
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['type'] != 'ValueSpinner':
-			print(f"{self} state was serialised as a {state['type']}, is now a ValueSpinner")
+			logger.error(f"{self} state was serialised as a {state['type']}, is now a ValueSpinner")
 
 		self._val_box.blockSignals(True)
 		self.curr_val = state['value']
@@ -395,7 +398,7 @@ class ToggleBox(QtWidgets.QWidget):
 			for callback in self._callbacks:
 				callback(self._checkbox.isChecked())
 		else:
-			print("No Toggle Box callbacks are set")
+			logger.warning("No Toggle Box callbacks are set")
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
@@ -405,7 +408,7 @@ class ToggleBox(QtWidgets.QWidget):
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['type'] != 'ToggleBox':
-			print(f"{self} state was serialised as a {state['type']}, is now a ToggleBox")
+			logger.error(f"{self} state was serialised as a {state['type']}, is now a ToggleBox")
 		self._checkbox.blockSignals(True)
 		self._checkbox.setChecked(state['value'])
 		a = QtWidgets.QCheckBox()
@@ -450,7 +453,6 @@ class OptionBox(QtWidgets.QWidget):
 		self._optionbox.currentIndexChanged.connect(self.setCurrentIndex)
 
 	def setCurrentIndex(self, idx:int) -> None:
-		print(f'{idx}')
 		self._curr_index = idx
 
 	def getCurrentIndex(self) -> int|None:
@@ -479,18 +481,78 @@ class OptionBox(QtWidgets.QWidget):
 			state['value'] = None
 		else:
 			state['value'] = self._optionbox.getAllItems()[curr_idx]
-		print(f"{state['value']=}")
 		return state
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['type'] != 'OptionBox':
-			print(f"{self} state was serialised as a {state['type']}, is now an OptionBox")
+			logger.error(f"{self} state was serialised as a {state['type']}, is now an OptionBox")
 			return
 		if state['value'] is not None and state['value'] in self._optionbox.getAllItems():
-			print(f"{state['value']=}")
 			self._optionbox.setCurrentText(state['value'])
 		else:
-			print(f"{state['value']} is not a local valid option. Displaying data, but can't set options.", file=sys.stderr)
+			logger.error(f"{state['value']} is not a local valid option. Displaying data, but can't set options.")
+
+class BasicOptionBox(QtWidgets.QWidget):
+	def __init__(self, label, dflt_option=None, options_list=[], parent: QtWidgets.QWidget=None) -> None:
+		super().__init__(parent)
+		self._callbacks = []
+		self._curr_index = 0
+		layout = QtWidgets.QHBoxLayout()
+		layout.setContentsMargins(2,1,2,1)
+
+
+		self._label = QtWidgets.QLabel(label)
+
+		self._optionbox = NonScrollingComboBox()
+		for item in options_list:
+			self._optionbox.addItem(item)
+		self._optionbox.setFocusPolicy(QtCore.Qt.StrongFocus)
+
+		layout.addWidget(self._label)
+		layout.addWidget(self._optionbox)
+
+		self._optionbox.setCurrentIndex(options_list.index(dflt_option))
+		self._optionbox.currentIndexChanged.connect(self._run_callbacks)
+		self._optionbox.currentIndexChanged.connect(self.setCurrentIndex)
+
+		self.setLayout(layout)
+
+	def setCurrentIndex(self, idx:int) -> None:
+		self._curr_index = idx
+
+	def getCurrentIndex(self) -> int|None:
+		if self._curr_index > 0:
+			return self._curr_index-1
+		else:
+			return None
+
+	def add_connect(self, callback):
+		self._callbacks.append(callback)
+
+	def _run_callbacks(self, index):
+		self._curr_index = index
+		if len(self._callbacks) > 0:
+			for callback in self._callbacks:
+				callback(index)
+
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['type'] = 'BasicOptionBox'
+		curr_idx = self.getCurrentIndex()
+		if curr_idx is None:
+			state['value'] = None
+		else:
+			state['value'] = self._optionbox.getAllItems()[curr_idx]
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		if state['type'] != 'BasicOptionBox':
+			logger.error(f"{self} state was serialised as a {state['type']}, is now an OptionBox")
+			return
+		if state['value'] is not None and state['value'] in self._optionbox.getAllItems():
+			self._optionbox.setCurrentText(state['value'])
+		else:
+			logger.error(f"{state['value']} is not a local valid option. Displaying data, but can't set options.")
 
 class FilePicker(QtWidgets.QWidget):
 	def __init__(self, label, 
@@ -554,7 +616,6 @@ class FilePicker(QtWidgets.QWidget):
 																f'{self.dflt_dir}{self.dflt_filename}',
 																"All Files (*)",
 																options=options)
-			print(filename)
 		self.path = filename
 		self._file_text_box.setText(self.path)
 
@@ -566,7 +627,7 @@ class FilePicker(QtWidgets.QWidget):
 			for callback in self._callbacks:
 				callback(self._checkbox.isChecked())
 		else:
-			print("No FilePicker callbacks are set")
+			logger.warning("No FilePicker callbacks are set")
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
@@ -576,7 +637,7 @@ class FilePicker(QtWidgets.QWidget):
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['type'] != 'filePicker':
-			print(f"{self} state was serialised as a {state['type']}, is now a filePicker")
+			logger.error(f"{self} state was serialised as a {state['type']}, is now a filePicker")
 			return
 		self._file_text_box.setText(state['value'])
 
@@ -640,7 +701,7 @@ class PeriodBox(QtWidgets.QWidget):
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['type'] != 'period':
-			print(f"{self} state was serialised as a {state['type']}, is now a period")
+			logger.error(f"{self} state was serialised as a {state['type']}, is now a period")
 			return
 		self.val_box.setValue(state['value'])
 
@@ -648,7 +709,8 @@ class DatetimeEntry(QtWidgets.QWidget):
 	def __init__(self, label, dflt_datetime, parent: QtWidgets.QWidget=None) -> None:
 		super().__init__(parent)
 		self._callbacks = []
-		self.datetime = dflt_datetime
+		# datetime should always be in UTC
+		self.datetime = dflt_datetime.replace(tzinfo=dt.timezone.utc)
 		vlayout = QtWidgets.QVBoxLayout()
 		hlayout1 = QtWidgets.QHBoxLayout()
 		hlayout2 = QtWidgets.QHBoxLayout()
@@ -666,7 +728,7 @@ class DatetimeEntry(QtWidgets.QWidget):
 			self._label.setFont(self._label_font)
 			hlayout1.addWidget(self._label)
 				
-		self._curr_dt = QtWidgets.QLabel(self.datetime.strftime("%Y-%m-%d   %H:%M:%S"))
+		self._curr_dt = QtWidgets.QLabel(self.datetime.strftime("%Y-%m-%d   %H:%M:%S UTC"))
 		self._mon_sp = QtWidgets.QLabel("-")
 		self._day_sp = QtWidgets.QLabel("-")
 		self._hr_sp = QtWidgets.QLabel("     ")
@@ -723,21 +785,21 @@ class DatetimeEntry(QtWidgets.QWidget):
 		f"{self._sec_text_box.text()}"
 		try:
 			self.datetime = dt.datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
+			self.datetime = self.datetime.replace(tzinfo=dt.timezone.utc)
 		except ValueError:
 			self.setDatetime(self.datetime)
 			return
-		self.datetime = dt.datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
-		self._curr_dt.setText(self.datetime.strftime("%Y-%m-%d   %H:%M:%S"))
+		self._curr_dt.setText(self.datetime.strftime("%Y-%m-%d   %H:%M:%S UTC"))
 
 	def setDatetime(self, datetime):
-		self.datetime = datetime
+		self.datetime = datetime.replace(tzinfo=dt.timezone.utc)
 		self._yr_text_box.setText(datetime.strftime("%Y"))
 		self._mon_text_box.setText(datetime.strftime("%m"))
 		self._day_text_box.setText(datetime.strftime("%d"))
 		self._hr_text_box.setText(datetime.strftime("%H"))
 		self._min_text_box.setText(datetime.strftime("%M"))
 		self._sec_text_box.setText(datetime.strftime("%S"))
-		self._curr_dt.setText(self.datetime.strftime("%Y-%m-%d   %H:%M:%S"))
+		self._curr_dt.setText(self.datetime.strftime("%Y-%m-%d   %H:%M:%S UTC"))
 
 	def addConnect(self, callback):
 		self._callbacks.append(callback)
@@ -748,7 +810,7 @@ class DatetimeEntry(QtWidgets.QWidget):
 				pass
 				# callback(self._checkbox.isChecked())
 		else:
-			print("No Toggle Box callbacks are set")
+			logger.warning("No Toggle Box callbacks are set")
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
@@ -758,7 +820,7 @@ class DatetimeEntry(QtWidgets.QWidget):
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['type'] != 'DatetimeEntry':
-			print(f"{self} state was serialised as a {state['type']}, is now a DatetimeEntry")
+			logger.error(f"{self} state was serialised as a {state['type']}, is now a DatetimeEntry")
 			return
 		self.setDatetime(state['value'])
 
@@ -892,7 +954,7 @@ class Switch(QtWidgets.QPushButton):
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['type'] != 'Switch':
-			print(f"{self} state was serialised as a {state['type']}, is now a Switch")
+			logger.error(f"{self} state was serialised as a {state['type']}, is now a Switch")
 			return
 		self.setChecked(state['value'])
 

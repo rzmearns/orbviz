@@ -1,10 +1,13 @@
 from abc import ABC, abstractmethod
 from inspect import Attribute
+import logging
 import numpy as np
 import numpy.typing as nptyping
 from typing import Any
 from typing_extensions import Self
 from vispy.scene.widgets.viewbox import ViewBox
+
+logger = logging.getLogger(__name__)
 
 class AbstractSimpleAsset(ABC):
 
@@ -92,7 +95,7 @@ class AbstractSimpleAsset(ABC):
 		self._clearActiveFlag()
 
 	def _setStaleFlag(self) -> None:
-		print(f'Setting stale flag for {self}')
+		logger.debug(f'Setting stale flag for {self}')
 		self.is_stale = True
 
 	def setStaleFlagRecursive(self) -> None:
@@ -100,7 +103,7 @@ class AbstractSimpleAsset(ABC):
 
 	def _clearStaleFlag(self) -> None:
 		self.is_stale = False
-		print(f'Clearing stale flag for {self}')
+		logger.debug(f'Clearing stale flag for {self}')
 
 	def isStale(self) -> bool:
 		return self.is_stale
@@ -119,7 +122,7 @@ class AbstractSimpleAsset(ABC):
 		return self.first_draw
 
 	def setVisibility(self, state:bool) -> None:
-		print(f'Setting visibility for {self} to {state}')
+		logger.debug(f'Setting visibility for {self} to {state}')
 		for visual_name, visual in self.visuals.items():
 			if visual is None:
 				continue
@@ -136,10 +139,10 @@ class AbstractSimpleAsset(ABC):
 		return state
 
 	def deSerialise(self, state):
-		print(f"Deserialisation of asset {self}")
+		logger.debug(f"Deserialisation of asset {self}")
 		for k,v in state.items():
 			if 'opt_' in k:
-				print(f'\t{k}:{v}')
+				logger.debug(f'\t{k}:{v}')
 				deSerialiseOption(k.removeprefix('opt_'),v,self)
 
 		self.runOptionCallbacks()
@@ -333,7 +336,7 @@ class AbstractCompoundAsset(ABC):
 		return self.first_draw
 
 	def setVisibility(self, state:bool) -> None:
-		print(f'Setting visibility for {self} to {state}')
+		logger.debug(f'Setting visibility for {self} to {state}')
 		for visual_name, visual in self.visuals.items():
 			if visual is None:
 				continue
@@ -354,13 +357,13 @@ class AbstractCompoundAsset(ABC):
 		return state
 
 	def deSerialise(self, state):
-		print(f"Deserialisation of asset {self}")
+		logger.debug(f"Deserialisation of asset {self}")
 		for k,v in state.items():
 			if 'asset_' in k:
 				self.assets[k.removeprefix('asset_')].deSerialise(v)
 				continue
 			elif 'opt_' in k:
-				print(f'\t{k}:{v}')
+				logger.debug(f'\t{k}:{v}')
 				deSerialiseOption(k.removeprefix('opt_'),v,self)
 		self.runOptionCallbacks()
 
@@ -487,10 +490,10 @@ class AbstractAsset(ABC):
 		'''Sets all vispy visuals to use the stored parent'''
 		for visual in self.visuals.values():
 			if visual is not None and not isinstance(visual, list):
-				# print(f"Attaching visual of {self.data['name']} to parent")
+				logger.debug(f"Attaching visual of {self.data['name']} to parent")
 				visual.parent = self.data['v_parent']
 			elif visual is not None:
-				# print(f"Attaching visual of {self.data['name']} to parent")
+				logger.debug(f"Attaching visual of {self.data['name']} to parent")
 				for el in visual:
 					el.parent = self.data['v_parent']
 
@@ -506,10 +509,10 @@ class AbstractAsset(ABC):
 		for visual in self.visuals.values():
 			if visual is not None and not isinstance(visual, list):
 				# single visual
-				# print(f"Detaching visual of {self.data['name']} to parent")
+				logger.debug(f"Detaching visual of {self.data['name']} to parent")
 				visual.parent = None
 			elif visual is not None:
-				# print(f"Detaching visual of {self.data['name']} from parent")
+				logger.debug(f"Detaching visual of {self.data['name']} from parent")
 				# list of visuals
 				for el in visual:
 					el.parent = None
@@ -529,7 +532,7 @@ class AbstractAsset(ABC):
 
 	##### State methods
 	def makeActive(self) -> None:
-		# print(f"{self.data['name']} being made active.")
+		logger.debug(f"{self.data['name']} being made active.")
 		if not self.is_active:
 			self.setFirstDrawFlagRecursive()
 			self.attachToParentViewRecursive()  # will attach all assets  recursively
@@ -561,7 +564,7 @@ class AbstractAsset(ABC):
 
 	def _setStaleFlag(self) -> None:
 		self.is_stale = True
-		print(f'Setting stale flag for {self}')
+		logger.debug(f'Setting stale flag for {self}')
 
 	def setStaleFlagRecursive(self) -> None:
 		self._setStaleFlag()
@@ -570,7 +573,7 @@ class AbstractAsset(ABC):
 				asset.setStaleFlagRecursive()
 
 	def _clearStaleFlag(self) -> None:
-		print(f'clearing stale flag for {self}')
+		logger.debug(f'clearing stale flag for {self}')
 		self.is_stale = False
 
 	def isStale(self) -> bool:
@@ -593,7 +596,7 @@ class AbstractAsset(ABC):
 		return self.first_draw
 
 	def setVisibility(self, state:bool) -> None:
-		print(f'Setting visibility for {self} to {state}')
+		logger.debug(f'Setting visibility for {self} to {state}')
 		for visual_name, visual in self.visuals.items():
 			if visual is None:
 				continue
@@ -615,13 +618,13 @@ class AbstractAsset(ABC):
 		return state
 
 	def deSerialise(self, state):
-		print(f"Deserialisation of asset {self}")
+		logger.debug(f"Deserialisation of asset {self}")
 		for k,v in state.items():
 			if 'asset_' in k:
 				self.assets[k.removeprefix('asset_')].deSerialise(v)
 				continue
 			elif 'opt_' in k:
-				print(f'\t{k}:{v}')
+				logger.debug(f'\t{k}:{v}')
 				deSerialiseOption(k.removeprefix('opt_'),v,self)
 
 		self.runOptionCallbacks()
