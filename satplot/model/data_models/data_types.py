@@ -149,11 +149,11 @@ class PrimaryConfig():
 		sat_configs = {}
 		for k,v in data['satellites'].items():
 			if 'sensor_suites' in v.keys():
-				sat_configs['k'] = SpacecraftConfig(p.stem, k, v['id'], v['sensor_suites'])
+				sat_configs[k] = SpacecraftConfig(p.stem, k, v['id'], v['sensor_suites'])
 			else:
 				logger.debug(f'Spacecraft definition has no sensor suites field.')
 				console.send(f'Spacecraft definition has no sensor suites field.')
-				sat_configs['k'] = SpacecraftConfig(p.stem, k, v['id'], {})
+				sat_configs[k] = SpacecraftConfig(p.stem, k, v['id'], {})
 
 		return cls(p.stem, data['name'], sats, sat_configs)
 
@@ -168,6 +168,19 @@ class PrimaryConfig():
 
 	def getAllSpacecraftConfigs(self):
 		return self.sat_configs
+
+	def serialiseAllSensors(self) -> dict:
+		sens_dict = {}
+		for sat_name, sat_config in self.sat_configs.items():
+			sat_suites = {}
+			for suite_name, suite in sat_config.sensor_suites.items():
+				sat_suites[suite_name] = {}
+				for sens_name, sens_config in suite.sensors.items():
+					sat_suites[suite_name][sens_name] = sens_config
+
+			sens_dict[sat_config.id] = (sat_name, sat_suites)
+
+		return sens_dict
 
 	def __eq__(self, other) -> bool:
 		if self is None or other is None:

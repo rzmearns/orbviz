@@ -6,7 +6,7 @@ from PyQt5 import QtWidgets, QtCore
 
 import satplot
 from satplot.model.data_models import (history_data)
-from satplot.visualiser.contexts import (history3d_context, history2d_context, blank_context, sensor_view_context)
+from satplot.visualiser.contexts import (history3d_context, history2d_context, blank_context, sensor_views_context)
 import satplot.visualiser.interface.console as console
 
 logger = logging.getLogger(__name__)
@@ -51,10 +51,15 @@ class MainWindow(QtWidgets.QMainWindow):
 		self.menubars['2d-history'] = self.contexts_dict['2d-history'].controls.menubar
 		self.context_tabs.addTab(self.contexts_dict['2d-history'].widget, '2D History')
 
-		self.contexts_dict['blank'] = blank_context.BlankContext('blank', self)
-		self.toolbars['blank'] = self.contexts_dict['blank'].controls.toolbar
-		self.menubars['blank'] = self.contexts_dict['blank'].controls.menubar
-		self.context_tabs.addTab(self.contexts_dict['blank'].widget, 'Blank')
+		# self.contexts_dict['blank'] = blank_context.BlankContext('blank', self)
+		# self.toolbars['blank'] = self.contexts_dict['blank'].controls.toolbar
+		# self.menubars['blank'] = self.contexts_dict['blank'].controls.menubar
+		# self.context_tabs.addTab(self.contexts_dict['blank'].widget, 'Blank')
+
+		self.contexts_dict['sensors-view'] = sensor_views_context.SensorViewsContext('sensors-view', self, history_data_model)
+		self.toolbars['sensors-view'] = self.contexts_dict['sensors-view'].controls.toolbar
+		self.menubars['sensors-view'] = self.contexts_dict['sensors-view'].controls.menubar
+		self.context_tabs.addTab(self.contexts_dict['sensors-view'].widget, 'sensors-view')
 
 		# self.contexts_dict['sensor-view-3d'] = sensor_view_context.SensorView3DContext('sensor-view-3d', self)
 		# self.toolbars['sensor-view-3d'] = self.contexts_dict['sensor-view-3d'].controls.toolbar

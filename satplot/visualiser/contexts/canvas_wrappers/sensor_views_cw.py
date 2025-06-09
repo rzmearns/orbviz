@@ -1,4 +1,5 @@
 import json
+import logging
 import numpy as np
 import time
 from typing import Any
@@ -9,6 +10,9 @@ from numpy._typing import _array_like
 from vispy import scene
 import vispy
 from vispy.app.canvas import MouseEvent
+from vispy.scene.cameras import PanZoomCamera
+
+
 
 from satplot.model.data_models.history_data import (HistoryData)
 import satplot.model.geometry.primgeom as pg
@@ -17,17 +21,12 @@ from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 import satplot.util.constants as c
 import satplot.util.exceptions as exceptions
 import satplot.visualiser.assets.base_assets as base_assets
-import satplot.visualiser.assets.constellation as constellation
-import satplot.visualiser.assets.earth as earth
-import satplot.visualiser.assets.sky as sky
-import satplot.visualiser.assets.gizmo as gizmo
-import satplot.visualiser.assets.orbit as orbit
-import satplot.visualiser.assets.moon as moon
+import satplot.visualiser.assets.sensors as sensors
 import satplot.visualiser.assets.spacecraft as spacecraft
-import satplot.visualiser.assets.sun as sun
 import satplot.visualiser.assets.widgets as widgets
-import satplot.visualiser.cameras.cameras as cameras
+import satplot.visualiser.cameras.static2d as static2d
 
+logger = logging.getLogger(__name__)
 
 create_time = time.monotonic()
 MIN_MOVE_UPDATE_THRESHOLD = 1
@@ -36,7 +35,7 @@ last_mevnt_time = time.monotonic()
 mouse_over_is_highlighting = False
 
 
-class SensorView3DCanvasWrapper(BaseCanvas):
+class SensorViewsCanvasWrapper(BaseCanvas):
 	def __init__(self, w:int=800, h:int=600, keys:str='interactive', bgcolor:str='white'):
 		self.canvas = scene.canvas.SceneCanvas(size=(w,h),
 										keys=keys,
@@ -47,61 +46,40 @@ class SensorView3DCanvasWrapper(BaseCanvas):
 		self.canvas.events.key_press.connect(self.on_key_press)
 		self.grid = self.canvas.central_widget.add_grid()
 		vb1 = scene.widgets.ViewBox(border_color='black', parent=self.canvas.scene)
-		# vb2 = scene.widgets.ViewBox(border_color='black', parent=self.canvas.scene)
-		# vb3 = scene.widgets.ViewBox(border_color='black', parent=self.canvas.scene)
-		# vb4 = scene.widgets.ViewBox(border_color='black', parent=self.canvas.scene)
-		# scenes = vb1.scene, vb2.scene, vb3.scene, vb4.scene
-		# self.view_boxes = [vb1, vb2, vb3, vb4]
-		self.view_box = vb1
+		vb2 = scene.widgets.ViewBox(border_color='black', parent=self.canvas.scene)
+		vb3 = scene.widgets.ViewBox(border_color='black', parent=self.canvas.scene)
+		vb4 = scene.widgets.ViewBox(border_color='black', parent=self.canvas.scene)
+		scenes = vb1.scene, vb2.scene, vb3.scene, vb4.scene
+		self.view_boxes = [vb1, vb2, vb3, vb4]
+		self.displayed_sensors = [None, None, None, None]
 
-		self.grid.add_widget(self.view_box,0,0)
-		# self.grid.add_widget(self.view_boxes[0],0,0)
-		# self.grid.add_widget(self.view_boxes[1],0,1)
-		# self.grid.add_widget(self.view_boxes[2],1,0)
-		# self.grid.add_widget(self.view_boxes[3],1,1)
+		self.grid.add_widget(self.view_boxes[0],0,0)
+		self.grid.add_widget(self.view_boxes[1],0,1)
+		self.grid.add_widget(self.view_boxes[2],1,0)
+		self.grid.add_widget(self.view_boxes[3],1,1)
 
-		# vb1.camera = scene.cameras.TurntableCamera(parent=self.view_box.scene,
-		# 									   		fov=60,
-		# 											center=(0,0,0),
-		# 											name='Turntable')
-		# vb1.camera = scene.cameras.FlyCamera(parent=self.view_box.scene,
-		# 									   		fov=60,
-		# 											center=(0,0,0),
-		# 											scale_factor=0)
-		vb1.camera = cameras.FixedCamera(parent=self.view_box.scene,fov=62.2,distance=0.1)
-		# vb1.camera = cameras.MovableFixedCamera(parent=self.view_box.scene,fov=62.2,distance=0.1)
-		# vb1.camera._near_clip_distance = 0.01
-		vb1.camera.name = 'fixed'
-		# vb1.camera.depth_value = 2e-9
-
-		# vb1.camera = scene.BaseCamera()
-
-		# vb2.camera = scene.BaseCamera()
-		# vb3.camera = scene.BaseCamera()
-		# vb4.camera = scene.BaseCamera()
+		vb1.camera = static2d.Static2D(parent=self.view_boxes[0].scene)
+		vb1.camera.aspect = 1
+		vb2.camera = static2d.Static2D(parent=self.view_boxes[1].scene)
+		vb2.camera.aspect = 1
+		vb3.camera = static2d.Static2D(parent=self.view_boxes[2].scene)
+		vb3.camera.aspect = 1
+		vb4.camera = static2d.Static2D(parent=self.view_boxes[3].scene)
+		vb4.camera.aspect = 1
 
 		self.data_models: dict[str,Any] = {}
 		self.assets = {}
 		self._buildAssets()
-		self.mouseOverText = widgets.PopUpTextBox(v_parent=self.view_box,
-											padding=[3,3,3,3],
-											colour=(253,255,189),
-											border_colour=(186,186,186),
-											font_size=10)
+		# self.mouseOverText = widgets.PopUpTextBox(v_parent=self.view_box,
+		# 									padding=[3,3,3,3],
+		# 									colour=(253,255,189),
+		# 									border_colour=(186,186,186),
+		# 									font_size=10)
 		self.mouseOverObject = None
 
 	def _buildAssets(self) -> None:
-		# self.assets['sky'] = sky.Sky3DAsset(v_parent=self.view_box.scene)
-		self.assets['earth'] = earth.Earth3DAsset(v_parent=self.view_box.scene)
-		self.assets['primary_orbit'] = orbit.Orbit3DAsset(v_parent=self.view_box.scene)
-		self.assets['moon'] = moon.Moon3DAsset(v_parent=self.view_box.scene)
-
-		self.assets['spacecraft'] = spacecraft.Spacecraft3DAsset(v_parent=self.view_box.scene)
-
-		self.assets['constellation'] = constellation.Constellation(v_parent=self.view_box.scene)
-		self.assets['sun'] = sun.Sun3DAsset(v_parent=self.view_box.scene)
-
-
+		pass
+		self.assets['spacecraft'] = spacecraft.SpacecraftViewsAsset(v_parent=None)
 		# if self.is_asset_active['ECI_gizmo']:
 		# self.assets['ECI_gizmo'] = ViewBoxGizmo(canvas=self.canvas,
 		# 				   					parent=self.view_box.scene,
@@ -110,6 +88,37 @@ class SensorView3DCanvasWrapper(BaseCanvas):
 		# self.setCameraZoom(5*c.R_EARTH)
 		# self.assets['ECI_gizmo'].attachCamera(self.view_box.camera)
 
+	def _getCurrentDisplayedSensor(self, view:int) -> sensors.SensorImageAsset | None:
+		return self.displayed_sensors[view]
+
+	def selectSensor(self, view:int, sc_id: int, sens_suite_key: str, sens_key: str) -> None:
+
+		# remove parent scene of old sensor
+		# make old sensor dormant
+		if self.displayed_sensors[view] is not None:
+			self.displayed_sensors[view].makeDormant()
+			self.displayed_sensors[view] = None
+
+		if sc_id == None or \
+			sens_suite_key == None or \
+			sens_key == None:
+			return
+
+		# attach parent scene to new sensor
+		# make new sensor active
+		sensor_asset = self._getSensorAsset(sc_id, sens_suite_key, sens_key)
+		sensor_asset.setParentView(self.view_boxes[view].scene)
+		sensor_asset.makeActive()
+		width, height = sensor_asset.getDimensions()
+		# if (view+1)%2 == 0:
+		self.view_boxes[view].camera.set_range(x=(0,width), y=(0, height), margin=0)
+		self.displayed_sensors[view] = sensor_asset
+
+
+	def _getSensorAsset(self, sc_id: int, sens_suite_key: str, sens_key: str) -> sensors.SensorImageAsset:
+		# TODO: index spacecraft list using sc_id
+		return self.assets['spacecraft'].getSensorSuiteByKey(sens_suite_key).getSensorByKey(sens_key)
+
 	def getActiveAssets(self) -> list[base_assets.AbstractAsset|base_assets.AbstractCompoundAsset|base_assets.AbstractSimpleAsset]:
 		active_assets = []
 		for k,v in self.assets.items():
@@ -117,45 +126,16 @@ class SensorView3DCanvasWrapper(BaseCanvas):
 				active_assets.append(k)
 		return active_assets
 
-	def setCameraMode(self, mode:str='turntable') -> None:
-		allowed_cam_modes = ['turntable',
-							'arcball',
-							'fly',
-							'panzoom',
-							'magnify',
-							'perspective']
-		if mode not in allowed_cam_modes:
-			raise NameError
-
-		self.view_box.camera = mode
-
-	# def setCameraZoom(self, zoom:float) -> None:
-	# 	self.view_box.camera.scale_factor = zoom
-
 	def setModel(self, hist_data:HistoryData) -> None:
 		self.data_models['history'] = hist_data
 		self.modelUpdated()
 
 	def modelUpdated(self) -> None:
+		logger.debug(f'updating model for {self}')
 		# Update data source for earth asset
 		if self.data_models['history'] is None:
+			logger.error(f'canvas wrapper: {self} does not have a history data model yet')
 			raise exceptions.InvalidDataError
-
-		if self.data_models['history'].timespan is not None:
-			self.assets['earth'].setSource(self.data_models['history'].timespan)
-			self.assets['earth'].makeActive()
-
-		# Update data source for moon asset
-		if len(self.data_models['history'].getConfigValue('primary_satellite_ids')) > 0:
-			self.assets['moon'].setSource(list(self.data_models['history'].orbits.values())[0])
-			self.assets['moon'].makeActive()
-
-
-		# Update data source for primary orbit(s)
-		if len(self.data_models['history'].getConfigValue('primary_satellite_ids')) > 0:
-			# TODO: extend to draw multiple primary satellites
-			self.assets['primary_orbit'].setSource(self.data_models['history'].getOrbits())
-			self.assets['primary_orbit'].makeActive()
 
 		if self.data_models['history'].hasOrbits():
 			if self.data_models['history'].getConfigValue('is_pointing_defined'):
@@ -164,30 +144,15 @@ class SensorView3DCanvasWrapper(BaseCanvas):
 													self.data_models['history'].getConfigValue('pointing_invert_transform'),
 													list(self.data_models['history'].getPrimaryConfig().getAllSpacecraftConfigs().values())[0])
 				self.assets['spacecraft'].makeActive()
-				self.assets['spacecraft'].setOrbitalMarkerVisibility(False)
-				self.assets['spacecraft'].setAttitudeAssetsVisibility(True)
-				# self.assets['sky'].makeActive()
-
 			else:
 				self.assets['spacecraft'].setSource(self.data_models['history'].getOrbits(),
 													None,
 													None,
 													list(self.data_models['history'].getPrimaryConfig().getAllSpacecraftConfigs().values())[0])
 				self.assets['spacecraft'].makeActive()
-				self.assets['spacecraft'].setOrbitalMarkerVisibility(True)
-				self.assets['spacecraft'].setAttitudeAssetsVisibility(False)
 
-		if self.data_models['history'].getConfigValue('has_supplemental_constellation'):
-			self.assets['constellation'].setSource(self.data_models['history'].getConstellation().getOrbits(),
-													self.data_models['history'].getConstellation().getConfigValue('beam_angle_deg'))
-			self.assets['constellation'].makeActive()
-		else:
-			self.assets['constellation'].makeDormant()
-
-		# Update data source for sun asset
-		if len(self.data_models['history'].getConfigValue('primary_satellite_ids')) > 0:
-			self.assets['sun'].setSource(self.data_models['history'].getOrbits())
-			self.assets['sun'].makeActive()
+		# sat_ids = self.data_models['history'].getPrimaryConfig().getSpacecraftConfig()
+		# all_scs = self.data_models['history'].getPrimaryConfig().getAllSpacecraftConfigs()
 
 
 	def updateIndex(self, index:int) -> None:
@@ -209,14 +174,15 @@ class SensorView3DCanvasWrapper(BaseCanvas):
 			asset.setFirstDrawFlagRecursive()
 
 	def _updateCamera(self):
-		if self.assets['spacecraft'].isActive():
-			sc_pos = tuple(self.assets['spacecraft'].data['coords'][self.assets['spacecraft'].data['curr_index']])
-		else:
-			sc_pos = tuple(self.assets['primary_orbit'].data['coords'][self.assets['primary_orbit'].data['curr_index']])
+		pass
+		# if self.assets['spacecraft'].isActive():
+		# 	sc_pos = tuple(self.assets['spacecraft'].data['coords'][self.assets['spacecraft'].data['curr_index']])
+		# else:
+		# 	sc_pos = tuple(self.assets['primary_orbit'].data['coords'][self.assets['primary_orbit'].data['curr_index']])
 
-		sc_quat = self.assets['spacecraft'].assets['sensor_suite_Axes'].assets['NegZ'].data['vispy_quat'].reshape(4,)
-		sc_quat = tuple(sc_quat.reshape(4,))
-		self.view_box.camera.setPose(sc_pos,sc_quat,scaler_first=False)
+		# sc_quat = self.assets['spacecraft'].assets['sensor_suite_Axes'].assets['NegZ'].data['vispy_quat'].reshape(4,)
+		# sc_quat = tuple(sc_quat.reshape(4,))
+		# self.view_box.camera.setPose(sc_pos,sc_quat,scaler_first=False)
 		# self.view_box.camera.center = sc_pos
 
 
@@ -290,12 +256,13 @@ class SensorView3DCanvasWrapper(BaseCanvas):
 			# sphere2.mesh.update()
 
 	def onMouseMove(self, event:MouseEvent) -> None:
-		global last_mevnt_time
-		# throttle mouse events to 50ms
-		if time.monotonic() - last_mevnt_time < 0.05:
-			return
-		last_mevnt_time = time.monotonic()
-		self.assets['sky'].on_mouse_move(event,self.canvas)
+		pass
+		# global last_mevnt_time
+		# # throttle mouse events to 50ms
+		# if time.monotonic() - last_mevnt_time < 0.05:
+		# 	return
+		# last_mevnt_time = time.monotonic()
+		# self.assets['sky'].on_mouse_move(event,self.canvas)
 		# global last_mevent_time
 		# # throttle mouse events to 50ms
 		# if time.monotonic() - throttle < 0.05:
@@ -339,5 +306,8 @@ class SensorView3DCanvasWrapper(BaseCanvas):
 		# self.assets['ECI_gizmo'].onMouseMove(event)
 
 	def onMouseScroll(self, event:QtGui.QMouseEvent) -> None:
-		# print(self.view_box.camera.scale_factor)
+		print(f'{self.view_boxes[0].camera.rect=}')
+		print(f'{self.view_boxes[1].camera.rect=}')
+		print(f'{self.view_boxes[2].camera.rect=}')
+		print(f'{self.view_boxes[3].camera.rect=}')
 		pass		

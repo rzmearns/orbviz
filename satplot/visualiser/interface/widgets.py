@@ -473,6 +473,12 @@ class OptionBox(QtWidgets.QWidget):
 			for callback in self._callbacks:
 				callback(index)
 
+	def clear(self):
+		self._optionbox.clear()
+
+	def addItems(self, iterable):
+		self._optionbox.addItems(iterable)
+
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
 		state['type'] = 'OptionBox'
