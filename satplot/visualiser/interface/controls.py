@@ -510,6 +510,7 @@ class SensorViewConfigs(QtWidgets.QWidget):
 		self._sens_dict = {}
 		self._sc_dict = {0:(None,None)}
 		sc_num = 1
+		logger.debug(f'Creating list of sensors for all spacecraft')
 		for scid, sc_config in sens_dict.items():
 			self._sc_dict[sc_num] = (scid, sc_config[0])
 			sc_num += 1
@@ -521,6 +522,7 @@ class SensorViewConfigs(QtWidgets.QWidget):
 						self._sens_dict[scid][sens_num] = (suite_name, sens_name)
 						sens_num += 1
 
+		logger.debug(f'Populating drop down menus with spacecraft')
 		for ii in range(self._num_views):
 			self.view_spacecraft_selectors[ii].clear()
 			sc_items_list = [f'{v[0]}: {v[1]}' for v in self._sc_dict.values()]
@@ -528,12 +530,14 @@ class SensorViewConfigs(QtWidgets.QWidget):
 			self.view_spacecraft_selectors[ii].addItems(sc_items_list)
 
 	def setSensList(self, view_id, sc_list_id):
+		logger.debug(f'Clearing sensors from drop down menus')
 		self.view_sensor_selectors[view_id].clear()
 		sc_id = self._sc_dict[sc_list_id][0]
 		if sc_id is None:
 			return
 		sens_list = [f'{v[0]}: {v[1]}' for v in self._sens_dict[sc_id].values()]
 		sens_list[0] = ''
+		logger.debug(f'Populating drop down menus with sensors')
 		self.view_sensor_selectors[view_id].addItems(sens_list)
 
 	def onSensorSelection(self, view_id, sens_list_idx):
