@@ -25,6 +25,8 @@ use(gl='gl+')
 
 class Application():
 	def __init__(self) -> None:
+		satplot.threadpool = threading.Threadpool()
+		logger.info(f"Creating threadpool with {satplot.threadpool.maxThreadCount()} threads")
 		self.pyqt_app = app.use_app("pyqt5")
 		self.pyqt_app.create()
 		self.window = window.MainWindow(title="Sat Plot")
@@ -35,8 +37,7 @@ class Application():
 		self.save_worker = None
 		self.save_worker_thread = None
 		self.save_file = None
-		satplot.threadpool = threading.Threadpool()
-		logger.info(f"Creating threadpool with {satplot.threadpool.maxThreadCount()} threads")
+
 
 	def run(self) -> None:
 		self.window.show()
