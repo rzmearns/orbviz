@@ -3,6 +3,7 @@ import datetime as dt
 import logging
 import pathlib
 import pickle
+import PIL
 from typing import Any
 import warnings
 
@@ -139,6 +140,7 @@ def setDefaultPackageOptions() -> None:
 	satplot.running = True
 	satplot.gl_plus = True
 	satplot.debug = False
+	PIL.Image.MAX_IMAGE_PIXELS = None
 	try:
 		with open('data/spacetrack/.credentials', 'rb') as fp:
 			satplot.spacetrack_credentials = pickle.load(fp)
