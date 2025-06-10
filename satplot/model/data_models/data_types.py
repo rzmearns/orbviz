@@ -13,6 +13,8 @@ class DataType(Enum):
 	BASE = 1
 	HISTORY = 2
 	CONSTELLATION = 3
+	PLANETARYRAYCAST = 4
+	SPHEREIMAGE = 5
 
 class ConstellationConfig():
 	def __init__(self, name:str, beam_width:float, satellites:dict[int, str]):
