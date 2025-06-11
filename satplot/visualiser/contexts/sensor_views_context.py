@@ -51,6 +51,7 @@ class SensorViewsContext(BaseContext):
 		#######
 		'''
 		content_vlayout.addWidget(disp_hsplitter)
+		content_vlayout.addWidget(self.controls.time_slider)
 		content_widget.setLayout(content_vlayout)
 
 		self.layout.setContentsMargins(0, 0, 0, 0)
