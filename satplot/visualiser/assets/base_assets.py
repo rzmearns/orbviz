@@ -21,7 +21,7 @@ class AbstractSimpleAsset(ABC):
 		self.visuals = {}
 		# dict storing crucial data for this asset
 		self.data = {}
-		self.data['name'] = None
+		self.data['name'] = name
 		self.data['v_parent'] = v_parent
 		self.data['curr_index'] = None
 		self._dflt_opts = {}
@@ -223,7 +223,7 @@ class AbstractCompoundAsset(ABC):
 		self.visuals = {}
 		# dict storing crucial data for this asset
 		self.data = {}
-		self.data['name'] = None
+		self.data['name'] = name
 		self.data['v_parent'] = v_parent
 		self.data['curr_index'] = None
 		self._dflt_opts = {}
