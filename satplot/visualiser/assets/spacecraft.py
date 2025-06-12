@@ -339,15 +339,19 @@ class SpacecraftViewsAsset(base_assets.AbstractAsset):
 		self.data['sc_config'] = None
 
 	def setSource(self, *args, **kwargs) -> None:
-		# args[0] orbit
-		# args[1] pointing
-		# args[2] pointing frame transformation direction
+		# args[0] timespan
+		# args[1] orbit
+		# args[2] pointing
+		# args[3] pointing frame transformation direction
 			# True = ECI->BF
 			# False = BF->ECI
-		# args[3] spacecraft configuration
+		# args[4] spacecraft configuration
+		# args[5] raycast src data
+
+		self.data['raycast_src'] = args[5]
 
 		self.data['old_pointing_defined'] = self.data['pointing_defined']
-		if args[1] is not None:
+		if args[2] is not None:
 
 			self.data['pointing_defined'] = True
 			logger.debug(f'spacecraft has pointing')
@@ -355,12 +359,12 @@ class SpacecraftViewsAsset(base_assets.AbstractAsset):
 			self.data['pointing_defined'] = False
 			logger.debug(f'spacecraft has NO pointing')
 
-		sats_dict = args[0]
+		sats_dict = args[1]
 		first_sat_orbit = list(sats_dict.values())[0]
 
 		if type(first_sat_orbit) is not orbit.Orbit:
-			logger.error(f"setSource() of {self} requires an {orbit.Orbit} as value of dict from args[0], not: {type(first_sat_orbit)}")
-			raise TypeError(f"setSource() of {self} requires an {orbit.Orbit} as value of dict from args[0], not: {type(first_sat_orbit)}")
+			logger.error(f"setSource() of {self} requires an {orbit.Orbit} as value of dict from args[1], not: {type(first_sat_orbit)}")
+			raise TypeError(f"setSource() of {self} requires an {orbit.Orbit} as value of dict from args[1], not: {type(first_sat_orbit)}")
 		self.data['coords'] = first_sat_orbit.pos
 		logger.debug(f'Setting source:coordinates for {self}')
 
@@ -370,12 +374,12 @@ class SpacecraftViewsAsset(base_assets.AbstractAsset):
 			self.data['strings'] = ['']
 
 		if self.data['pointing_defined']:
-			pointings_dict = args[1]
+			pointings_dict = args[2]
 			first_sat_pointings = list(pointings_dict.values())[0]
-			invert_transform = args[2]
+			invert_transform = args[3]
 			if type(first_sat_pointings) is not np.ndarray:
-				logger.error(f"setSource() of {self} requires an {np.ndarray} as value of dict from args[1], not: {type(first_sat_pointings)}")
-				raise TypeError(f"setSource() of {self} requires an {np.ndarray} as value of dict from args[1], not: {type(first_sat_pointings)}")
+				logger.error(f"setSource() of {self} requires an {np.ndarray} as value of dict from args[2], not: {type(first_sat_pointings)}")
+				raise TypeError(f"setSource() of {self} requires an {np.ndarray} as value of dict from args[2], not: {type(first_sat_pointings)}")
 			self.data['pointing'] = first_sat_pointings
 			self.data['pointing_invert_transform'] = invert_transform
 			logger.debug(f'Setting source:attitudes for {self}')
@@ -389,7 +393,7 @@ class SpacecraftViewsAsset(base_assets.AbstractAsset):
 			old_suite_names = []
 
 		if self.data['old_pointing_defined'] == self.data['pointing_defined'] and \
-			self.data['sc_config'] == args[3]:
+			self.data['sc_config'] == args[4]:
 			# config has not changed -> don't need to re-instantiate sensors
 			logger.debug('Spacecraft pointing related config has not changed')
 			config_changed = False
@@ -399,7 +403,7 @@ class SpacecraftViewsAsset(base_assets.AbstractAsset):
 			old_config_filestem = self.data['sc_config'].filestem
 		else:
 			old_config_filestem = None
-		self.data['sc_config'] = args[3]
+		self.data['sc_config'] = args[4]
 
 		if self.data['old_pointing_defined'] or \
 			(self.data['sc_config'].filestem != old_config_filestem):
@@ -407,10 +411,9 @@ class SpacecraftViewsAsset(base_assets.AbstractAsset):
 			# if no pointing, no point having sensors
 			self._removeSensorAssets(old_suite_names)
 
-		# if self.data['pointing_defined']:
-		# 	self._instantiateSensorAssets()
-
-		self._instantiateSensorAssets()
+		if self.data['pointing_defined']:
+			self._instantiateSensorAssets()
+			self._setSensorAssetSources()
 
 	def _instantiateAssets(self) -> None:
 		if self.data['sc_config'] is not None:
@@ -429,6 +432,11 @@ class SpacecraftViewsAsset(base_assets.AbstractAsset):
 																	name=key,
 													 				v_parent=self.data['v_parent'])
 		self._addIndividualSensorSuitePlotOptions()
+
+	def _setSensorAssetSources(self) -> None:
+		for asset_name, asset in self.assets.items():
+			if 'sensor_suite_' in asset_name:
+				asset.setSource(self.data['raycast_src'])
 
 	def _createVisuals(self) -> None:
 		pass
@@ -477,8 +485,6 @@ class SpacecraftViewsAsset(base_assets.AbstractAsset):
 
 				# recomputeRedraw child assets
 				self._recomputeRedrawChildren(pos=self.data['coords'][self.data['curr_index']].reshape(1,3), rotation=rotation)
-			else:
-				self._recomputeRedrawChildren(pos=self.data['coords'][self.data['curr_index']].reshape(1,3))
 			self._clearStaleFlag()
 
 	def getScreenMouseOverInfo(self) -> dict[str, Any]:
