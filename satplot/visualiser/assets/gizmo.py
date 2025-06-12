@@ -73,8 +73,7 @@ class BodyGizmo(base_assets.AbstractSimpleAsset):
 												'static': True,
 												'callback': self.setGizmoWidth,
 											'widget': None}
-		self._dflt_opts['gizmo_scale'] = {'value': 9000,
-		# self._dflt_opts['gizmo_scale'] = {'value': 700,
+		self._dflt_opts['gizmo_scale'] = {'value': 700,
 										  		'type': 'number',
 												'help': '',
 												'static': True,
