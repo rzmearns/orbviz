@@ -11,6 +11,7 @@ import vispy.visuals.transforms as vTransforms
 from vispy.util.quaternion import Quaternion
 
 import satplot.model.geometry.polyhedra as polyhedra
+import satplot.model.data_models.data_types as satplot_data_types
 import satplot.util.constants as c
 import satplot.visualiser.colours as colours
 import satplot.visualiser.assets.base_assets as base_assets
@@ -41,9 +42,9 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundAsset):
 		for sensor in sensor_names:
 			print(f'{sensor=}')
 			sens_dict = self.data['sens_suite_config'].getSensorConfig(sensor)
-			if sens_dict['shape'] == 'cone':
+			if sens_dict['shape'] == satplot_data_types.SensorTypes.CONE:
 				self.assets[sensor] = Sensor3DAsset.cone(sensor, sens_dict, parent=self.data['v_parent'])
-			elif sens_dict['shape'] == 'square_pyramid':
+			elif sens_dict['shape'] == satplot_data_types.SensorTypes.FPA:
 				self.assets[sensor] = Sensor3DAsset.squarePyramid(sensor, sens_dict, parent=self.data['v_parent'])
 
 	def _createVisuals(self) -> None:
@@ -76,7 +77,7 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 		super().__init__(sensor_name, v_parent)
 
 		self._setDefaultOptions()
-		if sens_type is None or sens_type not in self.getValidTypes():
+		if sens_type is None or not satplot_data_types.SensorTypes.hasValue(sens_type):
 			logger.error(f"Sensor {sensor_name} has an ill-defined sensor type: {sens_type}")
 			return ValueError(f"Sensor {sensor_name} has an ill-defined sensor type: {sens_type}")
 		self._initData(sens_type, sensor_name, mesh_verts, mesh_faces, bf_quat, colour)
@@ -184,27 +185,14 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 			visual.visible = state
 
 	@classmethod
-	def getValidTypes(cls) -> list[str]:
-		return ['cone','square_pyramid']
-
-	@classmethod
-	def getTypeConfigFields(cls, type:str) -> list[str]:
-		if type == 'cone':
-			return ['opening_angle','range','colour','bf_quat']
-		elif type == 'square_pyramid':
-			return ['width_opening_angle', 'height_opening_angle','range','colour','bf_quat']
-		else:
-			return []
-
-	@classmethod
 	def cone(cls, sensor_name:str, sensor_dict:dict[str,Any], parent:ViewBox|None=None):
 		mesh_verts, mesh_faces  = polyhedra.calcConeMesh((0,0,0),
 								  		sensor_dict['range'],
 										(1,0,0),
-										sensor_dict['opening_angle'])
+										sensor_dict['fov'])
 		
-		bf_quat = np.asarray([float(x) for x in sensor_dict['bf_quat'].replace('(','').replace(')','').split(',')]).reshape(1,4)
-		colour = [int(x) for x in sensor_dict['colour'].replace('(','').replace(')','').split(',')]
+		bf_quat = np.asarray(sensor_dict['bf_quat']).reshape(1,4)
+		colour = sensor_dict['colour']
 		return cls(sensor_name, mesh_verts, mesh_faces, bf_quat, colour, sens_type='cone', v_parent=parent)
 
 	@classmethod
@@ -212,12 +200,12 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 		mesh_verts, mesh_faces  = polyhedra.calcSquarePyramidMesh((0,0,0),
 								  		sensor_dict['range'],
 										(1,0,0),
-										sensor_dict['height_opening_angle'],
-										sensor_dict['width_opening_angle'],
+										sensor_dict['fov'][1],
+										sensor_dict['fov'][0],
 										axis_sample=2)
 		
-		bf_quat = np.asarray([float(x) for x in sensor_dict['bf_quat'].replace('(','').replace(')','').split(',')]).reshape(1,4)
-		colour = [int(x) for x in sensor_dict['colour'].replace('(','').replace(')','').split(',')]
+		bf_quat = np.asarray(sensor_dict['bf_quat']).reshape(1,4)
+		colour = sensor_dict['colour']
 		return cls(sensor_name, mesh_verts, mesh_faces, bf_quat, colour, sens_type='square_pyramid', v_parent=parent)
 
 
@@ -286,7 +274,6 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 	def __init__(self, name:str|None=None, config:dict|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 		self.config = config
-		print(f'sensorImage Asset name: {name}')
 		self._setDefaultOptions()
 		self._initData()
 		self._instantiateAssets()
