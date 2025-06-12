@@ -106,7 +106,10 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 		# make new sensor active
 		suite_asset, sensor_asset = self._getSensorAsset(sc_id, sens_suite_key, sens_key)
 		sensor_asset.setParentView(self.view_boxes[view].scene)
-		sensor_asset.makeActive()
+		# Only want to set a single sensor to be active, not all within one suite
+		suite_asset._setActiveFlag()
+		sensor_asset._setActiveFlag()
+		sensor_asset._attachToParentView()
 		width, height = sensor_asset.getDimensions()
 		logger.debug(f'Setting view: {view} to SC: {sc_id}, Sensor Suite: {sens_suite_key}, sensor:{sens_key}')
 		self.view_boxes[view].camera.set_range(x=(0,width), y=(0, height), margin=0)
@@ -139,22 +142,20 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 			logger.error(f'canvas wrapper: {self} does not have a history data model yet')
 			raise exceptions.InvalidDataError
 
+		if self.data_models['raycast_src'] is None:
+			logger.error(f'canvas wrapper: {self} does not have a raycast source data model yet')
+			raise exceptions.InvalidDataError
+
 		if self.data_models['history'].hasOrbits():
 			if self.data_models['history'].getConfigValue('is_pointing_defined'):
-				self.assets['spacecraft'].setSource(self.data_models['history'].getOrbits(),
+				self.assets['spacecraft'].setSource(self.data_models['history'].getTimespan(),
+													self.data_models['history'].getOrbits(),
 													self.data_models['history'].getPointings(),
 													self.data_models['history'].getConfigValue('pointing_invert_transform'),
-													list(self.data_models['history'].getPrimaryConfig().getAllSpacecraftConfigs().values())[0])
-				self.assets['spacecraft'].makeActive()
-			else:
-				self.assets['spacecraft'].setSource(self.data_models['history'].getOrbits(),
-													None,
-													None,
-													list(self.data_models['history'].getPrimaryConfig().getAllSpacecraftConfigs().values())[0])
-				self.assets['spacecraft'].makeActive()
+													list(self.data_models['history'].getPrimaryConfig().getAllSpacecraftConfigs().values())[0],
+													self.data_models['raycast_src'])
+				self.assets['spacecraft']._setActiveFlag()
 
-		# sat_ids = self.data_models['history'].getPrimaryConfig().getSpacecraftConfig()
-		# all_scs = self.data_models['history'].getPrimaryConfig().getAllSpacecraftConfigs()
 
 
 	def updateIndex(self, index:int) -> None:
