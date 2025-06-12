@@ -15,11 +15,13 @@ from vispy.scene.cameras import PanZoomCamera
 
 
 from satplot.model.data_models.history_data import (HistoryData)
+from satplot.model.data_models.earth_raycast_data import (EarthRayCastData)
 import satplot.model.geometry.primgeom as pg
 from satplot.model.data_models.data_types import PrimaryConfig
 from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 import satplot.util.constants as c
 import satplot.util.exceptions as exceptions
+import satplot.util.paths as satplot_paths
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.assets.sensors as sensors
 import satplot.visualiser.assets.spacecraft as spacecraft
@@ -70,11 +72,6 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 		self.data_models: dict[str,Any] = {}
 		self.assets = {}
 		self._buildAssets()
-		# self.mouseOverText = widgets.PopUpTextBox(v_parent=self.view_box,
-		# 									padding=[3,3,3,3],
-		# 									colour=(253,255,189),
-		# 									border_colour=(186,186,186),
-		# 									font_size=10)
 		self.mouseOverObject = None
 
 	def _buildAssets(self) -> None:
@@ -95,6 +92,7 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 
 		# remove parent scene of old sensor
 		# make old sensor dormant
+		logger.debug(f'Clearing sensor: {self.displayed_sensors[view]} from view: {view}')
 		if self.displayed_sensors[view] is not None:
 			self.displayed_sensors[view].makeDormant()
 			self.displayed_sensors[view] = None
@@ -106,18 +104,21 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 
 		# attach parent scene to new sensor
 		# make new sensor active
-		sensor_asset = self._getSensorAsset(sc_id, sens_suite_key, sens_key)
+		suite_asset, sensor_asset = self._getSensorAsset(sc_id, sens_suite_key, sens_key)
 		sensor_asset.setParentView(self.view_boxes[view].scene)
 		sensor_asset.makeActive()
 		width, height = sensor_asset.getDimensions()
-		# if (view+1)%2 == 0:
+		logger.debug(f'Setting view: {view} to SC: {sc_id}, Sensor Suite: {sens_suite_key}, sensor:{sens_key}')
 		self.view_boxes[view].camera.set_range(x=(0,width), y=(0, height), margin=0)
 		self.displayed_sensors[view] = sensor_asset
 
 
-	def _getSensorAsset(self, sc_id: int, sens_suite_key: str, sens_key: str) -> sensors.SensorImageAsset:
+	def _getSensorAsset(self, sc_id: int, sens_suite_key: str, sens_key: str) -> tuple[sensors.SensorSuiteImageAsset,sensors.SensorImageAsset]:
 		# TODO: index spacecraft list using sc_id
-		return self.assets['spacecraft'].getSensorSuiteByKey(sens_suite_key).getSensorByKey(sens_key)
+		suite_asset = self.assets['spacecraft'].getSensorSuiteByKey(sens_suite_key)
+		sensor_asset = suite_asset.getSensorByKey(sens_key)
+
+		return suite_asset, sensor_asset
 
 	def getActiveAssets(self) -> list[base_assets.AbstractAsset|base_assets.AbstractCompoundAsset|base_assets.AbstractSimpleAsset]:
 		active_assets = []
@@ -126,8 +127,9 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 				active_assets.append(k)
 		return active_assets
 
-	def setModel(self, hist_data:HistoryData) -> None:
+	def setModel(self, hist_data:HistoryData, earth_raycast_data:EarthRayCastData) -> None:
 		self.data_models['history'] = hist_data
+		self.data_models['raycast_src'] = earth_raycast_data
 		self.modelUpdated()
 
 	def modelUpdated(self) -> None:
@@ -160,57 +162,14 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 			if asset.isActive():
 				asset.updateIndex(index)
 
-		self._updateCamera()
-
 	def recomputeRedraw(self) -> None:
 		for asset_name, asset in self.assets.items():
-			# if asset_name == 'sun':
-			# 	continue
 			if asset.isActive():
 				asset.recomputeRedraw()
 
 	def setFirstDrawFlags(self) -> None:
 		for asset in self.assets.values():
 			asset.setFirstDrawFlagRecursive()
-
-	def _updateCamera(self):
-		pass
-		# if self.assets['spacecraft'].isActive():
-		# 	sc_pos = tuple(self.assets['spacecraft'].data['coords'][self.assets['spacecraft'].data['curr_index']])
-		# else:
-		# 	sc_pos = tuple(self.assets['primary_orbit'].data['coords'][self.assets['primary_orbit'].data['curr_index']])
-
-		# sc_quat = self.assets['spacecraft'].assets['sensor_suite_Axes'].assets['NegZ'].data['vispy_quat'].reshape(4,)
-		# sc_quat = tuple(sc_quat.reshape(4,))
-		# self.view_box.camera.setPose(sc_pos,sc_quat,scaler_first=False)
-		# self.view_box.camera.center = sc_pos
-
-
-	# def _updateCameraRotation(self):
-	# 	# self.view_box.camera.rotation1 = self.assets['spacecraft'].assets['sensor_suite_Axes'].assets['NegZ'].data['vispy_quat']
-	# 	self.view_box.camera._quaternion = self.assets['spacecraft'].assets['sensor_suite_Axes'].assets['NegZ'].data['vispy_quat']
-
-
-	# def centerCameraSpacecraft(self, set_zoom:bool=True) -> None:
-	# 	if self.canvas is None:
-	# 		raise AttributeError(f"Canvas has not been set for History3D Canvas Wrapper. No camera to center")
-	# 	if self.assets['spacecraft'].isActive():
-	# 		sc_pos = tuple(self.assets['spacecraft'].data['coords'][self.assets['spacecraft'].data['curr_index']])
-	# 	else:
-	# 		sc_pos = tuple(self.assets['primary_orbit'].data['coords'][self.assets['primary_orbit'].data['curr_index']])
-
-	# 	self.view_box.camera.center = sc_pos
-	# 	if set_zoom:
-	# 		self.setCameraZoom(2200)
-	# 	self.canvas.update()
-
-
-	# def centerCameraEarth(self) -> None:
-	# 	if self.canvas is None:
-	# 		raise AttributeError(f"Canvas has not been set for History3D Canvas Wrapper. No camera to center")
-	# 	self.view_box.camera.center = (0,0,0)
-	# 	self.setCameraZoom(5*c.R_EARTH)
-	# 	self.canvas.update()
 
 	def prepSerialisation(self) -> dict[str,Any]:
 		state = {}

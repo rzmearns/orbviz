@@ -5,7 +5,7 @@ from typing import Any
 from PyQt5 import QtWidgets, QtCore
 
 import satplot
-from satplot.model.data_models import (history_data)
+from satplot.model.data_models import (history_data, earth_raycast_data)
 from satplot.visualiser.contexts import (history3d_context, history2d_context, blank_context, sensor_views_context)
 import satplot.visualiser.interface.console as console
 
@@ -39,6 +39,7 @@ class MainWindow(QtWidgets.QMainWindow):
 		
 		# Build data models
 		history_data_model = history_data.HistoryData()
+		earth_raycast_data_model = earth_raycast_data.EarthRayCastData()
 
 		# Build context panes
 		self.contexts_dict['3d-history'] = history3d_context.History3DContext('3d-history', self, history_data_model)
@@ -56,7 +57,7 @@ class MainWindow(QtWidgets.QMainWindow):
 		# self.menubars['blank'] = self.contexts_dict['blank'].controls.menubar
 		# self.context_tabs.addTab(self.contexts_dict['blank'].widget, 'Blank')
 
-		self.contexts_dict['sensors-view'] = sensor_views_context.SensorViewsContext('sensors-view', self, history_data_model)
+		self.contexts_dict['sensors-view'] = sensor_views_context.SensorViewsContext('sensors-view', self, history_data_model, earth_raycast_data_model)
 		self.toolbars['sensors-view'] = self.contexts_dict['sensors-view'].controls.toolbar
 		self.menubars['sensors-view'] = self.contexts_dict['sensors-view'].controls.menubar
 		self.context_tabs.addTab(self.contexts_dict['sensors-view'].widget, 'sensors-view')
