@@ -9,7 +9,6 @@ from vispy.scene.widgets.viewbox import ViewBox
 import vispy.visuals.filters as vFilters
 import vispy.visuals.transforms as vTransforms
 from vispy.util.quaternion import Quaternion
-from vispy.scene.visuals import Text
 
 import satplot.model.geometry.polyhedra as polyhedra
 import satplot.util.constants as c
@@ -240,18 +239,20 @@ class SensorSuiteImageAsset(base_assets.AbstractCompoundAsset):
 		self.data['sens_suite_config'] = sens_suite_dict
 
 	def setSource(self, *args, **kwargs) -> None:
-		pass
+		# args[0] = raycast_src
+		for sensor_name, sensor in self.assets.items():
+			sensor.setSource(args[0])
 
 	def _instantiateAssets(self) -> None:
 		sensor_names = self.data['sens_suite_config'].getSensorNames()
-		for sensor in sensor_names:
-			print(f'{sensor=}')
-			sens_dict = self.data['sens_suite_config'].getSensorConfig(sensor)
+		for sensor_name in sensor_names:
+			print(f'{sensor_name=}')
+			sens_dict = self.data['sens_suite_config'].getSensorConfig(sensor_name)
 			if sens_dict['shape'] == 'cone':
 				# TOOD: some kind of exception
 				pass
 			elif sens_dict['shape'] == 'square_pyramid':
-				self.assets[sensor] = SensorImageAsset(sensor, sens_dict, v_parent=self.data['v_parent'])
+				self.assets[sensor_name] = SensorImageAsset(sensor_name, sens_dict, v_parent=None)
 
 	def _createVisuals(self) -> None:
 		pass
@@ -281,15 +282,16 @@ class SensorSuiteImageAsset(base_assets.AbstractCompoundAsset):
 	def setSuiteVisibility(self, state:bool) -> None:
 		self.setVisibilityRecursive(state)
 
-class SensorImageAsset(base_assets.AbstractAsset):
+class SensorImageAsset(base_assets.AbstractSimpleAsset):
 	def __init__(self, name:str|None=None, config:dict|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 		self.config = config
-
+		print(f'sensorImage Asset name: {name}')
 		self._setDefaultOptions()
 		self._initData()
 		self._instantiateAssets()
 		self._createVisuals()
+		self.counter = 0
 		# These callbacks need to be set after asset creation as the option dict is populated during draw()
 
 		self._attachToParentView()
@@ -304,17 +306,8 @@ class SensorImageAsset(base_assets.AbstractAsset):
 
 
 	def setSource(self, *args, **kwargs) -> None:
-		if type(args[0]) is not timespan.TimeSpan:
-			# args[0] assumed to be timespan
-			logger.error(f"setSource() of {self} requires a {timespan.Timespan} as args[0], not: {type(args[0])}")
-			raise TypeError
-		# TODO: add capability to produce array of skyfields)
-		times = []
-		for ii in range(len(args[0])):
-			times.append(args[0].asSkyfield(ii))
-		self.data['datetimes'] = np.asarray(times)
-		for asset in self.assets.values():
-			asset.setSource(self.data['datetimes'])
+		# args[0] = raycast_src
+		self.data['raycast_src'] = args[0]
 
 	def _instantiateAssets(self) -> None:
 		pass
@@ -322,39 +315,29 @@ class SensorImageAsset(base_assets.AbstractAsset):
 	def _createVisuals(self) -> None:
 		# Earth Sphere
 		img_data = _generateRandomSensorData((self.data['sensor_height'], self.data['sensor_width']))
+		# img_data = self.data['raycast_src'].data[0].arr[6000+0:6000+1080, 17500+0:17500+1920,:]
 		self.visuals['sensor_image'] = vVisuals.Image(
 			img_data,
 			interpolation = 'nearest',
 			texture_format="auto",
 			parent=None,
 		)
-		self.visuals['text'] = Text(f"Sensor: {self.data['name']}", color='red')
+		self.visuals['text'] = vVisuals.Text(f"Sensor: {self.data['name']}", color='red')
 		self.visuals['text'].pos = self.data['sensor_width']/2, self.data['sensor_height']/2
-		# self.visuals['marker'] = vVisuals.Markers(parent=None,
-		# 												scaling=True,
-		# 												antialias=0)
-		# self.visuals['marker'].set_data(pos=np.array([[0,0]]),
-		# 								edge_width=0,
-		# 								face_color=(1,0,0),
-		# 								edge_color='white',
-		# 								size=10,
-		# 								symbol='o')
 
 	def getDimensions(self) -> tuple[int, int]:
 		return self.data['sensor_width'], self.data['sensor_height']
 
 	def setTransform(self, *args, **kwargs):
-		pass
+		if self.isActive():
+			if self.isStale():
 
-	def recomputeRedraw(self) -> None:
-		if self.isFirstDraw():
-			self._clearFirstDrawFlag()
-		if self.isStale():
-
-			# recomputeRedraw child assets
-			self._recomputeRedrawChildren(rotation=None)
-			self._clearStaleFlag()
-		pass
+				print(f"setting transform for {self.data['name']}")
+				# self.visuals['sensor_image'].set_data(self.data['raycast_src'].data[0].arr[6000+0:6000+1080, 17500+0:17500+1920,1])
+				self.visuals['sensor_image'].set_data(_generateRandomSensorData((self.data['sensor_height'], self.data['sensor_width'])))
+				self.visuals['text'].text = f"Sensor: {self.data['name']}: {self.counter}"
+				self.counter += 1
+				self._clearStaleFlag()
 
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
