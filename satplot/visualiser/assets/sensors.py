@@ -122,33 +122,20 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 			self._clearFirstDrawFlag()
 		if self.isStale():
 			T = np.eye(4)
-			print(f'{rotation=}')
-			print(f'{quat=}')
 			sc_rotation = rotation
 			if quat is not None:
 				rotation = Rotation.from_quat(quat) * Rotation.from_quat(self.data['bf_quat'])
 				rot_mat = rotation.as_matrix()
 				as_quat = rotation.as_quat()
-				# as_quat = (Rotation.from_quat(self.data['bf_quat']) * Rotation.from_quat(quat)).as_quat()
 			elif rotation is not None:
 				# bf_quat -> bodyframe to cam quaternion
 				rotation = Rotation.from_matrix(rotation) * Rotation.from_quat(self.data['bf_quat'])
 				rot_mat = rotation.as_matrix()
-				# as_quat = (Rotation.from_matrix(rotation) * Rotation.from_quat(self.data['bf_quat'])).as_quat()
 				as_quat = rotation.as_quat()
 			else:
 				rot_mat = np.eye(3)
 				as_quat = (1,0,0,0)
-			print(f"{as_quat=}")
 			self.data['vispy_quat'] = as_quat
-			# if rotation is not None:
-			# 	self.data['vispy_quat'] = Rotation.from_matrix(sc_rotation).inv().as_quat()
-			# else:
-			# 	self.data['vispy_quat'] = quat
-			# self.data['vispy_quat'] = np.array((1,0,0,0))
-			# self.data['vispy_quat'] = np.array((0.707,0,0,0.707))
-			# self.data['vispy_quat'] = np.array((0.707,0,-0.707,0))
-			print(f"{self.data['vispy_quat']=}")
 			T[0:3,0:3] = rot_mat
 			T[0:3,3] = np.asarray(pos).reshape(-1,3)
 			self.visuals['sensor_cone'].transform = vTransforms.linear.MatrixTransform(T.T)
@@ -302,7 +289,6 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 	def _createVisuals(self) -> None:
 		# Earth Sphere
 		img_data = _generateRandomSensorData((self.data['sensor_height'], self.data['sensor_width']))
-		# img_data = self.data['raycast_src'].data[0].arr[6000+0:6000+1080, 17500+0:17500+1920,:]
 		self.visuals['sensor_image'] = vVisuals.Image(
 			img_data,
 			interpolation = 'nearest',
@@ -318,9 +304,6 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 	def setTransform(self, *args, **kwargs):
 		if self.isActive():
 			if self.isStale():
-
-				print(f"setting transform for {self.data['name']}")
-				# self.visuals['sensor_image'].set_data(self.data['raycast_src'].data[0].arr[6000+0:6000+1080, 17500+0:17500+1920,1])
 				self.visuals['sensor_image'].set_data(_generateRandomSensorData((self.data['sensor_height'], self.data['sensor_width'])))
 				self.visuals['text'].text = f"Sensor: {self.data['name']}: {self.counter}"
 				self.counter += 1
