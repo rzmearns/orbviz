@@ -4,6 +4,7 @@ import pathlib
 from PIL import Image
 from typing import Any
 
+import satplot.model.geometry.spherical as spherical_geom
 from satplot.model.data_models.base_models import (BaseDataModel)
 import satplot.model.data_models.data_types as data_types
 import satplot.util.paths as satplot_paths
@@ -35,20 +36,31 @@ class SphereImageData(BaseDataModel):
 
 	def loadSource(self, running:threading.Flag):
 		im = Image.open(pathlib.Path(self.config['img_path']))
-		return np.array(im)
+		return np.array(im)/255
 
 	def storeArray(self, arr:np.ndarray) -> None:
 		logger.info(f"Finished loading image array data for {self.getConfigValue('body_name')}:" \
 					f"{self.getConfigValue('wavelength')[0]}nm -> {self.getConfigValue('wavelength')[1]}, "\
 					f"externally lit: {self.getConfigValue('externally_lit')}")
 		self.arr = arr
-		self.updateConfig('resolution', arr.shape[:2])
+		res = (arr.shape[1],arr.shape[0])
+		self.updateConfig('resolution', res)
 
 	def getLookupData(self) -> dict[str,tuple[float,float]|str|bool]:
 		d = {'body_name':self.getConfigValue('body_name'),
 			'wavelength':self.getConfigValue('wavelength'),
 			'externally_lit':self.getConfigValue('externally_lit')}
 		return d
+
+	def getPixelDataOnSphere(self, lat:float|np.ndarray, lon:float|np.ndarray) -> np.ndarray:
+		if self.arr is None:
+			logger.error(f"{self.getConfigValue('body_name')}: SphereImage Data not loaded yet")
+			raise ValueError(f"{self.getConfigValue('body_name')}: SphereImage Data not loaded yet")
+		res = self.getConfigValue('resolution')
+		lon = spherical_geom.wrapToCircleRangeDegrees(lon)
+		lat_pixel_coords = ((lat+90) / 180 * res[1]).astype(int)
+		lon_pixel_coords = ((lon+180) / 360 * res[0]).astype(int)
+		return self.arr[lat_pixel_coords, lon_pixel_coords,:]
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}

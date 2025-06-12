@@ -223,10 +223,10 @@ class SensorSuiteImageAsset(base_assets.AbstractCompoundAsset):
 		for sensor_name in sensor_names:
 			print(f'{sensor_name=}')
 			sens_dict = self.data['sens_suite_config'].getSensorConfig(sensor_name)
-			if sens_dict['shape'] == 'cone':
+			if sens_dict['shape'] == satplot_data_types.SensorTypes.CONE:
 				# TOOD: some kind of exception
 				pass
-			elif sens_dict['shape'] == 'square_pyramid':
+			elif sens_dict['shape'] == satplot_data_types.SensorTypes.FPA:
 				self.assets[sensor_name] = SensorImageAsset(sensor_name, sens_dict, v_parent=None)
 
 	def _createVisuals(self) -> None:
@@ -267,7 +267,7 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 		self._createVisuals()
 		self.counter = 0
 		# These callbacks need to be set after asset creation as the option dict is populated during draw()
-
+		print(f'Created SensorImage asset')
 		self._attachToParentView()
 
 	def _initData(self) -> None:
@@ -291,8 +291,8 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 		img_data = _generateRandomSensorData((self.data['sensor_height'], self.data['sensor_width']))
 		self.visuals['sensor_image'] = vVisuals.Image(
 			img_data,
-			interpolation = 'nearest',
-			texture_format="auto",
+			# interpolation = 'nearest',
+			# texture_format="auto",
 			parent=None,
 		)
 		self.visuals['text'] = vVisuals.Text(f"Sensor: {self.data['name']}", color='red')
@@ -304,10 +304,28 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 	def setTransform(self, *args, **kwargs):
 		if self.isActive():
 			if self.isStale():
-				self.visuals['sensor_image'].set_data(_generateRandomSensorData((self.data['sensor_height'], self.data['sensor_width'])))
+				lons, lats = self._generateLatLonCoords(self.counter)
+				# print(f'{lats.shape=}')
+				data = self.data['raycast_src'].getPixelDataOnSphere(lats, lons).reshape(1080,1920,3)
+				# print(f'{data.shape=}')
+				# print(f'{data[0,0,:]=}')
+				self.visuals['sensor_image'].set_data(data)
 				self.visuals['text'].text = f"Sensor: {self.data['name']}: {self.counter}"
 				self.counter += 1
 				self._clearStaleFlag()
+
+	def _generateLatLonCoords(self, counter):
+		lat_center = 0
+		lat_fov = 45
+		lon_fov = lat_fov*2
+		lat = np.linspace(lat_center - lat_fov/2,lat_center + lat_fov/2, self.data['sensor_height'])
+		start_lon = 0+5*counter
+		lon = np.linspace(start_lon,start_lon+lon_fov, self.data['sensor_width'])
+		lons,lats = np.meshgrid(lon,lat)
+		lons = np.ravel(lons)
+		lats = np.ravel(lats)
+		return lons,lats
+
 
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
@@ -407,5 +425,7 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 
 def _generateRandomSensorData(shape, dtype=np.float32):
     rng = np.random.default_rng()
-    data = rng.random(shape, dtype=dtype)
+    s = [val for val in shape]
+    s.append(3)
+    data = rng.random(s, dtype=dtype)
     return data

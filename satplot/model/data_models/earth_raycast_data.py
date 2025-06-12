@@ -77,6 +77,36 @@ class EarthRayCastData(BaseDataModel):
 	# 		raise ValueError(f'History data:{self} has no pointings yet')
 	# 	return self.pointings
 
+	def getPixelDataOnSphere(self, lat:float|np.ndarray, lon:float|np.ndarray,
+								min_wavelength:float=400, max_wavelength:float=700) -> np.ndarray:
+		# TODO: check lengs of lat and lon are same
+		# TODO: handle float option
+		shape = lat.shape
+		out_arr = np.ndarray((shape[0],3))
+		sunlit_mask = self.isLocationSunlit(lat, lon)
+		sunlit_data = self.data[self.lookup(min_wavelength, max_wavelength, True)]
+		eclipsed_data = self.data[self.lookup(min_wavelength, max_wavelength, True)]
+		out_arr[sunlit_mask,:] = sunlit_data.getPixelDataOnSphere(lat[sunlit_mask],lon[sunlit_mask])
+		out_arr[~sunlit_mask,:] = eclipsed_data.getPixelDataOnSphere(lat[~sunlit_mask],lon[~sunlit_mask])
+		return out_arr
+
+	def lookup(self, min_wavelength:float, max_wavelength:float, lit:bool):
+		# TODO: add in other lookup conditions
+		lighting_condition_dict = dict(filter(self._filterSunlit, self.lookups.items()))
+		if len(lighting_condition_dict.keys()) > 0:
+			return list(lighting_condition_dict.keys())[0]
+		else:
+			raise ValueError(f'There is spherical image data for {self}, matching the conditions: lit=={lit}')
+
+	def _filterSunlit(self, item):
+		return item[1]['externally_lit']
+
+	def isLocationSunlit(self, lat:float|np.ndarray, lon:float|np.ndarray) -> np.ndarray:
+		# TODO: handle float option
+		shape = lat.shape
+		# TODO: perform actual sunlit check
+		return np.logical_not(np.zeros(shape))
+
 	def _createNewThreadKeyFromIdx(self, idx:int) -> str:
 		return f'earth_img_loader_{idx}'
 
