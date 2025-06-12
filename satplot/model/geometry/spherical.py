@@ -12,6 +12,9 @@ def smallCircleRadius(center_lat: float, center_lon:float, radii_end_lat: float,
 def wrapToCircleRange(arr):
 	return (arr + np.pi) % (2*np.pi) - np.pi
 
+def wrapToCircleRangeDegrees(arr):
+	return (arr + 180) % (2*180) - 180
+
 def getSmallCirclePoint(great_circle_radius:float, center_lat:float, center_lon:float, param_lat:float) -> tuple[float,float]:
 	d = great_circle_radius
 	phi_0 = np.deg2rad(center_lon)
