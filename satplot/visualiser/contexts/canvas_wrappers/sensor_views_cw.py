@@ -60,14 +60,11 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 		self.grid.add_widget(self.view_boxes[2],1,0)
 		self.grid.add_widget(self.view_boxes[3],1,1)
 
-		vb1.camera = static2d.Static2D(parent=self.view_boxes[0].scene)
-		vb1.camera.aspect = 1
-		vb2.camera = static2d.Static2D(parent=self.view_boxes[1].scene)
-		vb2.camera.aspect = 1
-		vb3.camera = static2d.Static2D(parent=self.view_boxes[2].scene)
-		vb3.camera.aspect = 1
-		vb4.camera = static2d.Static2D(parent=self.view_boxes[3].scene)
-		vb4.camera.aspect = 1
+		for ii in range(len(scenes)):
+			self.view_boxes[ii].camera = static2d.Static2D(parent=self.view_boxes[ii].scene)
+			self.view_boxes[ii].camera.aspect = 1
+			self.view_boxes[ii].camera.flip = (0,1,0)
+
 
 		self.data_models: dict[str,Any] = {}
 		self.assets = {}
