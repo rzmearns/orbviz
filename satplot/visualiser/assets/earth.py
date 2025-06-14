@@ -3,6 +3,7 @@ import numpy as np
 import numpy.typing as nptyping
 from skyfield.api import wgs84
 from typing import Tuple
+import os
 
 from vispy import scene, color
 from vispy.io import load_data_file, read_png
@@ -532,7 +533,8 @@ class Earth2DAsset(base_assets.AbstractAsset):
 
 	def _createVisuals(self) -> None:
 		# Earth Sphere
-		img_data = np.flip(read_png(f'{satplot_paths.data_dir}/earth2D/equirectangular.jpg'),0)
+		img_path = os.path.join(satplot_paths.data_dir,'earth2D','equirectangular.jpg')
+		img_data = np.flip(read_png(img_path),0)
 		print(f'loaded image')
 		self.visuals['earth'] = scene.visuals.Image(
 			img_data,
