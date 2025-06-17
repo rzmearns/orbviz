@@ -469,6 +469,8 @@ class OptionBox(QtWidgets.QWidget):
 
 	def _run_callbacks(self, index):
 		self._curr_index = index
+		if self._curr_index == -1:
+			return
 		if len(self._callbacks) > 0:
 			for callback in self._callbacks:
 				callback(index)
