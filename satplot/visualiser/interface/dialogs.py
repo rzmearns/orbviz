@@ -54,6 +54,7 @@ class SpaceTrackCredentialsDialog():
 
 	def submit(self):
 		credential_file = 'data/spacetrack/.credentials'
+		os.makedirs('data/spacetrack', exist_ok=True)
 		self.window.close()
 		satplot.spacetrack_credentials['user'] = self.user.text()
 		satplot.spacetrack_credentials['passwd'] = self.passwd.text()
