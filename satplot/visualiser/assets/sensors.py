@@ -1,3 +1,4 @@
+import datetime as dt
 import logging
 import numpy as np
 import numpy.typing as nptyping
@@ -12,6 +13,7 @@ from vispy.util.quaternion import Quaternion
 
 import satplot.model.geometry.polyhedra as polyhedra
 import satplot.model.data_models.data_types as satplot_data_types
+import satplot.model.lens_models.pinhole as pinhole
 import satplot.util.constants as c
 import satplot.visualiser.colours as colours
 import satplot.visualiser.assets.base_assets as base_assets
@@ -195,8 +197,6 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 		colour = sensor_dict['colour']
 		return cls(sensor_name, mesh_verts, mesh_faces, bf_quat, colour, sens_type='square_pyramid', v_parent=parent)
 
-
-
 class SensorSuiteImageAsset(base_assets.AbstractCompoundAsset):
 	def __init__(self, sens_suite_dict:dict[str,Any], name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
@@ -217,6 +217,11 @@ class SensorSuiteImageAsset(base_assets.AbstractCompoundAsset):
 		# args[0] = raycast_src
 		for sensor_name, sensor in self.assets.items():
 			sensor.setSource(args[0])
+
+	def setCurrentDateTime(self, dt:dt.datetime) -> None:
+		self.data['curr_datetime'] = dt
+		for asset in self.assets.values():
+			asset.setCurrentDateTime(dt)
 
 	def _instantiateAssets(self) -> None:
 		sensor_names = self.data['sens_suite_config'].getSensorNames()
@@ -258,11 +263,11 @@ class SensorSuiteImageAsset(base_assets.AbstractCompoundAsset):
 		self.setVisibilityRecursive(state)
 
 class SensorImageAsset(base_assets.AbstractSimpleAsset):
-	def __init__(self, name:str|None=None, config:dict|None=None, v_parent:ViewBox|None=None):
+	def __init__(self, name:str|None=None, config:dict={}, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 		self.config = config
 		self._setDefaultOptions()
-		self._initData()
+		self._initData(config['bf_quat'], config['resolution'], config['fov'])
 		self._instantiateAssets()
 		self._createVisuals()
 		self.counter = 0
@@ -270,46 +275,77 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 		print(f'Created SensorImage asset')
 		self._attachToParentView()
 
-	def _initData(self) -> None:
+	def _initData(self, bf_quat:tuple[float, float, float, float], resolution:tuple[int,int], fov:tuple[float,float]) -> None:
 		if self.data['name'] is None:
 			self.data['name'] = 'SensorImage'
-		# self.data['sensor_width'] = 3280
-		# self.data['sensor_height'] = 2464
-		self.data['sensor_width'] = 1920
-		self.data['sensor_height'] = 1080
-
+		self.data['bf_quat'] = bf_quat
+		self.data['res'] = resolution
+		self.data['lowres'] = self._calcLowRes(self.data['res'])
+		self.data['fov'] = (62.2, 48.8)
+		self.data['lens_model'] = pinhole
+		self.data['ray_angles'] = self.data['lens_model'].generatePixelRayAngles(self.data['lowres'], self.data['fov'])
 
 	def setSource(self, *args, **kwargs) -> None:
 		# args[0] = raycast_src
 		self.data['raycast_src'] = args[0]
+
+	def setCurrentDateTime(self, dt:dt.datetime) -> None:
+		self.data['curr_datetime'] = dt
+
+	def _calcLowRes(self, true_resolution:tuple[int,int]) -> tuple[int,int]:
+		lowres = [0,0]
+		aspect_ratio = true_resolution[0]/true_resolution[1]
+		if aspect_ratio > 1:
+			lowres = (480, int(480/aspect_ratio))
+		elif aspect_ratio < 1:
+			lowres = (int(480/aspect_ratio), 480)
+		else:
+			lowres = (480, 480)
+		return lowres
 
 	def _instantiateAssets(self) -> None:
 		pass
 
 	def _createVisuals(self) -> None:
 		# Earth Sphere
-		img_data = _generateRandomSensorData((self.data['sensor_height'], self.data['sensor_width']))
-		self.visuals['sensor_image'] = vVisuals.Image(
+		img_data = _generateRandomSensorData((self.data['lowres'][1], self.data['lowres'][0]))
+		self.visuals['image'] = vVisuals.Image(
 			img_data,
 			# interpolation = 'nearest',
 			# texture_format="auto",
 			parent=None,
 		)
 		self.visuals['text'] = vVisuals.Text(f"Sensor: {self.data['name']}", color='red')
-		self.visuals['text'].pos = self.data['sensor_width']/2, self.data['sensor_height']/2
+		self.visuals['text'].pos = self.data['lowres'][0]/2, self.data['lowres'][1]/2
 
 	def getDimensions(self) -> tuple[int, int]:
-		return self.data['sensor_width'], self.data['sensor_height']
+		return self.data['lowres']
 
-	def setTransform(self, *args, **kwargs):
+	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
+							 rotation:nptyping.NDArray|None=None, quat:nptyping.NDArray|None=None) -> None:
+		if self.isFirstDraw():
+			self._clearFirstDrawFlag()
+
 		if self.isActive():
 			if self.isStale():
+				T = np.eye(4)
+				if quat is not None:
+					rotation = Rotation.from_quat(quat) * Rotation.from_quat(self.data['bf_quat'])
+					rot_mat = rotation.as_matrix()
+					as_quat = rotation.as_quat()
+				elif rotation is not None:
+					# bf_quat -> bodyframe to cam quaternion
+					rotation = Rotation.from_matrix(rotation) * Rotation.from_quat(self.data['bf_quat'])
+					rot_mat = rotation.as_matrix()
+					as_quat = rotation.as_quat()
+				else:
+					rot_mat = np.eye(3)
+					as_quat = (1,0,0,0)
+				T[0:3,0:3] = rot_mat
+				T[0:3,3] = np.asarray(pos).reshape(-1,3)
+
 				lons, lats = self._generateLatLonCoords(self.counter)
-				# print(f'{lats.shape=}')
-				data = self.data['raycast_src'].getPixelDataOnSphere(lats, lons).reshape(1080,1920,3)
-				# print(f'{data.shape=}')
-				# print(f'{data[0,0,:]=}')
-				self.visuals['sensor_image'].set_data(data)
+				self.visuals['image'].set_data(self.data['raycast_src'].getPixelDataOnSphere(lats, lons).reshape(self.data['lowres'][1],self.data['lowres'][0],3)/255)
 				self.visuals['text'].text = f"Sensor: {self.data['name']}: {self.counter}"
 				self.counter += 1
 				self._clearStaleFlag()
@@ -318,9 +354,9 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 		lat_center = 0
 		lat_fov = 45
 		lon_fov = lat_fov*2
-		lat = np.linspace(lat_center - lat_fov/2,lat_center + lat_fov/2, self.data['sensor_height'])
+		lat = np.linspace(lat_center - lat_fov/2,lat_center + lat_fov/2, self.data['lowres'][1])
 		start_lon = 0+5*counter
-		lon = np.linspace(start_lon,start_lon+lon_fov, self.data['sensor_width'])
+		lon = np.linspace(start_lon,start_lon+lon_fov, self.data['lowres'][0])
 		lons,lats = np.meshgrid(lon,lat)
 		lons = np.ravel(lons)
 		lats = np.ravel(lats)
@@ -421,7 +457,6 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 	def setEarthSphereVisibility(self, state:bool) -> None:
 		self.opts['plot_earth_sphere']['value'] = state
 		self.visuals['earth_sphere'].visible = self.opts['plot_earth_sphere']['value']
-
 
 def _generateRandomSensorData(shape, dtype=np.float32):
     rng = np.random.default_rng()
