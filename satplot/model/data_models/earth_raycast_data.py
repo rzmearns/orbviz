@@ -99,7 +99,7 @@ class EarthRayCastData(BaseDataModel):
 		self.data_ready.emit()
 		logger.info("Finished initialising Earth PlanetaryRayCastData")
 
-	def rayCastFromSensor(self, sens_eci_transform:np.ndarray, sens_rays_cf:np.ndarray, curr_dt:dt.datetime) -> np.ndarray:
+	def rayCastFromSensor(self, sens_eci_transform:np.ndarray, sens_rays_cf:np.ndarray, curr_dt:dt.datetime, atmosphere=False) -> np.ndarray:
 		'''[summary]
 
 		[description]
@@ -114,47 +114,36 @@ class EarthRayCastData(BaseDataModel):
 		'''
 		num_rays = len(sens_rays_cf)
 		cf_norms = np.linalg.norm(sens_rays_cf[:,:3],axis=1)
+
+		# convert sensor frame to eci
 		sens_rays_eci = sens_eci_transform[:3,:3].dot(sens_rays_cf[:,:3].T).T
-		sens_rays_ecf = np.array(pymap3d.eci2ecef(sens_rays_eci[:,0],sens_rays_eci[:,1],sens_rays_eci[:,2],curr_dt)).T
-		norms = np.linalg.norm(sens_rays_eci,axis=1)
 		pos_eci = sens_eci_transform[:3,3]
+
+		# convert eci frame to ecef
+		sens_rays_ecf = np.array(pymap3d.eci2ecef(sens_rays_eci[:,0],sens_rays_eci[:,1],sens_rays_eci[:,2],curr_dt)).T
 		pos_ecf = np.asarray(pymap3d.eci2ecef(pos_eci[0], pos_eci[1], pos_eci[2],curr_dt))
-		cart_to_earth, valid = self._lineOfSightToSurface(pos_ecf, sens_rays_ecf)
+
+		# check intersection of rays with earth
+		cart_to_earth, earth_intsct = self._lineOfSightToSurface(pos_ecf, sens_rays_ecf)
 		lats = np.zeros(num_rays)
 		lons = np.zeros(num_rays)
-		lats[valid], lons[valid] = self._convertCartesianToEllipsoidGeodetic(cart_to_earth[valid,:])
+		lats[earth_intsct], lons[earth_intsct] = self._convertCartesianToEllipsoidGeodetic(cart_to_earth[earth_intsct,:])
+
+		# get earth surface data
 		data = self.getPixelDataOnSphere(lats, lons)
-		rays_shape = sens_rays_cf.shape
+
+		# populate img array
 		full_img = np.zeros((num_rays, 3))
-		full_img[valid] = data[valid]
+		full_img[earth_intsct] = data[earth_intsct]
+
+		if atmosphere:
+			# check intersection of rays with atmosphere
+			cart_to_atm, atm_valid = self._lineOfSightToSurface(pos_ecf, sens_rays_ecf[~earth_intsct], atm_height=50)
+			atm_intsct = np.zeros(num_rays,dtype=bool)
+			atm_intsct[~earth_intsct] = atm_valid
+			full_img[atm_intsct] = [200, 210, 255]
+
 		return full_img
-
-	def rayCastFromSensor2(self, sens_eci_transform:np.ndarray, sens_rays_cf:np.ndarray, curr_dt:dt.datetime) -> np.ndarray:
-		'''[summary]
-
-		[description]
-
-		Args:
-			sens_eci_transform (np.ndarray[4,4]): [description]
-			sens_rays_cf (np.ndarray[n,4]): [description]
-			curr_dt (dt.datetime): [description]
-
-		Returns:
-			[type]: [description]
-		'''
-
-		cf_norms = np.linalg.norm(sens_rays_cf[:,:3],axis=1)
-		# print(f'{cf_norms.max()=}')
-		sens_rays_eci = sens_eci_transform[:3,:3].dot(sens_rays_cf[:,:3].T).T
-		# sens_rays_ecf = np.array(pymap3d.eci2ecef(sens_rays_eci[:,0],sens_rays_eci[:,1],sens_rays_eci[:,2],curr_dt)).T
-		norms = np.linalg.norm(sens_rays_eci,axis=1)
-		# print(f'{norms.max()=}')
-		# pos_ecf = np.asarray(pymap3d.eci2ecef(sens_eci_transform[3,0],sens_eci_transform[3,1],sens_eci_transform[3,2],curr_dt))
-		# cart_to_earth, valid = self._lineOfSightToSurface(pos_ecf, sens_rays_ecf)
-		# lats, lons = self._convertCartesianToEllipsoidGeodetic(cart_to_earth)
-
-		return sens_rays_eci
-		# return self.getPixelDataOnSphere(lats, lons)
 
 	def _convertCartesianToEllipsoidGeodetic(self, cart:np.ndarray, iters:int=3) -> tuple[np.ndarray, np.ndarray]:
 		'''
@@ -190,7 +179,7 @@ class EarthRayCastData(BaseDataModel):
 		lat = np.degrees(lat)
 		return lat, lon
 
-	def _lineOfSightToSurface(self, position, rays, target = 'earth'):
+	def _lineOfSightToSurface(self, position, rays, atm_height=0):
 		"""
 		Find the intersection of rays from position with the WGS-84 geoid, position and rays in ECEF
 
@@ -202,9 +191,7 @@ class EarthRayCastData(BaseDataModel):
 			ndarray(dtype=float, ndim=[N,3]): ECEF cartesian vectors describing closest point on earth that each ray intersects
 			valid (ndarray(dtype=bool, ndim=N)): boolean array indicating whether a ray intersects the Earth (True), or not
 		"""
-		pad = 0
-		if target == 'atmosphere':
-			pad = 50
+		pad = atm_height
 
 		num_vectors, dim = rays.shape
 
