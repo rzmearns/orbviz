@@ -349,7 +349,7 @@ class SpacecraftViewsAsset(base_assets.AbstractAsset):
 		# args[5] raycast src data
 
 		self.data['raycast_src'] = args[5]
-
+		self.data['timespan'] = args[0]
 		self.data['old_pointing_defined'] = self.data['pointing_defined']
 		if args[2] is not None:
 
@@ -482,7 +482,9 @@ class SpacecraftViewsAsset(base_assets.AbstractAsset):
 					else:
 						# Quat = BF->ECI
 						rotation = Rotation.from_quat(quat).inv().as_matrix()
-
+				for asset_name, asset in self.assets.items():
+					if 'sensor_suite_' in asset_name:
+						asset.setCurrentDatetime(self.data['timespan'][self.data['curr_index']])
 				# recomputeRedraw child assets
 				self._recomputeRedrawChildren(pos=self.data['coords'][self.data['curr_index']].reshape(1,3), rotation=rotation)
 			self._clearStaleFlag()
