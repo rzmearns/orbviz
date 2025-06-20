@@ -19,13 +19,17 @@ logger = logging.getLogger(__name__)
 class History3DContext(base.BaseContext):
 	data_type = data_types.DataType.HISTORY
 
-	def __init__(self, name:str, parent_window:QtWidgets.QMainWindow, data:HistoryData):
-		super().__init__(name, data)
+	def __init__(self, name:str, parent_window:QtWidgets.QMainWindow, history_data:HistoryData):
+		# super().__init__(name, data)
+		super().__init__(name)
 		self.window = parent_window
 		self._validateDataType()
-		self.data = data
+		# self.data = data
+		self.data: dict[str,Any] = {}
+		self.data['history'] = history_data
 		self.canvas_wrapper = history3d_cw.History3DCanvasWrapper()
-		self.canvas_wrapper.setModel(self.data)
+		# self.canvas_wrapper.setModel(self.data)
+		self.canvas_wrapper.setModel(self.data['history'])
 		self.controls = Controls(self, self.canvas_wrapper)
 
 		self.cw_tabs = QtWidgets.QTabWidget()
@@ -74,12 +78,12 @@ class History3DContext(base.BaseContext):
 		if self.data is None:
 			logger.warning(f'Context History3D: {self} does not have a data model.')
 			raise AttributeError(f'Context History3D: {self} does not have a data model.')
-		self.data.data_ready.connect(self._updateDataSources)
-		self.data.data_ready.connect(self._updateControls)
+		self.data['history'].data_ready.connect(self._updateDataSources)
+		self.data['history'].data_ready.connect(self._updateControls)
 
 	def _validateDataType(self) -> None:
-		if self.data is not None and self.data.getType() != self.data_type:
-			console.sendErr(f"Error: history3D context has wrong data type: {self.data.getType()}")
+		if self.data is not None and self.data['history'].getType() != self.data_type:
+			console.sendErr(f"Error: history3D context has wrong data type: {self.data['history'].getType()}")
 			console.sendErr(f"\t should be: {self.data_type}")
 
 	def _configureData(self) -> None:
@@ -90,11 +94,11 @@ class History3DContext(base.BaseContext):
 			logger.warning(f"model data is not set for context {self.config['name']}:{self}")
 			raise ValueError(f"model data is not set for context {self.config['name']}:{self}")
 
-		self.data.updateConfig('timespan_period_start', self.controls.orbit_controls.period_start.datetime)
-		self.data.updateConfig('timespan_period_end', self.controls.orbit_controls.period_end.datetime)
-		self.data.updateConfig('sampling_period', self.controls.orbit_controls.sampling_period.period)
+		self.data['history'].updateConfig('timespan_period_start', self.controls.orbit_controls.period_start.datetime)
+		self.data['history'].updateConfig('timespan_period_end', self.controls.orbit_controls.period_end.datetime)
+		self.data['history'].updateConfig('sampling_period', self.controls.orbit_controls.sampling_period.period)
 		# Primary orbits configuration
-		self.data.setPrimaryConfig(self.controls.orbit_controls.getConfig())
+		self.data['history'].setPrimaryConfig(self.controls.orbit_controls.getConfig())
 
 		# Supplemental configuration
 		has_supplemental_constellation = self.controls.orbit_controls.suppl_constellation_selector.isEnabled()
@@ -103,32 +107,32 @@ class History3DContext(base.BaseContext):
 			if c_config is None:
 				console.sendErr("Supplementary constellation enabled: Please select a constellation.")
 				return
-			self.data.setSupplementalConstellation(c_config)
+			self.data['history'].setSupplementalConstellation(c_config)
 		else:
-			self.data.clearSupplementalConstellation()
+			self.data['history'].clearSupplementalConstellation()
 
 		# Historical pointing
 		if self.controls.orbit_controls.pointing_file_controls.isEnabled():
 			logger.info(f'Pointing defined. Setting pointing configuration for {self}')
-			self.data.updateConfig('is_pointing_defined', True)
+			self.data['history'].updateConfig('is_pointing_defined', True)
 			pointing_file_path = self.controls.orbit_controls.pointing_file_controls._pointing_file_selector.path
 			if pointing_file_path is None or \
 				pointing_file_path == '':
 				console.sendErr("Displaying spacecraft pointing requires a pointing file.")
 				return
-			self.data.updateConfig('pointing_defines_timespan', self.controls.orbit_controls.pointing_file_controls.pointingFileDefinesPeriod())
-			self.data.updateConfig('pointing_file', pointing_file_path)
-			self.data.updateConfig('pointing_invert_transform', self.controls.orbit_controls.pointing_file_controls.pointing_file_inv_toggle.isChecked())
+			self.data['history'].updateConfig('pointing_defines_timespan', self.controls.orbit_controls.pointing_file_controls.pointingFileDefinesPeriod())
+			self.data['history'].updateConfig('pointing_file', pointing_file_path)
+			self.data['history'].updateConfig('pointing_invert_transform', self.controls.orbit_controls.pointing_file_controls.pointing_file_inv_toggle.isChecked())
 		else:
 			logger.info(f'Pointing not defined. Clearing pointing configuration for {self}')
-			self.data.updateConfig('is_pointing_defined', False)
-			self.data.updateConfig('pointing_defines_timespan', False)
-			self.data.updateConfig('pointing_file', None)
-			self.data.updateConfig('pointing_invert_transform', False)
+			self.data['history'].updateConfig('is_pointing_defined', False)
+			self.data['history'].updateConfig('pointing_defines_timespan', False)
+			self.data['history'].updateConfig('pointing_file', None)
+			self.data['history'].updateConfig('pointing_invert_transform', False)
 
 		try:
 			self.controls.orbit_controls.submit_button.setEnabled(False)
-			self.data.process()
+			self.data['history'].process()
 		except Exception as e:
 			logger.warning(f"Error in configuring data for history3D: {e}")
 			console.sendErr(f"Error in configuring data for history3D: {e}")
@@ -137,12 +141,12 @@ class History3DContext(base.BaseContext):
 
 	def _updateControls(self, *args, **kwargs) -> None:
 
-		self.controls.time_slider.setRange(self.data.getTimespan().start,
-									  		self.data.getTimespan().end,
-											len(self.data.getTimespan()))
-		self.controls.orbit_controls.period_start.setDatetime(self.data.getConfigValue('timespan_period_start'))
-		self.controls.orbit_controls.period_end.setDatetime(self.data.getConfigValue('timespan_period_end'))
-		self.controls.time_slider._curr_dt_picker.setDatetime(self.data.getTimespan().start)
+		self.controls.time_slider.setRange(self.data['history'].getTimespan().start,
+									  		self.data['history'].getTimespan().end,
+											len(self.data['history'].getTimespan()))
+		self.controls.orbit_controls.period_start.setDatetime(self.data['history'].getConfigValue('timespan_period_start'))
+		self.controls.orbit_controls.period_end.setDatetime(self.data['history'].getConfigValue('timespan_period_end'))
+		self.controls.time_slider._curr_dt_picker.setDatetime(self.data['history'].getTimespan().start)
 		self.controls.orbit_controls.submit_button.setEnabled(True)
 		self.controls.time_slider.setValue(int(self.controls.time_slider.num_ticks/2))
 
@@ -166,7 +170,7 @@ class History3DContext(base.BaseContext):
 		pass
 
 	def deSerialise(self, state_dict: dict[str, Any]) -> None:
-		self.data.deSerialise(state_dict['data'])
+		self.data['history'].deSerialise(state_dict['data'])
 		self._updateDataSources()
 		self.canvas_wrapper.deSerialise(state_dict['camera'])
 		self.controls.deSerialise(state_dict['controls'])
@@ -185,7 +189,7 @@ class History3DContext(base.BaseContext):
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
-		state['data'] = self.data.prepSerialisation()
+		state['data'] = self.data['history'].prepSerialisation()
 		state['controls'] = self.controls.prepSerialisation()
 		state['camera'] = self.canvas_wrapper.prepSerialisation()
 		return state
