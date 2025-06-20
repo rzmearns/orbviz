@@ -310,7 +310,7 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 
 	def _createVisuals(self) -> None:
 		# Earth Sphere
-		img_data = _generateRandomSensorData((self.data['lowres'][1], self.data['lowres'][0]))
+		img_data = _generateRandomSensorData((self.data['lowres'][1], self.data['lowres'][0],4))
 		self.visuals['image'] = vVisuals.Image(
 			img_data,
 			# interpolation = 'nearest',
@@ -347,7 +347,7 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 				T[0:3,3] = np.asarray(pos).reshape(-1,3)
 
 				data = self.data['raycast_src'].rayCastFromSensor(T,self.data['rays_sf'],self.data['curr_datetime'])
-				data_reshaped = data.reshape(self.data['lowres'][1],self.data['lowres'][0],3)/255
+				data_reshaped = data.reshape(self.data['lowres'][1],self.data['lowres'][0],4)/255
 				self.visuals['image'].set_data(data_reshaped)
 				self.visuals['text'].text = f"Sensor: {self.data['name']}: {self.counter}"
 				self.counter += 1
@@ -462,8 +462,6 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 		self.visuals['earth_sphere'].visible = self.opts['plot_earth_sphere']['value']
 
 def _generateRandomSensorData(shape, dtype=np.float32):
-    rng = np.random.default_rng()
-    s = [val for val in shape]
-    s.append(3)
-    data = rng.random(s, dtype=dtype)
-    return data
+	rng = np.random.default_rng()
+	data = rng.random(shape, dtype=dtype)
+	return data
