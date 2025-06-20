@@ -188,7 +188,7 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 	def squarePyramid(cls, sensor_name:str, sensor_dict:dict[str,Any], parent:ViewBox|None=None):
 		mesh_verts, mesh_faces  = polyhedra.calcSquarePyramidMesh((0,0,0),
 								  		sensor_dict['range'],
-										(1,0,0),
+										(0,0,1),
 										sensor_dict['fov'][1],
 										sensor_dict['fov'][0],
 										axis_sample=2)
