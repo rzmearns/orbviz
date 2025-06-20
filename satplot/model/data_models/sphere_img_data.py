@@ -2,6 +2,7 @@ import logging
 import numpy as np
 import pathlib
 from PIL import Image
+import sys
 from typing import Any
 
 import satplot.model.geometry.spherical as spherical_geom
@@ -36,7 +37,7 @@ class SphereImageData(BaseDataModel):
 
 	def loadSource(self, running:threading.Flag):
 		im = Image.open(pathlib.Path(self.config['img_path']))
-		return np.array(im)/255
+		return np.array(im)
 
 	def storeArray(self, arr:np.ndarray) -> None:
 		logger.info(f"Finished loading image array data for {self.getConfigValue('body_name')}:" \
@@ -56,9 +57,11 @@ class SphereImageData(BaseDataModel):
 		if self.arr is None:
 			logger.error(f"{self.getConfigValue('body_name')}: SphereImage Data not loaded yet")
 			raise ValueError(f"{self.getConfigValue('body_name')}: SphereImage Data not loaded yet")
+		if lat.shape[0] == 0:
+			return np.ndarray((0,0,3))
 		res = self.getConfigValue('resolution')
 		lon = spherical_geom.wrapToCircleRangeDegrees(lon)
-		lat_pixel_coords = ((lat+90) / 180 * res[1]).astype(int)
+		lat_pixel_coords = ((90-lat) / 180 * res[1]).astype(int)
 		lon_pixel_coords = ((lon+180) / 360 * res[0]).astype(int)
 		return self.arr[lat_pixel_coords, lon_pixel_coords,:]
 

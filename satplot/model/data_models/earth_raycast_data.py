@@ -112,30 +112,21 @@ class EarthRayCastData(BaseDataModel):
 		Returns:
 			[type]: [description]
 		'''
-		l = len(sens_rays_cf)
-		mid_idx = int(l/2)
+		num_rays = len(sens_rays_cf)
 		cf_norms = np.linalg.norm(sens_rays_cf[:,:3],axis=1)
-		# print(f'{cf_norms.max()=}')
 		sens_rays_eci = sens_eci_transform[:3,:3].dot(sens_rays_cf[:,:3].T).T
-		print(f'{sens_rays_eci.shape=},{sens_rays_eci[mid_idx]=}')
 		sens_rays_ecf = np.array(pymap3d.eci2ecef(sens_rays_eci[:,0],sens_rays_eci[:,1],sens_rays_eci[:,2],curr_dt)).T
-		print(f'{sens_rays_ecf.shape=},{sens_rays_ecf[mid_idx]=}')
 		norms = np.linalg.norm(sens_rays_eci,axis=1)
-		# print(f'{norms.max()=}')
 		pos_eci = sens_eci_transform[:3,3]
-		print(f'{pos_eci.shape=},{pos_eci=}')
 		pos_ecf = np.asarray(pymap3d.eci2ecef(pos_eci[0], pos_eci[1], pos_eci[2],curr_dt))
-		print(f'{pos_ecf.shape=},{pos_ecf=}')
 		cart_to_earth, valid = self._lineOfSightToSurface(pos_ecf, sens_rays_ecf)
-		print(f'{cart_to_earth.shape=}')
-		lats, lons = self._convertCartesianToEllipsoidGeodetic(cart_to_earth)
-		print(f'{lats.shape=}')
-		print(f'{lons.shape=}')
+		lats = np.zeros(num_rays)
+		lons = np.zeros(num_rays)
+		lats[valid], lons[valid] = self._convertCartesianToEllipsoidGeodetic(cart_to_earth[valid,:])
 		data = self.getPixelDataOnSphere(lats, lons)
 		rays_shape = sens_rays_cf.shape
-		full_img = np.zeros((rays_shape[0], 3))
-		full_img[valid] = data
-
+		full_img = np.zeros((num_rays, 3))
+		full_img[valid] = data[valid]
 		return full_img
 
 	def rayCastFromSensor2(self, sens_eci_transform:np.ndarray, sens_rays_cf:np.ndarray, curr_dt:dt.datetime) -> np.ndarray:
@@ -178,7 +169,7 @@ class EarthRayCastData(BaseDataModel):
 			lon (ndarray(dtype=float, ndim = N)): longitudes of input pointsq
 		'''
 
-		x, y, z = cart
+		x, y, z = cart.T
 		lon = np.degrees(np.arctan2(y,x))
 		inverse_flattening = 298.257223563 #wikipedia
 		f = 1.0 / inverse_flattening
@@ -253,7 +244,7 @@ class EarthRayCastData(BaseDataModel):
 		valid[d < 0] = False
 		valid[radical < 0] = False
 
-		return np.array([ x + d * u, y + d * v, z + d * w])[:,valid], valid
+		return np.array([ x + d * u, y + d * v, z + d * w]).T, valid
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
