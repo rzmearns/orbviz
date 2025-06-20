@@ -218,10 +218,10 @@ class SensorSuiteImageAsset(base_assets.AbstractCompoundAsset):
 		for sensor_name, sensor in self.assets.items():
 			sensor.setSource(args[0])
 
-	def setCurrentDateTime(self, dt:dt.datetime) -> None:
+	def setCurrentDatetime(self, dt:dt.datetime) -> None:
 		self.data['curr_datetime'] = dt
 		for asset in self.assets.values():
-			asset.setCurrentDateTime(dt)
+			asset.setCurrentDatetime(dt)
 
 	def _instantiateAssets(self) -> None:
 		sensor_names = self.data['sens_suite_config'].getSensorNames()
@@ -289,7 +289,7 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 		# args[0] = raycast_src
 		self.data['raycast_src'] = args[0]
 
-	def setCurrentDateTime(self, dt:dt.datetime) -> None:
+	def setCurrentDatetime(self, dt:dt.datetime) -> None:
 		self.data['curr_datetime'] = dt
 
 	def _calcLowRes(self, true_resolution:tuple[int,int]) -> tuple[int,int]:
