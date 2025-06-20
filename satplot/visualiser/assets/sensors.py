@@ -283,7 +283,8 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 		self.data['lowres'] = self._calcLowRes(self.data['res'])
 		self.data['fov'] = (62.2, 48.8)
 		self.data['lens_model'] = pinhole
-		self.data['ray_angles'] = self.data['lens_model'].generatePixelRayAngles(self.data['lowres'], self.data['fov'])
+		# rays from each pixel in sensor frame
+		self.data['rays_sf'] = self.data['lens_model'].generatePixelRays(self.data['lowres'], self.data['fov'])
 
 	def setSource(self, *args, **kwargs) -> None:
 		# args[0] = raycast_src
@@ -344,8 +345,9 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 				T[0:3,0:3] = rot_mat
 				T[0:3,3] = np.asarray(pos).reshape(-1,3)
 
-				lons, lats = self._generateLatLonCoords(self.counter)
-				self.visuals['image'].set_data(self.data['raycast_src'].getPixelDataOnSphere(lats, lons).reshape(self.data['lowres'][1],self.data['lowres'][0],3)/255)
+				data = self.data['raycast_src'].rayCastFromSensor(T,self.data['rays_sf'],self.data['curr_datetime'])
+				data_reshaped = data.reshape(self.data['lowres'][1],self.data['lowres'][0],3)/255
+				self.visuals['image'].set_data(data_reshaped)
 				self.visuals['text'].text = f"Sensor: {self.data['name']}: {self.counter}"
 				self.counter += 1
 				self._clearStaleFlag()
