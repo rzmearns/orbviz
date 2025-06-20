@@ -4,7 +4,9 @@ import numpy as np
 from numpy import typing as nptyping
 import pathlib
 from progressbar import progressbar
+import pymap3d
 from typing import Any
+import warnings
 
 import satplot
 from satplot.model.data_models.base_models import (BaseDataModel)
@@ -27,55 +29,6 @@ class EarthRayCastData(BaseDataModel):
 		self._worker_threads: dict[str, threading.Worker | None] = {}
 
 		self.process()
-
-	# def setPrimaryConfig(self, primary_config:data_types.PrimaryConfig) -> None:
-	# 	self.updateConfig('primary_satellite_config', primary_config)
-	# 	self.updateConfig('primary_satellite_ids', primary_config.getSatIDs())
-
-	# def setSupplementalConstellation(self, constellation_config:data_types.ConstellationConfig) -> None:
-	# 	self.updateConfig('has_supplemental_constellation', True)
-	# 	self.constellation = constellation_data.ConstellationData(constellation_config)
-
-	# def clearSupplementalConstellation(self) -> None:
-	# 	self.updateConfig('has_supplemental_constellation', False)
-	# 	self.constellation = None
-
-	# def getTimespan(self) -> timespan.TimeSpan:
-	# 	if self.timespan is None:
-	# 		logger.warning(f'History data:{self} does not have a timespan yet')
-	# 		raise ValueError(f'History data:{self} does not have a timespan yet')
-	# 	return self.timespan
-
-	# def getPrimaryConfig(self) -> data_types.PrimaryConfig:
-	# 	return self.getConfigValue('primary_satellite_config')
-
-	# def getPrimaryConfigIds(self) -> list[int]:
-	# 	return self.getConfigValue('primary_satellite_ids')
-
-	# def getConstellation(self) -> constellation_data.ConstellationData:
-	# 	if self.constellation is None:
-	# 		logger.warning(f'History data:{self} does not have a constellation yet')
-	# 		raise ValueError(f'History data:{self} does not have a constellation yet')
-	# 	else:
-	# 		return self.constellation
-
-	# def hasOrbits(self) -> bool:
-	# 	if len(self.orbits.values()) > 0:
-	# 		return True
-	# 	else:
-	# 		return False
-
-	# def getOrbits(self) -> dict[int,orbit.Orbit]:
-	# 	if len(self.orbits.values()) == 0:
-	# 		logger.warning(f'History data:{self} has no orbits yet')
-	# 		raise ValueError(f'History data:{self} has no orbits yet')
-	# 	return self.orbits
-
-	# def getPointings(self) -> dict[int, nptyping.NDArray[np.float64]]:
-	# 	if len(self.pointings.values()) == 0:
-	# 		logger.warning(f'History data:{self} has no pointings yet')
-	# 		raise ValueError(f'History data:{self} has no pointings yet')
-	# 	return self.pointings
 
 	def getPixelDataOnSphere(self, lat:float|np.ndarray, lon:float|np.ndarray,
 								min_wavelength:float=400, max_wavelength:float=700) -> np.ndarray:
@@ -118,7 +71,7 @@ class EarthRayCastData(BaseDataModel):
 		# Set up workers for loading default planetary image data
 		# Earth visible
 		self.data[self._getNextDataIdx()] = sphere_img_data.SphereImageData.visibleEarthSunlit()
-		self.data[self._getNextDataIdx()] = sphere_img_data.SphereImageData.visibleEarthEclipsed()
+		# self.data[self._getNextDataIdx()] = sphere_img_data.SphereImageData.visibleEarthEclipsed()
 
 
 		for idx in self.data.keys():
@@ -146,6 +99,161 @@ class EarthRayCastData(BaseDataModel):
 		self.data_ready.emit()
 		logger.info("Finished initialising Earth PlanetaryRayCastData")
 
+	def rayCastFromSensor(self, sens_eci_transform:np.ndarray, sens_rays_cf:np.ndarray, curr_dt:dt.datetime) -> np.ndarray:
+		'''[summary]
+
+		[description]
+
+		Args:
+			sens_eci_transform (np.ndarray[4,4]): [description]
+			sens_rays_cf (np.ndarray[n,4]): [description]
+			curr_dt (dt.datetime): [description]
+
+		Returns:
+			[type]: [description]
+		'''
+		l = len(sens_rays_cf)
+		mid_idx = int(l/2)
+		cf_norms = np.linalg.norm(sens_rays_cf[:,:3],axis=1)
+		# print(f'{cf_norms.max()=}')
+		sens_rays_eci = sens_eci_transform[:3,:3].dot(sens_rays_cf[:,:3].T).T
+		print(f'{sens_rays_eci.shape=},{sens_rays_eci[mid_idx]=}')
+		sens_rays_ecf = np.array(pymap3d.eci2ecef(sens_rays_eci[:,0],sens_rays_eci[:,1],sens_rays_eci[:,2],curr_dt)).T
+		print(f'{sens_rays_ecf.shape=},{sens_rays_ecf[mid_idx]=}')
+		norms = np.linalg.norm(sens_rays_eci,axis=1)
+		# print(f'{norms.max()=}')
+		pos_eci = sens_eci_transform[:3,3]
+		print(f'{pos_eci.shape=},{pos_eci=}')
+		pos_ecf = np.asarray(pymap3d.eci2ecef(pos_eci[0], pos_eci[1], pos_eci[2],curr_dt))
+		print(f'{pos_ecf.shape=},{pos_ecf=}')
+		cart_to_earth, valid = self._lineOfSightToSurface(pos_ecf, sens_rays_ecf)
+		print(f'{cart_to_earth.shape=}')
+		lats, lons = self._convertCartesianToEllipsoidGeodetic(cart_to_earth)
+		print(f'{lats.shape=}')
+		print(f'{lons.shape=}')
+		data = self.getPixelDataOnSphere(lats, lons)
+		rays_shape = sens_rays_cf.shape
+		full_img = np.zeros((rays_shape[0], 3))
+		full_img[valid] = data
+
+		return full_img
+
+	def rayCastFromSensor2(self, sens_eci_transform:np.ndarray, sens_rays_cf:np.ndarray, curr_dt:dt.datetime) -> np.ndarray:
+		'''[summary]
+
+		[description]
+
+		Args:
+			sens_eci_transform (np.ndarray[4,4]): [description]
+			sens_rays_cf (np.ndarray[n,4]): [description]
+			curr_dt (dt.datetime): [description]
+
+		Returns:
+			[type]: [description]
+		'''
+
+		cf_norms = np.linalg.norm(sens_rays_cf[:,:3],axis=1)
+		# print(f'{cf_norms.max()=}')
+		sens_rays_eci = sens_eci_transform[:3,:3].dot(sens_rays_cf[:,:3].T).T
+		# sens_rays_ecf = np.array(pymap3d.eci2ecef(sens_rays_eci[:,0],sens_rays_eci[:,1],sens_rays_eci[:,2],curr_dt)).T
+		norms = np.linalg.norm(sens_rays_eci,axis=1)
+		# print(f'{norms.max()=}')
+		# pos_ecf = np.asarray(pymap3d.eci2ecef(sens_eci_transform[3,0],sens_eci_transform[3,1],sens_eci_transform[3,2],curr_dt))
+		# cart_to_earth, valid = self._lineOfSightToSurface(pos_ecf, sens_rays_ecf)
+		# lats, lons = self._convertCartesianToEllipsoidGeodetic(cart_to_earth)
+
+		return sens_rays_eci
+		# return self.getPixelDataOnSphere(lats, lons)
+
+	def _convertCartesianToEllipsoidGeodetic(self, cart:np.ndarray, iters:int=3) -> tuple[np.ndarray, np.ndarray]:
+		'''
+		Compute latitude and longitude on ellipsoid Earth for an array of cartesian vectors
+
+		Parameters:
+			cart_vector (ndarray(dtype=float, ndim = [3,N])): array of ECEF vectors
+			iterations (int) (optional): number of iterations to improve calculation accuracy. Default / recommended max = 3.
+
+		Returns:
+			lat (ndarray(dtype=float, ndim = N)): latitudes of input points
+			lon (ndarray(dtype=float, ndim = N)): longitudes of input pointsq
+		'''
+
+		x, y, z = cart
+		lon = np.degrees(np.arctan2(y,x))
+		inverse_flattening = 298.257223563 #wikipedia
+		f = 1.0 / inverse_flattening
+		_e2 = 2.0*f - f*f
+		a = 6371
+		e2 = _e2
+		R = np.sqrt(x*x + y*y)
+		lat = np.arctan2(z, R)
+		for ii in range(iters): # 3 iterations for max accuracy
+			sin_lat = np.sin(lat)
+			e2_sin_lat = e2 * sin_lat
+			# At 0°, aC = 6378 km, Earth's actual radius at the equator.
+			# At 90°, aC = 6399 km, Earth's radius of curvature at the pole.
+			aC = a / np.sqrt(1.0 - e2_sin_lat * sin_lat)
+			hyp = z + aC * e2_sin_lat
+			lat = np.arctan2(hyp, R)
+
+		lat = np.degrees(lat)
+		return lat, lon
+
+	def _lineOfSightToSurface(self, position, rays, target = 'earth'):
+		"""
+		Find the intersection of rays from position with the WGS-84 geoid, position and rays in ECEF
+
+		Parameters:
+			position (ndarray(dtype=float, ndim=3)): ECEF position vector of spacecraft
+			pointing (ndarray(dtype=float, ndim=[N,3])): unit vectors defining ECEF pointing directions
+
+		Returns:
+			ndarray(dtype=float, ndim=[N,3]): ECEF cartesian vectors describing closest point on earth that each ray intersects
+			valid (ndarray(dtype=bool, ndim=N)): boolean array indicating whether a ray intersects the Earth (True), or not
+		"""
+		pad = 0
+		if target == 'atmosphere':
+			pad = 50
+
+		num_vectors, dim = rays.shape
+
+		valid = np.ones(num_vectors).astype('bool')
+
+		a = 6378137.0 + (pad * 1000)
+		b = 6378137.0 + (pad * 1000)
+		c = 6356752.314245 + (pad * 1000)
+		x = position[0] * 1000
+		y = position[1] * 1000
+		z = position[2] * 1000
+		u = rays[:,0] * 1000
+		v = rays[:,1] * 1000
+		w = rays[:,2] * 1000
+
+		# pre-compute to avoid calculating the same thing many times
+		a2 = a**2
+		b2 = b**2
+		c2 = c**2
+
+		x2 = x**2
+		y2 = y**2
+		z2 = z**2
+
+		u2 = u**2
+		v2 = v**2
+		w2 = w**2
+
+		value = -a2*b2*w*z - a2*c2*v*y - b2*c2*u*x
+		radical = a2*b2*w2 + a2*c2*v2 - a2*v2*z2 + 2*a2*v*w*y*z - a2*w2*y2 + b2*c2*u2 - b2*u2*z2 + 2*b2*u*w*x*z - b2*w2*x2 - c2*u2*y2 + 2*c2*u*v*x*y - c2*v2*x2
+
+		magnitude = a2*b2*w**2 + a2*c2*v2 + b2*c2*u2
+		with warnings.catch_warnings(): #ignore errors in computing d, since we deliberately let through invalid values here, to cull them later
+			warnings.simplefilter("ignore")
+			d = (value - a*b*c*np.sqrt(radical)) / magnitude
+
+		valid[d < 0] = False
+		valid[radical < 0] = False
+
+		return np.array([ x + d * u, y + d * v, z + d * w])[:,valid], valid
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
