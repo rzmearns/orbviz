@@ -295,13 +295,14 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 
 	def _calcLowRes(self, true_resolution:tuple[int,int]) -> tuple[int,int]:
 		lowres = [0,0]
+		max_1D_resolution = 480
 		aspect_ratio = true_resolution[0]/true_resolution[1]
 		if aspect_ratio > 1:
-			lowres = (480, int(480/aspect_ratio))
+			lowres = (max_1D_resolution, int(max_1D_resolution/aspect_ratio))
 		elif aspect_ratio < 1:
-			lowres = (int(480/aspect_ratio), 480)
+			lowres = (int(max_1D_resolution/aspect_ratio), max_1D_resolution)
 		else:
-			lowres = (480, 480)
+			lowres = (max_1D_resolution, max_1D_resolution)
 		return lowres
 
 	def _instantiateAssets(self) -> None:
