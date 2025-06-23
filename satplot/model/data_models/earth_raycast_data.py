@@ -143,11 +143,11 @@ class EarthRayCastData(BaseDataModel):
 		if atmosphere:
 
 			# atmosphere height
-			H = 150
+			atm_height = 150
 			Re = satplot_const.R_EARTH
 
 			# check intersection of rays with atmosphere
-			cart_atm_intsct, atm_valid = self._lineOfSightToSurface(pos_ecf, sens_rays_ecf[~earth_intsct], atm_height=H)
+			cart_atm_intsct, atm_valid = self._lineOfSightToSurface(pos_ecf, sens_rays_ecf[~earth_intsct], atm_height=atm_height)
 			unit_cart_atm_intsct = cart_atm_intsct/np.linalg.norm(cart_atm_intsct,axis=1).reshape(-1,1)
 			atm_intsct = np.zeros(num_rays,dtype=bool)
 			atm_intsct[~earth_intsct] = atm_valid
@@ -161,7 +161,7 @@ class EarthRayCastData(BaseDataModel):
 			dp = np.sum(unit_cart_earth_intsct[earth_intsct]*unit_v,axis=1).reshape(-1,1)
 
 			# atmospheric depth along ray for those rays intersecting earth
-			atm_depth[earth_intsct] = np.sqrt((Re+H)**2 + Re**2*(dp**2-1)) + Re*dp
+			atm_depth[earth_intsct] = np.sqrt((Re+atm_height)**2 + Re**2*(dp**2-1)) + Re*dp
 
 			# atm intersecting only dot product
 			v = cart_atm_intsct[atm_valid] - (pos_ecf*1000)
@@ -169,15 +169,24 @@ class EarthRayCastData(BaseDataModel):
 			dp = np.sum(unit_cart_atm_intsct[atm_valid]*unit_v,axis=1).reshape(-1,1)
 
 			# atmospheric depth along ray for those rays intersecting atm (but not earth)
-			atm_depth[atm_intsct] = 2*(Re+H)*(-1)*dp
+			atm_depth[atm_intsct] = 2*(Re+atm_height)*(-1)*dp
 			max_alpha = 0.75
 			max_atm_depth = 1390.6
 			alpha = atm_depth/max_atm_depth * max_alpha
 
-			atm_data = np.tile([200, 210, 255],(np.sum(all_intsct),1))
+			atm_data = np.tile([168, 231, 255],(np.sum(all_intsct),1))
 			temp_data = alpha[all_intsct]*atm_data + (1-alpha[all_intsct])*full_img[all_intsct]
 			full_img[all_intsct] = temp_data
-			print()
+
+		if highlight_edge:
+			if atmosphere:
+				highlight_height = atm_height + 10
+			else:
+				highlight_height = 10
+			cart_hl_intsct, hl_valid = self._lineOfSightToSurface(pos_ecf, sens_rays_ecf[~all_intsct], atm_height=highlight_height)
+			hl_intsct = np.zeros(num_rays, dtype=bool)
+			hl_intsct[~all_intsct] = hl_valid
+			full_img[hl_intsct] = [255, 0, 0]
 
 		return full_img
 
