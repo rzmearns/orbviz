@@ -346,7 +346,7 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 				T[0:3,0:3] = rot_mat
 				T[0:3,3] = np.asarray(pos).reshape(-1,3)
 
-				data = self.data['raycast_src'].rayCastFromSensor(T,self.data['rays_sf'],self.data['curr_datetime'])
+				data = self.data['raycast_src'].rayCastFromSensor(T,self.data['rays_sf'],self.data['curr_datetime'], atmosphere=True)
 				data_reshaped = data.reshape(self.data['lowres'][1],self.data['lowres'][0],3)/255
 				self.visuals['image'].set_data(data_reshaped)
 				self.visuals['text'].text = f"Sensor: {self.data['name']}: {self.counter}"

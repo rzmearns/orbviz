@@ -8,8 +8,11 @@ import pymap3d
 from typing import Any
 import warnings
 
+import matplotlib.pyplot as plt
+
 import satplot
 from satplot.model.data_models.base_models import (BaseDataModel)
+import satplot.util.constants as satplot_const
 import satplot.util.threading as threading
 import satplot.model.data_models.data_types as data_types
 import satplot.model.data_models.sphere_img_data as sphere_img_data
@@ -99,7 +102,7 @@ class EarthRayCastData(BaseDataModel):
 		self.data_ready.emit()
 		logger.info("Finished initialising Earth PlanetaryRayCastData")
 
-	def rayCastFromSensor(self, sens_eci_transform:np.ndarray, sens_rays_cf:np.ndarray, curr_dt:dt.datetime, atmosphere=False) -> np.ndarray:
+	def rayCastFromSensor(self, sens_eci_transform:np.ndarray, sens_rays_cf:np.ndarray, curr_dt:dt.datetime, atmosphere=False, highlight_edge=False) -> np.ndarray:
 		'''[summary]
 
 		[description]
@@ -113,7 +116,6 @@ class EarthRayCastData(BaseDataModel):
 			[type]: [description]
 		'''
 		num_rays = len(sens_rays_cf)
-		cf_norms = np.linalg.norm(sens_rays_cf[:,:3],axis=1)
 
 		# convert sensor frame to eci
 		sens_rays_eci = sens_eci_transform[:3,:3].dot(sens_rays_cf[:,:3].T).T
@@ -124,10 +126,10 @@ class EarthRayCastData(BaseDataModel):
 		pos_ecf = np.asarray(pymap3d.eci2ecef(pos_eci[0], pos_eci[1], pos_eci[2],curr_dt))
 
 		# check intersection of rays with earth
-		cart_to_earth, earth_intsct = self._lineOfSightToSurface(pos_ecf, sens_rays_ecf)
+		cart_earth_intsct, earth_intsct = self._lineOfSightToSurface(pos_ecf, sens_rays_ecf)
 		lats = np.zeros(num_rays)
 		lons = np.zeros(num_rays)
-		lats[earth_intsct], lons[earth_intsct] = self._convertCartesianToEllipsoidGeodetic(cart_to_earth[earth_intsct,:])
+		lats[earth_intsct], lons[earth_intsct] = self._convertCartesianToEllipsoidGeodetic(cart_earth_intsct[earth_intsct,:])
 
 		# get earth surface data
 		data = self.getPixelDataOnSphere(lats, lons)
@@ -136,12 +138,46 @@ class EarthRayCastData(BaseDataModel):
 		full_img = np.zeros((num_rays, 3))
 		full_img[earth_intsct] = data[earth_intsct]
 
+		all_intsct = earth_intsct.copy()
+
 		if atmosphere:
+
+			# atmosphere height
+			H = 150
+			Re = satplot_const.R_EARTH
+
 			# check intersection of rays with atmosphere
-			cart_to_atm, atm_valid = self._lineOfSightToSurface(pos_ecf, sens_rays_ecf[~earth_intsct], atm_height=50)
+			cart_atm_intsct, atm_valid = self._lineOfSightToSurface(pos_ecf, sens_rays_ecf[~earth_intsct], atm_height=H)
+			unit_cart_atm_intsct = cart_atm_intsct/np.linalg.norm(cart_atm_intsct,axis=1).reshape(-1,1)
 			atm_intsct = np.zeros(num_rays,dtype=bool)
 			atm_intsct[~earth_intsct] = atm_valid
-			full_img[atm_intsct] = [200, 210, 255]
+			all_intsct = np.logical_or(all_intsct, atm_intsct)
+
+			atm_depth = np.zeros((num_rays,1))
+			# earth intersecting rays dot product
+			unit_cart_earth_intsct = cart_earth_intsct/np.linalg.norm(cart_earth_intsct,axis=1).reshape(-1,1)
+			v = cart_earth_intsct[earth_intsct]-(pos_ecf*1000)
+			unit_v = v/np.linalg.norm(v,axis=1).reshape(-1,1)
+			dp = np.sum(unit_cart_earth_intsct[earth_intsct]*unit_v,axis=1).reshape(-1,1)
+
+			# atmospheric depth along ray for those rays intersecting earth
+			atm_depth[earth_intsct] = np.sqrt((Re+H)**2 + Re**2*(dp**2-1)) + Re*dp
+
+			# atm intersecting only dot product
+			v = cart_atm_intsct[atm_valid] - (pos_ecf*1000)
+			unit_v = v/np.linalg.norm(v, axis=1).reshape(-1,1)
+			dp = np.sum(unit_cart_atm_intsct[atm_valid]*unit_v,axis=1).reshape(-1,1)
+
+			# atmospheric depth along ray for those rays intersecting atm (but not earth)
+			atm_depth[atm_intsct] = 2*(Re+H)*(-1)*dp
+			max_alpha = 0.75
+			max_atm_depth = 1390.6
+			alpha = atm_depth/max_atm_depth * max_alpha
+
+			atm_data = np.tile([200, 210, 255],(np.sum(all_intsct),1))
+			temp_data = alpha[all_intsct]*atm_data + (1-alpha[all_intsct])*full_img[all_intsct]
+			full_img[all_intsct] = temp_data
+			print()
 
 		return full_img
 
