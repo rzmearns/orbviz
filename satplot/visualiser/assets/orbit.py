@@ -89,51 +89,51 @@ class Orbit3DAsset(base_assets.AbstractAsset):
 												'help': '',
 												'static': True,
 												'callback': self.setVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['orbital_path_colour'] = {'value': (0,0,255),
 												'type': 'colour',
 												'help': '',
 												'static': True,
 												'callback': self.setOrbitColour,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['orbital_path_width'] = {'value': 1,
 												'type': 'integer',
 												'help': '',
 												'static': True,
 												'callback': self.setOrbitalPathWidth,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['orbital_path_past_style'] = {'value': 'solid',
 												'type': 'option',
 												'options': ['dash', 'solid'],
 												'help': '',
 												'static': True,
 												'callback': None,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['orbital_path_future_style'] = {'value': 'solid',
 												'type': 'option',
 												'options': ['dash', 'solid'],
 												'help': '',
 												'static': True,
 												'callback': None,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_orbital_path_future'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': self.setOrbitalPathFutureVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_orbital_path_past'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': self.setOrbitalPathPastVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['orbital_path_future_dash_size'] = {'value': 3,
 										  		'type': 'integer',
 												'help': '',
 												'static': True,
 												'callback': self.setFutureDashSize,
-											'widget': None}
+											'widget_data': None}
 
 		self.opts = self._dflt_opts.copy()
 
@@ -294,69 +294,69 @@ class Orbit2DAsset(base_assets.AbstractAsset):
 												'help': '',
 												'static': True,
 												'callback': self.setVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['orbital_path_colour'] = {'value': (0,0,255),
 												'type': 'colour',
 												'help': '',
 												'static': True,
 												'callback': self.setOrbitColour,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['orbital_path_width'] = {'value': 1.5,
 												'type': 'float',
 												'help': '',
 												'static': True,
 												'callback': self.setOrbitalPathWidth,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['orbital_path_past_style'] = {'value': 'solid',
 												'type': 'option',
 												'options': ['dash', 'solid'],
 												'help': '',
 												'static': True,
 												'callback': None,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['orbital_path_future_style'] = {'value': 'solid',
 												'type': 'option',
 												'options': ['dash', 'solid'],
 												'help': '',
 												'static': True,
 												'callback': None,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_orbital_path_future'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': self.setOrbitalPathFutureVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_orbital_path_past'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': self.setOrbitalPathPastVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['orbital_path_future_dash_size'] = {'value': 3,
 										  		'type': 'integer',
 												'help': '',
 												'static': True,
 												'callback': self.setFutureDashSize,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['spacecraft_marker_colour'] = {'value': (255,0,0),
 												'type': 'colour',
 												'help': '',
 												'static': True,
 												'callback': self.setMarkerColour,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_spacecraft_marker'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': self.setOrbitalMarkerVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['spacecraft_marker_size'] = {'value': 15,
 										  		'type': 'number',
 												'help': '',
 												'static': True,
 												'callback': self.setOrbitalMarkerSize,
-												'widget':None}
+												'widget_data':None}
 
 		self.opts = self._dflt_opts.copy()
 

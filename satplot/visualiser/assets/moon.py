@@ -71,25 +71,25 @@ class Moon3DAsset(base_assets.AbstractAsset):
 												'help': '',
 												'static': True,
 												'callback': self.setMoonSphereVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['moon_sphere_colour'] = {'value': (61,61,61),
 												'type': 'colour',
 												'help': '',
 												'static': True,
 												'callback': self.setMoonSphereColour,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['moon_distance_kms'] = {'value': 15000,
 										  		'type': 'number',
 												'help': '',
 												'static': True,
 												'callback': self.setMoonDistance,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['moon_sphere_radius_kms'] = {'value': 786,
 										  		'type': 'number',
 												'help': '',
 												'static': True,
 												'callback': self.setMoonSphereRadius,
-											'widget': None}
+											'widget_data': None}
 
 		# moon radius calculated using 6deg angular size
 
@@ -219,25 +219,25 @@ class Moon2DAsset(base_assets.AbstractAsset):
 												'help': '',
 												'static': True,
 												'callback': self.setVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_moon_marker'] = {'value': True,
 												'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': self.setMoonMarkerVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['moon_marker_colour'] = {'value': (159,159,159),
 												'type': 'colour',
 												'help': '',
 												'static': True,
 												'callback': self.setMoonMarkerColour,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['moon_marker_size'] = {'value': 30,
 												'type': 'number',
 												'help': '',
 												'static': True,
 												'callback': self.setMoonMarkerSize,
-											'widget': None}
+											'widget_data': None}
 
 		# sun radius calculated using 6deg angular size
 

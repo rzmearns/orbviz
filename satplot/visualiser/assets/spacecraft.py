@@ -143,11 +143,6 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 										edge_color='white',
 										size=self.opts['spacecraft_marker_size']['value'],
 										symbol='o')
-		# self.visuals['vector'] = scene.visuals.Line(self.data['v_coords'], color=colours.normaliseColour((255,0,255)),
-		# 											parent=None)
-		# self.visuals['vector_st'] = scene.visuals.Line(self.data['v_coords_st'], color=colours.normaliseColour((0,255,255)),
-		# 											parent=None)
-
 	# Use AbstractAsset.updateIndex()
 
 	def recomputeRedraw(self) -> None:
@@ -223,31 +218,31 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 												'help': '',
 												'static': True,
 												'callback': self.setMarkerColour,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_spacecraft_marker'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': self.setOrbitalMarkerVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['spacecraft_marker_size'] = {'value': 500,
 										  		'type': 'number',
 												'help': '',
 												'static': True,
 												'callback': self.setOrbitalMarkerSize,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_body_frame'] = {'value': True,
 												'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': self.setBodyFrameVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_all_sensor_suites'] = {'value': True,
 												'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': self.setAllSensorSuitesVisibility,
-											'widget': None}
+											'widget_data': None}
 
 		self.opts = self._dflt_opts.copy()
 
@@ -298,7 +293,7 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 													'help': '',
 													'static': False,
 													'callback': visibilityCallback,
-													'widget': None}
+													'widget_data': None}
 
 	def _makeVisibilityCallback(self, suite_key:str):
 		def _visibilityCallback(state):
@@ -308,6 +303,8 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 
 	def _removeOldSensorSuitePlotOptions(self, old_suite_names:list[str]) -> None:
 		for suite_name in old_suite_names:
-			if self.opts[f'plot_sensor_suite_{suite_name}']['widget']['widget'] is not None:
-				self.opts[f'plot_sensor_suite_{suite_name}']['widget']['mark_for_removal'] = True
+			if self.opts[f'plot_sensor_suite_{suite_name}']['widget_data'] is not None:
+				logger.debug(f"marking sensor_suite_{suite_name} for removal")
+				self.opts[f'plot_sensor_suite_{suite_name}']['widget_data']['mark_for_removal'] = True
+				self.assets[f'sensor_suite_{suite_name}'].removePlotOptions()
 			del(self.opts[f'plot_sensor_suite_{suite_name}'])

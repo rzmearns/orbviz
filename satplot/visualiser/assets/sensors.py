@@ -43,6 +43,7 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundAsset):
 				self.assets[sensor] = Sensor3DAsset.cone(sensor, sens_dict, parent=self.data['v_parent'])
 			elif sens_dict['shape'] == 'square_pyramid':
 				self.assets[sensor] = Sensor3DAsset.squarePyramid(sensor, sens_dict, parent=self.data['v_parent'])
+		self._addIndividualSensorPlotOptions()
 
 	def _createVisuals(self) -> None:
 		pass
@@ -65,8 +66,33 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundAsset):
 		self._dflt_opts = {}
 		self.opts = self._dflt_opts.copy()
 
+	def _addIndividualSensorPlotOptions(self) -> None:
+		logger.debug(f'Adding sensor options dictionary entries for:')
+		for sens_key in self.assets.keys():
+			visibilityCallback = self._makeVisibilityCallback(sens_key)
+			self.opts[f'plot_{sens_key}'] = {'value': True,
+													'type': 'boolean',
+													'help': '',
+													'static': False,
+													'callback': visibilityCallback,
+													'widget_data': None}
+
+	def _makeVisibilityCallback(self, sens_key:str):
+		def _visibilityCallback(state):
+			self.opts[f'plot_{sens_key}']['value'] = state
+			self.assets[f'{sens_key}'].setSensorVisibility(state)
+		return _visibilityCallback
+
 	def setSuiteVisibility(self, state:bool) -> None:
 		self.setVisibilityRecursive(state)
+
+	def removePlotOptions(self) -> None:
+		for opt_key, opt in self.opts.items():
+			if opt['widget_data'] is not None:
+				logger.debug(f"marking {opt_key} for removal")
+				opt['widget_data']['mark_for_removal'] = True
+		for asset in self.assets.values():
+			asset.removePlotOptions()
 
 class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 	def __init__(self, sensor_name, mesh_verts, mesh_faces,
@@ -139,13 +165,13 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 												'help': '',
 												'static': True,
 												'callback': self.setSensorConeColour,
-											'widget': None}
+												'widget_data': None}
 		self._dflt_opts['sensor_cone_alpha'] = {'value': 0.5,
-										  		'type': 'number',
+										  		'type': 'float',
 												'help': '',
 												'static': True,
 												'callback': self.setSensorConeAlpha,
-											'widget': None}
+												'widget_data': None}
 
 		self.opts = self._dflt_opts.copy()
 
@@ -160,6 +186,12 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 	def setSensorVisibility(self, state):
 		for visual_name, visual in self.visuals.items():
 			visual.visible = state
+
+	def removePlotOptions(self) -> None:
+		for opt_key, opt in self.opts.items():
+			if opt['widget_data'] is not None:
+				logger.debug(f"marking {opt_key} for removal")
+				opt['widget_data']['mark_for_removal'] = True
 
 	@classmethod
 	def getValidTypes(cls) -> list[str]:
@@ -197,4 +229,3 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 		bf_quat = np.asarray([float(x) for x in sensor_dict['bf_quat'].replace('(','').replace(')','').split(',')]).reshape(1,4)
 		colour = [int(x) for x in sensor_dict['colour'].replace('(','').replace(')','').split(',')]
 		return cls(sensor_name, mesh_verts, mesh_faces, bf_quat, colour, sens_type='square_pyramid', v_parent=parent)
-
