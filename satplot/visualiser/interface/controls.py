@@ -6,6 +6,7 @@ import string
 from typing import Any
 
 from PyQt5 import QtWidgets, QtCore, QtGui
+from vispy.scene.widgets import widget
 
 import satplot.model.data_models.data_types as data_types
 import satplot.visualiser.assets.base_assets as base_assets
@@ -258,7 +259,7 @@ class OptionConfigs(QtWidgets.QWidget):
 		self.pane_layout = QtWidgets.QVBoxLayout()
 		self.config_layout = QtWidgets.QVBoxLayout()
 
-		self.sections = {}
+		self.opt_sections = {}
 
 		self.buildWidgetPane(self.la_dict, self.pane_layout)
 		self.pane_layout.addStretch()
@@ -276,182 +277,205 @@ class OptionConfigs(QtWidgets.QWidget):
 	def rebuild(self):
 		self.buildWidgetPane(self.la_dict, self.pane_layout)
 
-	def buildWidgetPane(self, root_dict, root_layout):
-		for section_key, asset in root_dict.items():
-			section_title = f"{section_key.capitalize()} Options"
-			if section_title not in self.sections.keys():
-				self.sections[section_title] = {}
-				self.sections[section_title]['added_to_layout'] = False
-				self.sections[section_title]['opts'] = {}
-				self.sections[section_title]['cb'] = widgets.CollapsibleSection(title=section_title)
+	def buildWidgetPane(self, cw_assets, root_layout):
+		# For each of the canvas wrapper root assets
+		for root_asset_key, root_asset in cw_assets.items():
+			opt_section_title = f"{root_asset_key.capitalize()} Options"
 
-			for opt_key in list(self.sections[section_title]['opts'].keys()):
-				widget_struct = self.sections[section_title]['opts'][opt_key]
-				if widget_struct['mark_for_removal']:
-					logger.debug(f'deleting {opt_key}')
-					widget_struct['widget'].setParent(None)
-					del(self.sections[section_title]['opts'][opt_key])
+			# Don't create a new section object if already created
+			if opt_section_title not in self.opt_sections.keys():
+				self.opt_sections[opt_section_title] = {}
+				self.opt_sections[opt_section_title]['added_to_layout'] = False
+				self.opt_sections[opt_section_title]['opts'] = {}
+				cb = widgets.CollapsibleSection(title=opt_section_title)
+				logger.debug(f'Creating collapsible section {cb} for asset {root_asset}')
+				self.opt_sections[opt_section_title]['cb'] = cb
 
+				root_layout.addWidget(self.opt_sections[opt_section_title]['cb'])
 
-			w_dict = self._buildNestedOptionWidgetDict(asset, asset_key=section_key)
+			# remove old defunct options
+			self._recursiveRemoveDefunctOptions(self.opt_sections[opt_section_title]['opts'])
 
-			for opt_key, widget_struct in dict(sorted(w_dict.items())).items():
-				if opt_key not in self.sections[section_title]['opts']:
-					logger.debug(f'Option collapsible section {section_title}, adding: {opt_key}')
-					self.sections[section_title]['opts'][opt_key] = widget_struct
-					# won't be in alphabetical order second time round
-					self.sections[section_title]['cb'].addWidget(widget_struct['widget'])
+			# build all option widgets for this asset
+			root_asset_w_dict = self.recursiveBuildOptionWidgets(root_asset, self.opt_sections[opt_section_title]['cb'])
+			self.opt_sections[opt_section_title]['opts'] = root_asset_w_dict
+			# add all widgets to its parent
+			self._recursivePopulateSections(root_asset_w_dict)
 
-			if not self.sections[section_title]['added_to_layout']:
-				root_layout.addWidget(self.sections[section_title]['cb'])
-				self.sections[section_title]['added_to_layout'] = True
-
-	def _buildNestedOptionWidgetDict(self, asset, asset_key=''):
-		# returns unsorted_dict
-		w_dict = {}
-		if not isinstance(asset, base_assets.AbstractAsset) and not isinstance(asset, base_assets.AbstractSimpleAsset):
-			# no options or nested assets with options
-			return w_dict
-		
-		if hasattr(asset, 'opts') and asset.opts is not None:
-			w_opt_dict = self._buildOptionWidgetDict(asset.opts)
-		else:
-			w_opt_dict = None
-
-		w_dict.update(w_opt_dict) 	# type:ignore
-
-		if hasattr(asset, 'assets'):
-			if asset is not type(base_assets.AbstractSimpleAsset):
-				for sub_key, sub_asset in asset.assets.items():  # type:ignore
-					if not isinstance(sub_asset, base_assets.AbstractAsset) and not isinstance(sub_asset, base_assets.AbstractSimpleAsset):
-						continue
-					sub_w_dict = self._buildNestedOptionWidgetDict(sub_asset, asset_key=sub_key)
-					cb = widgets.CollapsibleSection(title=f"{sub_key.capitalize()} Options")
-					for sub_w_key, widget in dict(sorted(sub_w_dict.items())).items():
-						cb.addWidget(widget['widget'])
-					if sub_key not in w_dict.keys():
-						w_dict[sub_key] = {}
-						w_dict[sub_key]['widget'] = cb
-						w_dict[sub_key]['mark_for_removal'] = False
-					else:
-						w_dict[f"{sub_key}_"] = {}
-						w_dict[f"{sub_key}_"]['widget'] = cb
-						w_dict[f"{sub_key}_"]['mark_for_removal'] = False
-
-		return w_dict
-
-	def _buildOptionWidgetDict(self, opts):
-		w_dict = {}
-		for opt_key, opt_dict in opts.items():
-			if opt_dict['widget'] is not None and opt_dict['static']:
-					continue
-
-			w_str = string.capwords(' '.join(opt_key.split('_')))
-			if opt_dict['type'] == 'boolean':
-				try:
-					widget = widgets.ToggleBox(w_str,
-												opt_dict['value'])
-					# opt_dict['widget'] = widget
-					widget.add_connect(opt_dict['callback'])
-					logger.debug(f"Adding option callback {opt_dict['callback']} to {opt_key}")
-				except:
-					logger.warning(f"Can't make widget {w_str} for asset {opt_key}")
-					raise ValueError
-			elif opt_dict['type'] == 'colour':
-				try:
-					widget = widgets.ColourPicker(w_str,
-												opt_dict['value'])
-					# opt_dict['widget'] = widget
-					widget.add_connect(opt_dict['callback'])
-					logger.debug(f"Adding option callback {opt_dict['callback']} to {opt_key}")
-				except:
-					logger.warning(f"Can't make widget {w_str} for asset {opt_key}")
-					raise ValueError
-			elif opt_dict['type'] == 'integer' or opt_dict['type'] == 'number':
-				try:
-					widget = widgets.ValueSpinner(w_str,
-								  				opt_dict['value'])
-					# opt_dict['widget'] = widget
-					widget.add_connect(opt_dict['callback'])
-					logger.debug(f"Adding option callback {opt_dict['callback']} to {opt_key}")
-				except:
-					logger.warning(f"Can't make widget {w_str} for asset {opt_key}")
-					raise ValueError
-			elif opt_dict['type'] == 'float':
-				try:
-					widget = widgets.ValueSpinner(w_str,
-								  				opt_dict['value'],
-												integer=False)
-					# opt_dict['widget'] = widget
-					widget.add_connect(opt_dict['callback'])
-					logger.debug(f"Adding option callback {opt_dict['callback']} to {opt_key}")
-				except:
-					logger.warning(f"Can't make widget {w_str} for asset {opt_key}")
-					raise ValueError
-			elif opt_dict['type'] == 'fraction':
-				try:
-					widget = widgets.ValueSpinner(w_str,
-								  				opt_dict['value'],
-												fraction=True)
-					# opt_dict['widget'] = widget
-					widget.add_connect(opt_dict['callback'])
-					logger.debug(f"Adding option callback {opt_dict['callback']} to {opt_key}")
-				except:
-					logger.warning(f"Can't make widget {w_str} for asset {opt_key}")
-					raise ValueError
-			elif opt_dict['type'] == 'option':
-				try:
-					widget = widgets.BasicOptionBox(w_str,
-												dflt_option=opt_dict['value'],
-												options_list=opt_dict['options'])
-					widget.add_connect(opt_dict['callback'])
-					logger.debug(f"Adding option callback {opt_dict['callback']} to {opt_key}")
-				except:
-					logger.warning(f"Can't make widget {w_str} for asset {opt_key}")
-					raise ValueError
-			else:
-				logger.warning(f"Can't find widget type for {w_str}:{opt_dict['type']}")
+	def _recursiveRemoveDefunctOptions(self, asset_w_dict:dict) -> dict:
+		orig_dict = asset_w_dict.copy()
+		for w_key, w_dict in orig_dict.items():
+			if w_dict['widget_data']['mark_for_removal']:
+				logger.debug(f'Deleting option widget: {w_key}')
+				w_dict['widget_data']['widget'].setParent(None)
+				del asset_w_dict[w_key]
 				continue
 
-			w_key = opt_key.split('_')
-			if len(w_key) > 0:
-				if w_key[0] == 'plot':
-					w_key = '_'.join(w_key[1:])
+			if w_dict['sub_widgets'] is not None:
+				w_dict['sub_widgets'] = self._recursiveRemoveDefunctOptions(w_dict['sub_widgets'])
+				if len(w_dict['sub_widgets'].values()) == 0:
+					logger.debug(f'Deleting collapsible option container: {w_key}')
+					w_dict['widget_data']['widget'].setParent(None)
+					del asset_w_dict[w_key]
+
+		return asset_w_dict
+
+	def _recursivePopulateSections(self, widget_dict:dict) -> None:
+		for w_key, widget in widget_dict.items():
+			if not widget['widget_data']['added_to_layout']:
+				logger.debug(f"Adding {widget['widget_data']['widget']}:{w_key} to {widget['parent_layout']}")
+				widget['parent_layout'].addWidget(widget['widget_data']['widget'])
+				widget['widget_data']['added_to_layout'] = True
+			else:
+				logger.debug(f"{widget['widget_data']['widget']}:{w_key} already added to {widget['parent_layout']}")
+
+			if widget['sub_widgets'] is not None:
+				self._recursivePopulateSections(widget['sub_widgets'])
+
+	def recursiveBuildOptionWidgets(self, curr_asset, parent_section) -> dict:
+		w_dict = {}
+		# create widget dict for this asset's options:
+		logger.debug(f'Building widgets for {curr_asset} options')
+		for opt_key, opt_cnfg in curr_asset.opts.items():
+			if opt_cnfg['widget_data'] is not None and opt_cnfg['static']:
+				# widget has previously been added
+				logger.debug(f'Widget for {curr_asset}:{opt_key} has been previously added')
+				continue
+
+			opt_widget = self._buildOptionWidget(opt_key, opt_cnfg)
+			if opt_widget is not None:
+				# Create widget key for this option
+				w_key_els = opt_key.split('_')
+				# prepend '_' to plot toggle options, to ensure they appear before other relevant options
+				if len(w_key_els) > 0:
+					if w_key_els[0] == 'plot':
+						w_key = '_'.join(w_key_els[1:])
+					else:
+						w_key = '_'.join(w_key_els)
 				else:
-					w_key = '_'.join(w_key)
-			try:
+					w_key = '_unknown_option'
+
 				w_dict[w_key] = {}
-				w_dict[w_key]['widget'] = widget 				# type:ignore
-				w_dict[w_key]['mark_for_removal'] = False
-				opt_dict['widget'] = w_dict[w_key]
-			except UnboundLocalError:
-				logger.error(f"UnboundLocalError when generating options widget for {w_key}")
-				raise UnboundLocalError
+				w_dict[w_key]['widget_data'] = {}
+				w_dict[w_key]['widget_data']['widget'] = opt_widget
+				w_dict[w_key]['widget_data']['mark_for_removal'] = False
+				w_dict[w_key]['widget_data']['added_to_layout'] = False
+				w_dict[w_key]['sub_widgets'] = None
+				w_dict[w_key]['parent_layout'] = parent_section
+				# tie back to asset
+				opt_cnfg['widget_data'] = w_dict[w_key]['widget_data']
 
 
+		if hasattr(curr_asset, 'assets'):
+			logger.debug(f'Processing sub assets for {curr_asset}')
+			for sub_asset_key, sub_asset in curr_asset.assets.items():
+				logger.debug(f'Creating collapsible section for sub asset {sub_asset} belonging to {curr_asset}')
+				section_title = f"{sub_asset_key.capitalize()} Options"
+				cb = widgets.CollapsibleSection(title=section_title)
+				sub_w_dict = self.recursiveBuildOptionWidgets(sub_asset, cb)
+
+				# only add collapsible section if sub asset actually had any options.
+				if sub_w_dict and len(sub_w_dict.keys()) > 0:
+					w_dict[f'{sub_asset_key}_cb'] = {}
+					w_dict[f'{sub_asset_key}_cb']['widget_data'] = {}
+					w_dict[f'{sub_asset_key}_cb']['widget_data']['widget'] = cb
+					w_dict[f'{sub_asset_key}_cb']['widget_data']['mark_for_removal'] = False
+					w_dict[f'{sub_asset_key}_cb']['widget_data']['added_to_layout'] = False
+					w_dict[f'{sub_asset_key}_cb']['sub_widgets'] = sub_w_dict
+					w_dict[f'{sub_asset_key}_cb']['parent_layout'] = parent_section
+
+		# sort w_dict
+		logger.debug(f'Sorting w_dict for {curr_asset}')
+		w_dict = dict(sorted(w_dict.items()))
 		return w_dict
+
+	def _buildOptionWidget(self, opt_key:str, opt_cnfg:dict) -> QtWidgets.QWidget:
+		label_str = string.capwords(' '.join(opt_key.split('_')))
+		widget = None
+		if opt_cnfg['type'] == 'boolean':
+			try:
+				widget = widgets.ToggleBox(label_str,
+											opt_cnfg['value'])
+				widget.add_connect(opt_cnfg['callback'])
+				logger.debug(f"Adding option callback {opt_cnfg['callback']} to {opt_key}")
+			except:
+				logger.warning(f"Can't make widget {label_str} for asset {opt_key}")
+				raise ValueError
+		elif opt_cnfg['type'] == 'colour':
+			try:
+				widget = widgets.ColourPicker(label_str,
+											opt_cnfg['value'])
+				widget.add_connect(opt_cnfg['callback'])
+				logger.debug(f"Adding option callback {opt_cnfg['callback']} to {opt_key}")
+			except:
+				logger.warning(f"Can't make widget {label_str} for asset {opt_key}")
+				raise ValueError
+		elif opt_cnfg['type'] == 'integer' or opt_cnfg['type'] == 'number':
+			try:
+				widget = widgets.ValueSpinner(label_str,
+							  				opt_cnfg['value'])
+				widget.add_connect(opt_cnfg['callback'])
+				logger.debug(f"Adding option callback {opt_cnfg['callback']} to {opt_key}")
+			except:
+				logger.warning(f"Can't make widget {label_str} for asset {opt_key}")
+				raise ValueError
+		elif opt_cnfg['type'] == 'float':
+			try:
+				widget = widgets.ValueSpinner(label_str,
+							  				opt_cnfg['value'],
+											integer=False)
+				widget.add_connect(opt_cnfg['callback'])
+				logger.debug(f"Adding option callback {opt_cnfg['callback']} to {opt_key}")
+			except:
+				logger.warning(f"Can't make widget {label_str} for asset {opt_key}")
+				raise ValueError
+		elif opt_cnfg['type'] == 'fraction':
+			try:
+				widget = widgets.ValueSpinner(label_str,
+							  				opt_cnfg['value'],
+											fraction=True)
+				widget.add_connect(opt_cnfg['callback'])
+				logger.debug(f"Adding option callback {opt_cnfg['callback']} to {opt_key}")
+			except:
+				logger.warning(f"Can't make widget {label_str} for asset {opt_key}")
+				raise ValueError
+		elif opt_cnfg['type'] == 'option':
+			try:
+				widget = widgets.BasicOptionBox(label_str,
+											dflt_option=opt_cnfg['value'],
+											options_list=opt_cnfg['options'])
+				widget.add_connect(opt_cnfg['callback'])
+				logger.debug(f"Adding option callback {opt_cnfg['callback']} to {opt_key}")
+			except:
+				logger.warning(f"Can't make widget {label_str} for asset {opt_key}")
+				raise ValueError
+		else:
+			logger.warning(f"Can't find widget type for {label_str}:{opt_cnfg['type']}")
+			raise TypeError
+
+		return widget
 
 	def prepSerialisation(self) -> dict[str,Any]:
 		state = {}
 
-		for section_title, section in self.sections.items():
-			state[section_title] = {}
-			for opt_key, opt in section['opts'].items():
-				if not isinstance(opt['widget'],widgets.CollapsibleSection):
-					state[section_title][opt_key] = opt['widget'].prepSerialisation()
+		for opt_section_title, opt_section in self.opt_sections.items():
+			state[opt_section_title] = {}
+			for opt_key, opt in opt_section['opts'].items():
+				if not isinstance(opt_section['widget'],widgets.CollapsibleSection):
+					state[opt_section_title][opt_key] = opt['widget_data']['widget'].prepSerialisation()
 
 		return state
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
-		for section_title, section in state.items():
-			if section_title not in self.sections.keys():
-				logger.warning(f'{section_title} not a recognised context configuration section')
+		for opt_section_title, opt_section in state.items():
+			if opt_section_title not in self.opt_sections.keys():
+				logger.warning(f'{opt_section_title} not a recognised context configuration section')
 				continue
-			for opt_key, opt_serialisation in section.items():
-				if opt_key not in self.sections[section_title]['opts'].keys():
-					logger.warning(f'{opt_key} not a recognised option for context configuration section {section_title}')
+			for opt_key, opt_serialisation in opt_section.items():
+				if opt_key not in self.opt_sections[opt_section_title]['opts'].keys():
+					logger.warning(f'{opt_key} not a recognised option for context configuration section {opt_section_title}')
 					continue
-				self.sections[section_title]['opts'][opt_key]['widget'].deSerialise(opt_serialisation)
+				self.opt_sections[opt_section_title]['opts'][opt_key]['widget_data']['widget'].deSerialise(opt_serialisation)
 
 class SensorViewConfigs(QtWidgets.QWidget):
 

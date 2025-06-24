@@ -54,31 +54,31 @@ class BodyGizmo(base_assets.AbstractSimpleAsset):
 												'help': '',
 												'static': True,
 												'callback': self.setGizmoXColour,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['gizmo_Y_axis_colour'] = {'value': (0,255,0),
 												'type': 'colour',
 												'help': '',
 												'static': True,
 												'callback': self.setGizmoYColour,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['gizmo_Z_axis_colour'] = {'value': (0,0,255),
 												'type': 'colour',
 												'help': '',
 												'static': True,
 												'callback': self.setGizmoZColour,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['gizmo_width'] = {'value': 3,
 										  		'type': 'number',
 												'help': '',
 												'static': True,
 												'callback': self.setGizmoWidth,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['gizmo_scale'] = {'value': 700,
 										  		'type': 'number',
 												'help': '',
 												'static': True,
 												'callback': self.setGizmoScale,
-											'widget': None}
+											'widget_data': None}
 
 		self.opts = self._dflt_opts.copy()
 
@@ -260,56 +260,56 @@ class ViewBoxGizmo(base_assets.AbstractSimpleAsset):
 												'help': '',
 												'static': True,
 												'callback': self.setGizmoAssetVisibility,
-												'widget': None}
+												'widget_data': None}
 		self._dflt_opts['gizmo_location'] = {'value': 'bottom_left',
 												'type': 'option',
 												'options': ['top_left','top_right','bottom_left','bottom_right'],
 												'help': '',
 												'static': True,
 												'callback': self.setGizmoLocation,
-												'widget': None}
+												'widget_data': None}
 		self._dflt_opts['gizmo_width'] = {'value': 2,
 												'type': 'number',
 												'help': '',
 												'static': True,
 												'callback': self.setGizmoWidth,
-												'widget': None}
+												'widget_data': None}
 		self._dflt_opts['origin_scale'] = {'value': 12,
 												'type': 'number',
 												'help': '',
 												'static': True,
 												'callback': self.setOriginScale,
-												'widget': None}
+												'widget_data': None}
 		self._dflt_opts['origin_colour'] = {'value': (0,0,0),
 												'type': 'colour',
 												'help': '',
 												'static': True,
 												'callback': self.setOriginColour,
-												'widget': None}
+												'widget_data': None}
 		self._dflt_opts['gizmo_scale'] = {'value': 30,
 												'type': 'number',
 												'help': '',
 												'static': True,
 												'callback': self.setGizmoScale,
-												'widget': None}
+												'widget_data': None}
 		self._dflt_opts['gizmo_X_axis_colour'] = {'value': (255,0,0),
 												'type': 'colour',
 												'help': '',
 												'static': True,
 												'callback': self.setGizmoXColour,
-												'widget': None}
+												'widget_data': None}
 		self._dflt_opts['gizmo_Y_axis_colour'] = {'value': (0,255,0),
 												'type': 'colour',
 												'help': '',
 												'static': True,
 												'callback': self.setGizmoYColour,
-												'widget': None}
+												'widget_data': None}
 		self._dflt_opts['gizmo_Z_axis_colour'] = {'value': (0,0,255),
 												'type': 'colour',
 												'help': '',
 												'static': True,
 												'callback': self.setGizmoZColour,
-												'widget': None}
+												'widget_data': None}
 
 		self.opts = self._dflt_opts.copy()
 		self._createOptHelp()

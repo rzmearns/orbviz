@@ -48,6 +48,7 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundAsset):
 				self.assets[sensor] = Sensor3DAsset.cone(sensor, sens_dict, parent=self.data['v_parent'])
 			elif sens_dict['shape'] == satplot_data_types.SensorTypes.FPA:
 				self.assets[sensor] = Sensor3DAsset.squarePyramid(sensor, sens_dict, parent=self.data['v_parent'])
+		self._addIndividualSensorPlotOptions()
 
 	def _createVisuals(self) -> None:
 		pass
@@ -70,8 +71,33 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundAsset):
 		self._dflt_opts = {}
 		self.opts = self._dflt_opts.copy()
 
+	def _addIndividualSensorPlotOptions(self) -> None:
+		logger.debug(f'Adding sensor options dictionary entries for:')
+		for sens_key in self.assets.keys():
+			visibilityCallback = self._makeVisibilityCallback(sens_key)
+			self.opts[f'plot_{sens_key}'] = {'value': True,
+													'type': 'boolean',
+													'help': '',
+													'static': False,
+													'callback': visibilityCallback,
+													'widget_data': None}
+
+	def _makeVisibilityCallback(self, sens_key:str):
+		def _visibilityCallback(state):
+			self.opts[f'plot_{sens_key}']['value'] = state
+			self.assets[f'{sens_key}'].setSensorVisibility(state)
+		return _visibilityCallback
+
 	def setSuiteVisibility(self, state:bool) -> None:
 		self.setVisibilityRecursive(state)
+
+	def removePlotOptions(self) -> None:
+		for opt_key, opt in self.opts.items():
+			if opt['widget_data'] is not None:
+				logger.debug(f"marking {opt_key} for removal")
+				opt['widget_data']['mark_for_removal'] = True
+		for asset in self.assets.values():
+			asset.removePlotOptions()
 
 class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 	def __init__(self, sensor_name, mesh_verts, mesh_faces,
@@ -151,13 +177,13 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 												'help': '',
 												'static': True,
 												'callback': self.setSensorConeColour,
-											'widget': None}
+												'widget_data': None}
 		self._dflt_opts['sensor_cone_alpha'] = {'value': 0.5,
-										  		'type': 'number',
+										  		'type': 'float',
 												'help': '',
 												'static': True,
 												'callback': self.setSensorConeAlpha,
-											'widget': None}
+												'widget_data': None}
 
 		self.opts = self._dflt_opts.copy()
 
@@ -172,6 +198,12 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 	def setSensorVisibility(self, state):
 		for visual_name, visual in self.visuals.items():
 			visual.visible = state
+
+	def removePlotOptions(self) -> None:
+		for opt_key, opt in self.opts.items():
+			if opt['widget_data'] is not None:
+				logger.debug(f"marking {opt_key} for removal")
+				opt['widget_data']['mark_for_removal'] = True
 
 	@classmethod
 	def cone(cls, sensor_name:str, sensor_dict:dict[str,Any], parent:ViewBox|None=None):
@@ -389,61 +421,61 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 												'help': '',
 												'static': True,
 												'callback': self.setVisibilityRecursive,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_earth_sphere'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': self.setEarthSphereVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['earth_sphere_colour'] = {'value': (220,220,220),
 												'type': 'colour',
 												'help': '',
 												'static': True,
 												'callback': self.setEarthSphereColour,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_earth_axis'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': self.setEarthAxisVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['earth_axis_colour'] = {'value': (255,0,0),
 												'type': 'colour',
 												'help': '',
 												'static': True,
 												'callback': self.setEarthAxisColour,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_parallels'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': None,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_equator'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': None,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_meridians'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': None,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_landmass'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': self.setLandmassVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['landmass_colour'] = {'value': (0,0,0),
 												'type': 'colour',
 												'help': '',
 												'static': True,
 												'callback': self.setLandMassColour,
-											'widget': None}
+											'widget_data': None}
 
 		self.opts = self._dflt_opts.copy()
 
