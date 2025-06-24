@@ -5,6 +5,9 @@ from typing import Any
 from vispy import scene
 from vispy.scene.widgets.viewbox import ViewBox
 
+import satplot.model.data_models.data_types as data_types
+import satplot.model.data_models.history_data as history_data
+import satplot.model.data_models.earth_raycast_data as earth_raycast_data
 import satplot.visualiser.assets.sensors as sensors
 import satplot.visualiser.colours as colours
 import satplot.visualiser.assets.base_assets as base_assets
@@ -328,90 +331,70 @@ class SpacecraftViewsAsset(base_assets.AbstractAsset):
 	def _initData(self) -> None:
 		if self.data['name'] is None:
 			self.data['name'] = 'Spacecraft'
-		self.data['sens_suites'] = {}
-		self.data['coords'] = np.zeros((4,3))
 		self.data['strings'] = ['']
+		self.data['sens_suites'] = {}
 		self.data['curr_index'] = 2
-		self.data['pointing'] = None
-		self.data['pointing_defined'] = False
-		self.data['old_pointing_defined'] = False
-		self.data['pointing_invert_transform'] = False
 		self.data['sc_config'] = None
+		self.data['history'] = None
+		self.data['raycast_src'] = None
 
 	def setSource(self, *args, **kwargs) -> None:
-		# args[0] timespan
-		# args[1] orbit
-		# args[2] pointing
-		# args[3] pointing frame transformation direction
-			# True = ECI->BF
-			# False = BF->ECI
-		# args[4] spacecraft configuration
-		# args[5] raycast src data
+		# args[0] spacecraft configuration
+		# args[1] history data
+		# args[2] ray cast src data
 
-		self.data['raycast_src'] = args[5]
-		self.data['timespan'] = args[0]
-		self.data['old_pointing_defined'] = self.data['pointing_defined']
-		if args[2] is not None:
+		if type(args[0]) is not data_types.SpacecraftConfig:
+			logger.error(f"setSource() of {self} requires a {data_types.SpacecraftConfig} as args[0], not: {type(args[0])}")
+			raise TypeError(f"setSource() of {self} requires a {data_types.SpacecraftConfig} as args[0], not: {type(args[0])}")
+			return
 
-			self.data['pointing_defined'] = True
-			logger.debug(f'spacecraft has pointing')
+		if type(args[1]) is not history_data.HistoryData:
+			logger.error(f"setSource() of {self} requires a {history_data.HistoryData} as args[1], not: {type(args[1])}")
+			raise TypeError(f"setSource() of {self} requires a {history_data.HistoryData} as args[1], not: {type(args[1])}")
+			return
+
+		if not args[1].hasOrbits():
+			logger.error(f"History Data Source for {self} contains no data yet.")
+			return
+
+		if type(args[2]) is not earth_raycast_data.EarthRayCastData:
+			logger.error(f"setSource() of {self} requires a {earth_raycast_data.EarthRayCastData} as args[2], not: {type(args[2])}")
+			raise TypeError(f"setSource() of {self} requires a {earth_raycast_data.EarthRayCastData} as args[2], not: {type(args[2])}")
+			return
+
+		# store old sensor configs
+		old_sc_config = self.data['sc_config']
+		if old_sc_config:
+			old_config_filestem = old_sc_config.filestem
+			old_suite_names = list(old_sc_config.getSensorSuites().keys())
 		else:
-			self.data['pointing_defined'] = False
-			logger.debug(f'spacecraft has NO pointing')
-
-		sats_dict = args[1]
-		first_sat_orbit = list(sats_dict.values())[0]
-
-		if type(first_sat_orbit) is not orbit.Orbit:
-			logger.error(f"setSource() of {self} requires an {orbit.Orbit} as value of dict from args[1], not: {type(first_sat_orbit)}")
-			raise TypeError(f"setSource() of {self} requires an {orbit.Orbit} as value of dict from args[1], not: {type(first_sat_orbit)}")
-		self.data['coords'] = first_sat_orbit.pos
-		logger.debug(f'Setting source:coordinates for {self}')
-
-		if hasattr(first_sat_orbit,'name'):
-			self.data['strings'] = [first_sat_orbit.name]
-		else:
-			self.data['strings'] = ['']
-
-		if self.data['pointing_defined']:
-			pointings_dict = args[2]
-			first_sat_pointings = list(pointings_dict.values())[0]
-			invert_transform = args[3]
-			if type(first_sat_pointings) is not np.ndarray:
-				logger.error(f"setSource() of {self} requires an {np.ndarray} as value of dict from args[2], not: {type(first_sat_pointings)}")
-				raise TypeError(f"setSource() of {self} requires an {np.ndarray} as value of dict from args[2], not: {type(first_sat_pointings)}")
-			self.data['pointing'] = first_sat_pointings
-			self.data['pointing_invert_transform'] = invert_transform
-			logger.debug(f'Setting source:attitudes for {self}')
-		else:
-			self.data['pointing'] = None
-			self.data['pointing_invert_transform'] = None
-
-		if self.data['sc_config'] is not None:
-			old_suite_names = list(self.data['sc_config'].getSensorSuites().keys())
-		else:
+			old_config_filestem = None
 			old_suite_names = []
+		if self.data['history']:
+			old_pointing_defined = self.data['history'].getConfigValue('is_pointing_defined')
+		else:
+			old_pointing_defined = False
 
-		if self.data['old_pointing_defined'] == self.data['pointing_defined'] and \
-			self.data['sc_config'] == args[4]:
+		# assign data sources
+		self.data['sc_config'] = args[0]
+		self.data['history'] = args[1]
+		self.data['raycast_src'] = args[2]
+		self.data['strings'] = [self.data['sc_config'].name]
+
+		print(f'{old_pointing_defined=}')
+		if old_pointing_defined and self.data['sc_config'] == old_sc_config:
 			# config has not changed -> don't need to re-instantiate sensors
 			logger.debug('Spacecraft pointing related config has not changed')
 			config_changed = False
 			return
 
-		if self.data['sc_config'] is not None:
-			old_config_filestem = self.data['sc_config'].filestem
-		else:
-			old_config_filestem = None
-		self.data['sc_config'] = args[4]
-
-		if self.data['old_pointing_defined'] or \
-			(self.data['sc_config'].filestem != old_config_filestem):
+		# remove old sensors if there were some
+		if old_pointing_defined and old_sc_config != self.data['sc_config']:
 			# If pointing had previously been defined -> old sensors, options need to be removed
 			# if no pointing, no point having sensors
 			self._removeSensorAssets(old_suite_names)
 
-		if self.data['pointing_defined']:
+		if self.data['history'].getConfigValue('is_pointing_defined'):
 			self._instantiateSensorAssets()
 			self._setSensorAssetSources()
 
@@ -451,16 +434,18 @@ class SpacecraftViewsAsset(base_assets.AbstractAsset):
 		if self.isFirstDraw():
 			self._clearFirstDrawFlag()
 		if self.isStale():
-			if self.data['pointing_defined']:
+			if self.data['history'].getConfigValue('is_pointing_defined'):
+				pointing_data = self.data['history'].getPointings()[self.data['sc_config'].id]
+				orbit_data = self.data['history'].getOrbits()[self.data['sc_config'].id]
 				# set gizmo and sensor orientations
 				#TODO: This check for last/next good pointing could be done better
-				if np.any(np.isnan(self.data['pointing'][self.data['curr_index'],:])):
+				if np.any(np.isnan(pointing_data[self.data['curr_index'],:])):
 					non_nan_found = False
 					# look forwards
-					for ii in range(self.data['curr_index'], len(self.data['pointing'])):
-						if np.all(np.isnan(self.data['pointing'][ii,:])==False):
+					for ii in range(self.data['curr_index'], len(pointing_data)):
+						if np.all(np.isnan(pointing_data[ii,:])==False):
 							non_nan_found = True
-							quat = self.data['pointing'][ii,:].reshape(-1,4)
+							quat = pointing_data[ii,:].reshape(-1,4)
 							rotation = Rotation.from_quat(quat).as_matrix()
 							break
 						else:
@@ -468,15 +453,15 @@ class SpacecraftViewsAsset(base_assets.AbstractAsset):
 					if not non_nan_found:
 						# look backwards
 						for ii in range(self.data['curr_index'], -1, -1):
-							if np.all(np.isnan(self.data['pointing'][ii,:])==False):
-								quat = self.data['pointing'][ii,:].reshape(-1,4)
+							if np.all(np.isnan(pointing_data[ii,:])==False):
+								quat = pointing_data[ii,:].reshape(-1,4)
 								rotation = Rotation.from_quat(quat).as_matrix()
 								break
 							else:
 								rotation = np.eye(3)
 				else:
-					quat = self.data['pointing'][self.data['curr_index']].reshape(-1,4)
-					if self.data['pointing_invert_transform']:
+					quat = pointing_data[self.data['curr_index']].reshape(-1,4)
+					if self.data['history'].getConfigValue('pointing_invert_transform'):
 						# Quat = ECI->BF
 						rotation = Rotation.from_quat(quat).as_matrix()
 					else:
@@ -484,9 +469,9 @@ class SpacecraftViewsAsset(base_assets.AbstractAsset):
 						rotation = Rotation.from_quat(quat).inv().as_matrix()
 				for asset_name, asset in self.assets.items():
 					if 'sensor_suite_' in asset_name:
-						asset.setCurrentDatetime(self.data['timespan'][self.data['curr_index']])
+						asset.setCurrentDatetime(self.data['history'].timespan[self.data['curr_index']])
 				# recomputeRedraw child assets
-				self._recomputeRedrawChildren(pos=self.data['coords'][self.data['curr_index']].reshape(1,3), rotation=rotation)
+				self._recomputeRedrawChildren(pos=orbit_data.pos[self.data['curr_index']].reshape(1,3), rotation=rotation)
 			self._clearStaleFlag()
 
 	def getScreenMouseOverInfo(self) -> dict[str, Any]:

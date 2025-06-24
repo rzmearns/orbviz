@@ -145,11 +145,8 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 
 		if self.data_models['history'].hasOrbits():
 			if self.data_models['history'].getConfigValue('is_pointing_defined'):
-				self.assets['spacecraft'].setSource(self.data_models['history'].getTimespan(),
-													self.data_models['history'].getOrbits(),
-													self.data_models['history'].getPointings(),
-													self.data_models['history'].getConfigValue('pointing_invert_transform'),
-													list(self.data_models['history'].getPrimaryConfig().getAllSpacecraftConfigs().values())[0],
+				self.assets['spacecraft'].setSource(list(self.data_models['history'].getPrimaryConfig().getAllSpacecraftConfigs().values())[0],
+													self.data_models['history'],
 													self.data_models['raycast_src'])
 				self.assets['spacecraft']._setActiveFlag()
 
