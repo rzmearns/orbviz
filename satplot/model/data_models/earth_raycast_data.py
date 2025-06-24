@@ -33,35 +33,36 @@ class EarthRayCastData(BaseDataModel):
 
 		self.process()
 
-	def getPixelDataOnSphere(self, lat:float|np.ndarray, lon:float|np.ndarray,
+	def getPixelDataOnSphere(self, lat:float|np.ndarray, lon:float|np.ndarray, sunlit_mask:np.ndarray,
 								min_wavelength:float=400, max_wavelength:float=700) -> np.ndarray:
 		# TODO: check lengs of lat and lon are same
 		# TODO: handle float option
 		shape = lat.shape
 		out_arr = np.ndarray((shape[0],3))
-		sunlit_mask = self.isLocationSunlit(lat, lon)
-		sunlit_data = self.data[self.lookup(min_wavelength, max_wavelength, True)]
-		eclipsed_data = self.data[self.lookup(min_wavelength, max_wavelength, True)]
-		out_arr[sunlit_mask,:] = sunlit_data.getPixelDataOnSphere(lat[sunlit_mask],lon[sunlit_mask])
-		out_arr[~sunlit_mask,:] = eclipsed_data.getPixelDataOnSphere(lat[~sunlit_mask],lon[~sunlit_mask])
+		sunlit_data_src = self.data[self.lookup(min_wavelength, max_wavelength, True)]
+		eclipsed_data_src = self.data[self.lookup(min_wavelength, max_wavelength, False)]
+		out_arr[sunlit_mask,:] = sunlit_data_src.getPixelDataOnSphere(lat[sunlit_mask],lon[sunlit_mask])
+		out_arr[~sunlit_mask,:] = eclipsed_data_src.getPixelDataOnSphere(lat[~sunlit_mask],lon[~sunlit_mask])
 		return out_arr
 
 	def lookup(self, min_wavelength:float, max_wavelength:float, lit:bool):
-		# TODO: add in other lookup conditions
-		lighting_condition_dict = dict(filter(self._filterSunlit, self.lookups.items()))
+		lighting_condition_dict = {k:v for (k,v) in self.lookups.items() if v['externally_lit'] == lit}
 		if len(lighting_condition_dict.keys()) > 0:
+			# TODO: add in other lookup conditions
 			return list(lighting_condition_dict.keys())[0]
 		else:
-			raise ValueError(f'There is spherical image data for {self}, matching the conditions: lit=={lit}')
+			raise ValueError(f'There is no spherical image data for {self}, matching the conditions: lit=={lit}')
 
 	def _filterSunlit(self, item):
+		# item is a tuple of (dict_id, dict)
 		return item[1]['externally_lit']
 
-	def isLocationSunlit(self, lat:float|np.ndarray, lon:float|np.ndarray) -> np.ndarray:
+	def _calcSunlitSurfaceMask(self, cart_earth_intsct:float|np.ndarray, sun_ecf:float|np.ndarray) -> np.ndarray:
 		# TODO: handle float option
-		shape = lat.shape
-		# TODO: perform actual sunlit check
-		return np.logical_not(np.zeros(shape))
+		unit_carts = cart_earth_intsct/np.linalg.norm(cart_earth_intsct, axis=1).reshape(-1,1)
+		unit_sun_ecf = (sun_ecf*1000-cart_earth_intsct)/np.linalg.norm(sun_ecf*1000 - cart_earth_intsct, axis=1).reshape(-1,1)
+		dp = np.sum(unit_carts*unit_sun_ecf, axis=1)
+		return dp>0
 
 	def _createNewThreadKeyFromIdx(self, idx:int) -> str:
 		return f'earth_img_loader_{idx}'
@@ -74,7 +75,7 @@ class EarthRayCastData(BaseDataModel):
 		# Set up workers for loading default planetary image data
 		# Earth visible
 		self.data[self._getNextDataIdx()] = sphere_img_data.SphereImageData.visibleEarthSunlit()
-		# self.data[self._getNextDataIdx()] = sphere_img_data.SphereImageData.visibleEarthEclipsed()
+		self.data[self._getNextDataIdx()] = sphere_img_data.SphereImageData.visibleEarthEclipsed()
 
 
 		for idx in self.data.keys():
@@ -102,7 +103,9 @@ class EarthRayCastData(BaseDataModel):
 		self.data_ready.emit()
 		logger.info("Finished initialising Earth PlanetaryRayCastData")
 
-	def rayCastFromSensor(self, sens_eci_transform:np.ndarray, sens_rays_cf:np.ndarray, curr_dt:dt.datetime, atmosphere=False, highlight_edge=False) -> np.ndarray:
+	def rayCastFromSensor(self, sens_eci_transform:np.ndarray, sens_rays_cf:np.ndarray,
+								curr_dt:dt.datetime, sun_eci:np.ndarray,
+								eclipse:bool=True, atmosphere:bool=False, highlight_edge:bool=False) -> np.ndarray:
 		'''[summary]
 
 		[description]
@@ -124,15 +127,15 @@ class EarthRayCastData(BaseDataModel):
 		# convert eci frame to ecef
 		sens_rays_ecf = np.array(pymap3d.eci2ecef(sens_rays_eci[:,0],sens_rays_eci[:,1],sens_rays_eci[:,2],curr_dt)).T
 		pos_ecf = np.asarray(pymap3d.eci2ecef(pos_eci[0], pos_eci[1], pos_eci[2],curr_dt))
-
+		sun_ecf = np.asarray(pymap3d.eci2ecef(sun_eci[0], sun_eci[1], sun_eci[2],curr_dt))
 		# check intersection of rays with earth
 		cart_earth_intsct, earth_intsct = self._lineOfSightToSurface(pos_ecf, sens_rays_ecf)
 		lats = np.zeros(num_rays)
 		lons = np.zeros(num_rays)
 		lats[earth_intsct], lons[earth_intsct] = self._convertCartesianToEllipsoidGeodetic(cart_earth_intsct[earth_intsct,:])
-
+		surface_sunlit_mask = self._calcSunlitSurfaceMask(cart_earth_intsct, sun_ecf)
 		# get earth surface data
-		data = self.getPixelDataOnSphere(lats, lons)
+		data = self.getPixelDataOnSphere(lats, lons, surface_sunlit_mask)
 
 		# populate img array
 		full_img = np.zeros((num_rays, 3))

@@ -212,16 +212,23 @@ class SensorSuiteImageAsset(base_assets.AbstractCompoundAsset):
 		if self.data['name'] is None:
 			self.data['name'] = 'SensorSuite'
 		self.data['sens_suite_config'] = sens_suite_dict
+		self.data['curr_datetime'] = None
+		self.data['curr_sun_eci'] = None
 
 	def setSource(self, *args, **kwargs) -> None:
 		# args[0] = raycast_src
 		for sensor_name, sensor in self.assets.items():
 			sensor.setSource(args[0])
 
-	def setCurrentDatetime(self, dt:dt.datetime) -> None:
-		self.data['curr_datetime'] = dt
+	def setCurrentDatetime(self, curr_dt:dt.datetime) -> None:
+		self.data['curr_datetime'] = curr_dt
 		for asset in self.assets.values():
-			asset.setCurrentDatetime(dt)
+			asset.setCurrentDatetime(curr_dt)
+
+	def setCurrentSunECI(self, sun_eci_pos:np.ndarray) -> None:
+		self.data['curr_sun_eci'] = sun_eci_pos
+		for asset in self.assets.values():
+			asset.setCurrentSunECI(sun_eci_pos)
 
 	def _instantiateAssets(self) -> None:
 		sensor_names = self.data['sens_suite_config'].getSensorNames()
@@ -293,6 +300,9 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 	def setCurrentDatetime(self, dt:dt.datetime) -> None:
 		self.data['curr_datetime'] = dt
 
+	def setCurrentSunECI(self, sun_eci_pos:np.ndarray) -> None:
+		self.data['curr_sun_eci'] = sun_eci_pos
+
 	def _calcLowRes(self, true_resolution:tuple[int,int]) -> tuple[int,int]:
 		lowres = [0,0]
 		max_1D_resolution = 480
@@ -346,7 +356,13 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 				T[0:3,0:3] = rot_mat
 				T[0:3,3] = np.asarray(pos).reshape(-1,3)
 
-				data = self.data['raycast_src'].rayCastFromSensor(T,self.data['rays_sf'],self.data['curr_datetime'], atmosphere=True, highlight_edge=True)
+				data = self.data['raycast_src'].rayCastFromSensor(T,
+																	self.data['rays_sf'],
+																	self.data['curr_datetime'],
+																	self.data['curr_sun_eci'],
+																	eclipse=True,
+																	atmosphere=True,
+																	highlight_edge=True)
 				data_reshaped = data.reshape(self.data['lowres'][1],self.data['lowres'][0],3)/255
 				self.visuals['image'].set_data(data_reshaped)
 				self.visuals['text'].text = f"Sensor: {self.data['name']}: {self.counter}"

@@ -470,6 +470,7 @@ class SpacecraftViewsAsset(base_assets.AbstractAsset):
 				for asset_name, asset in self.assets.items():
 					if 'sensor_suite_' in asset_name:
 						asset.setCurrentDatetime(self.data['history'].timespan[self.data['curr_index']])
+						asset.setCurrentSunECI(orbit_data.sun_pos[self.data['curr_index']])
 				# recomputeRedraw child assets
 				self._recomputeRedrawChildren(pos=orbit_data.pos[self.data['curr_index']].reshape(1,3), rotation=rotation)
 			self._clearStaleFlag()
