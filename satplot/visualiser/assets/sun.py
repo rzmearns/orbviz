@@ -177,79 +177,79 @@ class Sun3DAsset(base_assets.AbstractAsset):
 												'help': '',
 												'static': True,
 												'callback': self.setVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_sun_sphere'] = {'value': True,
 												'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': self.setSunSphereVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['sun_sphere_colour'] = {'value': (255,162,0),
 												'type': 'colour',
 												'help': '',
 												'static': True,
 												'callback': self.setSunSphereColour,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_sun_vector'] = {'value': True,
 												'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': self.setSunVectorVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['sun_vector_colour'] = {'value': (255,162,0),
 												'type': 'colour',
 												'help': '',
 												'static': True,
 												'callback': self.setSunVectorColour,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['sun_vector_width'] = {'value': 1,
 												'type': 'float',
 												'help': '',
 												'static': True,
 												'callback': self.setSunVectorWidth,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['sun_vector_length_kms'] = {'value': c.R_EARTH/3,
 												'type': 'integer',
 												'help': '',
 												'static': True,
 												'callback': self.setSunVectorLength,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_umbra'] = {'value': True,
 												'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': self.setUmbraVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['umbra_colour'] = {'value': (10,10,10),
 												'type': 'colour',
 												'help': '',
 												'static': True,
 												'callback': self.setUmbraColour,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['umbra_alpha'] = {'value': 0.25,
 												'type': 'fraction',
 												'help': '',
 												'static': True,
 												'callback': self.setUmbraAlpha,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['umbra_dist'] = {'value': 3*c.R_EARTH,
 												'type': 'number',
 												'help': '',
 												'static': True,
 												'callback': self.setUmbraDistance,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['sun_distance_kms'] = {'value': 15000,
 												'type': 'number',
 												'help': '',
 												'static': True,
 												'callback': self.setSunDistance,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['sun_sphere_radius_kms'] = {'value': 786,
 												'type': 'number',
 												'help': '',
 												'static': True,
 												'callback': self.setSunSphereRadius,
-											'widget': None}
+											'widget_data': None}
 
 		# sun radius calculated using 6deg angular size
 
@@ -491,61 +491,61 @@ class Sun2DAsset(base_assets.AbstractAsset):
 												'help': '',
 												'static': True,
 												'callback': self.setVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_sun_marker'] = {'value': True,
 												'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': self.setSunMarkerVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['sun_marker_colour'] = {'value': (255,162,0),
 												'type': 'colour',
 												'help': '',
 												'static': True,
 												'callback': self.setSunMarkerColour,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_terminator'] = {'value': True,
 												'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': self.setTerminatorVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_eclipse'] = {'value': True,
 												'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': self.setEclipseVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['terminator_colour'] = {'value': (0,0,0),
 												'type': 'colour',
 												'help': '',
 												'static': True,
 												'callback': self.setTerminatorColour,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['eclipse_colour'] = {'value': (0,0,0),
 												'type': 'colour',
 												'help': '',
 												'static': True,
 												'callback': self.setEclipseColour,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['terminator_alpha'] = {'value': 0.4,
 												'type': 'fraction',
 												'help': '',
 												'static': True,
 												'callback': self.setTerminatorAlpha,
-												'widget': None}
+												'widget_data': None}
 		self._dflt_opts['eclipse_alpha'] = {'value': 0.4,
 												'type': 'fraction',
 												'help': '',
 												'static': True,
 												'callback': self.setEclipseAlpha,
-												'widget': None}
+												'widget_data': None}
 		self._dflt_opts['sun_marker_size'] = {'value': 30,
 												'type': 'number',
 												'help': '',
 												'static': True,
 												'callback': self.setSunMarkerSize,
-											'widget': None}
+											'widget_data': None}
 
 		# sun radius calculated using 6deg angular size
 
