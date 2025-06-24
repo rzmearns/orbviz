@@ -311,9 +311,6 @@ class OptionConfigs(QtWidgets.QWidget):
 				del asset_w_dict[w_key]
 				continue
 
-			if isinstance(w_dict['widget_data']['widget'],widgets.CollapsibleSection):
-				print(f"{w_key}:{w_dict['sub_widgets']}")
-
 			if w_dict['sub_widgets'] is not None:
 				w_dict['sub_widgets'] = self._recursiveRemoveDefunctOptions(w_dict['sub_widgets'])
 				if len(w_dict['sub_widgets'].values()) == 0:
@@ -322,13 +319,6 @@ class OptionConfigs(QtWidgets.QWidget):
 					del asset_w_dict[w_key]
 
 		return asset_w_dict
-
-			# print(f"{w_key}:{widget['widget_data']['mark_for_removal']=}")
-			# if widget['widget_data']['mark_for_removal']:
-			# 	#TODO: check if unlinked from asset
-			# 	logger.debug(f'deleting {w_key}')
-			# 	print(f'deleting {w_key}')
-			#
 
 	def _recursivePopulateSections(self, widget_dict:dict) -> None:
 		for w_key, widget in widget_dict.items():
@@ -339,13 +329,6 @@ class OptionConfigs(QtWidgets.QWidget):
 			else:
 				logger.debug(f"{widget['widget_data']['widget']}:{w_key} already added to {widget['parent_layout']}")
 
-			# print(f"{w_key}:{widget['widget_data']['mark_for_removal']=}")
-			# if widget['widget_data']['mark_for_removal']:
-			# 	#TODO: check if unlinked from asset
-			# 	logger.debug(f'deleting {w_key}')
-			# 	print(f'deleting {w_key}')
-			# 	widget['widget_data']['widget'].setParent(None)
-
 			if widget['sub_widgets'] is not None:
 				self._recursivePopulateSections(widget['sub_widgets'])
 
@@ -354,14 +337,11 @@ class OptionConfigs(QtWidgets.QWidget):
 		# create widget dict for this asset's options:
 		logger.debug(f'Building widgets for {curr_asset} options')
 		for opt_key, opt_cnfg in curr_asset.opts.items():
-			print(f'{curr_asset}:{opt_key}')
 			if opt_cnfg['widget_data'] is not None and opt_cnfg['static']:
-				# not opt_cnfg['widget_data']['marked_for_removal']:
 				# widget has previously been added
 				logger.debug(f'Widget for {curr_asset}:{opt_key} has been previously added')
-				print(f'\tpreviously_been_added')
 				continue
-			print(f'\tmaking new widget')
+
 			opt_widget = self._buildOptionWidget(opt_key, opt_cnfg)
 			if opt_widget is not None:
 				# Create widget key for this option
