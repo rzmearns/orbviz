@@ -148,12 +148,14 @@ class EarthRayCastData(BaseDataModel):
 			# atmosphere height
 			atm_height = 150
 			Re = satplot_const.R_EARTH
+			delta_max = np.pi-np.arcsin(Re/(Re+atm_height))
+			cos_delta_max = np.cos(delta_max)
 
 			# check intersection of rays with atmosphere
-			cart_atm_intsct, atm_valid = self._lineOfSightToSurface(pos_ecf, sens_rays_ecf[~earth_intsct], atm_height=atm_height)
+			cart_atm_intsct, atm_valid = self._lineOfSightToSurface(pos_ecf, sens_rays_ecf, atm_height=atm_height)
 			unit_cart_atm_intsct = cart_atm_intsct/np.linalg.norm(cart_atm_intsct,axis=1).reshape(-1,1)
-			atm_intsct = np.zeros(num_rays,dtype=bool)
-			atm_intsct[~earth_intsct] = atm_valid
+			atm_intsct = atm_valid
+			atm_intsct[earth_intsct] = False
 			all_intsct = np.logical_or(all_intsct, atm_intsct)
 
 			atm_depth = np.zeros((num_rays,1))
@@ -177,8 +179,16 @@ class EarthRayCastData(BaseDataModel):
 			max_atm_depth = 1390.6
 			alpha = atm_depth/max_atm_depth * max_alpha
 
-			atm_data = np.tile([168, 231, 255],(np.sum(all_intsct),1))
-			temp_data = alpha[all_intsct]*atm_data + (1-alpha[all_intsct])*full_img[all_intsct]
+			unit_sun_ecf = sun_ecf/np.linalg.norm(sun_ecf)
+			atm_lit_mask = np.zeros(all_intsct.shape, dtype=bool)
+			dp = np.sum(unit_cart_atm_intsct[all_intsct]*unit_sun_ecf, axis=1)
+			atm_lit_mask[all_intsct] = dp > cos_delta_max
+
+			atm_data = np.zeros((all_intsct.shape[0],3))
+			atm_data[atm_lit_mask] = [168, 231, 255]
+			# atm_data[np.logical_and(~atm_lit_mask, all_intsct)] = [255,0,0]
+			atm_data[np.logical_and(~atm_lit_mask, all_intsct)] = [23, 32, 35]
+			temp_data = alpha[all_intsct]*atm_data[all_intsct] + (1-alpha[all_intsct])*full_img[all_intsct]
 			full_img[all_intsct] = temp_data
 
 		if highlight_edge:
