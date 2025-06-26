@@ -121,6 +121,7 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 	def _removeSensorAssets(self, old_suite_names:list[str]) -> None:
 		self._removeOldSensorSuitePlotOptions(old_suite_names)
 		for suite_name in old_suite_names:
+				self.assets[f'sensor_suite_{suite_name}'].removePlotOptions()
 				self.assets[f'sensor_suite_{suite_name}'].detachFromParentViewRecursive()
 				del(self.assets[f'sensor_suite_{suite_name}'])
 
@@ -307,4 +308,4 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 				logger.debug(f"marking sensor_suite_{suite_name} for removal")
 				self.opts[f'plot_sensor_suite_{suite_name}']['widget_data']['mark_for_removal'] = True
 				self.assets[f'sensor_suite_{suite_name}'].removePlotOptions()
-			del(self.opts[f'plot_sensor_suite_{suite_name}'])
+				del(self.opts[f'plot_sensor_suite_{suite_name}'])
