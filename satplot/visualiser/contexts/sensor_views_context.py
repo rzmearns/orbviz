@@ -103,7 +103,6 @@ class SensorViewsContext(BaseContext):
 		self.canvas_wrapper.recomputeRedraw()
 
 	def setViewActiveSensor(self, view_id:int, sc_id:int, suite_key:str, sens_key:str) -> None:
-		print(f'View {view_id}: {sc_id} - {suite_key} - {sens_key}')
 		self.canvas_wrapper.selectSensor(view_id, sc_id, suite_key, sens_key)
 
 	def generateSensorFullRes(self, view_id:int, sc_id:int, suite_key:str, sens_key:str) -> None:

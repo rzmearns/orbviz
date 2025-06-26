@@ -374,11 +374,11 @@ class SpacecraftViewsAsset(base_assets.AbstractAsset):
 
 		# assign data sources
 		self.data['sc_config'] = args[0]
+		self.data['name'] = self.data['sc_config'].name
 		self.data['history'] = args[1]
 		self.data['raycast_src'] = args[2]
 		self.data['strings'] = [self.data['sc_config'].name]
 
-		print(f'{old_pointing_defined=}')
 		if old_pointing_defined and self.data['sc_config'] == old_sc_config:
 			# config has not changed -> don't need to re-instantiate sensors
 			logger.debug('Spacecraft pointing related config has not changed')
@@ -457,7 +457,6 @@ class SpacecraftViewsAsset(base_assets.AbstractAsset):
 				else:
 					quat = pointing_data[self.data['curr_index']].reshape(-1,4)
 					if self.data['history'].getConfigValue('pointing_invert_transform'):
-						print(f'\tpointing is ECI->BF')
 						# Quat = ECI->BF
 						rotation = Rotation.from_quat(quat).as_matrix()
 					else:

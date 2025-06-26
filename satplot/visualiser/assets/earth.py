@@ -508,7 +508,6 @@ class Earth2DAsset(base_assets.AbstractAsset):
 		# These callbacks need to be set after asset creation as the option dict is populated during draw()
 
 		self._attachToParentView()
-		print(f'finished initialising 2D asset')
 
 	def _initData(self) -> None:
 		if self.data['name'] is None:
@@ -533,7 +532,6 @@ class Earth2DAsset(base_assets.AbstractAsset):
 	def _createVisuals(self) -> None:
 		# Earth Sphere
 		img_data = np.flip(read_png(f'{satplot_paths.data_dir}/earth2D/equirectangular.jpg'),0)
-		print(f'loaded image')
 		self.visuals['earth'] = scene.visuals.Image(
 			img_data,
 			interpolation = 'nearest',
@@ -541,11 +539,9 @@ class Earth2DAsset(base_assets.AbstractAsset):
 			parent=None,
 		)
 		self.visuals['earth'].order = 0
-		print(f"{self.visuals['earth'].order=}")
 		(w,h) = self.visuals['earth'].size
 		self.data['width'] = w
 		self.data['height'] = h
-		print(f'created visual')
 
 	def getDimensions(self) -> Tuple[int, int]:
 		return self.data['width'], self.data['height']

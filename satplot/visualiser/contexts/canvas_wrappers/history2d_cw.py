@@ -77,7 +77,6 @@ class History2DCanvasWrapper(BaseCanvas):
 		self.mouseOverObject = None
 
 	def _buildAssets(self) -> None:
-		print(f'building 2d assets')
 		self.assets['earth'] = earth.Earth2DAsset(v_parent=self.view_box.scene)
 		self.assets['primary_orbit'] = orbit.Orbit2DAsset(v_parent=self.view_box.scene)
 		self.assets['moon'] = moon.Moon2DAsset(v_parent=self.view_box.scene)

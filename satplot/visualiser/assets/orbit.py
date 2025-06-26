@@ -231,7 +231,6 @@ class Orbit2DAsset(base_assets.AbstractAsset):
 	def setScale(self, horizontal_size, vertical_size):
 		self.data['horiz_pixel_scale'] = horizontal_size/360
 		self.data['vert_pixel_scale'] = vertical_size/180
-		print(f"{self.data['horiz_pixel_scale']=},{self.data['vert_pixel_scale']}")
 
 	def _instantiateAssets(self) -> None:
 		# no sub assets
@@ -403,7 +402,6 @@ class Orbit2DAsset(base_assets.AbstractAsset):
 
 	def _findLongitudinalTransitions(self) -> None:
 		self.data['trans_idx'] = np.where(np.abs(np.diff(self.data['coords'][:,0]))>300)[0]
-		print(f"{self.data['trans_idx']=}")
 
 	#----- HELPER FUNCTIONS -----#
 	def _sliceData(self) -> None:

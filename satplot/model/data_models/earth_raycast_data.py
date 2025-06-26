@@ -93,8 +93,7 @@ class EarthRayCastData(BaseDataModel):
 				satplot.threadpool.logStart(thread)
 
 	def _procComplete(self) -> None:
-		print(f'inside _procComplete')
-		logger.info("Thread completion triggered loading of raycasting image data ")
+		logger.info("Finished loading single raycasting image data")
 		for thread in self._worker_threads.values():
 			if thread is not None:
 				if thread.isRunning():

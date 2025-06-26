@@ -127,7 +127,6 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 		self.data['mesh_faces'] = mesh_faces
 		self.data['bf_quat'] = bf_quat
 		self.data['vispy_quat'] = self.data['bf_quat']
-		print(f"{self.data['vispy_quat']=}")
 		self.opts['sensor_cone_colour']['value'] = colour
 
 	def setSource(self, *args, **kwargs) -> None:
@@ -266,7 +265,7 @@ class SensorSuiteImageAsset(base_assets.AbstractCompoundAsset):
 		sensor_names = self.data['sens_suite_config'].getSensorNames()
 		full_sensor_names = [f"{self.data['name']}: {sens_name}" for sens_name in sensor_names]
 		for ii, sensor_name in enumerate(sensor_names):
-			print(f'{sensor_name=}')
+			logger.debug(f"Instantiating sensor asset {self.data['name']}:{sensor_name}")
 			sens_dict = self.data['sens_suite_config'].getSensorConfig(sensor_name)
 			if sens_dict['shape'] == satplot_data_types.SensorTypes.CONE:
 				# TOOD: some kind of exception
@@ -316,8 +315,6 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 		self._instantiateAssets()
 		self._createVisuals()
 		self.counter = 0
-		# These callbacks need to be set after asset creation as the option dict is populated during draw()
-		print(f'Created SensorImage asset')
 		self._attachToParentView()
 
 	def _initData(self, bf_quat:tuple[float, float, float, float], resolution:tuple[int,int], fov:tuple[float,float]) -> None:
@@ -422,8 +419,7 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 				self._clearStaleFlag()
 
 	def generateFullRes(self) -> np.ndarray:
-		print(f"\tGenerating full res image for {self.data['name']}")
-		print(f"{self.visuals['image'].parent=}")
+		logger.debug(f"\tGenerating full resolution image for {self.data['name']}")
 		data = self.data['raycast_src'].rayCastFromSensor(self.data['last_transform'],
 															self.data['rays_sf'],
 															self.data['curr_datetime'],

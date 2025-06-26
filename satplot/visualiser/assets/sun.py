@@ -394,7 +394,6 @@ class Sun2DAsset(base_assets.AbstractAsset):
 
 
 		self.visuals['terminator'] = scene.visuals.Polygon(self.data['terminator_edge'], color='#000000', border_color='#000000', border_width=0, parent=None)
-		print(self.opts['terminator_alpha'])
 		self.visuals['terminator'].opacity = self.opts['terminator_alpha']['value']
 		self.visuals['terminator'].order = 1
 		self.visuals['terminator'].set_gl_state('translucent', depth_test=False)
