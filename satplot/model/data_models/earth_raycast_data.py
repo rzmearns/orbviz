@@ -105,7 +105,10 @@ class EarthRayCastData(BaseDataModel):
 
 	def rayCastFromSensor(self, sens_eci_transform:np.ndarray, sens_rays_cf:np.ndarray,
 								curr_dt:dt.datetime, sun_eci:np.ndarray,
-								eclipse:bool=True, atmosphere:bool=False, highlight_edge:bool=False) -> np.ndarray:
+								draw_eclipse:bool=True,
+								draw_atm:bool=False, atm_height:int=150,
+								atm_lit_colour:tuple[int,int,int]=(168, 231, 255), atm_eclipsed_colour:tuple[int,int,int]=(23, 32, 35),
+								highlight_edge:bool=False, highlight_height:int=10, highlight_colour:tuple[int,int,int]=(255,0,0)) -> np.ndarray:
 		'''[summary]
 
 		[description]
@@ -133,7 +136,11 @@ class EarthRayCastData(BaseDataModel):
 		lats = np.zeros(num_rays)
 		lons = np.zeros(num_rays)
 		lats[earth_intsct], lons[earth_intsct] = self._convertCartesianToEllipsoidGeodetic(cart_earth_intsct[earth_intsct,:])
-		surface_sunlit_mask = self._calcSunlitSurfaceMask(cart_earth_intsct, sun_ecf)
+		if draw_eclipse:
+			surface_sunlit_mask = self._calcSunlitSurfaceMask(cart_earth_intsct, sun_ecf)
+		else:
+			surface_sunlit_mask = earth_intsct.copy()
+
 		# get earth surface data
 		data = self.getPixelDataOnSphere(lats, lons, surface_sunlit_mask)
 
@@ -143,10 +150,9 @@ class EarthRayCastData(BaseDataModel):
 
 		all_intsct = earth_intsct.copy()
 
-		if atmosphere:
+		if draw_atm:
 
-			# atmosphere height
-			atm_height = 150
+			# atmosphere height (atm_height) function parameter
 			Re = satplot_const.R_EARTH
 			delta_max = np.pi-np.arcsin(Re/(Re+atm_height))
 			cos_delta_max = np.cos(delta_max)
@@ -179,27 +185,31 @@ class EarthRayCastData(BaseDataModel):
 			max_atm_depth = 1390.6
 			alpha = atm_depth/max_atm_depth * max_alpha
 
-			unit_sun_ecf = sun_ecf/np.linalg.norm(sun_ecf)
-			atm_lit_mask = np.zeros(all_intsct.shape, dtype=bool)
-			dp = np.sum(unit_cart_atm_intsct[all_intsct]*unit_sun_ecf, axis=1)
-			atm_lit_mask[all_intsct] = dp > cos_delta_max
-
 			atm_data = np.zeros((all_intsct.shape[0],3))
-			atm_data[atm_lit_mask] = [168, 231, 255]
-			# atm_data[np.logical_and(~atm_lit_mask, all_intsct)] = [255,0,0]
-			atm_data[np.logical_and(~atm_lit_mask, all_intsct)] = [23, 32, 35]
+			atm_lit_mask = np.zeros(all_intsct.shape, dtype=bool)
+			if draw_eclipse:
+				unit_sun_ecf = sun_ecf/np.linalg.norm(sun_ecf)
+				dp = np.sum(unit_cart_atm_intsct[all_intsct]*unit_sun_ecf, axis=1)
+				atm_lit_mask[all_intsct] = dp > cos_delta_max
+				atm_data[atm_lit_mask] = atm_lit_colour
+				atm_data[np.logical_and(~atm_lit_mask, all_intsct)] = atm_eclipsed_colour
+			else:
+				atm_lit_mask[all_intsct] = True
+				atm_data[atm_lit_mask] = atm_lit_colour
+				atm_data[np.logical_and(~atm_lit_mask, all_intsct)] = atm_eclipsed_colour
+
 			temp_data = alpha[all_intsct]*atm_data[all_intsct] + (1-alpha[all_intsct])*full_img[all_intsct]
 			full_img[all_intsct] = temp_data
 
 		if highlight_edge:
-			if atmosphere:
-				highlight_height = atm_height + 10
+			if draw_atm:
+				hh = atm_height + highlight_height
 			else:
-				highlight_height = 10
-			cart_hl_intsct, hl_valid = self._lineOfSightToSurface(pos_ecf, sens_rays_ecf[~all_intsct], atm_height=highlight_height)
+				hh = highlight_height
+			cart_hl_intsct, hl_valid = self._lineOfSightToSurface(pos_ecf, sens_rays_ecf[~all_intsct], atm_height=hh)
 			hl_intsct = np.zeros(num_rays, dtype=bool)
 			hl_intsct[~all_intsct] = hl_valid
-			full_img[hl_intsct] = [255, 0, 0]
+			full_img[hl_intsct] = highlight_colour
 
 		return full_img
 

@@ -264,14 +264,15 @@ class SensorSuiteImageAsset(base_assets.AbstractCompoundAsset):
 
 	def _instantiateAssets(self) -> None:
 		sensor_names = self.data['sens_suite_config'].getSensorNames()
-		for sensor_name in sensor_names:
+		full_sensor_names = [f"{self.data['name']}: {sens_name}" for sens_name in sensor_names]
+		for ii, sensor_name in enumerate(sensor_names):
 			print(f'{sensor_name=}')
 			sens_dict = self.data['sens_suite_config'].getSensorConfig(sensor_name)
 			if sens_dict['shape'] == satplot_data_types.SensorTypes.CONE:
 				# TOOD: some kind of exception
 				pass
 			elif sens_dict['shape'] == satplot_data_types.SensorTypes.FPA:
-				self.assets[sensor_name] = SensorImageAsset(sensor_name, sens_dict, v_parent=None)
+				self.assets[sensor_name] = SensorImageAsset(full_sensor_names[ii], sens_dict, v_parent=None)
 
 	def _createVisuals(self) -> None:
 		pass
@@ -298,8 +299,13 @@ class SensorSuiteImageAsset(base_assets.AbstractCompoundAsset):
 		self._dflt_opts = {}
 		self.opts = self._dflt_opts.copy()
 
-	def setSuiteVisibility(self, state:bool) -> None:
-		self.setVisibilityRecursive(state)
+	def removePlotOptions(self) -> None:
+		for opt_key, opt in self.opts.items():
+			if opt['widget_data'] is not None:
+				logger.debug(f"marking {opt_key} for removal")
+				opt['widget_data']['mark_for_removal'] = True
+		for asset in self.assets.values():
+			asset.removePlotOptions()
 
 class SensorImageAsset(base_assets.AbstractSimpleAsset):
 	def __init__(self, name:str|None=None, config:dict={}, v_parent:ViewBox|None=None):
@@ -324,6 +330,7 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 		self.data['lens_model'] = pinhole
 		# rays from each pixel in sensor frame
 		self.data['rays_sf'] = self.data['lens_model'].generatePixelRays(self.data['lowres'], self.data['fov'])
+		self.data['last_transform'] = np.eye(4)
 
 	def setSource(self, *args, **kwargs) -> None:
 		# args[0] = raycast_src
@@ -359,8 +366,9 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 			# texture_format="auto",
 			parent=None,
 		)
-		self.visuals['text'] = vVisuals.Text(f"Sensor: {self.data['name']}", color='red')
-		self.visuals['text'].pos = self.data['lowres'][0]/2, self.data['lowres'][1]/2
+		self.visuals['text'] = vVisuals.Text(f"Sensor: {self.data['name']}", color='red', anchor_x='left', anchor_y='bottom')
+		self.visuals['text'].pos = 5,5
+		self.visuals['text'].visible = self.opts['show_sensor_name']['value']
 
 	def getDimensions(self) -> tuple[int, int]:
 		return self.data['lowres']
@@ -388,17 +396,23 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 				T[0:3,0:3] = rot_mat
 				T[0:3,3] = np.asarray(pos).reshape(-1,3)
 
+				self.data['last_transform'] = T
 				data = self.data['raycast_src'].rayCastFromSensor(T,
 																	self.data['rays_sf'],
 																	self.data['curr_datetime'],
 																	self.data['curr_sun_eci'],
-																	eclipse=True,
-																	atmosphere=True,
-																	highlight_edge=True)
+																	draw_eclipse=self.opts['solar_lighting']['value'],
+																	draw_atm=self.opts['plot_atmosphere']['value'],
+																	atm_height=self.opts['atmosphere_height']['value'],
+																	atm_lit_colour=self.opts['atmosphere_lit_colour']['value'],
+																	atm_eclipsed_colour=self.opts['atmosphere_eclipsed_colour']['value'],
+																	highlight_edge=self.opts['highlight_limb']['value'],
+																	highlight_height=self.opts['highlight_height']['value'],
+																	highlight_colour=self.opts['highlight_colour']['value'])
 				data_reshaped = data.reshape(self.data['lowres'][1],self.data['lowres'][0],3)/255
 				self.visuals['image'].set_data(data_reshaped)
-				self.visuals['text'].text = f"Sensor: {self.data['name']}: {self.counter}"
-				self.counter += 1
+				# setting data of ImageVisual doesn't refresh canvas, use text visual to refresh instead
+				self.visuals['text'].text = f"Sensor: {self.data['name']}"
 				self._clearStaleFlag()
 
 	def _generateLatLonCoords(self, counter):
@@ -413,101 +427,125 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 		lats = np.ravel(lats)
 		return lons,lats
 
-
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
-		self._dflt_opts['plot_earth'] = {'value': True,
+		self._dflt_opts['show_sensor_name'] = {'value': False,
 										  		'type': 'boolean',
 												'help': '',
 												'static': True,
-												'callback': self.setVisibilityRecursive,
-											'widget_data': None}
-		self._dflt_opts['plot_earth_sphere'] = {'value': True,
+												'callback': self.drawSensorName,
+												'widget_data': None}
+		self._dflt_opts['highlight_limb'] = {'value': False,
 										  		'type': 'boolean',
 												'help': '',
 												'static': True,
-												'callback': self.setEarthSphereVisibility,
-											'widget_data': None}
-		self._dflt_opts['earth_sphere_colour'] = {'value': (220,220,220),
+												'callback': self.setHighlightLimb,
+												'widget_data': None}
+		self._dflt_opts['solar_lighting'] = {'value': True,
+										  		'type': 'boolean',
+												'help': '',
+												'static': True,
+												'callback': self.setSolarLighting,
+												'widget_data': None}
+		self._dflt_opts['plot_atmosphere'] = {'value': True,
+										  		'type': 'boolean',
+												'help': '',
+												'static': True,
+												'callback': self.drawAtmosphere,
+												'widget_data': None}
+		self._dflt_opts['atmosphere_height'] = {'value': 150,
+										  		'type': 'integer',
+												'help': '',
+												'static': True,
+												'callback': self.setAtmosphereHeight,
+												'widget_data': None}
+		self._dflt_opts['highlight_height'] = {'value': 10,
+										  		'type': 'integer',
+												'help': '',
+												'static': True,
+												'callback': self.setHighlightHeight,
+												'widget_data': None}
+		self._dflt_opts['atmosphere_lit_colour'] = {'value': (168,231,255),
 												'type': 'colour',
 												'help': '',
 												'static': True,
-												'callback': self.setEarthSphereColour,
-											'widget_data': None}
-		self._dflt_opts['plot_earth_axis'] = {'value': True,
-										  		'type': 'boolean',
-												'help': '',
-												'static': True,
-												'callback': self.setEarthAxisVisibility,
-											'widget_data': None}
-		self._dflt_opts['earth_axis_colour'] = {'value': (255,0,0),
+												'callback': self.setAtmosphereLitColour,
+												'widget_data': None}
+		self._dflt_opts['atmosphere_eclipsed_colour'] = {'value': (23,32,35),
 												'type': 'colour',
 												'help': '',
 												'static': True,
-												'callback': self.setEarthAxisColour,
-											'widget_data': None}
-		self._dflt_opts['plot_parallels'] = {'value': True,
-										  		'type': 'boolean',
-												'help': '',
-												'static': True,
-												'callback': None,
-											'widget_data': None}
-		self._dflt_opts['plot_equator'] = {'value': True,
-										  		'type': 'boolean',
-												'help': '',
-												'static': True,
-												'callback': None,
-											'widget_data': None}
-		self._dflt_opts['plot_meridians'] = {'value': True,
-										  		'type': 'boolean',
-												'help': '',
-												'static': True,
-												'callback': None,
-											'widget_data': None}
-		self._dflt_opts['plot_landmass'] = {'value': True,
-										  		'type': 'boolean',
-												'help': '',
-												'static': True,
-												'callback': self.setLandmassVisibility,
-											'widget_data': None}
-		self._dflt_opts['landmass_colour'] = {'value': (0,0,0),
+												'callback': self.setAtmosphereEclipsedColour,
+												'widget_data': None}
+		self._dflt_opts['highlight_colour'] = {'value': (225,0,0),
 												'type': 'colour',
 												'help': '',
 												'static': True,
-												'callback': self.setLandMassColour,
-											'widget_data': None}
+												'callback': self.setHighlightColour,
+												'widget_data': None}
 
 		self.opts = self._dflt_opts.copy()
 
+	def redrawWithNewSettings(self) -> None:
+		data = self.data['raycast_src'].rayCastFromSensor(self.data['last_transform'],
+															self.data['rays_sf'],
+															self.data['curr_datetime'],
+															self.data['curr_sun_eci'],
+															draw_eclipse=self.opts['solar_lighting']['value'],
+															draw_atm=self.opts['plot_atmosphere']['value'],
+															atm_height=self.opts['atmosphere_height']['value'],
+															atm_lit_colour=self.opts['atmosphere_lit_colour']['value'],
+															atm_eclipsed_colour=self.opts['atmosphere_eclipsed_colour']['value'],
+															highlight_edge=self.opts['highlight_limb']['value'],
+															highlight_height=self.opts['highlight_height']['value'],
+															highlight_colour=self.opts['highlight_colour']['value'])
+		data_reshaped = data.reshape(self.data['lowres'][1],self.data['lowres'][0],3)/255
+		self.visuals['image'].set_data(data_reshaped)
+		# setting data of ImageVisual doesn't refresh canvas, use text visual to refresh instead
+		self.visuals['text'].text = f"Sensor: {self.data['name']}"
+
 	#----- OPTIONS CALLBACKS -----#
-	def setEarthSphereColour(self, new_colour:tuple[float,float,float]) -> None:
-		logger.debug(f"Changing earth sphere colour {self.opts['earth_sphere_colour']['value']} -> {new_colour}")
-		self.opts['earth_sphere_colour']['value'] = new_colour
-		n_faces = self.visuals['earth_sphere'].mesh._meshdata.n_faces
-		n_verts = self.visuals['earth_sphere'].mesh._meshdata.n_vertices
-		self.visuals['earth_sphere'].mesh._meshdata.set_face_colors(np.tile(colours.normaliseColour(new_colour),(n_faces,1)))
-		self.visuals['earth_sphere'].mesh._meshdata.set_vertex_colors(np.tile(colours.normaliseColour(new_colour),(n_verts,1)))
-		self.visuals['earth_sphere'].mesh.mesh_data_changed()
+	def drawSensorName(self, state:bool) -> None:
+		self.opts['show_sensor_name']['value'] = state
+		self.visuals['text'].visible = state
 
-	def setEarthAxisColour(self, new_colour:tuple[float,float,float]) -> None:
-		self.opts['earth_axis_colour']['value'] = colours.normaliseColour(new_colour)
-		self.visuals['earth_axis'].set_data(color=colours.normaliseColour(new_colour))
+	def setHighlightLimb(self, state:bool) -> None:
+		self.opts['highlight_limb']['value'] = state
+		self.redrawWithNewSettings()
 
-	def setLandMassColour(self, new_colour:tuple[float,float,float]) -> None:
-		self.opts['landmass_colour']['value'] = colours.normaliseColour(new_colour)
-		self.visuals['landmass'].set_data(color=colours.normaliseColour(new_colour))
+	def setHighlightHeight(self, height:bool) -> None:
+		self.opts['highlight_height']['value'] = height
+		self.redrawWithNewSettings()
 
-	def setEarthAxisVisibility(self, state:bool) -> None:
-		self.opts['plot_earth_axis']['value'] = state
-		self.visuals['earth_axis'].visible = self.opts['plot_earth_axis']['value']
+	def setSolarLighting(self, state:bool) -> None:
+		self.opts['solar_lighting']['value'] = state
+		self.redrawWithNewSettings()
 
-	def setLandmassVisibility(self, state:bool) -> None:
-		self.opts['plot_landmass']['value'] = state
-		self.visuals['landmass'].visible = self.opts['plot_landmass']['value']
+	def drawAtmosphere(self, state:bool) -> None:
+		self.opts['plot_atmosphere']['value'] = state
+		self.redrawWithNewSettings()
 
-	def setEarthSphereVisibility(self, state:bool) -> None:
-		self.opts['plot_earth_sphere']['value'] = state
-		self.visuals['earth_sphere'].visible = self.opts['plot_earth_sphere']['value']
+	def setAtmosphereHeight(self, height:bool) -> None:
+		self.opts['atmosphere_height']['value'] = height
+		self.redrawWithNewSettings()
+
+	def setHighlightColour(self, new_colour:tuple[float,float,float]) -> None:
+		self.opts['highlight_colour']['value'] = new_colour
+		self.redrawWithNewSettings()
+
+	def setAtmosphereLitColour(self, new_colour:tuple[float,float,float]) -> None:
+		self.opts['atmosphere_lit_colour']['value'] = new_colour
+		self.redrawWithNewSettings()
+
+	def setAtmosphereEclipsedColour(self, new_colour:tuple[float,float,float]) -> None:
+		self.opts['atmosphere_eclipsed_colour']['value'] = new_colour
+		self.redrawWithNewSettings()
+
+	def removePlotOptions(self) -> None:
+		for opt_key, opt in self.opts.items():
+			if opt['widget_data'] is not None:
+				logger.debug(f"marking {opt_key} for removal")
+				opt['widget_data']['mark_for_removal'] = True
 
 def _generateRandomSensorData(shape, dtype=np.float32):
     rng = np.random.default_rng()

@@ -88,7 +88,7 @@ class SensorViewsContext(BaseContext):
 
 	def _updateDataSources(self) -> None:
 		self.canvas_wrapper.modelUpdated()
-		# self.controls.rebuildOptions()
+		self.controls.rebuildOptions()
 		self.canvas_wrapper.setFirstDrawFlags()
 		self._updateDisplayedIndex(self.controls.time_slider.slider.value())
 
@@ -132,3 +132,6 @@ class Controls(BaseControls):
 	def updateSensorViewLists(self):
 		sens_dict = self.context.data['history'].getPrimaryConfig().serialiseAllSensors()
 		self.sensor_view_selectors.setSelectorLists(sens_dict)
+
+	def rebuildOptions(self):
+		self.config_controls.rebuild()
