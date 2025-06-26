@@ -326,11 +326,16 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 		self.data['bf_quat'] = bf_quat
 		self.data['res'] = resolution
 		self.data['lowres'] = self._calcLowRes(self.data['res'])
-		self.data['fov'] = (62.2, 48.8)
+		self.data['fov'] = fov
 		self.data['lens_model'] = pinhole
 		# rays from each pixel in sensor frame
-		self.data['rays_sf'] = self.data['lens_model'].generatePixelRays(self.data['lowres'], self.data['fov'])
+		self.data['lowres_rays_sf'] = self.data['lens_model'].generatePixelRays(self.data['lowres'], self.data['fov'])
+		self.data['rays_sf'] = self.data['lens_model'].generatePixelRays(self.data['res'], self.data['fov'])
 		self.data['last_transform'] = np.eye(4)
+		self.data['raycast_src'] = None
+		self.data['curr_datetime'] = None
+		self.data['curr_sun_eci'] = None
+		self.data['curr_quat'] = None
 
 	def setSource(self, *args, **kwargs) -> None:
 		# args[0] = raycast_src
@@ -393,12 +398,13 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 				else:
 					rot_mat = np.eye(3)
 					as_quat = (1,0,0,0)
+				self.data['curr_quat'] = as_quat
 				T[0:3,0:3] = rot_mat
 				T[0:3,3] = np.asarray(pos).reshape(-1,3)
 
 				self.data['last_transform'] = T
 				data = self.data['raycast_src'].rayCastFromSensor(T,
-																	self.data['rays_sf'],
+																	self.data['lowres_rays_sf'],
 																	self.data['curr_datetime'],
 																	self.data['curr_sun_eci'],
 																	draw_eclipse=self.opts['solar_lighting']['value'],
@@ -414,6 +420,24 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 				# setting data of ImageVisual doesn't refresh canvas, use text visual to refresh instead
 				self.visuals['text'].text = f"Sensor: {self.data['name']}"
 				self._clearStaleFlag()
+
+	def generateFullRes(self) -> np.ndarray:
+		print(f"\tGenerating full res image for {self.data['name']}")
+		print(f"{self.visuals['image'].parent=}")
+		data = self.data['raycast_src'].rayCastFromSensor(self.data['last_transform'],
+															self.data['rays_sf'],
+															self.data['curr_datetime'],
+															self.data['curr_sun_eci'],
+															draw_eclipse=self.opts['solar_lighting']['value'],
+															draw_atm=self.opts['plot_atmosphere']['value'],
+															atm_height=self.opts['atmosphere_height']['value'],
+															atm_lit_colour=self.opts['atmosphere_lit_colour']['value'],
+															atm_eclipsed_colour=self.opts['atmosphere_eclipsed_colour']['value'],
+															highlight_edge=self.opts['highlight_limb']['value'],
+															highlight_height=self.opts['highlight_height']['value'],
+															highlight_colour=self.opts['highlight_colour']['value'])
+		data_reshaped = data.reshape(self.data['res'][1],self.data['res'][0],3)/255
+		return data_reshaped
 
 	def _generateLatLonCoords(self, counter):
 		lat_center = 0
@@ -488,7 +512,7 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 
 	def redrawWithNewSettings(self) -> None:
 		data = self.data['raycast_src'].rayCastFromSensor(self.data['last_transform'],
-															self.data['rays_sf'],
+															self.data['lowres_rays_sf'],
 															self.data['curr_datetime'],
 															self.data['curr_sun_eci'],
 															draw_eclipse=self.opts['solar_lighting']['value'],

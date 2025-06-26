@@ -78,6 +78,28 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 	def _getCurrentDisplayedSensor(self, view:int) -> sensors.SensorImageAsset | None:
 		return self.displayed_sensors[view]
 
+	def generateSensorFullRes(self, sc_id: int, sens_suite_key: str, sens_key: str) -> tuple[np.ndarray, dict]:
+		# TOOD: use sc_id to select which spacecraft asset to generate
+		sc_asset = self.assets['spacecraft']
+		sensor_asset = self.assets['spacecraft'].getSensorSuiteByKey(sens_suite_key).getSensorByKey(sens_key)
+		img_data = sensor_asset.generateFullRes()
+		img_metadata = {'spacecraft id':sc_id,
+						'spacecraft name': self.assets['spacecraft'].data['name'],
+						'sensor suite name': sens_suite_key,
+						'sensor name': sens_key,
+						'resolution':(img_data.shape[1], img_data.shape[0]),
+						'fov': sensor_asset.data['fov'],
+						'lens_model':sensor_asset.data['lens_model'].__name__,
+						'current time [yyyy-mm-dd hh:mm:ss]': sensor_asset.data['curr_datetime'],
+						'sensor body frame quaternion [x,y,z,w]': sensor_asset.data['bf_quat'],
+						'spacecraft quaternion [x,y,z,w]': sc_asset.data['curr_quat'].tolist(),
+						'spacecraft eci position [km]': sc_asset.data['curr_pos'].tolist(),
+						'sensor eci quaternion [x,y,z,w]': sensor_asset.data['curr_quat'].tolist(),
+						'image md5 hash': None
+						}
+
+		return img_data, img_metadata
+
 	def selectSensor(self, view:int, sc_id: int, sens_suite_key: str, sens_key: str) -> None:
 		# remove parent scene of old sensor
 		# make old sensor dormant
