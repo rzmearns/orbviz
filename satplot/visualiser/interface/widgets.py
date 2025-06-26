@@ -411,7 +411,6 @@ class ToggleBox(QtWidgets.QWidget):
 			logger.error(f"{self} state was serialised as a {state['type']}, is now a ToggleBox")
 		self._checkbox.blockSignals(True)
 		self._checkbox.setChecked(state['value'])
-		a = QtWidgets.QCheckBox()
 		self._checkbox.blockSignals(False)
 
 
