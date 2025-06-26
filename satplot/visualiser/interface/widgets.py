@@ -371,6 +371,54 @@ class ValueSpinner(QtWidgets.QWidget):
 			self._val_box.setValue(int(self.curr_val))
 		self._val_box.blockSignals(False)
 
+class Button(QtWidgets.QWidget):
+	def __init__(self, label, button_label, parent: QtWidgets.QWidget=None) -> None:
+		super().__init__(parent)
+		self._callbacks = []
+		vlayout = QtWidgets.QVBoxLayout()
+		hlayout1 = QtWidgets.QHBoxLayout()
+		hlayout2 = QtWidgets.QHBoxLayout()
+		vlayout.setSpacing(0)
+		hlayout1.setSpacing(0)
+		hlayout2.setSpacing(0)
+		hlayout1.setContentsMargins(0,1,0,1)
+		hlayout2.setContentsMargins(0,1,10,1)
+
+		if label is not None:
+			self._label = QtWidgets.QLabel(label)
+			hlayout1.addWidget(self._label)
+			hlayout1.addStretch()
+		else:
+			hlayout1.addStretch()
+
+		self._button = QtWidgets.QPushButton(button_label)
+		hlayout2.addWidget(self._button)
+		vlayout.addLayout(hlayout1)
+		vlayout.addLayout(hlayout2)
+		self.setLayout(vlayout)
+
+		self._button.clicked.connect(self._run_callbacks)
+
+	def add_connect(self, callback):
+		self._callbacks.append(callback)
+
+	def _run_callbacks(self):
+		if len(self._callbacks) > 0:
+			for callback in self._callbacks:
+				callback()
+		else:
+			logger.warning("No Button callbacks are set")
+
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['type'] = 'Button'
+		state['value'] = None
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		if state['type'] != 'Button':
+			logger.error(f"{self} state was serialised as a {state['type']}, is now a Button")
+
 class ToggleBox(QtWidgets.QWidget):
 	def __init__(self, label, dflt_state, parent: QtWidgets.QWidget=None) -> None:
 		super().__init__(parent)
@@ -435,14 +483,13 @@ class OptionBox(QtWidgets.QWidget):
 			self._label = QtWidgets.QLabel(label)
 			hlayout1.addWidget(self._label)
 			hlayout1.addStretch()
-			vlayout.addLayout(hlayout1)
+		else:
+			hlayout1.addStretch()
 
 		self._optionbox = NonScrollingComboBox()
 		for item in options_list:
 			self._optionbox.addItem(item)
 		self._optionbox.setFocusPolicy(QtCore.Qt.StrongFocus)
-		hlayout1.addWidget(self._label)
-		hlayout1.addStretch()
 		hlayout2.addWidget(self._optionbox)
 		vlayout.addLayout(hlayout1)
 		vlayout.addLayout(hlayout2)

@@ -480,8 +480,9 @@ class OptionConfigs(QtWidgets.QWidget):
 class SensorViewConfigs(QtWidgets.QWidget):
 
 	valid_sensor_types = [data_types.SensorTypes.FPA]
-	# selected signal has signal arguments of [int, int|None, str|None, str|None]
+	# selected & generate signals have signal arguments of [int, int|None, str|None, str|None]
 	selected = QtCore.pyqtSignal(int, object, object, object)
+	generate = QtCore.pyqtSignal(int, object, object, object)
 
 	def __init__(self, num_views:int =4, parent: QtWidgets.QWidget|None=None) -> None:
 		super().__init__()
@@ -499,14 +500,17 @@ class SensorViewConfigs(QtWidgets.QWidget):
 
 		self.view_spacecraft_selectors = []
 		self.view_sensor_selectors = []
+		self.view_full_res_generator = []
 
 		for ii in range(self._num_views):
 			self.view_spacecraft_selectors.append(widgets.OptionBox(f'View {ii+1} Spacecraft:',
 																options_list=[]))
 			self.view_sensor_selectors.append(widgets.OptionBox(f'View {ii+1} Sensor:',
 																options_list=[]))
+			self.view_full_res_generator.append(widgets.Button(f'Full Resolution Image','Generate'))
 			glayout.addWidget(self.view_spacecraft_selectors[-1],ii+1,0)
 			glayout.addWidget(self.view_sensor_selectors[-1],ii+1,1)
+			glayout.addWidget(self.view_full_res_generator[-1],ii+1,2)
 
 		selector_links = [self.createSelectorLink(ii) for ii in range(self._num_views)]
 		for ii in range(self._num_views):
@@ -515,6 +519,10 @@ class SensorViewConfigs(QtWidgets.QWidget):
 		selection_links = [self.createSelectionLink(ii) for ii in range(self._num_views)]
 		for ii in range(self._num_views):
 			self.view_sensor_selectors[ii].add_connect(selection_links[ii])
+
+		generator_links = [self.createGeneratorLink(ii) for ii in range(self._num_views)]
+		for ii in range(self._num_views):
+			self.view_full_res_generator[ii].add_connect(generator_links[ii])
 
 		vlayout.addLayout(glayout)
 		vlayout.addStretch()
@@ -528,6 +536,11 @@ class SensorViewConfigs(QtWidgets.QWidget):
 	def createSelectionLink(self, selector_idx):
 		def _function(sens_list_idx):
 			self.onSensorSelection(selector_idx, sens_list_idx)
+		return _function
+
+	def createGeneratorLink(self, selector_idx):
+		def _function():
+			self.onGenerateSelection(selector_idx)
 		return _function
 
 	def setSelectorLists(self, sens_dict):
@@ -563,6 +576,17 @@ class SensorViewConfigs(QtWidgets.QWidget):
 		sens_list[0] = ''
 		logger.info(f'Populating drop down menus with sensors')
 		self.view_sensor_selectors[view_id].addItems(sens_list)
+
+	def onGenerateSelection(self, view_id):
+		if self.view_spacecraft_selectors[view_id].getCurrentIndex() is None or \
+			self.view_sensor_selectors[view_id].getCurrentIndex() is None:
+			return
+		else:
+			sens_list_idx = self.view_sensor_selectors[view_id].getCurrentIndex()+1
+			sc_id = self._sc_dict[self.view_spacecraft_selectors[view_id].getCurrentIndex()+1][0]
+			suite_key = self._sens_dict[sc_id][sens_list_idx][0]
+			sens_key = self._sens_dict[sc_id][sens_list_idx][1]
+			self.generate.emit(view_id, sc_id, suite_key, sens_key)
 
 	def onSensorSelection(self, view_id, sens_list_idx):
 		if self.view_spacecraft_selectors[view_id].getCurrentIndex() is None:
