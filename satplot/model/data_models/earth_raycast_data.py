@@ -199,6 +199,7 @@ class EarthRayCastData(BaseDataModel):
 				atm_data[np.logical_and(~atm_lit_mask, all_intsct)] = atm_eclipsed_colour
 
 			temp_data = alpha[all_intsct]*atm_data[all_intsct] + (1-alpha[all_intsct])*full_img[all_intsct]
+			temp_data = np.clip(temp_data,0,255)
 			full_img[all_intsct] = temp_data
 
 		if highlight_edge:
@@ -211,7 +212,7 @@ class EarthRayCastData(BaseDataModel):
 			hl_intsct[~all_intsct] = hl_valid
 			full_img[hl_intsct] = highlight_colour
 
-		return full_img
+		return full_img.astype(np.float32)
 
 	def _convertCartesianToEllipsoidGeodetic(self, cart:np.ndarray, iters:int=3) -> tuple[np.ndarray, np.ndarray]:
 		'''
