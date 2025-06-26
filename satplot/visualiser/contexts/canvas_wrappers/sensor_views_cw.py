@@ -74,19 +74,11 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 	def _buildAssets(self) -> None:
 		pass
 		self.assets['spacecraft'] = spacecraft.SpacecraftViewsAsset(v_parent=None)
-		# if self.is_asset_active['ECI_gizmo']:
-		# self.assets['ECI_gizmo'] = ViewBoxGizmo(canvas=self.canvas,
-		# 				   					parent=self.view_box.scene,
-		# 									translate=(c.R_EARTH,c.R_EARTH),
-		# 									scale=(2*c.R_EARTH,2*c.R_EARTH,2*c.R_EARTH,1))
-		# self.setCameraZoom(5*c.R_EARTH)
-		# self.assets['ECI_gizmo'].attachCamera(self.view_box.camera)
 
 	def _getCurrentDisplayedSensor(self, view:int) -> sensors.SensorImageAsset | None:
 		return self.displayed_sensors[view]
 
 	def selectSensor(self, view:int, sc_id: int, sens_suite_key: str, sens_key: str) -> None:
-
 		# remove parent scene of old sensor
 		# make old sensor dormant
 		logger.debug(f'Clearing sensor: {self.displayed_sensors[view]} from view: {view}')
@@ -168,100 +160,23 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 
 	def prepSerialisation(self) -> dict[str,Any]:
 		state = {}
-		state['cam-center'] = self.view_box.camera.center
-		state['cam-zoom'] = self.view_box.camera.scale_factor
-		state['cam-az'] = self.view_box.camera.azimuth
-		state['cam-el'] = self.view_box.camera.elevation
-		state['cam-roll'] = self.view_box.camera.roll
-		asset_states = {}
-		for asset_name, asset in self.assets.items():
-			asset_states[asset_name] = asset.prepSerialisation()
-
-		state['asset_states'] = asset_states
 		return state
 
 	def deSerialise(self, state:dict[str,Any]) -> None:
-		self.view_box.camera.center = state['cam-center']
-		self.view_box.camera.scale_factor = state['cam-zoom']
-		self.view_box.camera.azimuth = state['cam-az']
-		self.view_box.camera.elevation = state['cam-el']
-		self.view_box.camera.roll = state['cam-roll']
-		for asset_name, asset in self.assets.items():
-			asset.deSerialise(state['asset_states'][asset_name])
+		pass
 
 	def mapAssetPositionsToScreen(self) -> list:
 		mo_infos = []
 		for asset_name, asset in self.assets.items():
 			if asset.isActive():
 				mo_infos.append(asset.getScreenMouseOverInfo())
-
 		return mo_infos
 
 	def on_key_press(self, event):
-		print(f'KEY PRESS')
-		if event.key == 'down':
-			self.view_box.camera.depth_value /= 10
-			print(f'{self.view_box.camera.depth_value=}')
-			# sphere2.mesh.update()
-
-		if event.key == 'up':
-			self.view_box.camera.depth_value *= 10
-			print(f'{self.view_box.camera.depth_value=}')
-			# sphere2.mesh.update()
+		pass
 
 	def onMouseMove(self, event:MouseEvent) -> None:
 		pass
-		# global last_mevnt_time
-		# # throttle mouse events to 50ms
-		# if time.monotonic() - last_mevnt_time < 0.05:
-		# 	return
-		# last_mevnt_time = time.monotonic()
-		# self.assets['sky'].on_mouse_move(event,self.canvas)
-		# global last_mevent_time
-		# # throttle mouse events to 50ms
-		# if time.monotonic() - throttle < 0.05:
-		# 	return
-		# last_mevent_time = time.monotonic()
-
-		# # adjust the event position for hidpi screens
-		# render_size = tuple(d * self.canvas.pixel_scale for d in self.canvas.size)
-		# x_pos = event.pos[0] * self.canvas.pixel_scale
-		# y_pos = render_size[1] - (event.pos[1] * self.canvas.pixel_scale)
-
-		# # render a small patch around the mouse cursor
-		# restore_state = not face_picking_filter.enabled
-		# face_picking_filter.enabled = True
-		# sphere2.mesh.update_gl_state(blend=False)
-		# picking_render = self.canvas.render(
-		# 	region=(x_pos - 1, y_pos - 1, 3, 3),
-		# 	size=(3, 3),
-		# 	bgcolor=(0, 0, 0, 0),
-		# 	alpha=True,
-		# )
-		# if restore_state:
-		# 	face_picking_filter.enabled = False
-		# sphere2.mesh.update_gl_state(blend=not face_picking_filter.enabled)
-
-		# # unpack the face index from the color in the center pixel
-		# face_idx = (picking_render.view(np.uint32) - 1)[1, 1, 0]
-		# # print(f'A:{face_idx=}')
-		# if face_idx > 0 and face_idx < num_faces:
-		# 	# this may be less safe, but it's faster than set_data
-		# 	# print(f'B:{face_idx=}')
-		# 	# sphere2.mesh.mesh_data._face_colors_indexed_by_faces[face_idx] = (0, 1, 0, 1)
-		# 	# if face_idx == crit_face_idx:
-		# 	#     print(f'{getFaceCentroid(face_idx,sphere2.mesh._meshdata)=}')
-		# 	r,theta,phi = getRaDecECI(getFaceCentroid(face_idx,sphere2.mesh._meshdata))
-		# 	print(f'{r,theta,phi}')
-		# 	sphere2.mesh.mesh_data_changed()
-
-		
-		# console.send("captured event")
-		# self.assets['ECI_gizmo'].onMouseMove(event)
 
 	def onMouseScroll(self, event:QtGui.QMouseEvent) -> None:
-		print(f'{self.view_boxes[0].camera.rect=}')
-		print(f'{self.view_boxes[1].camera.rect=}')
-		print(f'{self.view_boxes[2].camera.rect=}')
-		print(f'{self.view_boxes[3].camera.rect=}')
 		pass		
