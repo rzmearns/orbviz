@@ -457,6 +457,7 @@ class SpacecraftViewsAsset(base_assets.AbstractAsset):
 				else:
 					quat = pointing_data[self.data['curr_index']].reshape(-1,4)
 					if self.data['history'].getConfigValue('pointing_invert_transform'):
+						print(f'\tpointing is ECI->BF')
 						# Quat = ECI->BF
 						rotation = Rotation.from_quat(quat).as_matrix()
 					else:
@@ -467,6 +468,8 @@ class SpacecraftViewsAsset(base_assets.AbstractAsset):
 						asset.setCurrentDatetime(self.data['history'].timespan[self.data['curr_index']])
 						asset.setCurrentSunECI(orbit_data.sun_pos[self.data['curr_index']])
 				# recomputeRedraw child assets
+				self.data['curr_pos'] = orbit_data.pos[self.data['curr_index']].reshape(1,3)
+				self.data['curr_quat'] = quat
 				self._recomputeRedrawChildren(pos=orbit_data.pos[self.data['curr_index']].reshape(1,3), rotation=rotation)
 			self._clearStaleFlag()
 
