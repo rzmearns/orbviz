@@ -151,7 +151,6 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 	def setModel(self, hist_data:HistoryData, earth_raycast_data:EarthRayCastData) -> None:
 		self.data_models['history'] = hist_data
 		self.data_models['raycast_src'] = earth_raycast_data
-		self.modelUpdated()
 
 	def modelUpdated(self) -> None:
 		logger.debug(f'updating model for {self}')
