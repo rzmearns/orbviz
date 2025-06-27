@@ -571,6 +571,7 @@ class SensorViewConfigs(QtWidgets.QWidget):
 		self.view_sensor_selectors[view_id].clear()
 		sc_id = self._sc_dict[sc_list_id][0]
 		if sc_id is None:
+			self.onSensorSelection(view_id, None)
 			return
 		sens_list = [f'{v[0]}: {v[1]}' for v in self._sens_dict[sc_id].values()]
 		sens_list[0] = ''
