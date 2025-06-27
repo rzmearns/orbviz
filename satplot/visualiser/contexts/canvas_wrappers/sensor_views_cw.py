@@ -4,7 +4,7 @@ import numpy as np
 import time
 from typing import Any
 
-from PyQt5 import QtGui
+from PyQt5 import QtGui, QtCore
 
 from numpy._typing import _array_like
 from vispy import scene
@@ -46,7 +46,7 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 		self.canvas.events.mouse_move.connect(self.onMouseMove)
 		self.canvas.events.mouse_wheel.connect(self.onMouseScroll)
 		self.canvas.events.key_press.connect(self.on_key_press)
-		self.grid = self.canvas.central_widget.add_grid()
+		self.grid = self.canvas.central_widget.add_grid(spacing=0)
 		vb1 = scene.widgets.ViewBox(border_color='black', parent=self.canvas.scene)
 		vb2 = scene.widgets.ViewBox(border_color='black', parent=self.canvas.scene)
 		vb3 = scene.widgets.ViewBox(border_color='black', parent=self.canvas.scene)
@@ -69,6 +69,13 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 		self.data_models: dict[str,Any] = {}
 		self.assets = {}
 		self._buildAssets()
+		self.mouseOverText = widgets.PopUpTextBox(v_parent=self.canvas.scene,
+											padding=[3,3,3,3],
+											colour=(253,255,189),
+											border_colour=(186,186,186),
+											font_size=10)
+		self.mouseOverTimer = QtCore.QTimer()
+		self.mouseOverTimer.timeout.connect(self._setMouseOverVisible)
 		self.mouseOverObject = None
 
 	def _buildAssets(self) -> None:
@@ -197,7 +204,50 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 	def on_key_press(self, event):
 		pass
 
+	def _setMouseOverVisible(self):
+		self.mouseOverText.setVisible(True)
+		self.mouseOverTimer.stop()
+
+	def stopMouseOverTimer(self) -> None:
+		self.mouseOverTimer.stop()
+
+	def _mapCanvasPosToViewBoxPos(self, canvas_pos:list[int]):
+		y,x = self.grid.grid_size
+
+		row_spacing = self.canvas.native.height()/y
+		col_spacing = self.canvas.native.width()/x
+
+		vb_col = int(canvas_pos[0]/col_spacing)
+		vb_row = int(canvas_pos[1]/row_spacing)
+
+		vb_idx = self.grid.layout_array[vb_row,vb_col]
+		vb_pos = (canvas_pos[0]%col_spacing)/self.view_boxes[vb_idx].width, canvas_pos[1]%row_spacing/self.view_boxes[vb_idx].height
+		return vb_idx, vb_pos
+
 	def onMouseMove(self, event:MouseEvent) -> None:
+		global last_mevnt_time
+		global mouse_over_is_highlighting
+
+		# throttle mouse events to 50ms
+		if time.monotonic() - last_mevnt_time < 0.05:
+			return
+
+		# reset mouseOver
+		self.mouseOverTimer.stop()
+
+		pp = event.pos
+		vb_idx, vb_pos = self._mapCanvasPosToViewBoxPos(pp)
+		sens_asset = self.displayed_sensors[vb_idx]
+		if sens_asset is not None:
+			s = self.displayed_sensors[vb_idx].getLowResMOString(vb_pos)
+
+			# self.mouseOverText.setParent(self.canvas.scene)
+			self.mouseOverText.setText(s)
+			self.mouseOverText.setAnchorPosWithinCanvas(pp, self.canvas)
+			self.mouseOverTimer.start(300)
+			self.mouseOverText.setVisible(False)
+
+		last_mevnt_time = time.monotonic()
 		pass
 
 	def onMouseScroll(self, event:QtGui.QMouseEvent) -> None:
