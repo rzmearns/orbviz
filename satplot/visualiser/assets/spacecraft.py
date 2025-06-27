@@ -357,10 +357,10 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 			logger.error(f"History Data Source for {self} contains no data yet.")
 			return
 
-		# if type(args[2]) is not earth_raycast_data.EarthRayCastData:
-		# 	logger.error(f"setSource() of {self} requires a {earth_raycast_data.EarthRayCastData} as args[2], not: {type(args[2])}")
-		# 	raise TypeError(f"setSource() of {self} requires a {earth_raycast_data.EarthRayCastData} as args[2], not: {type(args[2])}")
-		# 	return
+		if type(args[2]) is not earth_raycast_data.EarthRayCastData:
+			logger.error(f"setSource() of {self} requires a {earth_raycast_data.EarthRayCastData} as args[2], not: {type(args[2])}")
+			raise TypeError(f"setSource() of {self} requires a {earth_raycast_data.EarthRayCastData} as args[2], not: {type(args[2])}")
+			return
 
 		# store old sensor configs
 		old_sc_config = self.data['sc_config']
@@ -379,7 +379,7 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 		self.data['sc_config'] = args[0]
 		self.data['name'] = self.data['sc_config'].name
 		self.data['history_src'] = args[1]
-		# self.data['raycast_src'] = args[2]
+		self.data['raycast_src'] = args[2]
 		self.data['strings'] = [self.data['sc_config'].name]
 
 		first_sat_orbit = list(self.data['history_src'].getOrbits().values())[0]
@@ -400,11 +400,11 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 		else:
 			self.data['strings'] = ['']
 
-		# if old_pointing_defined and self.data['sc_config'] == old_sc_config:
-		# 	# config has not changed -> don't need to re-instantiate sensors
-		# 	logger.debug('Spacecraft pointing related config has not changed')
-		# 	config_changed = False
-		# 	return
+		if old_pointing_defined and self.data['sc_config'] == old_sc_config:
+			# config has not changed -> don't need to re-instantiate sensors
+			logger.debug('Spacecraft pointing related config has not changed')
+			config_changed = False
+			return
 
 		# # remove old sensors if there were some
 		# if old_pointing_defined and old_sc_config != self.data['sc_config']:

@@ -12,6 +12,7 @@ from vispy import scene
 from vispy.app.canvas import MouseEvent, ResizeEvent
 
 from satplot.model.data_models.history_data import (HistoryData)
+from satplot.model.data_models.earth_raycast_data import (EarthRayCastData)
 import satplot.model.geometry.primgeom as pg
 from satplot.model.data_models.data_types import PrimaryConfig
 from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
@@ -90,8 +91,9 @@ class History2DCanvasWrapper(BaseCanvas):
 				active_assets.append(k)
 		return active_assets
 
-	def setModel(self, hist_data:HistoryData) -> None:
+	def setModel(self, hist_data:HistoryData, earth_raycast_data:EarthRayCastData) -> None:
 		self.data_models['history'] = hist_data
+		self.data_models['raycast_src'] = earth_raycast_data
 
 	def modelUpdated(self) -> None:
 		if self.data_models['history'] is None:
@@ -120,7 +122,7 @@ class History2DCanvasWrapper(BaseCanvas):
 			self.assets['spacecraft'].setScale(*self.assets['earth'].getDimensions())
 			self.assets['spacecraft'].setSource(list(self.data_models['history'].getPrimaryConfig().getAllSpacecraftConfigs().values())[0],
 												self.data_models['history'],
-												None)
+												self.data_models['raycast_src'])
 			self.assets['spacecraft'].makeActive()
 
 		# Update data source for sun asset

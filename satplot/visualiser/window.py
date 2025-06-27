@@ -47,7 +47,7 @@ class MainWindow(QtWidgets.QMainWindow):
 		self.menubars['3d-history'] = self.contexts_dict['3d-history'].controls.menubar
 		self.context_tabs.addTab(self.contexts_dict['3d-history'].widget, '3D History')
 
-		self.contexts_dict['2d-history'] = history2d_context.History2DContext('2d-history', self, history_data_model)
+		self.contexts_dict['2d-history'] = history2d_context.History2DContext('2d-history', self, history_data_model, earth_raycast_data_model)
 		self.toolbars['2d-history'] = self.contexts_dict['2d-history'].controls.toolbar
 		self.menubars['2d-history'] = self.contexts_dict['2d-history'].controls.menubar
 		self.context_tabs.addTab(self.contexts_dict['2d-history'].widget, '2D History')
