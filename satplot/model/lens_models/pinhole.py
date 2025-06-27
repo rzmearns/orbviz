@@ -25,3 +25,9 @@ def generatePixelRays(pixels:tuple[int,int], fov:tuple[float,float]) -> np.ndarr
 	unit_rays_cf = primgeom.unitVector(rays_cf)
 	unit_rays_cf = np.hstack((unit_rays_cf,np.ones((unit_rays_cf.shape[0],1))))
 	return unit_rays_cf
+
+def calcPixelAngularSize(pixels:tuple[int,int], fov:tuple[float, float]) -> tuple[float,float]:
+	px_deg_x = pixels[0]/fov[0]
+	px_deg_y = pixels[1]/fov[1]
+
+	return 1/np.deg2rad(1/px_deg_x), 1/np.deg2rad(1/px_deg_y)

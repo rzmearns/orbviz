@@ -102,11 +102,14 @@ class EarthRayCastData(BaseDataModel):
 		self.data_ready.emit()
 		logger.info("Finished initialising Earth PlanetaryRayCastData")
 
-	def rayCastFromSensor(self, sens_eci_transform:np.ndarray, sens_rays_cf:np.ndarray,
+	def rayCastFromSensor(self, resolution:tuple[int,int],
+								pixels_per_radian:tuple[float,float],
+								sens_eci_transform:np.ndarray, sens_rays_cf:np.ndarray,
 								curr_dt:dt.datetime, sun_eci:np.ndarray,
 								draw_eclipse:bool=True,
 								draw_atm:bool=False, atm_height:int=150,
 								atm_lit_colour:tuple[int,int,int]=(168, 231, 255), atm_eclipsed_colour:tuple[int,int,int]=(23, 32, 35),
+								draw_sun:bool=True, sun_colour:tuple[int,int,int]=(0, 255, 0),
 								highlight_edge:bool=False, highlight_height:int=10, highlight_colour:tuple[int,int,int]=(255,0,0)) -> np.ndarray:
 		'''[summary]
 
@@ -121,7 +124,7 @@ class EarthRayCastData(BaseDataModel):
 			[type]: [description]
 		'''
 		num_rays = len(sens_rays_cf)
-
+		print(f'{pixels_per_radian=}')
 		# convert sensor frame to eci
 		sens_rays_eci = sens_eci_transform[:3,:3].dot(sens_rays_cf[:,:3].T).T
 		pos_eci = sens_eci_transform[:3,3]
@@ -143,8 +146,25 @@ class EarthRayCastData(BaseDataModel):
 		# get earth surface data
 		data = self.getPixelDataOnSphere(lats, lons, surface_sunlit_mask)
 
-		# populate img array
 		full_img = np.zeros((num_rays, 3))
+
+		if draw_sun:
+			sun_ang_r = np.deg2rad(0.25)
+			# assume pixels are square
+			sun_ang_px = sun_ang_r * pixels_per_radian[0]
+			rel_sun_eci = sun_eci - pos_eci
+			unit_rel_sun_eci = rel_sun_eci/ np.linalg.norm(rel_sun_eci)
+			dp = np.sum(sens_rays_eci*unit_rel_sun_eci, axis=1)
+			if np.isclose(np.max(dp),1, atol=1/pixels_per_radian[0]):
+				centre_idx = np.argmax(dp)
+				full_img[centre_idx] = (255,0,0)
+				y, x = np.unravel_index(centre_idx, (resolution[1],resolution[0]))
+				colnums, rownums = np.meshgrid(range(resolution[0]), range(resolution[1]))
+				dist = np.sqrt((colnums - x)**2 + (rownums - y)**2).flatten()
+				dist_mask = dist < sun_ang_px
+				full_img[dist_mask] = sun_colour
+
+		# populate img array
 		full_img[earth_intsct] = data[earth_intsct]
 
 		all_intsct = earth_intsct.copy()

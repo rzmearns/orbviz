@@ -327,7 +327,9 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 		self.data['lens_model'] = pinhole
 		# rays from each pixel in sensor frame
 		self.data['lowres_rays_sf'] = self.data['lens_model'].generatePixelRays(self.data['lowres'], self.data['fov'])
+		self.data['lowres_pix_per_rad'] = self.data['lens_model'].calcPixelAngularSize(self.data['lowres'], self.data['fov'])
 		self.data['rays_sf'] = self.data['lens_model'].generatePixelRays(self.data['res'], self.data['fov'])
+		self.data['pix_per_rad'] = self.data['lens_model'].calcPixelAngularSize(self.data['res'], self.data['fov'])
 		self.data['last_transform'] = np.eye(4)
 		self.data['raycast_src'] = None
 		self.data['curr_datetime'] = None
@@ -400,7 +402,9 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 				T[0:3,3] = np.asarray(pos).reshape(-1,3)
 
 				self.data['last_transform'] = T
-				data = self.data['raycast_src'].rayCastFromSensor(T,
+				data = self.data['raycast_src'].rayCastFromSensor(self.data['lowres'],
+																	self.data['lowres_pix_per_rad'],
+																	T,
 																	self.data['lowres_rays_sf'],
 																	self.data['curr_datetime'],
 																	self.data['curr_sun_eci'],
@@ -409,6 +413,8 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 																	atm_height=self.opts['atmosphere_height']['value'],
 																	atm_lit_colour=self.opts['atmosphere_lit_colour']['value'],
 																	atm_eclipsed_colour=self.opts['atmosphere_eclipsed_colour']['value'],
+																	draw_sun=self.opts['plot_sun']['value'],
+																	sun_colour=self.opts['sun_colour']['value'],
 																	highlight_edge=self.opts['highlight_limb']['value'],
 																	highlight_height=self.opts['highlight_height']['value'],
 																	highlight_colour=self.opts['highlight_colour']['value'])
@@ -420,7 +426,9 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 
 	def generateFullRes(self) -> np.ndarray:
 		logger.debug(f"\tGenerating full resolution image for {self.data['name']}")
-		data = self.data['raycast_src'].rayCastFromSensor(self.data['last_transform'],
+		data = self.data['raycast_src'].rayCastFromSensor(self.data['res'],
+															self.data['pix_per_rad'],
+															self.data['last_transform'],
 															self.data['rays_sf'],
 															self.data['curr_datetime'],
 															self.data['curr_sun_eci'],
@@ -429,6 +437,8 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 															atm_height=self.opts['atmosphere_height']['value'],
 															atm_lit_colour=self.opts['atmosphere_lit_colour']['value'],
 															atm_eclipsed_colour=self.opts['atmosphere_eclipsed_colour']['value'],
+															draw_sun=self.opts['plot_sun']['value'],
+															sun_colour=self.opts['sun_colour']['value'],
 															highlight_edge=self.opts['highlight_limb']['value'],
 															highlight_height=self.opts['highlight_height']['value'],
 															highlight_colour=self.opts['highlight_colour']['value'])
@@ -479,6 +489,18 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 												'static': True,
 												'callback': self.setAtmosphereHeight,
 												'widget_data': None}
+		self._dflt_opts['plot_sun'] = {'value': True,
+										  		'type': 'boolean',
+												'help': '',
+												'static': True,
+												'callback': self.drawSun,
+												'widget_data': None}
+		self._dflt_opts['sun_colour'] = {'value': (255,162,0),
+												'type': 'colour',
+												'help': '',
+												'static': True,
+												'callback': self.setSunColour,
+												'widget_data': None}
 		self._dflt_opts['highlight_height'] = {'value': 10,
 										  		'type': 'integer',
 												'help': '',
@@ -507,7 +529,9 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 		self.opts = self._dflt_opts.copy()
 
 	def redrawWithNewSettings(self) -> None:
-		data = self.data['raycast_src'].rayCastFromSensor(self.data['last_transform'],
+		data = self.data['raycast_src'].rayCastFromSensor(self.data['lowres'],
+															self.data['lowres_pix_per_rad'],
+															self.data['last_transform'],
 															self.data['lowres_rays_sf'],
 															self.data['curr_datetime'],
 															self.data['curr_sun_eci'],
@@ -516,6 +540,8 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 															atm_height=self.opts['atmosphere_height']['value'],
 															atm_lit_colour=self.opts['atmosphere_lit_colour']['value'],
 															atm_eclipsed_colour=self.opts['atmosphere_eclipsed_colour']['value'],
+															draw_sun=self.opts['plot_sun']['value'],
+															sun_colour=self.opts['sun_colour']['value'],
 															highlight_edge=self.opts['highlight_limb']['value'],
 															highlight_height=self.opts['highlight_height']['value'],
 															highlight_colour=self.opts['highlight_colour']['value'])
@@ -547,6 +573,14 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 
 	def setAtmosphereHeight(self, height:bool) -> None:
 		self.opts['atmosphere_height']['value'] = height
+		self.redrawWithNewSettings()
+
+	def drawSun(self, state:bool) -> None:
+		self.opts['plot_sun']['value'] = state
+		self.redrawWithNewSettings()
+
+	def setSunColour(self, new_colour:tuple[float,float,float]) -> None:
+		self.opts['sun_colour']['value'] = new_colour
 		self.redrawWithNewSettings()
 
 	def setHighlightColour(self, new_colour:tuple[float,float,float]) -> None:
