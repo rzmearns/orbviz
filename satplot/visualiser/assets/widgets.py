@@ -94,6 +94,7 @@ class PopUpTextBox():
 			self.b_visual.update()
 
 	def setText(self, text:str) -> None:
+		self.text = text
 		self.t_visual.text = text
 		self.updateBounds()
 

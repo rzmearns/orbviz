@@ -342,6 +342,7 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 		self.data['curr_sun_eci'] = None
 		self.data['curr_moon_eci'] = None
 		self.data['curr_quat'] = None
+		self.data['mo_data'] = None
 
 	def setSource(self, *args, **kwargs) -> None:
 		# args[0] = raycast_src
@@ -440,9 +441,9 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 				self.visuals['text'].text = f"Sensor: {self.data['name']}"
 				self._clearStaleFlag()
 
-	def generateFullRes(self) -> np.ndarray:
+	def generateFullRes(self) -> tuple[np.ndarray, np.ndarray, object]:
 		logger.debug(f"\tGenerating full resolution image for {self.data['name']}")
-		data = self.data['raycast_src'].rayCastFromSensor(self.data['res'],
+		img_data, mo_data = self.data['raycast_src'].rayCastFromSensor(self.data['res'],
 															self.data['pix_per_rad'],
 															self.data['last_transform'],
 															self.data['rays_sf'],
@@ -461,16 +462,18 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 															highlight_edge=self.opts['highlight_limb']['value'],
 															highlight_height=self.opts['highlight_height']['value'],
 															highlight_colour=self.opts['highlight_colour']['value'])
-		data_reshaped = data.reshape(self.data['res'][1],self.data['res'][0],3)/255
-		return data_reshaped
+		data_reshaped = img_data.reshape(self.data['res'][1],self.data['res'][0],3)/255
+		return data_reshaped, mo_data, self.getFullResMOString
 
 	def getLowResMOString(self, fractional_pos:tuple[float, float]) -> str:
-		# print(f'\t{fractional_pos=}')
 		pix_pos = int(round(fractional_pos[0]*self.data['lowres'][0])), int(round(fractional_pos[1]*self.data['lowres'][1]))
-		# print(f'\t{pix_pos=}')
 		pos_idx = np.ravel_multi_index((pix_pos[1],pix_pos[0]),(self.data['lowres'][1], self.data['lowres'][0]))
-		# print(f'\t{pos_idx=}')
 		return self._decodeLabelData(self.data['mo_data'][pos_idx])
+
+	def getFullResMOString(self, mo_data, fractional_pos:tuple[float, float]) -> str:
+		pix_pos = int(round(fractional_pos[0]*self.data['res'][0])), int(round(fractional_pos[1]*self.data['res'][1]))
+		pos_idx = np.ravel_multi_index((pix_pos[1],pix_pos[0]),(self.data['res'][1], self.data['res'][0]))
+		return self._decodeLabelData(mo_data[pos_idx])
 
 	def _decodeLabelData(self, data:np.ndarray) -> str:
 		if data[0] == 0:

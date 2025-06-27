@@ -85,11 +85,11 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 	def _getCurrentDisplayedSensor(self, view:int) -> sensors.SensorImageAsset | None:
 		return self.displayed_sensors[view]
 
-	def generateSensorFullRes(self, sc_id: int, sens_suite_key: str, sens_key: str) -> tuple[np.ndarray, dict]:
+	def generateSensorFullRes(self, sc_id: int, sens_suite_key: str, sens_key: str) -> tuple[np.ndarray, np.ndarray, object, dict]:
 		# TOOD: use sc_id to select which spacecraft asset to generate
 		sc_asset = self.assets['spacecraft']
 		sensor_asset = self.assets['spacecraft'].getSensorSuiteByKey(sens_suite_key).getSensorByKey(sens_key)
-		img_data = sensor_asset.generateFullRes()
+		img_data, mo_data, moConverterFunction = sensor_asset.generateFullRes()
 		img_metadata = {'spacecraft id':sc_id,
 						'spacecraft name': self.assets['spacecraft'].data['name'],
 						'sensor suite name': sens_suite_key,
@@ -105,7 +105,7 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 						'image md5 hash': None
 						}
 
-		return img_data, img_metadata
+		return img_data, mo_data, moConverterFunction, img_metadata
 
 	def selectSensor(self, view:int, sc_id: int, sens_suite_key: str, sens_key: str) -> None:
 		# remove parent scene of old sensor

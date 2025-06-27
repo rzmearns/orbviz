@@ -107,8 +107,8 @@ class SensorViewsContext(BaseContext):
 
 	def generateSensorFullRes(self, view_id:int, sc_id:int, suite_key:str, sens_key:str) -> None:
 		logger.debug(f'Generating Full Res for view {view_id}: {sc_id} - {suite_key} - {sens_key}')
-		img_data, img_metadata = self.canvas_wrapper.generateSensorFullRes(sc_id, suite_key, sens_key)
-		img_dialog = satplot_dialogs.fullResSensorImageDialog(img_data, img_metadata)
+		img_data, mo_data, moConverterFunction, img_metadata = self.canvas_wrapper.generateSensorFullRes(sc_id, suite_key, sens_key)
+		img_dialog = satplot_dialogs.fullResSensorImageDialog(img_data, mo_data, moConverterFunction, img_metadata)
 
 	def loadState(self) -> None:
 		pass

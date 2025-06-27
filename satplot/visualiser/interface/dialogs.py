@@ -1,18 +1,21 @@
 import json
-import os
 import numpy as np
+import os
 import pathlib
 import pickle
 from PIL import Image
-import os
+import time
 
 import PyQt5.QtWidgets as QtWidgets
+from PyQt5 import QtCore, QtGui
 from vispy import scene
+from vispy.app.canvas import MouseEvent
 
 import satplot
 import satplot.util.hashing as satplot_hashing
 import satplot.util.paths as satplot_paths
 import satplot.visualiser.cameras.RestrictedPanZoom as RestrictedPanZoom
+import satplot.visualiser.assets.widgets as widgets
 
 def createSpaceTrackCredentialsDialog():
 	SpaceTrackCredentialsDialog()
@@ -79,7 +82,12 @@ class SpaceTrackCredentialsDialog():
 		self.window.close()
 
 class fullResSensorImageDialog():
-	def __init__(self, img_data, img_metadata):
+	create_time = time.monotonic()
+	MIN_MOVE_UPDATE_THRESHOLD = 1
+	MOUSEOVER_DIST_THRESHOLD = 5
+	last_mevnt_time = time.monotonic()
+	mouse_over_is_highlighting = False
+	def __init__(self, img_data, mo_data, moConverterFunction, img_metadata):
 		sc_name = img_metadata['spacecraft name']
 		sens_suite_name = img_metadata['sensor suite name']
 		sens_name = img_metadata['sensor name']
@@ -87,6 +95,7 @@ class fullResSensorImageDialog():
 		height = img_metadata['resolution'][1]
 		datetime = img_metadata['current time [yyyy-mm-dd hh:mm:ss]']
 		img_metadata['current time [yyyy-mm-dd hh:mm:ss]'] = datetime.strftime('%Y-%m-%d %H:%M:%S')
+
 		self.filename = f"{sc_name}-{sens_suite_name}-{sens_name}-{datetime.strftime('%Y%m%d-%H%M%S')}.bmp"
 		self.window = QtWidgets.QDialog()
 		self.window.setWindowTitle(f'Sensor Image - {sc_name}:{sens_suite_name} - {sens_name}')
@@ -96,6 +105,7 @@ class fullResSensorImageDialog():
 								keys='interactive',
 								bgcolor='white',
 								show=True)
+		self.canvas.events.mouse_move.connect(self.onMouseMove)
 		self.view = self.canvas.central_widget.add_view()
 		self.view.camera = RestrictedPanZoom.RestrictedPanZoomCamera(limits=(0, width, 0, height))
 		self.view.camera.aspect = 1
@@ -109,6 +119,17 @@ class fullResSensorImageDialog():
 			img_data,
 			parent=self.view.scene,
 		)
+		self.mo_data = mo_data
+		self.moConverterFunction = moConverterFunction
+		self.mouseOverText = widgets.PopUpTextBox(v_parent=self.canvas.scene,
+											padding=[3,3,3,3],
+											colour=(253,255,189),
+											border_colour=(186,186,186),
+											font_size=10)
+		self.mouseOverTimer = QtCore.QTimer()
+		self.mouseOverTimer.timeout.connect(self._setMouseOverVisible)
+		self.mouseOverObject = None
+
 		hlayout1.addStretch()
 		hlayout1.addWidget(self.canvas.native)
 		hlayout1.addStretch()
@@ -148,6 +169,46 @@ class fullResSensorImageDialog():
 
 	def cancel(self):
 		self.window.close()
+
+	def _setMouseOverVisible(self):
+		self.mouseOverText.setParent(self.view.scene)
+		self.mouseOverText.setVisible(True)
+		self.mouseOverText.setParent(self.canvas.scene)
+		print(self.mouseOverText.text)
+		self.mouseOverTimer.stop()
+
+	def stopMouseOverTimer(self) -> None:
+		self.mouseOverTimer.stop()
+
+	def _mapCanvasPosToFractionalPos(self, canvas_pos:list[int]):
+		vb_pos = (canvas_pos[0])/self.canvas.native.width(), canvas_pos[1]/self.canvas.native.height()
+		return vb_pos
+
+	def onMouseMove(self, event:MouseEvent) -> None:
+		global last_mevnt_time
+		global mouse_over_is_highlighting
+
+		# throttle mouse events to 50ms
+		if time.monotonic() - self.last_mevnt_time < 0.05:
+			return
+
+		# reset mouseOver
+		self.mouseOverTimer.stop()
+
+		pp = event.pos
+		vb_pos = self._mapCanvasPosToFractionalPos(pp)
+		s = self.moConverterFunction(self.mo_data, vb_pos)
+
+		self.mouseOverText.setText(s)
+		self.mouseOverText.setAnchorPosWithinCanvas(pp, self.canvas)
+		self.mouseOverTimer.start(300)
+		self.mouseOverText.setVisible(False)
+
+		last_mevnt_time = time.monotonic()
+		pass
+
+	def onMouseScroll(self, event:QtGui.QMouseEvent) -> None:
+		pass
 
 	def _saveFileDialog(self, caption: str, dir:pathlib.Path, dflt_filename:str|None) -> pathlib.Path:
 		if dflt_filename is None:
