@@ -374,6 +374,8 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 	def _createVisuals(self) -> None:
 		# Earth Sphere
 		img_data = _generateRandomSensorData((self.data['lowres'][1], self.data['lowres'][0]))
+		self.data['mo_data'] = np.zeros((self.data['lowres'][1]*self.data['lowres'][0],3))
+		self.data['mo_data'][:,0] = -1
 		self.visuals['image'] = vVisuals.Image(
 			img_data,
 			# interpolation = 'nearest',
@@ -412,7 +414,7 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 				T[0:3,3] = np.asarray(pos).reshape(-1,3)
 
 				self.data['last_transform'] = T
-				data = self.data['raycast_src'].rayCastFromSensor(self.data['lowres'],
+				img_data, mo_data = self.data['raycast_src'].rayCastFromSensor(self.data['lowres'],
 																	self.data['lowres_pix_per_rad'],
 																	T,
 																	self.data['lowres_rays_sf'],
@@ -431,7 +433,8 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 																	highlight_edge=self.opts['highlight_limb']['value'],
 																	highlight_height=self.opts['highlight_height']['value'],
 																	highlight_colour=self.opts['highlight_colour']['value'])
-				data_reshaped = data.reshape(self.data['lowres'][1],self.data['lowres'][0],3)/255
+				self.data['mo_data'] = mo_data
+				data_reshaped = img_data.reshape(self.data['lowres'][1],self.data['lowres'][0],3)/255
 				self.visuals['image'].set_data(data_reshaped)
 				# setting data of ImageVisual doesn't refresh canvas, use text visual to refresh instead
 				self.visuals['text'].text = f"Sensor: {self.data['name']}"
@@ -460,6 +463,44 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 															highlight_colour=self.opts['highlight_colour']['value'])
 		data_reshaped = data.reshape(self.data['res'][1],self.data['res'][0],3)/255
 		return data_reshaped
+
+	def getLowResMOString(self, fractional_pos:tuple[float, float]) -> str:
+		# print(f'\t{fractional_pos=}')
+		pix_pos = int(round(fractional_pos[0]*self.data['lowres'][0])), int(round(fractional_pos[1]*self.data['lowres'][1]))
+		# print(f'\t{pix_pos=}')
+		pos_idx = np.ravel_multi_index((pix_pos[1],pix_pos[0]),(self.data['lowres'][1], self.data['lowres'][0]))
+		# print(f'\t{pos_idx=}')
+		return self._decodeLabelData(self.data['mo_data'][pos_idx])
+
+	def _decodeLabelData(self, data:np.ndarray) -> str:
+		if data[0] == 0:
+			# geodetic
+			if data[1] < 0:
+				lat_hemisphere = 'S'
+			elif data[1] > 0:
+				lat_hemisphere = 'N'
+			else:
+				lat_hemisphere = ''
+			if data[2] < 0:
+				lon_hemisphere = 'W'
+			elif data[2] > 0:
+				lon_hemisphere = 'E'
+			else:
+				lon_hemisphere = ''
+			out_str = f'Geodetic:\n{abs(data[1]):.1f}{lat_hemisphere}, {abs(data[2]):.1f}{lon_hemisphere}'
+		elif data[0] == 1:
+			# celestial
+			out_str = f'Celestial:\n{abs(data[1]):.1f}, {abs(data[2]):.1f}'
+		elif data[0] == 2:
+			# direct str
+			out_str = data[1]
+		elif data[0] == -1:
+			# dummy data
+			out_str = f'Dummy Data'
+		else:
+			out_str = ''
+
+		return out_str
 
 	def _generateLatLonCoords(self, counter):
 		lat_center = 0
@@ -557,7 +598,7 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 		self.opts = self._dflt_opts.copy()
 
 	def redrawWithNewSettings(self) -> None:
-		data = self.data['raycast_src'].rayCastFromSensor(self.data['lowres'],
+		img_data, mo_data = self.data['raycast_src'].rayCastFromSensor(self.data['lowres'],
 															self.data['lowres_pix_per_rad'],
 															self.data['last_transform'],
 															self.data['lowres_rays_sf'],
@@ -576,7 +617,8 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 															highlight_edge=self.opts['highlight_limb']['value'],
 															highlight_height=self.opts['highlight_height']['value'],
 															highlight_colour=self.opts['highlight_colour']['value'])
-		data_reshaped = data.reshape(self.data['lowres'][1],self.data['lowres'][0],3)/255
+		self.data['mo_data'] = mo_data
+		data_reshaped = img_data.reshape(self.data['lowres'][1],self.data['lowres'][0],3)/255
 		self.visuals['image'].set_data(data_reshaped)
 		# setting data of ImageVisual doesn't refresh canvas, use text visual to refresh instead
 		self.visuals['text'].text = f"Sensor: {self.data['name']}"

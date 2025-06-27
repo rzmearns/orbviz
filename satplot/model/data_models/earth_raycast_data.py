@@ -111,7 +111,7 @@ class EarthRayCastData(BaseDataModel):
 								atm_lit_colour:tuple[int,int,int]=(168, 231, 255), atm_eclipsed_colour:tuple[int,int,int]=(23, 32, 35),
 								draw_sun:bool=True, sun_colour:tuple[int,int,int]=(255, 0, 0),
 								draw_moon:bool=True, moon_colour:tuple[int,int,int]=(0, 255, 0),
-								highlight_edge:bool=False, highlight_height:int=10, highlight_colour:tuple[int,int,int]=(255,0,0)) -> np.ndarray:
+								highlight_edge:bool=False, highlight_height:int=10, highlight_colour:tuple[int,int,int]=(255,0,0)) -> tuple[np.ndarray, np.ndarray]:
 		'''[summary]
 
 		[description]
@@ -135,6 +135,8 @@ class EarthRayCastData(BaseDataModel):
 		sun_ecf = np.asarray(pymap3d.eci2ecef(sun_eci[0], sun_eci[1], sun_eci[2],curr_dt))
 		# check intersection of rays with earth
 		cart_earth_intsct, earth_intsct = self._lineOfSightToSurface(pos_ecf, sens_rays_ecf)
+		# cart_earth_intsct.shape = (num_rays,3)
+		# earth_intsct.shape = (num_rays,)
 		lats = np.zeros(num_rays)
 		lons = np.zeros(num_rays)
 		lats[earth_intsct], lons[earth_intsct] = self._convertCartesianToEllipsoidGeodetic(cart_earth_intsct[earth_intsct,:])
@@ -147,6 +149,9 @@ class EarthRayCastData(BaseDataModel):
 		data = self.getPixelDataOnSphere(lats, lons, surface_sunlit_mask)
 
 		full_img = np.zeros((num_rays, 3))
+		mo_data = np.empty((num_rays,3), dtype=object)
+		mo_data[~earth_intsct] = self.encodeCelestialStringArrays(sens_rays_eci[~earth_intsct])
+		mo_data[earth_intsct] = self.encodeGeodeticStringArrays(lats[earth_intsct],lons[earth_intsct])
 
 		if draw_sun:
 			sun_ang_r = np.deg2rad(0.25)
@@ -163,6 +168,8 @@ class EarthRayCastData(BaseDataModel):
 				dist = np.sqrt((colnums - x)**2 + (rownums - y)**2).flatten()
 				dist_mask = dist < sun_ang_px
 				full_img[dist_mask] = sun_colour
+				mo_data[dist_mask,1] = 'Sun'
+				mo_data[dist_mask,0] = 2
 
 		if draw_moon:
 			moon_ang_r = np.deg2rad(0.25)
@@ -179,11 +186,12 @@ class EarthRayCastData(BaseDataModel):
 				dist = np.sqrt((colnums - x)**2 + (rownums - y)**2).flatten()
 				dist_mask = dist < moon_ang_px
 				full_img[dist_mask] = moon_colour
+				mo_data[dist_mask,1] = 'Moon'
+				mo_data[dist_mask,0] = 2
 
 
 		# populate img array
 		full_img[earth_intsct] = data[earth_intsct]
-
 		all_intsct = earth_intsct.copy()
 
 		if draw_atm:
@@ -248,7 +256,7 @@ class EarthRayCastData(BaseDataModel):
 			hl_intsct[~all_intsct] = hl_valid
 			full_img[hl_intsct] = highlight_colour
 
-		return full_img.astype(np.float32)
+		return full_img.astype(np.float32), mo_data
 
 	def _convertCartesianToEllipsoidGeodetic(self, cart:np.ndarray, iters:int=3) -> tuple[np.ndarray, np.ndarray]:
 		'''
@@ -337,6 +345,21 @@ class EarthRayCastData(BaseDataModel):
 		valid[radical < 0] = False
 
 		return np.array([ x + d * u, y + d * v, z + d * w]).T, valid
+
+	def encodeCelestialStringArrays(self, rays_eci:np.ndarray) -> np.ndarray:
+		num_entries = len(rays_eci)
+		out_arr = np.zeros((num_entries,3))
+		out_arr[:,0] = 1
+		return out_arr
+
+	def encodeGeodeticStringArrays(self, lat_arr:np.ndarray, lon_arr:np.ndarray) -> np.ndarray:
+		num_entries = len(lat_arr)
+		out_arr = np.empty((num_entries,3))
+		out_arr[:,0] = 0
+		out_arr[:,1] = lat_arr
+		out_arr[:,2] = lon_arr
+		return out_arr
+
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
