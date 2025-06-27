@@ -79,6 +79,7 @@ class History2DCanvasWrapper(BaseCanvas):
 	def _buildAssets(self) -> None:
 		self.assets['earth'] = earth.Earth2DAsset(v_parent=self.view_box.scene)
 		self.assets['primary_orbit'] = orbit.Orbit2DAsset(v_parent=self.view_box.scene)
+		self.assets['spacecraft'] = spacecraft.Spacecraft2DAsset(v_parent=self.view_box.scene)
 		self.assets['moon'] = moon.Moon2DAsset(v_parent=self.view_box.scene)
 		self.assets['sun'] = sun.Sun2DAsset(v_parent=self.view_box.scene)
 
@@ -112,6 +113,15 @@ class History2DCanvasWrapper(BaseCanvas):
 			self.assets['primary_orbit'].setScale(*self.assets['earth'].getDimensions())
 			self.assets['primary_orbit'].setSource(self.data_models['history'])
 			self.assets['primary_orbit'].makeActive()
+
+		# Update data source for spacecraft
+		if len(self.data_models['history'].getConfigValue('primary_satellite_ids')) > 0:
+			# TODO: extend to draw multiple primary satellites
+			self.assets['spacecraft'].setScale(*self.assets['earth'].getDimensions())
+			self.assets['spacecraft'].setSource(list(self.data_models['history'].getPrimaryConfig().getAllSpacecraftConfigs().values())[0],
+												self.data_models['history'],
+												None)
+			self.assets['spacecraft'].makeActive()
 
 		# Update data source for sun asset
 		if len(self.data_models['history'].getConfigValue('primary_satellite_ids')) > 0:
