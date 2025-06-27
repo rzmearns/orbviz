@@ -496,7 +496,7 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 			# celestial
 			raH,raM,raS = satplot_conversion.decimal2hhmmss(data[1])
 			decD,decM,decS = satplot_conversion.decimal2degmmss(data[2])
-			out_str = f'Celestial:\n{raH}h {raM}m {raS:.2f}s, {decD} {decM}\' {decS:.2f}"'
+			out_str = f'Celestial:\n{raH}h {raM}m {raS:.2f}s, {decD}° {decM}\' {decS:.2f}"'
 		elif data[0] == 2:
 			# direct str
 			out_str = data[1]
