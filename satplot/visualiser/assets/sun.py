@@ -13,6 +13,7 @@ from vispy.visuals import transforms as vTransforms
 from vispy.scene import visuals as vVisuals
 from vispy.visuals import filters as vFilters
 
+import satplot.model.data_models.history_data as history_data
 import satplot.model.geometry.primgeom as pg
 import satplot.model.geometry.polygons as polygeom
 import satplot.model.geometry.polyhedra as polyhedra
@@ -409,8 +410,15 @@ class Sun2DAsset(base_assets.AbstractAsset):
 		self.visuals['eclipse_patch2'].set_gl_state('translucent', depth_test=False)
 
 	def setSource(self, *args, **kwargs):
-		sats_dict = args[0]
-		first_sat_orbit = list(sats_dict.values())[0]
+		# args[0] history data
+		if type(args[0]) is not history_data.HistoryData:
+			logger.error(f"setSource() of {self} requires a {history_data.HistoryData} as args[1], not: {type(args[1])}")
+			raise TypeError(f"setSource() of {self} requires a {history_data.HistoryData} as args[1], not: {type(args[1])}")
+			return
+
+		self.data['history_src'] = args[0]
+		first_sat_orbit = list(self.data['history_src'].getOrbits().values())[0]
+
 		if type(first_sat_orbit) is not orbit.Orbit:
 			logger.error(f"data source for {self} is not an orbit.Orbit, can't extract sun location data")
 			raise TypeError

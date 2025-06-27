@@ -103,21 +103,21 @@ class History2DCanvasWrapper(BaseCanvas):
 		# Update data source for moon asset
 		if len(self.data_models['history'].getConfigValue('primary_satellite_ids')) > 0:
 			self.assets['moon'].setScale(*self.assets['earth'].getDimensions())
-			self.assets['moon'].setSource(self.data_models['history'].getOrbits())
+			self.assets['moon'].setSource(self.data_models['history'])
 			self.assets['moon'].makeActive()
 
 		# Update data source for primary orbit(s)
 		if len(self.data_models['history'].getConfigValue('primary_satellite_ids')) > 0:
 			# TODO: extend to draw multiple primary satellites
 			self.assets['primary_orbit'].setScale(*self.assets['earth'].getDimensions())
-			self.assets['primary_orbit'].setSource(self.data_models['history'].getOrbits())
+			self.assets['primary_orbit'].setSource(self.data_models['history'])
 			self.assets['primary_orbit'].makeActive()
 
 		# Update data source for sun asset
 		if len(self.data_models['history'].getConfigValue('primary_satellite_ids')) > 0:
 			self.assets['sun'].makeDormant()
 			self.assets['sun'].setScale(*self.assets['earth'].getDimensions())
-			self.assets['sun'].setSource(self.data_models['history'].getOrbits())
+			self.assets['sun'].setSource(self.data_models['history'])
 			self.assets['sun'].makeActive()
 
 		self.assets['earth'].makeDormant()

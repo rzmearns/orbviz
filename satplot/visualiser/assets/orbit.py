@@ -4,6 +4,7 @@ from typing import Any
 from vispy import scene
 from vispy.scene.widgets.viewbox import ViewBox
 
+import satplot.model.data_models.history_data as history_data
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.colours as colours
 import satplot.visualiser.interface.console as console
@@ -205,12 +206,15 @@ class Orbit2DAsset(base_assets.AbstractAsset):
 		self._sliceData()
 
 	def setSource(self, *args, **kwargs) -> None:
-		print(f'setting orbit source')
-		sats_dict = args[0]
-		first_sat_orbit = list(sats_dict.values())[0]
-		if type(first_sat_orbit) is not orbit.Orbit:
-			logger.error(f"setSource() of {self} requires an {orbit.Orbit} as value of dict from args[0], not: {first_sat_orbit}")
-			raise TypeError
+		# args[0] history data
+		if type(args[0]) is not history_data.HistoryData:
+			logger.error(f"setSource() of {self} requires a {history_data.HistoryData} as args[1], not: {type(args[1])}")
+			raise TypeError(f"setSource() of {self} requires a {history_data.HistoryData} as args[1], not: {type(args[1])}")
+			return
+
+		self.data['history_src'] = args[0]
+		first_sat_orbit = list(self.data['history_src'].getOrbits().values())[0]
+
 		if hasattr(first_sat_orbit,'pos'):
 			self.data['coords'] = np.hstack((first_sat_orbit.lon.reshape(-1,1),first_sat_orbit.lat.reshape(-1,1)))
 			lat = ((first_sat_orbit.lat + 90) * self.data['vert_pixel_scale']).reshape(-1,1)
