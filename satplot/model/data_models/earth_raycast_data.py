@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import satplot
 from satplot.model.data_models.base_models import (BaseDataModel)
 import satplot.util.constants as satplot_const
+import satplot.util.conversion as satplot_conversion
 import satplot.util.threading as threading
 import satplot.model.data_models.data_types as data_types
 import satplot.model.data_models.sphere_img_data as sphere_img_data
@@ -160,6 +161,7 @@ class EarthRayCastData(BaseDataModel):
 			rel_sun_eci = sun_eci - pos_eci
 			unit_rel_sun_eci = rel_sun_eci/ np.linalg.norm(rel_sun_eci)
 			dp = np.sum(sens_rays_eci*unit_rel_sun_eci, axis=1)
+
 			if np.isclose(np.max(dp),1, atol=1/pixels_per_radian[0]):
 				centre_idx = np.argmax(dp)
 				full_img[centre_idx] = (255,0,0)
@@ -350,6 +352,7 @@ class EarthRayCastData(BaseDataModel):
 		num_entries = len(rays_eci)
 		out_arr = np.zeros((num_entries,3))
 		out_arr[:,0] = 1
+		out_arr[:,1], out_arr[:,2] = satplot_conversion.eci2radec(rays_eci)
 		return out_arr
 
 	def encodeGeodeticStringArrays(self, lat_arr:np.ndarray, lon_arr:np.ndarray) -> np.ndarray:

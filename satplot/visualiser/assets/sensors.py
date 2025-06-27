@@ -15,6 +15,7 @@ import satplot.model.geometry.polyhedra as polyhedra
 import satplot.model.data_models.data_types as satplot_data_types
 import satplot.model.lens_models.pinhole as pinhole
 import satplot.util.constants as c
+import satplot.util.conversion as satplot_conversion
 import satplot.visualiser.colours as colours
 import satplot.visualiser.assets.base_assets as base_assets
 
@@ -493,7 +494,9 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 			out_str = f'Geodetic:\n{abs(data[1]):.1f}{lat_hemisphere}, {abs(data[2]):.1f}{lon_hemisphere}'
 		elif data[0] == 1:
 			# celestial
-			out_str = f'Celestial:\n{abs(data[1]):.1f}, {abs(data[2]):.1f}'
+			raH,raM,raS = satplot_conversion.decimal2hhmmss(data[1])
+			decD,decM,decS = satplot_conversion.decimal2degmmss(data[2])
+			out_str = f'Celestial:\n{raH}h {raM}m {raS:.2f}s, {decD} {decM}\' {decS:.2f}"'
 		elif data[0] == 2:
 			# direct str
 			out_str = data[1]
