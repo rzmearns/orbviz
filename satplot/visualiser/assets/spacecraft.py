@@ -466,6 +466,7 @@ class SpacecraftViewsAsset(base_assets.AbstractAsset):
 					if 'sensor_suite_' in asset_name:
 						asset.setCurrentDatetime(self.data['history'].timespan[self.data['curr_index']])
 						asset.setCurrentSunECI(orbit_data.sun_pos[self.data['curr_index']])
+						asset.setCurrentMoonECI(orbit_data.moon_pos[self.data['curr_index']])
 				# recomputeRedraw child assets
 				self.data['curr_pos'] = orbit_data.pos[self.data['curr_index']].reshape(1,3)
 				self.data['curr_quat'] = quat

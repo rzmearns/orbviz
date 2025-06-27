@@ -245,6 +245,7 @@ class SensorSuiteImageAsset(base_assets.AbstractCompoundAsset):
 		self.data['sens_suite_config'] = sens_suite_dict
 		self.data['curr_datetime'] = None
 		self.data['curr_sun_eci'] = None
+		self.data['curr_moon_eci'] = None
 
 	def setSource(self, *args, **kwargs) -> None:
 		# args[0] = raycast_src
@@ -260,6 +261,11 @@ class SensorSuiteImageAsset(base_assets.AbstractCompoundAsset):
 		self.data['curr_sun_eci'] = sun_eci_pos
 		for asset in self.assets.values():
 			asset.setCurrentSunECI(sun_eci_pos)
+
+	def setCurrentMoonECI(self, moon_eci_pos:np.ndarray) -> None:
+		self.data['curr_sun_eci'] = moon_eci_pos
+		for asset in self.assets.values():
+			asset.setCurrentMoonECI(moon_eci_pos)
 
 	def _instantiateAssets(self) -> None:
 		sensor_names = self.data['sens_suite_config'].getSensorNames()
@@ -334,6 +340,7 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 		self.data['raycast_src'] = None
 		self.data['curr_datetime'] = None
 		self.data['curr_sun_eci'] = None
+		self.data['curr_moon_eci'] = None
 		self.data['curr_quat'] = None
 
 	def setSource(self, *args, **kwargs) -> None:
@@ -345,6 +352,9 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 
 	def setCurrentSunECI(self, sun_eci_pos:np.ndarray) -> None:
 		self.data['curr_sun_eci'] = sun_eci_pos
+
+	def setCurrentMoonECI(self, moon_eci_pos:np.ndarray) -> None:
+		self.data['curr_moon_eci'] = moon_eci_pos
 
 	def _calcLowRes(self, true_resolution:tuple[int,int]) -> tuple[int,int]:
 		lowres = [0,0]
@@ -408,6 +418,7 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 																	self.data['lowres_rays_sf'],
 																	self.data['curr_datetime'],
 																	self.data['curr_sun_eci'],
+																	self.data['curr_moon_eci'],
 																	draw_eclipse=self.opts['solar_lighting']['value'],
 																	draw_atm=self.opts['plot_atmosphere']['value'],
 																	atm_height=self.opts['atmosphere_height']['value'],
@@ -415,6 +426,8 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 																	atm_eclipsed_colour=self.opts['atmosphere_eclipsed_colour']['value'],
 																	draw_sun=self.opts['plot_sun']['value'],
 																	sun_colour=self.opts['sun_colour']['value'],
+																	draw_moon=self.opts['plot_moon']['value'],
+																	moon_colour=self.opts['moon_colour']['value'],
 																	highlight_edge=self.opts['highlight_limb']['value'],
 																	highlight_height=self.opts['highlight_height']['value'],
 																	highlight_colour=self.opts['highlight_colour']['value'])
@@ -432,6 +445,7 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 															self.data['rays_sf'],
 															self.data['curr_datetime'],
 															self.data['curr_sun_eci'],
+															self.data['curr_moon_eci'],
 															draw_eclipse=self.opts['solar_lighting']['value'],
 															draw_atm=self.opts['plot_atmosphere']['value'],
 															atm_height=self.opts['atmosphere_height']['value'],
@@ -439,6 +453,8 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 															atm_eclipsed_colour=self.opts['atmosphere_eclipsed_colour']['value'],
 															draw_sun=self.opts['plot_sun']['value'],
 															sun_colour=self.opts['sun_colour']['value'],
+															draw_moon=self.opts['plot_moon']['value'],
+															moon_colour=self.opts['moon_colour']['value'],
 															highlight_edge=self.opts['highlight_limb']['value'],
 															highlight_height=self.opts['highlight_height']['value'],
 															highlight_colour=self.opts['highlight_colour']['value'])
@@ -501,6 +517,18 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 												'static': True,
 												'callback': self.setSunColour,
 												'widget_data': None}
+		self._dflt_opts['plot_moon'] = {'value': True,
+										  		'type': 'boolean',
+												'help': '',
+												'static': True,
+												'callback': self.drawMoon,
+												'widget_data': None}
+		self._dflt_opts['moon_colour'] = {'value': (159,159,159),
+												'type': 'colour',
+												'help': '',
+												'static': True,
+												'callback': self.setMoonColour,
+												'widget_data': None}
 		self._dflt_opts['highlight_height'] = {'value': 10,
 										  		'type': 'integer',
 												'help': '',
@@ -535,6 +563,7 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 															self.data['lowres_rays_sf'],
 															self.data['curr_datetime'],
 															self.data['curr_sun_eci'],
+															self.data['curr_moon_eci'],
 															draw_eclipse=self.opts['solar_lighting']['value'],
 															draw_atm=self.opts['plot_atmosphere']['value'],
 															atm_height=self.opts['atmosphere_height']['value'],
@@ -542,6 +571,8 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 															atm_eclipsed_colour=self.opts['atmosphere_eclipsed_colour']['value'],
 															draw_sun=self.opts['plot_sun']['value'],
 															sun_colour=self.opts['sun_colour']['value'],
+															draw_moon=self.opts['plot_moon']['value'],
+															moon_colour=self.opts['moon_colour']['value'],
 															highlight_edge=self.opts['highlight_limb']['value'],
 															highlight_height=self.opts['highlight_height']['value'],
 															highlight_colour=self.opts['highlight_colour']['value'])
@@ -582,6 +613,15 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 	def setSunColour(self, new_colour:tuple[float,float,float]) -> None:
 		self.opts['sun_colour']['value'] = new_colour
 		self.redrawWithNewSettings()
+
+	def drawMoon(self, state:bool) -> None:
+		self.opts['plot_moon']['value'] = state
+		self.redrawWithNewSettings()
+
+	def setMoonColour(self, new_colour:tuple[float,float,float]) -> None:
+		self.opts['moon_colour']['value'] = new_colour
+		self.redrawWithNewSettings()
+
 
 	def setHighlightColour(self, new_colour:tuple[float,float,float]) -> None:
 		self.opts['highlight_colour']['value'] = new_colour
