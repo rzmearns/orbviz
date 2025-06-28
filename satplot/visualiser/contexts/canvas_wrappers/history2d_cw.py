@@ -10,6 +10,7 @@ from PyQt5 import QtGui
 
 from vispy import scene
 from vispy.app.canvas import MouseEvent, ResizeEvent
+from vispy.scene.cameras import PanZoomCamera
 
 from satplot.model.data_models.history_data import (HistoryData)
 from satplot.model.data_models.earth_raycast_data import (EarthRayCastData)
@@ -56,7 +57,8 @@ class History2DCanvasWrapper(BaseCanvas):
 		self.grid = self.canvas.central_widget.add_grid()
 
 		self.view_box = self.grid.add_view(0, 0, bgcolor='#008eaf')
-		self.view_box.camera = RestrictedPanZoom.RestrictedPanZoomCamera(limits=(0, IMAGE_SHAPE[0], 0, IMAGE_SHAPE[1]))
+		# self.view_box.camera = RestrictedPanZoom.RestrictedPanZoomCamera(limits=(0, IMAGE_SHAPE[0], 0, IMAGE_SHAPE[1]))
+		self.view_box.camera = PanZoomCamera()
 		self.view_box.camera.set_range(x=(0, IMAGE_SHAPE[0]), y=(0, IMAGE_SHAPE[1]), margin=0)
 		self.vb_aspect_ratio = self.view_box.camera.aspect
 		rect = self.view_box.camera.rect
@@ -123,6 +125,8 @@ class History2DCanvasWrapper(BaseCanvas):
 			self.assets['spacecraft'].setSource(list(self.data_models['history'].getPrimaryConfig().getAllSpacecraftConfigs().values())[0],
 												self.data_models['history'],
 												self.data_models['raycast_src'])
+			# set scale again after source, so it gets passed to children assets
+			self.assets['spacecraft'].setScale(*self.assets['earth'].getDimensions())
 			self.assets['spacecraft'].makeActive()
 
 		# Update data source for sun asset

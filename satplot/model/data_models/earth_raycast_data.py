@@ -260,6 +260,27 @@ class EarthRayCastData(BaseDataModel):
 
 		return full_img.astype(np.float32), mo_data
 
+	def rayCastFromSensorFor2D(self, resolution:tuple[int,int],
+								sens_eci_transform:np.ndarray, sens_rays_cf:np.ndarray,
+								curr_dt:dt.datetime) -> tuple[np.ndarray, np.ndarray]:
+		num_rays = len(sens_rays_cf)
+		# convert sensor frame to eci
+		sens_rays_eci = sens_eci_transform[:3,:3].dot(sens_rays_cf[:,:3].T).T
+		pos_eci = sens_eci_transform[:3,3]
+
+		# convert eci frame to ecef
+		sens_rays_ecf = np.array(pymap3d.eci2ecef(sens_rays_eci[:,0],sens_rays_eci[:,1],sens_rays_eci[:,2],curr_dt)).T
+		pos_ecf = np.asarray(pymap3d.eci2ecef(pos_eci[0], pos_eci[1], pos_eci[2],curr_dt))
+		# check intersection of rays with earth
+		cart_earth_intsct, earth_intsct = self._lineOfSightToSurface(pos_ecf, sens_rays_ecf)
+		# cart_earth_intsct.shape = (num_rays,3)
+		# earth_intsct.shape = (num_rays,)
+		lats = np.zeros(num_rays)
+		lons = np.zeros(num_rays)
+		lats[earth_intsct], lons[earth_intsct] = self._convertCartesianToEllipsoidGeodetic(cart_earth_intsct[earth_intsct,:])
+
+		return lats[earth_intsct], lons[earth_intsct]
+
 	def _convertCartesianToEllipsoidGeodetic(self, cart:np.ndarray, iters:int=3) -> tuple[np.ndarray, np.ndarray]:
 		'''
 		Compute latitude and longitude on ellipsoid Earth for an array of cartesian vectors

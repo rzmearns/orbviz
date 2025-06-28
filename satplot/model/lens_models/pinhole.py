@@ -31,3 +31,11 @@ def calcPixelAngularSize(pixels:tuple[int,int], fov:tuple[float, float]) -> tupl
 	px_deg_y = pixels[1]/fov[1]
 
 	return 1/np.deg2rad(1/px_deg_x), 1/np.deg2rad(1/px_deg_y)
+
+def generateEdgeRays(pixels:tuple[int,int], fov:tuple[float,float]) -> np.ndarray:
+	all_rays = generatePixelRays(pixels, fov)
+	num_rays = len(all_rays)
+	right_range = np.arange(pixels[0]-1,pixels[1]*pixels[0],pixels[0])
+	left_range = np.arange(0,pixels[1]*pixels[0],pixels[0])
+	edge_rays = np.vstack((all_rays[left_range,:],all_rays[right_range,:],all_rays[1:pixels[0]-1,:],all_rays[num_rays-pixels[0]+1:-1,:]))
+	return edge_rays

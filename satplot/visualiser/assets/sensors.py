@@ -3,6 +3,7 @@ import logging
 import numpy as np
 import numpy.typing as nptyping
 from scipy.spatial.transform import Rotation
+from scipy.spatial import ConvexHull
 from typing import Any
 
 import vispy.scene.visuals as vVisuals
@@ -12,6 +13,7 @@ import vispy.visuals.transforms as vTransforms
 from vispy.util.quaternion import Quaternion
 
 import satplot.model.geometry.polyhedra as polyhedra
+import satplot.model.geometry.polygons as polygeom
 import satplot.model.data_models.data_types as satplot_data_types
 import satplot.model.lens_models.pinhole as pinhole
 import satplot.util.constants as c
@@ -120,6 +122,7 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 		self.setTransform()
 
 		self._attachToParentView()
+		print(f"init: {self}")
 		
 	def _initData(self, sens_type:str, sensor_name:str, mesh_verts:nptyping.NDArray, mesh_faces:nptyping.NDArray, bf_quat:nptyping.NDArray, colour:tuple[float,float,float]):
 		self.data['type'] = sens_type
@@ -146,6 +149,7 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 
 	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
 							 rotation:nptyping.NDArray|None=None, quat:nptyping.NDArray|None=None) -> None:
+		print(f"Call setTransform of:{self}")
 		if self.isFirstDraw():
 			self._clearFirstDrawFlag()
 		if self.isStale():
@@ -229,6 +233,255 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 		colour = sensor_dict['colour']
 		return cls(sensor_name, mesh_verts, mesh_faces, bf_quat, colour, sens_type='square_pyramid', v_parent=parent)
 
+class SensorSuite2DAsset(base_assets.AbstractCompoundAsset):
+	def __init__(self, sens_suite_dict:dict[str,Any], name:str|None=None, v_parent:ViewBox|None=None):
+		super().__init__(name, v_parent)
+
+		self._setDefaultOptions()
+		self._initData(sens_suite_dict)
+		self._instantiateAssets()
+		self._createVisuals()
+
+		self._attachToParentView()
+
+	def _initData(self, sens_suite_dict:dict[str,Any]) -> None:
+		if self.data['name'] is None:
+			self.data['name'] = 'SensorSuite'
+		self.data['sens_suite_config'] = sens_suite_dict
+		self.data['curr_datetime'] = None
+		self.data['horiz_pixel_scale'] = None
+		self.data['vert_pixel_scale'] = None
+
+	def setSource(self, *args, **kwargs) -> None:
+		# args[0] = raycast_src
+		for sensor_name, sensor in self.assets.items():
+			sensor.setSource(args[0])
+
+	def setScale(self, horizontal_size, vertical_size):
+		self.data['horiz_pixel_scale'] = horizontal_size/360
+		self.data['vert_pixel_scale'] = vertical_size/180
+		for asset in self.assets.values():
+			asset.setScale(horizontal_size, vertical_size)
+
+	def setCurrentDatetime(self, curr_dt:dt.datetime) -> None:
+		self.data['curr_datetime'] = curr_dt
+		for asset in self.assets.values():
+			asset.setCurrentDatetime(curr_dt)
+
+	def _instantiateAssets(self) -> None:
+		sensor_names = self.data['sens_suite_config'].getSensorNames()
+		full_sensor_names = [f"{self.data['name']}: {sens_name}" for sens_name in sensor_names]
+		for ii, sensor_name in enumerate(sensor_names):
+			logger.info(f"Instantiating 2D sensor asset {self.data['name']}:{sensor_name}")
+			sens_dict = self.data['sens_suite_config'].getSensorConfig(sensor_name)
+			if sens_dict['shape'] == satplot_data_types.SensorTypes.CONE:
+				# TOOD: some kind of exception
+				pass
+			elif sens_dict['shape'] == satplot_data_types.SensorTypes.FPA:
+				self.assets[sensor_name] = Sensor2DAsset(full_sensor_names[ii], sens_dict, v_parent=self.data['v_parent'])
+
+	def _createVisuals(self) -> None:
+		pass
+
+	def getSensorByKey(self, sens_key:str):
+		return self.assets[sens_key]
+
+	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
+							 rotation:nptyping.NDArray|None=None, quat:nptyping.NDArray|None=None) -> None:
+		if self.isStale():
+			if rotation is None and quat is None:
+				logger.warning(f"Rotation and quaternion passed to sensor suite: {self.data['name']} cannot both be None")
+				raise ValueError(f"Rotation and quaternion passed sensor suite: {self.data['name']} cannot both be None")
+			if rotation is not None and quat is not None:
+				logger.warning(f"Both rotation and quaternion passed to sensor suite: {self.data['name']}, don't know which one to use")
+				raise ValueError(f"Both rotation and quaternion passed to sensor suite: {self.data['name']}, don't know which one to use")
+
+			for asset in self.assets.values():
+				asset.setTransform(pos=pos, rotation=rotation, quat=quat)
+			self._clearStaleFlag()
+
+	def _setDefaultOptions(self) -> None:
+		self._dflt_opts = {}
+		self.opts = self._dflt_opts.copy()
+
+	def _addIndividualSensorPlotOptions(self) -> None:
+		logger.debug(f'Adding sensor options dictionary entries for:')
+		for sens_key in self.assets.keys():
+			visibilityCallback = self._makeVisibilityCallback(sens_key)
+			self.opts[f'plot_{sens_key}'] = {'value': True,
+													'type': 'boolean',
+													'help': '',
+													'static': False,
+													'callback': visibilityCallback,
+													'widget_data': None}
+
+	def _makeVisibilityCallback(self, sens_key:str):
+		def _visibilityCallback(state):
+			self.opts[f'plot_{sens_key}']['value'] = state
+			self.assets[f'{sens_key}'].setSensorVisibility(state)
+		return _visibilityCallback
+
+	def setSuiteVisibility(self, state:bool) -> None:
+		self.setVisibilityRecursive(state)
+
+	def removePlotOptions(self) -> None:
+		for opt_key, opt in self.opts.items():
+			if opt['widget_data'] is not None:
+				logger.debug(f"marking {opt_key} for removal")
+				opt['widget_data']['mark_for_removal'] = True
+		for asset in self.assets.values():
+			asset.removePlotOptions()
+
+class Sensor2DAsset(base_assets.AbstractSimpleAsset):
+	def __init__(self, name:str|None=None, config:dict={}, v_parent:ViewBox|None=None):
+		super().__init__(name, v_parent)
+		self.config = config
+		self._setDefaultOptions()
+		self._initData(config['bf_quat'], config['resolution'], config['fov'], config['colour'])
+		self._instantiateAssets()
+		self._createVisuals()
+		self.counter = 0
+		self._attachToParentView()
+		print(f"init: {self}")
+
+	def _initData(self, bf_quat:tuple[float, float, float, float], resolution:tuple[int,int], fov:tuple[float,float], colour:tuple[int, int, int]) -> None:
+		if self.data['name'] is None:
+			self.data['name'] = 'Sensor'
+		self.data['bf_quat'] = bf_quat
+		self.data['res'] = resolution
+		self.data['lowres'] = self._calcLowRes(self.data['res'])
+		self.data['fov'] = fov
+		self.data['lens_model'] = pinhole
+		# rays from each pixel in sensor frame
+		self.data['lowres_rays_sf'] = self.data['lens_model'].generatePixelRays(self.data['lowres'], self.data['fov'])
+		# need to create a valid polygon for instantiation (but before valid data exists)
+		self.data['poly_edge'] = np.zeros((364,2))
+		self.data['poly_edge'][:363,0] = np.arange(0,363)
+		self.data['poly_edge'][-1,0] = -1
+		self.data['last_transform'] = np.eye(4)
+		self.data['raycast_src'] = None
+		self.data['curr_datetime'] = None
+		self.data['vert_pixel_scale'] = None
+		self.data['horiz_pixel_scale'] = None
+		self.opts['sensor_colour']['value'] = colour
+
+	def setSource(self, *args, **kwargs) -> None:
+		# args[0] = raycast_src
+		self.data['raycast_src'] = args[0]
+
+	def setScale(self, horizontal_size, vertical_size):
+		self.data['horiz_pixel_scale'] = horizontal_size/360
+		self.data['vert_pixel_scale'] = vertical_size/180
+
+	def setCurrentDatetime(self, dt:dt.datetime) -> None:
+		self.data['curr_datetime'] = dt
+
+	def _calcLowRes(self, true_resolution:tuple[int,int]) -> tuple[int,int]:
+		lowres = [0,0]
+		max_1D_resolution = 240
+		aspect_ratio = true_resolution[0]/true_resolution[1]
+		if aspect_ratio > 1:
+			lowres = (max_1D_resolution, int(max_1D_resolution/aspect_ratio))
+		elif aspect_ratio < 1:
+			lowres = (int(max_1D_resolution/aspect_ratio), max_1D_resolution)
+		else:
+			lowres = (max_1D_resolution, max_1D_resolution)
+		return lowres
+
+	def _instantiateAssets(self) -> None:
+		pass
+
+	def _createVisuals(self) -> None:
+		self.visuals['projection'] = vVisuals.Polygon(self.data['poly_edge'],
+														 color=colours.normaliseColour(self.opts['sensor_colour']['value']),
+														 border_color='#000000',
+														 border_width=0,
+														 parent=None)
+		self.visuals['projection'].opacity = self.opts['sensor_alpha']['value']
+		self.visuals['projection'].order = 2
+		self.visuals['projection'].set_gl_state('translucent', depth_test=False)
+	def getDimensions(self) -> tuple[int, int]:
+		return self.data['lowres']
+
+	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
+							 rotation:nptyping.NDArray|None=None, quat:nptyping.NDArray|None=None) -> None:
+		print(f"Call setTransform of:{self}")
+		if self.isFirstDraw():
+			self._clearFirstDrawFlag()
+
+		if self.isStale():
+			T = np.eye(4)
+			if quat is not None:
+				rotation = Rotation.from_quat(quat) * Rotation.from_quat(self.data['bf_quat'])
+				rot_mat = rotation.as_matrix()
+				as_quat = rotation.as_quat()
+			elif rotation is not None:
+				# bf_quat -> bodyframe to cam quaternion
+				rotation = Rotation.from_matrix(rotation) * Rotation.from_quat(self.data['bf_quat'])
+				rot_mat = rotation.as_matrix()
+				as_quat = rotation.as_quat()
+			else:
+				rot_mat = np.eye(3)
+				as_quat = (1,0,0,0)
+			self.data['curr_quat'] = as_quat
+			T[0:3,0:3] = rot_mat
+			T[0:3,3] = np.asarray(pos).reshape(-1,3)
+
+			self.data['last_transform'] = T
+			lats,lons = self.data['raycast_src'].rayCastFromSensorFor2D(self.data['lowres'],
+																		T,
+																		self.data['lowres_rays_sf'],
+																		self.data['curr_datetime'])
+			verts, faces = self._generatePolyLatLons(lats, lons)
+			self.visuals['projection']._mesh.set_data(vertices=verts, faces=faces)
+			self._clearStaleFlag()
+
+	def _generatePolyLatLons(self, lats, lons):
+		surface_coords = np.hstack((lons.reshape(-1,1),lats.reshape(-1,1)))
+		surface_coords[:,0] = (surface_coords[:,0]+180) * self.data['horiz_pixel_scale']
+		surface_coords[:,1] = (surface_coords[:,1]+90) * self.data['vert_pixel_scale']
+		conv_hull = ConvexHull(surface_coords)
+		self.data['poly_edge'] = surface_coords[conv_hull.vertices]
+		verts, faces = polygeom.polygonTriangulate(self.data['poly_edge'])
+		return verts, faces
+
+	def _setDefaultOptions(self) -> None:
+		self._dflt_opts = {}
+
+		self._dflt_opts['sensor_colour'] = {'value': (10,10,10),
+												'type': 'colour',
+												'help': '',
+												'static': True,
+												'callback': self.setSensorConeColour,
+												'widget_data': None}
+		self._dflt_opts['sensor_alpha'] = {'value': 0.4,
+												'type': 'fraction',
+												'help': '',
+												'static': True,
+												'callback': self.setSensorAlpha,
+												'widget_data': None}
+		self.opts = self._dflt_opts.copy()
+
+	#----- OPTIONS CALLBACKS -----#
+	def setSensorConeColour(self, new_colour:tuple[float,float,float]) -> None:
+		self.opts['sensor_colour']['value'] = new_colour
+		self.visuals['projection'].set_data(color=colours.normaliseColour(new_colour))
+
+	def setSensorAlpha(self, alpha):
+		# Takes a little while to take effect.
+		self.opts['sensor_alpha']['value'] = alpha
+		self.visuals['projection'].opacity = self.opts['sensor_alpha']['value']
+
+	def setSensorVisibility(self, state):
+		for visual_name, visual in self.visuals.items():
+			visual.visible = state
+
+	def removePlotOptions(self) -> None:
+		for opt_key, opt in self.opts.items():
+			if opt['widget_data'] is not None:
+				logger.debug(f"marking {opt_key} for removal")
+				opt['widget_data']['mark_for_removal'] = True
+
 class SensorSuiteImageAsset(base_assets.AbstractCompoundAsset):
 	def __init__(self, sens_suite_dict:dict[str,Any], name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
@@ -272,7 +525,7 @@ class SensorSuiteImageAsset(base_assets.AbstractCompoundAsset):
 		sensor_names = self.data['sens_suite_config'].getSensorNames()
 		full_sensor_names = [f"{self.data['name']}: {sens_name}" for sens_name in sensor_names]
 		for ii, sensor_name in enumerate(sensor_names):
-			logger.debug(f"Instantiating sensor asset {self.data['name']}:{sensor_name}")
+			logger.info(f"Instantiating sensor image asset {self.data['name']}:{sensor_name}")
 			sens_dict = self.data['sens_suite_config'].getSensorConfig(sensor_name)
 			if sens_dict['shape'] == satplot_data_types.SensorTypes.CONE:
 				# TOOD: some kind of exception

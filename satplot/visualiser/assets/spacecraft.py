@@ -406,24 +406,25 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 			config_changed = False
 			return
 
-		# # remove old sensors if there were some
-		# if old_pointing_defined and old_sc_config != self.data['sc_config']:
-		# 	# If pointing had previously been defined -> old sensors, options need to be removed
-		# 	# if no pointing, no point having sensors
-		# 	self._removeSensorAssets(old_suite_names)
+		# remove old sensors if there were some
+		if old_pointing_defined and old_sc_config != self.data['sc_config']:
+			# If pointing had previously been defined -> old sensors, options need to be removed
+			# if no pointing, no point having sensors
+			self._removeSensorAssets(old_suite_names)
 
-		# if self.data['history'].getConfigValue('is_pointing_defined'):
-		# 	self._instantiateSensorAssets()
-		# 	self._setSensorAssetSources()
+		if self.data['history_src'].getConfigValue('is_pointing_defined'):
+			self._instantiateSensorAssets()
+			self._setSensorAssetSources()
 
 	def setScale(self, horizontal_size, vertical_size):
 		self.data['horiz_pixel_scale'] = horizontal_size/360
 		self.data['vert_pixel_scale'] = vertical_size/180
+		for asset in self.assets.values():
+			asset.setScale(horizontal_size, vertical_size)
 
 	def _instantiateAssets(self) -> None:
-		# if self.data['sc_config'] is not None:
-		# 	self._instantiateSensorAssets()
-		pass
+		if self.data['sc_config'] is not None:
+			self._instantiateSensorAssets()
 
 	def _removeSensorAssets(self, old_suite_names:list[str]) -> None:
 		for suite_name in old_suite_names:
@@ -433,8 +434,8 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 
 	def _instantiateSensorAssets(self) -> None:
 		for key, value in self.data['sc_config'].getSensorSuites().items():
-			logger.debug(f'Creating sensor suite sensor_suite_{key}')
-			self.assets[f'sensor_suite_{key}'] = sensors.SensorSuiteImageAsset(value,
+			logger.info(f'Creating sensor suite sensor_suite_{key}')
+			self.assets[f'sensor_suite_{key}'] = sensors.SensorSuite2DAsset(value,
 																	name=key,
 													 				v_parent=self.data['v_parent'])
 	def _setSensorAssetSources(self) -> None:
@@ -465,48 +466,46 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 			self._clearFirstDrawFlag()
 		if self.isStale():
 			self._updateMarkers()
-			# if self.data['history'].getConfigValue('is_pointing_defined'):
-			# 	pointing_data = self.data['history'].getPointings()[self.data['sc_config'].id]
-			# 	orbit_data = self.data['history'].getOrbits()[self.data['sc_config'].id]
-			# 	# set gizmo and sensor orientations
-			# 	#TODO: This check for last/next good pointing could be done better
-			# 	if np.any(np.isnan(pointing_data[self.data['curr_index'],:])):
-			# 		non_nan_found = False
-			# 		# look forwards
-			# 		for ii in range(self.data['curr_index'], len(pointing_data)):
-			# 			if np.all(np.isnan(pointing_data[ii,:])==False):
-			# 				non_nan_found = True
-			# 				quat = pointing_data[ii,:].reshape(-1,4)
-			# 				rotation = Rotation.from_quat(quat).as_matrix()
-			# 				break
-			# 			else:
-			# 				rotation = np.eye(3)
-			# 		if not non_nan_found:
-			# 			# look backwards
-			# 			for ii in range(self.data['curr_index'], -1, -1):
-			# 				if np.all(np.isnan(pointing_data[ii,:])==False):
-			# 					quat = pointing_data[ii,:].reshape(-1,4)
-			# 					rotation = Rotation.from_quat(quat).as_matrix()
-			# 					break
-			# 				else:
-			# 					rotation = np.eye(3)
-			# 	else:
-			# 		quat = pointing_data[self.data['curr_index']].reshape(-1,4)
-			# 		if self.data['history'].getConfigValue('pointing_invert_transform'):
-			# 			# Quat = ECI->BF
-			# 			rotation = Rotation.from_quat(quat).as_matrix()
-			# 		else:
-			# 			# Quat = BF->ECI
-			# 			rotation = Rotation.from_quat(quat).inv().as_matrix()
-			# 	for asset_name, asset in self.assets.items():
-			# 		if 'sensor_suite_' in asset_name:
-			# 			asset.setCurrentDatetime(self.data['history'].timespan[self.data['curr_index']])
-			# 			asset.setCurrentSunECI(orbit_data.sun_pos[self.data['curr_index']])
-			# 			asset.setCurrentMoonECI(orbit_data.moon_pos[self.data['curr_index']])
-			# 	# recomputeRedraw child assets
-			# 	self.data['curr_pos'] = orbit_data.pos[self.data['curr_index']].reshape(1,3)
-			# 	self.data['curr_quat'] = quat
-			# 	self._recomputeRedrawChildren(pos=orbit_data.pos[self.data['curr_index']].reshape(1,3), rotation=rotation)
+			if self.data['history_src'].getConfigValue('is_pointing_defined'):
+				pointing_data = self.data['history_src'].getPointings()[self.data['sc_config'].id]
+				orbit_data = self.data['history_src'].getOrbits()[self.data['sc_config'].id]
+				# set gizmo and sensor orientations
+				#TODO: This check for last/next good pointing could be done better
+				if np.any(np.isnan(pointing_data[self.data['curr_index'],:])):
+					non_nan_found = False
+					# look forwards
+					for ii in range(self.data['curr_index'], len(pointing_data)):
+						if np.all(np.isnan(pointing_data[ii,:])==False):
+							non_nan_found = True
+							quat = pointing_data[ii,:].reshape(-1,4)
+							rotation = Rotation.from_quat(quat).as_matrix()
+							break
+						else:
+							rotation = np.eye(3)
+					if not non_nan_found:
+						# look backwards
+						for ii in range(self.data['curr_index'], -1, -1):
+							if np.all(np.isnan(pointing_data[ii,:])==False):
+								quat = pointing_data[ii,:].reshape(-1,4)
+								rotation = Rotation.from_quat(quat).as_matrix()
+								break
+							else:
+								rotation = np.eye(3)
+				else:
+					quat = pointing_data[self.data['curr_index']].reshape(-1,4)
+					if self.data['history_src'].getConfigValue('pointing_invert_transform'):
+						# Quat = ECI->BF
+						rotation = Rotation.from_quat(quat).as_matrix()
+					else:
+						# Quat = BF->ECI
+						rotation = Rotation.from_quat(quat).inv().as_matrix()
+				for asset_name, asset in self.assets.items():
+					if 'sensor_suite_' in asset_name:
+						asset.setCurrentDatetime(self.data['history_src'].timespan[self.data['curr_index']])
+				# recomputeRedraw child assets
+				self.data['curr_pos'] = orbit_data.pos[self.data['curr_index']].reshape(1,3)
+				self.data['curr_quat'] = quat
+				self._recomputeRedrawChildren(pos=orbit_data.pos[self.data['curr_index']].reshape(1,3), rotation=rotation)
 			self._clearStaleFlag()
 
 	def getScreenMouseOverInfo(self) -> dict[str, Any]:
@@ -656,7 +655,7 @@ class SpacecraftViewsAsset(base_assets.AbstractAsset):
 
 	def _instantiateSensorAssets(self) -> None:
 		for key, value in self.data['sc_config'].getSensorSuites().items():
-			logger.debug(f'Creating sensor suite sensor_suite_{key}')
+			logger.info(f'Creating sensor suite sensor_suite_{key}')
 			self.assets[f'sensor_suite_{key}'] = sensors.SensorSuiteImageAsset(value,
 																	name=key,
 													 				v_parent=self.data['v_parent'])
