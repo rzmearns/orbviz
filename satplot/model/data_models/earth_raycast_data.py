@@ -5,6 +5,7 @@ from numpy import typing as nptyping
 import pathlib
 from progressbar import progressbar
 import pymap3d
+from scipy import ndimage
 from typing import Any
 import warnings
 
@@ -273,15 +274,28 @@ class EarthRayCastData(BaseDataModel):
 		pos_ecf = np.asarray(pymap3d.eci2ecef(pos_eci[0], pos_eci[1], pos_eci[2],curr_dt))
 		# check intersection of rays with earth
 		cart_earth_intsct, earth_intsct = self._lineOfSightToSurface(pos_ecf, sens_rays_ecf)
-		# cart_earth_intsct.shape = (num_rays,3)
+		struct = ndimage.generate_binary_structure(2, 2)
+		erode = ndimage.binary_erosion(earth_intsct.reshape(resolution[1],resolution[0]), struct)
+		edges = earth_intsct.reshape(resolution[1],resolution[0]) ^ erode
 		# earth_intsct.shape = (num_rays,)
 		lats = np.zeros(num_rays)
+		print(f'\t{lats.shape=}')
 		lons = np.zeros(num_rays)
 		lats[earth_intsct], lons[earth_intsct] = self._convertCartesianToEllipsoidGeodetic(cart_earth_intsct[earth_intsct,:])
+		edge_idxs = np.where(edges)
+		print(f'\t{len(edge_idxs[0])=}')
+		print(f'\t{len(edge_idxs[1])=}')
 
+		loop_idxs = self._findPath(edges, (edge_idxs[0][0],edge_idxs[1][0]), (edge_idxs[0][1],edge_idxs[1][1]))
+		print(f'\t{len(loop_idxs[0])=},{len(loop_idxs[1])=}')
+		flat_edge_idxs = np.ravel_multi_index(loop_idxs,dims=(resolution[1],resolution[0]))
+		print(f'\t{flat_edge_idxs.shape=}')
+
+		# return lats[flat_edge_idxs], lons[flat_edge_idxs], earth_intsct
 		return lats[earth_intsct], lons[earth_intsct]
+		# return lats, lons, earth_intsct, cart_earth_intsct
 
-	def _convertCartesianToEllipsoidGeodetic(self, cart:np.ndarray, iters:int=3) -> tuple[np.ndarray, np.ndarray]:
+	def _convertCartesianToEllipsoidGeodetic(self, cart:np.ndarray, iters:int=3, wrap_lon:bool=True) -> tuple[np.ndarray, np.ndarray]:
 		'''
 		Compute latitude and longitude on ellipsoid Earth for an array of cartesian vectors
 
@@ -295,7 +309,10 @@ class EarthRayCastData(BaseDataModel):
 		'''
 
 		x, y, z = cart.T
-		lon = np.degrees(np.arctan2(y,x))
+		if wrap_lon:
+			lon = np.degrees(np.arctan2(y,x))
+		else:
+			lon = np.degrees(np.arctan(y/x))
 		inverse_flattening = 298.257223563 #wikipedia
 		f = 1.0 / inverse_flattening
 		_e2 = 2.0*f - f*f
@@ -384,10 +401,43 @@ class EarthRayCastData(BaseDataModel):
 		out_arr[:,2] = lon_arr
 		return out_arr
 
-
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
 		return state
 
 	def deSerialise(self, state):
 		super().deSerialise(state)
+
+	# Perform a walk through the boundary pixels to order them sequentially.
+	def _findPath(self, arr,start_idx,next_idx):
+		idxs = []
+		visited = np.zeros(arr.shape,dtype=bool)
+		idxs.append(start_idx)
+		visited[start_idx] = True
+		old_idx = start_idx
+		curr_idx = next_idx
+		while curr_idx != start_idx and curr_idx != (None, None):
+			idxs.append(curr_idx)
+			visited[curr_idx] = True
+			new_idx = self._findGoodNeighbour(curr_idx, visited, arr)
+			old_idx = curr_idx
+			curr_idx = new_idx
+
+		return [idx[0] for idx in idxs],[idx[1] for idx in idxs]
+
+	def _findGoodNeighbour(self, idx, visited, arr):
+		adj_idxs = self._getAdjacentIdxs(idx, arr.shape)
+		for ii in range(len(adj_idxs)):
+			if visited[adj_idxs[ii]]:
+				continue
+			elif arr[adj_idxs[ii][0],adj_idxs[ii][1]]:
+				return (adj_idxs[ii])
+		return None, None
+
+	def _getAdjacentIdxs(self, idx, shape):
+		new_idxs = [(idx[0],idx[1]+1), (idx[0]-1,idx[1]),(idx[0],idx[1]-1),(idx[0]+1,idx[1])]
+		filtered_idxs = []
+		for y,x in new_idxs:
+			if x>=0 and x<shape[1] and y>=0 and y<shape[0]:
+				filtered_idxs.append((y,x))
+		return filtered_idxs

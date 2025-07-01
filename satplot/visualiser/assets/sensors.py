@@ -4,6 +4,7 @@ import numpy as np
 import numpy.typing as nptyping
 from scipy.spatial.transform import Rotation
 from scipy.spatial import ConvexHull
+import time
 from typing import Any
 
 import vispy.scene.visuals as vVisuals
@@ -14,6 +15,7 @@ from vispy.util.quaternion import Quaternion
 
 import satplot.model.geometry.polyhedra as polyhedra
 import satplot.model.geometry.polygons as polygeom
+import satplot.model.geometry.spherical as sphericalgeom
 import satplot.model.data_models.data_types as satplot_data_types
 import satplot.model.lens_models.pinhole as pinhole
 import satplot.util.constants as c
@@ -288,6 +290,7 @@ class SensorSuite2DAsset(base_assets.AbstractCompoundAsset):
 
 	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
 							 rotation:nptyping.NDArray|None=None, quat:nptyping.NDArray|None=None) -> None:
+		start = time.monotonic()
 		if self.isStale():
 			if rotation is None and quat is None:
 				logger.warning(f"Rotation and quaternion passed to sensor suite: {self.data['name']} cannot both be None")
@@ -299,6 +302,8 @@ class SensorSuite2DAsset(base_assets.AbstractCompoundAsset):
 			for asset in self.assets.values():
 				asset.setTransform(pos=pos, rotation=rotation, quat=quat)
 			self._clearStaleFlag()
+		end = time.monotonic()
+		print(f'{end-start=}')
 
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
@@ -392,24 +397,42 @@ class Sensor2DAsset(base_assets.AbstractSimpleAsset):
 		pass
 
 	def _createVisuals(self) -> None:
-		self.visuals['projection'] = vVisuals.Polygon(self.data['poly_edge'],
+		self.visuals['pixel_projection'] = vVisuals.Markers(parent=None,
+															scaling=False,
+															antialias=False)
+		self.visuals['pixel_projection'].set_data(pos=self.data['poly_edge'],
+													edge_width=1e-9,
+													face_color=colours.normaliseColour(self.opts['sensor_colour']['value']),
+													edge_color=colours.normaliseColour(self.opts['sensor_colour']['value']),
+													size=self.opts['sensor_pixel_size']['value'],
+													symbol='o')
+		self.visuals['projection1'] = vVisuals.Polygon(self.data['poly_edge'],
 														 color=colours.normaliseColour(self.opts['sensor_colour']['value']),
 														 border_color='#000000',
 														 border_width=0,
 														 parent=None)
-		self.visuals['projection'].opacity = self.opts['sensor_alpha']['value']
-		self.visuals['projection'].order = 2
-		self.visuals['projection'].set_gl_state('translucent', depth_test=False)
+		self.visuals['projection1'].opacity = self.opts['sensor_alpha']['value']
+		self.visuals['projection1'].order = 2
+		self.visuals['projection1'].set_gl_state('translucent', depth_test=False)
+		self.visuals['projection2'] = vVisuals.Polygon(self.data['poly_edge'],
+														 color=colours.normaliseColour(self.opts['sensor_colour']['value']),
+														 border_color='#000000',
+														 border_width=0,
+														 parent=None)
+		self.visuals['projection2'].opacity = self.opts['sensor_alpha']['value']
+		self.visuals['projection2'].order = 2
+		self.visuals['projection2'].set_gl_state('translucent', depth_test=False)
 	def getDimensions(self) -> tuple[int, int]:
 		return self.data['lowres']
 
 	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
 							 rotation:nptyping.NDArray|None=None, quat:nptyping.NDArray|None=None) -> None:
-		print(f"Call setTransform of:{self}")
+		# print(f"Call setTransform of:{self}")
 		if self.isFirstDraw():
 			self._clearFirstDrawFlag()
 
 		if self.isStale():
+			print(f"{self.data['name']}")
 			T = np.eye(4)
 			if quat is not None:
 				rotation = Rotation.from_quat(quat) * Rotation.from_quat(self.data['bf_quat'])
@@ -432,18 +455,51 @@ class Sensor2DAsset(base_assets.AbstractSimpleAsset):
 																		T,
 																		self.data['lowres_rays_sf'],
 																		self.data['curr_datetime'])
-			verts, faces = self._generatePolyLatLons(lats, lons)
-			self.visuals['projection']._mesh.set_data(vertices=verts, faces=faces)
+			# print(f'{lats.shape=}')
+			# np.save(f"lats_{self.data['name']}",lats)
+			# np.save(f"lons_{self.data['name']}",lons)
+			# np.save(f"bool_{self.data['name']}",intsct)
+
+			print(f"\t{self.data['curr_datetime']}")
+			triangulations, split = self._generatePolyLatLons(lats, lons)
+			# self.visuals['projection1']._mesh.set_data(vertices=triangulations[0][0], faces=triangulations[0][1])
+			# self.visuals['projection2']._mesh.set_data(vertices=triangulations[1][0], faces=triangulations[1][1])
+
+			# if polygons are overlaid, looks darker, so fix.
+			# if not split:
+			# 	self.visuals['projection1'].opacity = self.opts['sensor_alpha']['value']/2
+			# 	self.visuals['projection2'].opacity = self.opts['sensor_alpha']['value']/2
+			# else:
+			# 	self.visuals['projection1'].opacity = self.opts['sensor_alpha']['value']
+			# 	self.visuals['projection2'].opacity = self.opts['sensor_alpha']['value']
+			print()
+			self._updateMarkers()
 			self._clearStaleFlag()
 
 	def _generatePolyLatLons(self, lats, lons):
+
 		surface_coords = np.hstack((lons.reshape(-1,1),lats.reshape(-1,1)))
 		surface_coords[:,0] = (surface_coords[:,0]+180) * self.data['horiz_pixel_scale']
 		surface_coords[:,1] = (surface_coords[:,1]+90) * self.data['vert_pixel_scale']
-		conv_hull = ConvexHull(surface_coords)
-		self.data['poly_edge'] = surface_coords[conv_hull.vertices]
-		verts, faces = polygeom.polygonTriangulate(self.data['poly_edge'])
-		return verts, faces
+		surface_coords1 = surface_coords.copy()
+		surface_coords2 = surface_coords.copy()
+		self.data['poly_edge'] = surface_coords
+
+		print(f'\t{lons=}')
+		print(f'\t{lats=}')
+		if lons.min() < -175 and lons.max() > 175:
+			split = True
+			surface_coords1[lons<0,0] = surface_coords1[lons<0,0]+360*self.data['horiz_pixel_scale']
+			surface_coords2[lons>0,0] = surface_coords2[lons>0,0]-360*self.data['horiz_pixel_scale']
+		else:
+			split = False
+
+		triangulations = []
+		# verts, faces = polygeom.polygonTriangulate(surface_coords1)
+		# triangulations.append((verts, faces))
+		# verts, faces = polygeom.polygonTriangulate(surface_coords2)
+		# triangulations.append((verts, faces))
+		return triangulations, split
 
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
@@ -460,17 +516,35 @@ class Sensor2DAsset(base_assets.AbstractSimpleAsset):
 												'static': True,
 												'callback': self.setSensorAlpha,
 												'widget_data': None}
+		self._dflt_opts['sensor_pixel_size'] = {'value': 1,
+												'type': 'number',
+												'help': '',
+												'static': True,
+												'callback': self.setPixelSize,
+											'widget_data': None}
 		self.opts = self._dflt_opts.copy()
 
 	#----- OPTIONS CALLBACKS -----#
+	def _updateMarkers(self):
+		self.visuals['pixel_projection'].set_data(pos=self.data['poly_edge'],
+											size=self.opts['sensor_pixel_size']['value'],
+											face_color=colours.normaliseColour(self.opts['sensor_colour']['value']),
+											edge_color=colours.normaliseColour(self.opts['sensor_colour']['value']))
+
 	def setSensorConeColour(self, new_colour:tuple[float,float,float]) -> None:
 		self.opts['sensor_colour']['value'] = new_colour
-		self.visuals['projection'].set_data(color=colours.normaliseColour(new_colour))
+		self.visuals['projection1'].set_data(color=colours.normaliseColour(new_colour))
+		self.visuals['projection2'].set_data(color=colours.normaliseColour(new_colour))
 
 	def setSensorAlpha(self, alpha):
 		# Takes a little while to take effect.
 		self.opts['sensor_alpha']['value'] = alpha
-		self.visuals['projection'].opacity = self.opts['sensor_alpha']['value']
+		self.visuals['projection1'].opacity = self.opts['sensor_alpha']['value']
+		self.visuals['projection2'].opacity = self.opts['sensor_alpha']['value']
+
+	def setPixelSize(self, size):
+		self.opts['sensor_pixel_size']['value'] = size
+		self._updateMarkers()
 
 	def setSensorVisibility(self, state):
 		for visual_name, visual in self.visuals.items():
