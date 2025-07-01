@@ -427,6 +427,7 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 			self._instantiateSensorAssets()
 
 	def _removeSensorAssets(self, old_suite_names:list[str]) -> None:
+		self._removeOldSensorSuitePlotOptions(old_suite_names)
 		for suite_name in old_suite_names:
 			self.assets[f'sensor_suite_{suite_name}'].removePlotOptions()
 			self.assets[f'sensor_suite_{suite_name}'].detachFromParentViewRecursive()
@@ -438,6 +439,8 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 			self.assets[f'sensor_suite_{key}'] = sensors.SensorSuite2DAsset(value,
 																	name=key,
 													 				v_parent=self.data['v_parent'])
+		self._addIndividualSensorSuitePlotOptions()
+
 	def _setSensorAssetSources(self) -> None:
 		for asset_name, asset in self.assets.items():
 			if 'sensor_suite_' in asset_name:
@@ -549,6 +552,21 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 		self.opts['spacecraft_marker_size']['value'] = value
 		self._updateMarkers()
 
+	def setAllSensorSuitesVisibility(self, state:bool) -> None:
+		for key, asset in self.assets.items():
+			if isinstance(asset, sensors.SensorSuite2DAsset):
+				asset.setVisibilityRecursive(state)
+
+	def setAllSensorSuitesStatefulVisibility(self, state:bool) -> None:
+		for key, asset in self.assets.items():
+			if isinstance(asset, sensors.SensorSuite2DAsset):
+				if state and self.opts[f'plot_{key}']['value']:
+					# turning on, only if option state has it previously on
+					asset.setVisibilityRecursive(state)
+				elif not state:
+					# turning off
+					asset.setVisibilityRecursive(state)
+
 	def setOrbitalMarkerVisibility(self, state:bool) -> None:
 		self.opts['plot_spacecraft_marker']['value'] = state
 		self.visuals['marker'].visible = self.opts['plot_spacecraft_marker']['value']
@@ -559,6 +577,29 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 											face_color=colours.normaliseColour(self.opts['spacecraft_marker_colour']['value']))
 
 	#----- HELPER FUNCTIONS -----#
+	def _addIndividualSensorSuitePlotOptions(self) -> None:
+		logger.debug(f'Adding sensor suite options dictionary entries for:')
+		for key, value in self.data['sc_config'].getSensorSuites().items():
+			visibilityCallback = self._makeVisibilityCallback(key)
+			self.opts[f'plot_sensor_suite_{key}'] = {'value': True,
+													'type': 'boolean',
+													'help': '',
+													'static': False,
+													'callback': visibilityCallback,
+													'widget_data': None}
+
+	def _makeVisibilityCallback(self, suite_key:str):
+		def _visibilityCallback(state):
+			self.opts[f'plot_sensor_suite_{suite_key}']['value'] = state
+			self.assets[f'sensor_suite_{suite_key}'].setSuiteVisibility(state)
+		return _visibilityCallback
+
+	def _removeOldSensorSuitePlotOptions(self, old_suite_names:list[str]) -> None:
+		for suite_name in old_suite_names:
+			if self.opts[f'plot_sensor_suite_{suite_name}']['widget_data'] is not None:
+				self.opts[f'plot_sensor_suite_{suite_name}']['widget_data']['mark_for_removal'] = True
+			self.assets[f'sensor_suite_{suite_name}'].removePlotOptions()
+			del(self.opts[f'plot_sensor_suite_{suite_name}'])
 
 class SpacecraftViewsAsset(base_assets.AbstractAsset):
 	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):

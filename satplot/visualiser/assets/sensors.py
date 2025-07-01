@@ -47,7 +47,7 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundAsset):
 	def _instantiateAssets(self) -> None:
 		sensor_names = self.data['sens_suite_config'].getSensorNames()
 		for sensor in sensor_names:
-			print(f'{sensor=}')
+			logger.info(f"Instantiating 3D sensor asset {self.data['name']}:{sensor}")
 			sens_dict = self.data['sens_suite_config'].getSensorConfig(sensor)
 			if sens_dict['shape'] == satplot_data_types.SensorTypes.CONE:
 				self.assets[sensor] = Sensor3DAsset.cone(sensor, sens_dict, parent=self.data['v_parent'])
@@ -281,6 +281,7 @@ class SensorSuite2DAsset(base_assets.AbstractCompoundAsset):
 				pass
 			elif sens_dict['shape'] == satplot_data_types.SensorTypes.FPA:
 				self.assets[sensor_name] = Sensor2DAsset(full_sensor_names[ii], sens_dict, v_parent=self.data['v_parent'])
+		self._addIndividualSensorPlotOptions()
 
 	def _createVisuals(self) -> None:
 		pass
