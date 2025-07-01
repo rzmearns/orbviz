@@ -360,9 +360,9 @@ class Sensor2DAsset(base_assets.AbstractSimpleAsset):
 		# rays from each pixel in sensor frame
 		self.data['lowres_rays_sf'] = self.data['lens_model'].generatePixelRays(self.data['lowres'], self.data['fov'])
 		# need to create a valid polygon for instantiation (but before valid data exists)
-		self.data['poly_edge'] = np.zeros((364,2))
-		self.data['poly_edge'][:363,0] = np.arange(0,363)
-		self.data['poly_edge'][-1,0] = -1
+		self.data['point_cloud'] = np.zeros((364,2))
+		self.data['point_cloud'][:363,0] = np.arange(0,363)
+		self.data['point_cloud'][-1,0] = -1
 		self.data['last_transform'] = np.eye(4)
 		self.data['raycast_src'] = None
 		self.data['curr_datetime'] = None
@@ -400,39 +400,22 @@ class Sensor2DAsset(base_assets.AbstractSimpleAsset):
 		self.visuals['pixel_projection'] = vVisuals.Markers(parent=None,
 															scaling=False,
 															antialias=False)
-		self.visuals['pixel_projection'].set_data(pos=self.data['poly_edge'],
+		self.visuals['pixel_projection'].set_data(pos=self.data['point_cloud'],
 													edge_width=1e-9,
 													face_color=colours.normaliseColour(self.opts['sensor_colour']['value']),
 													edge_color=colours.normaliseColour(self.opts['sensor_colour']['value']),
 													size=self.opts['sensor_pixel_size']['value'],
 													symbol='o')
-		self.visuals['projection1'] = vVisuals.Polygon(self.data['poly_edge'],
-														 color=colours.normaliseColour(self.opts['sensor_colour']['value']),
-														 border_color='#000000',
-														 border_width=0,
-														 parent=None)
-		self.visuals['projection1'].opacity = self.opts['sensor_alpha']['value']
-		self.visuals['projection1'].order = 2
-		self.visuals['projection1'].set_gl_state('translucent', depth_test=False)
-		self.visuals['projection2'] = vVisuals.Polygon(self.data['poly_edge'],
-														 color=colours.normaliseColour(self.opts['sensor_colour']['value']),
-														 border_color='#000000',
-														 border_width=0,
-														 parent=None)
-		self.visuals['projection2'].opacity = self.opts['sensor_alpha']['value']
-		self.visuals['projection2'].order = 2
-		self.visuals['projection2'].set_gl_state('translucent', depth_test=False)
+
 	def getDimensions(self) -> tuple[int, int]:
 		return self.data['lowres']
 
 	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
 							 rotation:nptyping.NDArray|None=None, quat:nptyping.NDArray|None=None) -> None:
-		# print(f"Call setTransform of:{self}")
 		if self.isFirstDraw():
 			self._clearFirstDrawFlag()
 
 		if self.isStale():
-			print(f"{self.data['name']}")
 			T = np.eye(4)
 			if quat is not None:
 				rotation = Rotation.from_quat(quat) * Rotation.from_quat(self.data['bf_quat'])
@@ -455,24 +438,7 @@ class Sensor2DAsset(base_assets.AbstractSimpleAsset):
 																		T,
 																		self.data['lowres_rays_sf'],
 																		self.data['curr_datetime'])
-			# print(f'{lats.shape=}')
-			# np.save(f"lats_{self.data['name']}",lats)
-			# np.save(f"lons_{self.data['name']}",lons)
-			# np.save(f"bool_{self.data['name']}",intsct)
-
-			print(f"\t{self.data['curr_datetime']}")
-			triangulations, split = self._generatePolyLatLons(lats, lons)
-			# self.visuals['projection1']._mesh.set_data(vertices=triangulations[0][0], faces=triangulations[0][1])
-			# self.visuals['projection2']._mesh.set_data(vertices=triangulations[1][0], faces=triangulations[1][1])
-
-			# if polygons are overlaid, looks darker, so fix.
-			# if not split:
-			# 	self.visuals['projection1'].opacity = self.opts['sensor_alpha']['value']/2
-			# 	self.visuals['projection2'].opacity = self.opts['sensor_alpha']['value']/2
-			# else:
-			# 	self.visuals['projection1'].opacity = self.opts['sensor_alpha']['value']
-			# 	self.visuals['projection2'].opacity = self.opts['sensor_alpha']['value']
-			print()
+			self._generatePolyLatLons(lats, lons)
 			self._updateMarkers()
 			self._clearStaleFlag()
 
@@ -481,25 +447,9 @@ class Sensor2DAsset(base_assets.AbstractSimpleAsset):
 		surface_coords = np.hstack((lons.reshape(-1,1),lats.reshape(-1,1)))
 		surface_coords[:,0] = (surface_coords[:,0]+180) * self.data['horiz_pixel_scale']
 		surface_coords[:,1] = (surface_coords[:,1]+90) * self.data['vert_pixel_scale']
-		surface_coords1 = surface_coords.copy()
-		surface_coords2 = surface_coords.copy()
-		self.data['poly_edge'] = surface_coords
+		self.data['point_cloud'] = surface_coords
 
-		print(f'\t{lons=}')
-		print(f'\t{lats=}')
-		if lons.min() < -175 and lons.max() > 175:
-			split = True
-			surface_coords1[lons<0,0] = surface_coords1[lons<0,0]+360*self.data['horiz_pixel_scale']
-			surface_coords2[lons>0,0] = surface_coords2[lons>0,0]-360*self.data['horiz_pixel_scale']
-		else:
-			split = False
-
-		triangulations = []
-		# verts, faces = polygeom.polygonTriangulate(surface_coords1)
-		# triangulations.append((verts, faces))
-		# verts, faces = polygeom.polygonTriangulate(surface_coords2)
-		# triangulations.append((verts, faces))
-		return triangulations, split
+		return
 
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
@@ -509,12 +459,6 @@ class Sensor2DAsset(base_assets.AbstractSimpleAsset):
 												'help': '',
 												'static': True,
 												'callback': self.setSensorConeColour,
-												'widget_data': None}
-		self._dflt_opts['sensor_alpha'] = {'value': 0.4,
-												'type': 'fraction',
-												'help': '',
-												'static': True,
-												'callback': self.setSensorAlpha,
 												'widget_data': None}
 		self._dflt_opts['sensor_pixel_size'] = {'value': 1,
 												'type': 'number',
@@ -526,21 +470,13 @@ class Sensor2DAsset(base_assets.AbstractSimpleAsset):
 
 	#----- OPTIONS CALLBACKS -----#
 	def _updateMarkers(self):
-		self.visuals['pixel_projection'].set_data(pos=self.data['poly_edge'],
+		self.visuals['pixel_projection'].set_data(pos=self.data['point_cloud'],
 											size=self.opts['sensor_pixel_size']['value'],
 											face_color=colours.normaliseColour(self.opts['sensor_colour']['value']),
 											edge_color=colours.normaliseColour(self.opts['sensor_colour']['value']))
 
 	def setSensorConeColour(self, new_colour:tuple[float,float,float]) -> None:
 		self.opts['sensor_colour']['value'] = new_colour
-		self.visuals['projection1'].set_data(color=colours.normaliseColour(new_colour))
-		self.visuals['projection2'].set_data(color=colours.normaliseColour(new_colour))
-
-	def setSensorAlpha(self, alpha):
-		# Takes a little while to take effect.
-		self.opts['sensor_alpha']['value'] = alpha
-		self.visuals['projection1'].opacity = self.opts['sensor_alpha']['value']
-		self.visuals['projection2'].opacity = self.opts['sensor_alpha']['value']
 
 	def setPixelSize(self, size):
 		self.opts['sensor_pixel_size']['value'] = size

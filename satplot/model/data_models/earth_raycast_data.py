@@ -274,26 +274,13 @@ class EarthRayCastData(BaseDataModel):
 		pos_ecf = np.asarray(pymap3d.eci2ecef(pos_eci[0], pos_eci[1], pos_eci[2],curr_dt))
 		# check intersection of rays with earth
 		cart_earth_intsct, earth_intsct = self._lineOfSightToSurface(pos_ecf, sens_rays_ecf)
-		struct = ndimage.generate_binary_structure(2, 2)
-		erode = ndimage.binary_erosion(earth_intsct.reshape(resolution[1],resolution[0]), struct)
-		edges = earth_intsct.reshape(resolution[1],resolution[0]) ^ erode
+
 		# earth_intsct.shape = (num_rays,)
 		lats = np.zeros(num_rays)
-		print(f'\t{lats.shape=}')
 		lons = np.zeros(num_rays)
 		lats[earth_intsct], lons[earth_intsct] = self._convertCartesianToEllipsoidGeodetic(cart_earth_intsct[earth_intsct,:])
-		edge_idxs = np.where(edges)
-		print(f'\t{len(edge_idxs[0])=}')
-		print(f'\t{len(edge_idxs[1])=}')
 
-		loop_idxs = self._findPath(edges, (edge_idxs[0][0],edge_idxs[1][0]), (edge_idxs[0][1],edge_idxs[1][1]))
-		print(f'\t{len(loop_idxs[0])=},{len(loop_idxs[1])=}')
-		flat_edge_idxs = np.ravel_multi_index(loop_idxs,dims=(resolution[1],resolution[0]))
-		print(f'\t{flat_edge_idxs.shape=}')
-
-		# return lats[flat_edge_idxs], lons[flat_edge_idxs], earth_intsct
 		return lats[earth_intsct], lons[earth_intsct]
-		# return lats, lons, earth_intsct, cart_earth_intsct
 
 	def _convertCartesianToEllipsoidGeodetic(self, cart:np.ndarray, iters:int=3, wrap_lon:bool=True) -> tuple[np.ndarray, np.ndarray]:
 		'''
