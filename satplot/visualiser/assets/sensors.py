@@ -478,6 +478,7 @@ class Sensor2DAsset(base_assets.AbstractSimpleAsset):
 
 	def setSensorConeColour(self, new_colour:tuple[float,float,float]) -> None:
 		self.opts['sensor_colour']['value'] = new_colour
+		self._updateMarkers()
 
 	def setPixelSize(self, size):
 		self.opts['sensor_pixel_size']['value'] = size
