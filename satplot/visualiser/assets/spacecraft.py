@@ -542,10 +542,10 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 			self.data['oth_edge1'], self.data['oth_edge2'], split = self.calcOTHCircle()
 			verts, faces = polygeom.polygonTriangulate(self.data['oth_edge1'])
 			self.visuals['oth_circle1']._mesh.set_data(vertices=verts, faces=faces)
-			self.visuals['oth_circle1'].pos=self.data['oth_edge1']
+			# self.visuals['oth_circle1'].pos=self.data['oth_edge1']
 			verts, faces = polygeom.polygonTriangulate(self.data['oth_edge2'])
 			self.visuals['oth_circle2']._mesh.set_data(vertices=verts, faces=faces)
-			self.visuals['oth_circle2'].pos=self.data['oth_edge2']
+			# self.visuals['oth_circle2'].pos=self.data['oth_edge2']
 
 			if split:
 				self.visuals['oth_circle1'].opacity = self.opts['over_the_horizon_circle_alpha']['value']
