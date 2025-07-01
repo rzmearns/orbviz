@@ -415,8 +415,7 @@ class Sensor2DAsset(base_assets.AbstractSimpleAsset):
 							 rotation:nptyping.NDArray|None=None, quat:nptyping.NDArray|None=None) -> None:
 		if self.isFirstDraw():
 			self._clearFirstDrawFlag()
-
-		if self.isStale():
+		if self.isStale() and self.isActive():
 			T = np.eye(4)
 			if quat is not None:
 				rotation = Rotation.from_quat(quat) * Rotation.from_quat(self.data['bf_quat'])
@@ -487,6 +486,10 @@ class Sensor2DAsset(base_assets.AbstractSimpleAsset):
 	def setSensorVisibility(self, state):
 		for visual_name, visual in self.visuals.items():
 			visual.visible = state
+		if state:
+			self._setActiveFlag()
+		else:
+			self._clearActiveFlag()
 
 	def removePlotOptions(self) -> None:
 		for opt_key, opt in self.opts.items():
@@ -661,51 +664,50 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 		if self.isFirstDraw():
 			self._clearFirstDrawFlag()
 
-		if self.isActive():
-			if self.isStale():
-				T = np.eye(4)
-				if quat is not None:
-					rotation = Rotation.from_quat(quat) * Rotation.from_quat(self.data['bf_quat'])
-					rot_mat = rotation.as_matrix()
-					as_quat = rotation.as_quat()
-				elif rotation is not None:
-					# bf_quat -> bodyframe to cam quaternion
-					rotation = Rotation.from_matrix(rotation) * Rotation.from_quat(self.data['bf_quat'])
-					rot_mat = rotation.as_matrix()
-					as_quat = rotation.as_quat()
-				else:
-					rot_mat = np.eye(3)
-					as_quat = (1,0,0,0)
-				self.data['curr_quat'] = as_quat
-				T[0:3,0:3] = rot_mat
-				T[0:3,3] = np.asarray(pos).reshape(-1,3)
+		if self.isStale() and self.isActive():
+			T = np.eye(4)
+			if quat is not None:
+				rotation = Rotation.from_quat(quat) * Rotation.from_quat(self.data['bf_quat'])
+				rot_mat = rotation.as_matrix()
+				as_quat = rotation.as_quat()
+			elif rotation is not None:
+				# bf_quat -> bodyframe to cam quaternion
+				rotation = Rotation.from_matrix(rotation) * Rotation.from_quat(self.data['bf_quat'])
+				rot_mat = rotation.as_matrix()
+				as_quat = rotation.as_quat()
+			else:
+				rot_mat = np.eye(3)
+				as_quat = (1,0,0,0)
+			self.data['curr_quat'] = as_quat
+			T[0:3,0:3] = rot_mat
+			T[0:3,3] = np.asarray(pos).reshape(-1,3)
 
-				self.data['last_transform'] = T
-				img_data, mo_data = self.data['raycast_src'].rayCastFromSensor(self.data['lowres'],
-																	self.data['lowres_pix_per_rad'],
-																	T,
-																	self.data['lowres_rays_sf'],
-																	self.data['curr_datetime'],
-																	self.data['curr_sun_eci'],
-																	self.data['curr_moon_eci'],
-																	draw_eclipse=self.opts['solar_lighting']['value'],
-																	draw_atm=self.opts['plot_atmosphere']['value'],
-																	atm_height=self.opts['atmosphere_height']['value'],
-																	atm_lit_colour=self.opts['atmosphere_lit_colour']['value'],
-																	atm_eclipsed_colour=self.opts['atmosphere_eclipsed_colour']['value'],
-																	draw_sun=self.opts['plot_sun']['value'],
-																	sun_colour=self.opts['sun_colour']['value'],
-																	draw_moon=self.opts['plot_moon']['value'],
-																	moon_colour=self.opts['moon_colour']['value'],
-																	highlight_edge=self.opts['highlight_limb']['value'],
-																	highlight_height=self.opts['highlight_height']['value'],
-																	highlight_colour=self.opts['highlight_colour']['value'])
-				self.data['mo_data'] = mo_data
-				data_reshaped = img_data.reshape(self.data['lowres'][1],self.data['lowres'][0],3)/255
-				self.visuals['image'].set_data(data_reshaped)
-				# setting data of ImageVisual doesn't refresh canvas, use text visual to refresh instead
-				self.visuals['text'].text = f"Sensor: {self.data['name']}"
-				self._clearStaleFlag()
+			self.data['last_transform'] = T
+			img_data, mo_data = self.data['raycast_src'].rayCastFromSensor(self.data['lowres'],
+																self.data['lowres_pix_per_rad'],
+																T,
+																self.data['lowres_rays_sf'],
+																self.data['curr_datetime'],
+																self.data['curr_sun_eci'],
+																self.data['curr_moon_eci'],
+																draw_eclipse=self.opts['solar_lighting']['value'],
+																draw_atm=self.opts['plot_atmosphere']['value'],
+																atm_height=self.opts['atmosphere_height']['value'],
+																atm_lit_colour=self.opts['atmosphere_lit_colour']['value'],
+																atm_eclipsed_colour=self.opts['atmosphere_eclipsed_colour']['value'],
+																draw_sun=self.opts['plot_sun']['value'],
+																sun_colour=self.opts['sun_colour']['value'],
+																draw_moon=self.opts['plot_moon']['value'],
+																moon_colour=self.opts['moon_colour']['value'],
+																highlight_edge=self.opts['highlight_limb']['value'],
+																highlight_height=self.opts['highlight_height']['value'],
+																highlight_colour=self.opts['highlight_colour']['value'])
+			self.data['mo_data'] = mo_data
+			data_reshaped = img_data.reshape(self.data['lowres'][1],self.data['lowres'][0],3)/255
+			self.visuals['image'].set_data(data_reshaped)
+			# setting data of ImageVisual doesn't refresh canvas, use text visual to refresh instead
+			self.visuals['text'].text = f"Sensor: {self.data['name']}"
+			self._clearStaleFlag()
 
 	def generateFullRes(self) -> tuple[np.ndarray, np.ndarray, object]:
 		logger.debug(f"\tGenerating full resolution image for {self.data['name']}")

@@ -592,6 +592,10 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 		def _visibilityCallback(state):
 			self.opts[f'plot_sensor_suite_{suite_key}']['value'] = state
 			self.assets[f'sensor_suite_{suite_key}'].setSuiteVisibility(state)
+			if state:
+				self.assets[f'sensor_suite_{suite_key}'].setActiveFlagRecursive()
+			else:
+				self.assets[f'sensor_suite_{suite_key}'].clearActiveFlagRecursive()
 		return _visibilityCallback
 
 	def _removeOldSensorSuitePlotOptions(self, old_suite_names:list[str]) -> None:
