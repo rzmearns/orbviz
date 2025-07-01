@@ -693,7 +693,7 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 		alt = np.linalg.norm(eci_pos)
 		phi = np.rad2deg(np.arccos(c.R_EARTH/(alt)))
 		lats, lons1, lons2 = spherical_geom.genSmallCircleCenterSubtendedAngle(phi*2, pos[1], pos[0])
-		circle1, circle2 = spherical_geom.splitSmallCirclePatch2(pos[0], pos[1], lats, lons1, lons2)
+		circle1, circle2 = spherical_geom.splitSmallCirclePatch(pos[0], pos[1], lats, lons1, lons2)
 
 		if np.all(circle1 == circle2):
 			split = False

@@ -468,23 +468,9 @@ class Sun2DAsset(base_assets.AbstractAsset):
 			if split:
 				self.visuals['eclipse_patch1'].opacity = self.opts['eclipse_alpha']['value']
 				self.visuals['eclipse_patch2'].opacity = self.opts['eclipse_alpha']['value']
-				# self.visuals['oth_circle1'].opacity = 1
-				# self.visuals['oth_circle2'].opacity = 1
 			else:
 				self.visuals['eclipse_patch1'].opacity = self.opts['eclipse_alpha']['value']/2
 				self.visuals['eclipse_patch2'].opacity = self.opts['eclipse_alpha']['value']/2
-
-			# if len(patch1)>3:
-			# 	verts, faces = polygeom.polygonTriangulate(self.data['eclipse_edge1'])
-			# 	self.visuals['eclipse_patch1']._mesh.set_data(vertices=verts, faces=faces)
-			# else:
-			# 	self.visuals['eclipse_patch1']._mesh.set_data(vertices=np.array([[0,0],[-1,-1],[-1,0]]), faces=np.array([[0,1,2]]))
-
-			# if len(patch2)>3:
-			# 	verts, faces = polygeom.polygonTriangulate(self.data['eclipse_edge2'])
-			# 	self.visuals['eclipse_patch2']._mesh.set_data(vertices=verts, faces=faces)
-			# else:
-			# 	self.visuals['eclipse_patch2']._mesh.set_data(vertices=np.array([[0,0],[-1,-1],[-1,0]]), faces=np.array([[0,1,2]]))
 
 			self._recomputeRedrawChildren()
 			self._clearStaleFlag()
@@ -652,8 +638,7 @@ class Sun2DAsset(base_assets.AbstractAsset):
 		solar_lat = solar_lonlat[1]
 		phi_h = np.rad2deg(np.arcsin(c.R_EARTH/(c.R_EARTH+sat_altitude)))
 		lats, lons1, lons2 = spherical_geom.genSmallCircleCenterSubtendedAngle(phi_h*2, eclipse_center_lat, eclipse_center_lon)
-		circle1, circle2 = spherical_geom.splitSmallCirclePatch2(eclipse_center_lon, eclipse_center_lat, lats, lons1, lons2)
-		# patch1, patch2 = spherical_geom.splitSmallCirclePatch(eclipse_center_lon, eclipse_center_lat, lats, lons1, lons2)
+		circle1, circle2 = spherical_geom.splitSmallCirclePatch(eclipse_center_lon, eclipse_center_lat, lats, lons1, lons2)
 
 		if np.all(circle1 == circle2):
 			split = False
