@@ -5,6 +5,7 @@ from typing import Any
 
 from PyQt5 import QtWidgets, QtCore, QtGui
 
+from spherapy.timespan import TimeSpan
 import satplot.visualiser.colours as colours
 
 logger = logging.getLogger(__name__)
@@ -19,6 +20,7 @@ class TimeSlider(QtWidgets.QWidget):
 		self.num_ticks = 1440
 		self.range_per_tick = self.range/self.num_ticks
 		self._callbacks = []
+		self._timespan = None
 		vlayout = QtWidgets.QVBoxLayout()
 		vlayout.setSpacing(0)
 		vlayout.setContentsMargins(2,1,2,1)
@@ -49,6 +51,10 @@ class TimeSlider(QtWidgets.QWidget):
 		vlayout.addLayout(hlayout3)
 		self.slider.valueChanged.connect(self._run_callbacks)
 		self.setLayout(vlayout)
+
+	def setTimespan(self, timespan:TimeSpan):
+		self._timespan = timespan
+		self.setRange(self._timespan.start, self._timespan.end, self._timespan.num_steps)
 
 	def setRange(self, start_dt, end_dt, num_ticks):
 		if start_dt > end_dt:
@@ -115,8 +121,11 @@ class TimeSlider(QtWidgets.QWidget):
 	def add_connect(self, callback):
 		self._callbacks.append(callback)
 
-	def _run_callbacks(self):		
-		self._curr_dt_picker.setDatetime(self.start_dt + (self.slider.value()*self.tick_delta))
+	def _run_callbacks(self):
+		if self._timespan is not None:
+			self._curr_dt_picker.setDatetime(self._timespan[self.slider.value()])
+		else:
+			self._curr_dt_picker.setDatetime(self.start_dt + (self.slider.value()*self.tick_delta))
 		if len(self._callbacks) > 0:
 			for callback in self._callbacks:
 				callback(self.slider.value())

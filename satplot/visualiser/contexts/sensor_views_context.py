@@ -83,9 +83,7 @@ class SensorViewsContext(BaseContext):
 		pass
 
 	def _updateControls(self, *args, **kwargs) -> None:
-		self.controls.time_slider.setRange(self.data['history'].getTimespan().start,
-									  		self.data['history'].getTimespan().end,
-											len(self.data['history'].getTimespan()))
+		self.controls.time_slider.setTimespan(self.data['history'].getTimespan())
 		self.controls.time_slider.setValue(int(self.controls.time_slider.num_ticks/2))
 		self.controls.updateSensorViewLists()
 

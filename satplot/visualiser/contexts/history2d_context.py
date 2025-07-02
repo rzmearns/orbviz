@@ -138,9 +138,7 @@ class History2DContext(base.BaseContext):
 
 	def _updateControls(self, *args, **kwargs) -> None:
 
-		self.controls.time_slider.setRange(self.data['history'].getTimespan().start,
-									  		self.data['history'].getTimespan().end,
-											len(self.data['history'].getTimespan()))
+		self.controls.time_slider.setTimespan(self.data['history'].getTimespan())
 		self.controls.orbit_controls.period_start.setDatetime(self.data['history'].getConfigValue('timespan_period_start'))
 		self.controls.orbit_controls.period_end.setDatetime(self.data['history'].getConfigValue('timespan_period_end'))
 		self.controls.time_slider._curr_dt_picker.setDatetime(self.data['history'].getTimespan().start)
