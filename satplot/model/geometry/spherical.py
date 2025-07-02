@@ -156,8 +156,21 @@ def splitSmallCirclePatch(center_lon, center_lat, lats, lons1, lons2):
 	hemisphere_boundary = hemisphere_sign * 90
 	if np.all(lons1>-180) and np.all(lons1<180) and np.all(lons2>-180) and np.all(lons2<180):
 		split = False
-		circle = np.vstack((np.hstack((lons1.reshape(-1,1),lats.reshape(-1,1))),
-							np.flip(np.hstack((lons2.reshape(-1,1),lats.reshape(-1,1))),axis=0)))
+
+
+		if not (abs(lons1[0] - lons1[-1]) < 90) or  not (abs(lons2[0] - lons2[-1]) < 90):
+			# gaussian shape which isn't split by map edges
+			lons1 = np.hstack((180,180,lons1))
+			lats1 = np.hstack((hemisphere_boundary,lats[0], lats))
+			lons2 = np.hstack((-180,-180,lons2))
+			lats2 = np.hstack((hemisphere_boundary,lats[0], lats))
+		else:
+			lats1 = lats.copy()
+			lats2 = lats.copy()
+
+		circle = np.vstack((np.hstack((lons1.reshape(-1,1),lats1.reshape(-1,1))),
+							np.flip(np.hstack((lons2.reshape(-1,1),lats2.reshape(-1,1))),axis=0)))
+
 		return circle, circle
 	else:
 		split = True
