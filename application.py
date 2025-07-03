@@ -140,6 +140,7 @@ def setDefaultPackageOptions() -> None:
 	satplot.running = True
 	satplot.gl_plus = True
 	satplot.debug = False
+	satplot.high_precision = False
 	PIL.Image.MAX_IMAGE_PIXELS = None
 	try:
 		with open('data/spacetrack/.credentials', 'rb') as fp:
@@ -153,10 +154,13 @@ if __name__ == '__main__':
 						prog='SatPlot',
 						description='Visualisation software for satellites; including orbits and pointing.')
 	parser.add_argument('--nogl+', action='store_true', dest='nogl_plus')
+	parser.add_argument('--high_precision', action='store_true', dest='high_precision')
 	parser.add_argument('--debug', action='store_true', dest='debug')
 	args = parser.parse_args()
 	if args.nogl_plus:
 		satplot.gl_plus = False
+	if args.high_precision:
+		satplot.high_precision = True
 	if args.debug:
 		satplot.debug = True
 	logger.info(f"Satplot:")

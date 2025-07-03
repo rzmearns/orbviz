@@ -22,6 +22,8 @@ import satplot.visualiser.interface.console as console
 
 logger = logging.getLogger(__name__)
 
+from line_profiler import profile
+
 class EarthRayCastData(BaseDataModel):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
@@ -132,9 +134,9 @@ class EarthRayCastData(BaseDataModel):
 		pos_eci = sens_eci_transform[:3,3]
 
 		# convert eci frame to ecef
-		sens_rays_ecf = np.array(pymap3d.eci2ecef(sens_rays_eci[:,0],sens_rays_eci[:,1],sens_rays_eci[:,2],curr_dt)).T
-		pos_ecf = np.asarray(pymap3d.eci2ecef(pos_eci[0], pos_eci[1], pos_eci[2],curr_dt))
-		sun_ecf = np.asarray(pymap3d.eci2ecef(sun_eci[0], sun_eci[1], sun_eci[2],curr_dt))
+		sens_rays_ecf = satplot_conversion.eci2ecef(sens_rays_eci, curr_dt, high_precision=satplot.high_precision)
+		pos_ecf = satplot_conversion.eci2ecef(pos_eci, curr_dt, high_precision=satplot.high_precision)
+		sun_ecf = satplot_conversion.eci2ecef(sun_eci, curr_dt, high_precision=satplot.high_precision)
 		# check intersection of rays with earth
 		cart_earth_intsct, earth_intsct = self._lineOfSightToSurface(pos_ecf, sens_rays_ecf)
 		# cart_earth_intsct.shape = (num_rays,3)
@@ -270,8 +272,10 @@ class EarthRayCastData(BaseDataModel):
 		pos_eci = sens_eci_transform[:3,3]
 
 		# convert eci frame to ecef
-		sens_rays_ecf = np.array(pymap3d.eci2ecef(sens_rays_eci[:,0],sens_rays_eci[:,1],sens_rays_eci[:,2],curr_dt)).T
-		pos_ecf = np.asarray(pymap3d.eci2ecef(pos_eci[0], pos_eci[1], pos_eci[2],curr_dt))
+		state = False
+		sens_rays_ecf = satplot_conversion.eci2ecef(sens_rays_eci, curr_dt, high_precision=satplot.high_precision)
+		# np.save(f"sens_rays_ecf_{state}_{curr_dt}.npy",sens_rays_ecf)
+		pos_ecf = satplot_conversion.eci2ecef(pos_eci, curr_dt, high_precision=satplot.high_precision)
 		# check intersection of rays with earth
 		cart_earth_intsct, earth_intsct = self._lineOfSightToSurface(pos_ecf, sens_rays_ecf)
 
@@ -279,7 +283,7 @@ class EarthRayCastData(BaseDataModel):
 		lats = np.zeros(num_rays)
 		lons = np.zeros(num_rays)
 		lats[earth_intsct], lons[earth_intsct] = self._convertCartesianToEllipsoidGeodetic(cart_earth_intsct[earth_intsct,:])
-
+		# np.save(f"lats_lons_{state}_{curr_dt}.npy",np.column_stack((lats,lons)))
 		return lats[earth_intsct], lons[earth_intsct]
 
 	def _convertCartesianToEllipsoidGeodetic(self, cart:np.ndarray, iters:int=3, wrap_lon:bool=True) -> tuple[np.ndarray, np.ndarray]:
