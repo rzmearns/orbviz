@@ -12,7 +12,7 @@ def rgb2hex(rgb_tuple:tuple[int,int,int]) -> str:
 		if rgb_tuple[ii] == 0:
 			hex_str += "00"
 		else:
-			hex_str += hex(rgb_tuple[ii])[2:]
+			hex_str += f"{hex(rgb_tuple[ii])[2:].rjust(2,'0')}"
 
 	return hex_str
 
