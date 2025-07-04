@@ -124,7 +124,6 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 		self.setTransform()
 
 		self._attachToParentView()
-		print(f"init: {self}")
 		
 	def _initData(self, sens_type:str, sensor_name:str, mesh_verts:nptyping.NDArray, mesh_faces:nptyping.NDArray, bf_quat:nptyping.NDArray, colour:tuple[float,float,float]):
 		self.data['type'] = sens_type
@@ -344,7 +343,6 @@ class Sensor2DAsset(base_assets.AbstractSimpleAsset):
 		self._createVisuals()
 		self.counter = 0
 		self._attachToParentView()
-		print(f"init: {self}")
 
 	def _initData(self, bf_quat:tuple[float, float, float, float], resolution:tuple[int,int], fov:tuple[float,float], colour:tuple[int, int, int]) -> None:
 		if self.data['name'] is None:
