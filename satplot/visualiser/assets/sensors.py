@@ -214,7 +214,7 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 	def cone(cls, sensor_name:str, sensor_dict:dict[str,Any], parent:ViewBox|None=None):
 		mesh_verts, mesh_faces  = polyhedra.calcConeMesh((0,0,0),
 								  		sensor_dict['range'],
-										(1,0,0),
+										(0,0,1),
 										sensor_dict['fov'])
 		
 		bf_quat = np.asarray(sensor_dict['bf_quat']).reshape(1,4)
