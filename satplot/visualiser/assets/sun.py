@@ -13,6 +13,7 @@ from vispy.visuals import transforms as vTransforms
 from vispy.scene import visuals as vVisuals
 from vispy.visuals import filters as vFilters
 
+import satplot.model.data_models.history_data as history_data
 import satplot.model.geometry.primgeom as pg
 import satplot.model.geometry.polygons as polygeom
 import satplot.model.geometry.polyhedra as polyhedra
@@ -394,7 +395,6 @@ class Sun2DAsset(base_assets.AbstractAsset):
 
 
 		self.visuals['terminator'] = scene.visuals.Polygon(self.data['terminator_edge'], color='#000000', border_color='#000000', border_width=0, parent=None)
-		print(self.opts['terminator_alpha'])
 		self.visuals['terminator'].opacity = self.opts['terminator_alpha']['value']
 		self.visuals['terminator'].order = 1
 		self.visuals['terminator'].set_gl_state('translucent', depth_test=False)
@@ -410,8 +410,15 @@ class Sun2DAsset(base_assets.AbstractAsset):
 		self.visuals['eclipse_patch2'].set_gl_state('translucent', depth_test=False)
 
 	def setSource(self, *args, **kwargs):
-		sats_dict = args[0]
-		first_sat_orbit = list(sats_dict.values())[0]
+		# args[0] history data
+		if type(args[0]) is not history_data.HistoryData:
+			logger.error(f"setSource() of {self} requires a {history_data.HistoryData} as args[1], not: {type(args[1])}")
+			raise TypeError(f"setSource() of {self} requires a {history_data.HistoryData} as args[1], not: {type(args[1])}")
+			return
+
+		self.data['history_src'] = args[0]
+		first_sat_orbit = list(self.data['history_src'].getOrbits().values())[0]
+
 		if type(first_sat_orbit) is not orbit.Orbit:
 			logger.error(f"data source for {self} is not an orbit.Orbit, can't extract sun location data")
 			raise TypeError
@@ -452,25 +459,18 @@ class Sun2DAsset(base_assets.AbstractAsset):
 			verts, faces = polygeom.polygonTriangulate(self.data['terminator_edge'])
 			self.visuals['terminator']._mesh.set_data(vertices=verts, faces=faces)
 
-			patch1, patch2 = self.calcEclipseOutline(self.data['coords'][self.data['curr_index']], 466)
-			self.data['eclipse_edge1'] = patch1
-			self.data['eclipse_edge2'] = patch2
-			self.data['eclipse_edge1'][:,0] = (patch1[:,0]+180) * self.data['horiz_pixel_scale']
-			self.data['eclipse_edge1'][:,1] = (patch1[:,1]+90) * self.data['vert_pixel_scale']
-			self.data['eclipse_edge2'][:,0] = (patch2[:,0]+180) * self.data['horiz_pixel_scale']
-			self.data['eclipse_edge2'][:,1] = (patch2[:,1]+90) * self.data['vert_pixel_scale']
+			self.data['eclipse_edge1'], self.data['eclipse_edge2'], split = self.calcEclipseOutline(self.data['coords'][self.data['curr_index']], np.linalg.norm(self.data['coords'][self.data['curr_index']]))
+			verts, faces = polygeom.polygonTriangulate(self.data['eclipse_edge1'])
+			self.visuals['eclipse_patch1']._mesh.set_data(vertices=verts, faces=faces)
+			verts, faces = polygeom.polygonTriangulate(self.data['eclipse_edge2'])
+			self.visuals['eclipse_patch2']._mesh.set_data(vertices=verts, faces=faces)
 
-			if len(patch1)>3:
-				verts, faces = polygeom.polygonTriangulate(self.data['eclipse_edge1'])
-				self.visuals['eclipse_patch1']._mesh.set_data(vertices=verts, faces=faces)
+			if split:
+				self.visuals['eclipse_patch1'].opacity = self.opts['eclipse_alpha']['value']
+				self.visuals['eclipse_patch2'].opacity = self.opts['eclipse_alpha']['value']
 			else:
-				self.visuals['eclipse_patch1']._mesh.set_data(vertices=np.array([[0,0],[-1,-1],[-1,0]]), faces=np.array([[0,1,2]]))
-
-			if len(patch2)>3:
-				verts, faces = polygeom.polygonTriangulate(self.data['eclipse_edge2'])
-				self.visuals['eclipse_patch2']._mesh.set_data(vertices=verts, faces=faces)
-			else:
-				self.visuals['eclipse_patch2']._mesh.set_data(vertices=np.array([[0,0],[-1,-1],[-1,0]]), faces=np.array([[0,1,2]]))
+				self.visuals['eclipse_patch1'].opacity = self.opts['eclipse_alpha']['value']/2
+				self.visuals['eclipse_patch2'].opacity = self.opts['eclipse_alpha']['value']/2
 
 			self._recomputeRedrawChildren()
 			self._clearStaleFlag()
@@ -630,129 +630,25 @@ class Sun2DAsset(base_assets.AbstractAsset):
 
 		return terminator_boundary
 
-	def calcEclipseOutline(self, solar_lonlat, sat_altitude) -> tuple[np.ndarray, np.ndarray]:
+	def calcEclipseOutline(self, solar_lonlat, sat_altitude) -> tuple[np.ndarray, np.ndarray, bool]:
 		# sat altitude in km
 		# half subtended angle = phi_h
 		eclipse_center_lat = -solar_lonlat[1]
 		eclipse_center_lon = np.rad2deg(spherical_geom.wrapToCircleRange(np.deg2rad(solar_lonlat[0] + 180)))
 		solar_lat = solar_lonlat[1]
 		phi_h = np.rad2deg(np.arcsin(c.R_EARTH/(c.R_EARTH+sat_altitude)))
-
 		lats, lons1, lons2 = spherical_geom.genSmallCircleCenterSubtendedAngle(phi_h*2, eclipse_center_lat, eclipse_center_lon)
+		circle1, circle2 = spherical_geom.splitSmallCirclePatch(eclipse_center_lon, eclipse_center_lat, lats, lons1, lons2)
 
-		patch1, patch2 = self._splitEclipsePatches(eclipse_center_lon, eclipse_center_lat, lats, lons1, lons2)
-
-		return patch1, patch2
-
-	def _splitEclipsePatches(self, eclipse_lon, eclipse_lat, lats, lons1, lons2):
-		side1 = np.hstack((lons1.reshape(-1,1),lats.reshape(-1,1)))
-		side2 = np.flip(np.hstack((lons2.reshape(-1,1),lats.reshape(-1,1))),axis=0)
-
-		num_side1_crossings = None
-		num_side2_crossings = None
-		hemisphere_sign = np.sign(eclipse_lat)
-		hemisphere_boundary = hemisphere_sign * 90
-		if eclipse_lon > 0:
-			if (side1[:,0]>180).all():
-				# all points are to right of edge of map
-				num_side1_crossings = -1
-			else:
-				num_side1_crossings = len(np.where(np.diff(side1[:,0]>180))[0])
-
-			if num_side1_crossings == -1:
-				patch1 = side1
-				patch1[:,0] -= 360
-				patch1 = np.insert(patch1, [0, len(patch1)], [-180, np.nan], axis=0)
-				patch1[:,1] = array_u.nonMonotonicInterpNans(patch1[:,0], patch1[:,1])
-
-				patch2 = side2
-				patch2 = np.insert(patch2, [0, len(patch2)], [180, np.nan], axis=0)
-				patch2[:,1] = array_u.nonMonotonicInterpNans(patch2[:,0], patch2[:,1])
-			elif num_side1_crossings == 0:
-				# eclipse wholly within map
-				patch2 = np.vstack((side2, side1))
-				patch1 = np.array(([[-180,-90],[-181,-90],[-181,-91]]))
-
-			elif num_side1_crossings == 1:
-			  	# eclipse is over pole (a saddle clamp like shape)
-				side1_break1_idx = np.where(np.diff(side1[:,0]>180))[0][0]+1
-				side1 = np.insert(side1, side1_break1_idx, [180, np.nan], axis=0)
-				side1[:,1] = array_u.nonMonotonicInterpNans(side1[:,0], side1[:,1])
-
-				patch1 = side1[side1[:,0]>=180,:]
-				patch1[:,0] = patch1[:,0]-360
-				patch1 = np.vstack((patch1, [patch1[-1,0], hemisphere_boundary]))
-
-				patch2 = np.vstack((side1[side1[:,0]<=180,:],side2))
-				patch2 = np.vstack((patch2, [patch2[0,0], hemisphere_boundary]))
-
-			elif num_side1_crossings == 2:
-				# eclipse is circle on 2d map, but split by edge of map
-				side1_break1_idx = np.where(np.diff(side1[:,0]>180))[0][0]+1
-				side1_break2_idx = np.where(np.diff(side1[:,0]>180))[0][-1]+1
-				side1 = np.insert(side1, side1_break1_idx, [180, np.nan], axis=0)
-				side1 = np.insert(side1, side1_break2_idx+1, [180, np.nan], axis=0)
-				side1[:,1] = array_u.nonMonotonicInterpNans(side1[:,0], side1[:,1])
-
-				patch1 = side1[side1[:,0]>=180,:]
-				patch1[:,0] = patch1[:,0]-360
-				patch1 = np.insert(patch1, [0, len(patch1)], [-180, np.nan], axis=0)
-				patch1[:,1] = array_u.nonMonotonicInterpNans(patch1[:,0], patch1[:,1])
-
-				patch2 = np.vstack((side2,side1[side1[:,0]<=180,:]))
-
-		elif eclipse_lon < 0:
-			if (side2[:,0]<-180).all():
-				# all points are to left of edge of map
-				num_side2_crossings = -1
-			else:
-				num_side2_crossings = len(np.where(np.diff(side2[:,0]<-180))[0])
-
-			if num_side2_crossings == -1:
-				# all points are to left of edge of map
-				patch2 = side2
-				patch2[:,0] += 360
-				patch2 = np.insert(patch2, [0, len(patch2)], [180, np.nan], axis=0)
-				patch2[:,1] = array_u.nonMonotonicInterpNans(patch2[:,0], patch2[:,1])
-
-				patch1 = side1
-				patch1 = np.insert(patch1, [0, len(patch1)], [-180, np.nan], axis=0)
-				patch1[:,1] = array_u.nonMonotonicInterpNans(patch1[:,0], patch1[:,1])
-
-			elif num_side2_crossings == 0:
-				# eclipse wholly within map
-				patch1 = np.vstack((side1, side2))
-				patch2 = np.array(([[-180,-90],[-181,-90],[-181,-91]]))
-
-			elif num_side2_crossings == 1:
-				# eclipse is over pole (a saddle clamp like shape)
-				side2_break1_idx = np.where(np.diff(side2[:,0]<-180))[0][0]+1
-				side2 = np.insert(side2, side2_break1_idx, [-180, np.nan], axis=0)
-				side2[:,1] = array_u.nonMonotonicInterpNans(side2[:,0], side2[:,1])
-
-				patch2 = side2[side2[:,0]<=-180,:]
-				patch2[:,0] = patch2[:,0]+360
-				patch2 = np.vstack((patch2, [patch2[0,0], hemisphere_boundary]))
-
-				patch1 = np.vstack((side1,side2[side2[:,0]>=-180,:]))
-				patch1 = np.vstack((patch1, [patch1[-1,0], hemisphere_boundary]))
-
-			elif num_side2_crossings == 2:
-				# eclipse is circle on 2d map, but split by edge of map
-				side2_break1_idx = np.where(np.diff(side2[:,0]<-180))[0][0]+1
-				side2_break2_idx = np.where(np.diff(side2[:,0]<-180))[0][-1]+1
-				side2 = np.insert(side2, side2_break1_idx, [-180, np.nan], axis=0)
-				side2 = np.insert(side2, side2_break2_idx+1, [-180, np.nan], axis=0)
-				side2[:,1] = array_u.nonMonotonicInterpNans(side2[:,0], side2[:,1])
-
-				patch2 = side2[side2[:,0]<=-180,:]
-				patch2[:,0] = patch2[:,0]+360
-				patch2 = np.insert(patch2, [0, len(patch2)], [180, np.nan], axis=0)
-				patch2[:,1] = array_u.nonMonotonicInterpNans(patch2[:,0], patch2[:,1])
-
-				patch1 = np.vstack((side1,side2[side2[:,0]>=-180,:]))
-
+		if np.all(circle1 == circle2):
+			split = False
 		else:
-			print("eclipse center is 0")
+			split = True
 
-		return patch1, patch2
+		return self._scale(circle1), self._scale(circle2), split
+
+	def _scale(self, coords):
+		out_arr = coords.copy()
+		out_arr[:,0] = (out_arr[:,0] + 180) * self.data['horiz_pixel_scale']
+		out_arr[:,1] = (out_arr[:,1] + 90) * self.data['vert_pixel_scale']
+		return out_arr

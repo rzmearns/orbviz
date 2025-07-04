@@ -69,6 +69,9 @@ class HistoryData(BaseDataModel):
 	def getPrimaryConfig(self) -> data_types.PrimaryConfig:
 		return self.getConfigValue('primary_satellite_config')
 
+	def getPrimaryConfigIds(self) -> list[int]:
+		return self.getConfigValue('primary_satellite_ids')
+
 	def getConstellation(self) -> constellation_data.ConstellationData:
 		if self.constellation is None:
 			logger.warning(f'History data:{self} does not have a constellation yet')

@@ -4,6 +4,7 @@ from typing import Any
 from vispy import scene
 from vispy.scene.widgets.viewbox import ViewBox
 
+import satplot.model.data_models.history_data as history_data
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.colours as colours
 import satplot.visualiser.interface.console as console
@@ -205,12 +206,15 @@ class Orbit2DAsset(base_assets.AbstractAsset):
 		self._sliceData()
 
 	def setSource(self, *args, **kwargs) -> None:
-		print(f'setting orbit source')
-		sats_dict = args[0]
-		first_sat_orbit = list(sats_dict.values())[0]
-		if type(first_sat_orbit) is not orbit.Orbit:
-			logger.error(f"setSource() of {self} requires an {orbit.Orbit} as value of dict from args[0], not: {first_sat_orbit}")
-			raise TypeError
+		# args[0] history data
+		if type(args[0]) is not history_data.HistoryData:
+			logger.error(f"setSource() of {self} requires a {history_data.HistoryData} as args[1], not: {type(args[1])}")
+			raise TypeError(f"setSource() of {self} requires a {history_data.HistoryData} as args[1], not: {type(args[1])}")
+			return
+
+		self.data['history_src'] = args[0]
+		first_sat_orbit = list(self.data['history_src'].getOrbits().values())[0]
+
 		if hasattr(first_sat_orbit,'pos'):
 			self.data['coords'] = np.hstack((first_sat_orbit.lon.reshape(-1,1),first_sat_orbit.lat.reshape(-1,1)))
 			lat = ((first_sat_orbit.lat + 90) * self.data['vert_pixel_scale']).reshape(-1,1)
@@ -231,7 +235,6 @@ class Orbit2DAsset(base_assets.AbstractAsset):
 	def setScale(self, horizontal_size, vertical_size):
 		self.data['horiz_pixel_scale'] = horizontal_size/360
 		self.data['vert_pixel_scale'] = vertical_size/180
-		print(f"{self.data['horiz_pixel_scale']=},{self.data['vert_pixel_scale']}")
 
 	def _instantiateAssets(self) -> None:
 		# no sub assets
@@ -250,16 +253,7 @@ class Orbit2DAsset(base_assets.AbstractAsset):
 													width = self.opts['orbital_path_width']['value'],
 													parent=None)
 		self.visuals['future'].antialias=1
-		self.visuals['marker'] = scene.visuals.Markers(parent=None,
-														scaling=True,
-												 		antialias=0)
-		self.visuals['marker'].set_data(pos=self.data['coords'][self.data['curr_index']].reshape(1,2),
-								  		edge_width=0,
-										face_color=colours.normaliseColour(self.opts['spacecraft_marker_colour']['value']),
-										edge_color='white',
-										size=self.opts['spacecraft_marker_size']['value'],
-										symbol='o')
-		self.visuals['marker'].order = -20
+
 
 	# Override AbstractAsset.updateIndex()
 	def updateIndex(self, index:int) -> None:
@@ -272,19 +266,13 @@ class Orbit2DAsset(base_assets.AbstractAsset):
 		if self.isFirstDraw():
 			self._clearFirstDrawFlag()
 		if self.isStale():
-			self._updateMarkers()
 			self.visuals['past'].set_data(pos=self.data['past_coords'], connect=self.data['past_conn'])
 			self.visuals['future'].set_data(pos=self.data['future_coords'], connect=self.data['future_conn'])
 			self._recomputeRedrawChildren()
 			self._clearStaleFlag()
 
 	def getScreenMouseOverInfo(self) -> dict[str, Any]:
-		curr_world_pos = (self.data['coords'][self.data['curr_index']]).reshape(1,2)
 		mo_info = {'screen_pos':[], 'world_pos':[], 'strings':[], 'objects':[]}
-		mo_info['screen_pos'] = [(None, None)]
-		mo_info['world_pos'] = [curr_world_pos.reshape(2,)]
-		mo_info['strings'] = self.data['strings']
-		mo_info['objects'] = [self]
 		return mo_info
 
 	def _setDefaultOptions(self) -> None:
@@ -339,24 +327,6 @@ class Orbit2DAsset(base_assets.AbstractAsset):
 												'static': True,
 												'callback': self.setFutureDashSize,
 											'widget_data': None}
-		self._dflt_opts['spacecraft_marker_colour'] = {'value': (255,0,0),
-												'type': 'colour',
-												'help': '',
-												'static': True,
-												'callback': self.setMarkerColour,
-											'widget_data': None}
-		self._dflt_opts['plot_spacecraft_marker'] = {'value': True,
-										  		'type': 'boolean',
-												'help': '',
-												'static': True,
-												'callback': self.setOrbitalMarkerVisibility,
-											'widget_data': None}
-		self._dflt_opts['spacecraft_marker_size'] = {'value': 15,
-										  		'type': 'number',
-												'help': '',
-												'static': True,
-												'callback': self.setOrbitalMarkerSize,
-												'widget_data':None}
 
 		self.opts = self._dflt_opts.copy()
 
@@ -384,26 +354,8 @@ class Orbit2DAsset(base_assets.AbstractAsset):
 		self.opts['plot_orbital_path_past']['value'] = state
 		self.visuals['past'].visible = self.opts['plot_orbital_path_past']['value']
 
-	def setMarkerColour(self, new_colour:tuple[float,float,float]) -> None:
-		self.opts['spacecraft_marker_colour']['value'] = new_colour
-		self._updateMarkers()
-
-	def setOrbitalMarkerSize(self, value:int) -> None:
-		self.opts['spacecraft_marker_size']['value'] = value
-		self._updateMarkers()
-
-	def setOrbitalMarkerVisibility(self, state:bool) -> None:
-		self.opts['plot_spacecraft_marker']['value'] = state
-		self.visuals['marker'].visible = self.opts['plot_spacecraft_marker']['value']
-
-	def _updateMarkers(self):
-		self.visuals['marker'].set_data(pos=self.data['scaled_coords'][self.data['curr_index']].reshape(1,2),
-								   			size=self.opts['spacecraft_marker_size']['value'],
-											face_color=colours.normaliseColour(self.opts['spacecraft_marker_colour']['value']))
-
 	def _findLongitudinalTransitions(self) -> None:
 		self.data['trans_idx'] = np.where(np.abs(np.diff(self.data['coords'][:,0]))>300)[0]
-		print(f"{self.data['trans_idx']=}")
 
 	#----- HELPER FUNCTIONS -----#
 	def _sliceData(self) -> None:

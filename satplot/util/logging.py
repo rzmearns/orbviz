@@ -17,7 +17,7 @@ def setUpLogLevels():
 	# spherapy
 
 	# satplot
-	logging.getLogger('satplot.visualiser.interface').setLevel(logging.DEBUG)
+	logging.getLogger('satplot.visualiser.interface').setLevel(logging.INFO)
 	logging.getLogger('satplot.visualiser.assets').setLevel(logging.INFO)
 
 

@@ -13,6 +13,16 @@ class DataType(Enum):
 	BASE = 1
 	HISTORY = 2
 	CONSTELLATION = 3
+	PLANETARYRAYCAST = 4
+	SPHEREIMAGE = 5
+
+class SensorTypes(Enum):
+	CONE = 'cone'
+	FPA = 'square_pyramid'
+
+	@classmethod
+	def hasValue(cls, value):
+		return value in cls._value2member_map_
 
 class ConstellationConfig():
 	def __init__(self, name:str, beam_width:float, satellites:dict[int, str]):
@@ -52,19 +62,45 @@ class ConstellationConfig():
 class SensorSuiteConfig():
 	def __init__(self, name:str, d:dict):
 		self.name = name
-		self.sensors = d
+		self.sensors = {}
 
-		for k,v in self.sensors.items():
+		for sensor_name, sensor_config in d.items():
 			# Check sensor is a valid type
-			if v['shape'] not in sensor_asset.Sensor3DAsset.getValidTypes():
-				logger.error(f"Sensor {k} of suite {self.name} has invalid shape: {v['shape']}. Should be one of {sensor_asset.Sensor3DAsset.getValidTypes()}")
-				raise ValueError(f"Sensor {k} of suite {self.name} has invalid shape: {v['shape']}. Should be one of {sensor_asset.Sensor3DAsset.getValidTypes()}")
-			required_keys =  sensor_asset.Sensor3DAsset.getTypeConfigFields(v['shape'])
-			for key in required_keys:
-				if key not in v.keys():
-					logger.error(f"Sensor {k} of suite {self.name} has missing sensor config field: {key}")
-					raise KeyError(f"Sensor {k} of suite {self.name} has missing sensor config field: {key}")
+			if not SensorTypes.hasValue(sensor_config['shape']):
+				logger.error(f"Sensor {sensor_name} of suite {self.name} has invalid shape: {sensor_config['shape']}. Should be one of {SensorTypes}")
+				raise ValueError(f"Sensor {sensor_name} of suite {self.name} has invalid shape: {sensor_config['shape']}. Should be one of {SensorTypes}")
 
+			sens_dict = {'shape':SensorTypes(sensor_config['shape'])}
+			required_keys_types =  self.getSensorTypeConfigFields(sens_dict['shape'])
+			for config_key, _type in required_keys_types.items():
+				if config_key not in sensor_config.keys():
+					logger.error(f"Sensor {sensor_name} of suite {self.name} has missing sensor config field: {config_key}")
+					raise KeyError(f"Sensor {sensor_name} of suite {self.name} has missing sensor config field: {config_key}")
+				elif config_key == 'shape':
+					continue
+				else:
+					sens_dict[config_key] = self._getDecoder(_type)(sensor_config[config_key])
+
+			self.sensors[sensor_name] = sens_dict
+
+	def _getDecoder(self, x:type):
+		# TODO: how to annotate this
+		return {
+			int: self._decodeAny,
+			tuple[int]: self._decodeTupleInt,
+			tuple[float]: self._decodeTupleFloat
+		}.get(x,self._decodeAny)
+
+	def _decodeAny(self, input):
+		return input
+
+	def _decodeTupleInt(self, input_str:str) -> tuple:
+		t = [int(x) for x in input_str.replace('(','').replace(')','').split(',')]
+		return tuple(t)
+
+	def _decodeTupleFloat(self, input_str:str) -> tuple:
+		t = [float(x) for x in input_str.replace('(','').replace(')','').split(',')]
+		return tuple(t)
 
 	def getSensorNames(self) -> list[str]:
 		return list(self.sensors.keys())
@@ -83,6 +119,22 @@ class SensorSuiteConfig():
 
 		return True
 
+	@classmethod
+	def getSensorTypeConfigFields(cls, type:SensorTypes) -> dict[str,type]:
+		if type == SensorTypes.CONE:
+			return {'fov':int,
+					'range':int,
+					'colour':tuple[int],
+					'bf_quat':tuple[float]}
+		elif type == SensorTypes.FPA:
+			return 	{'fov':tuple[float],
+					'resolution':tuple[int],
+					'range':int,
+					'colour':tuple[int],
+					'bf_quat':tuple[float]}
+		else:
+			return {}
+
 class SpacecraftConfig():
 	def __init__(self, filestem:str, name:str, sat_id:int, sensor_suites_dict:dict[str, dict]):
 		self.filestem = filestem
@@ -92,7 +144,6 @@ class SpacecraftConfig():
 
 		for suite_name, suite in sensor_suites_dict.items():
 			self.sensor_suites[suite_name] = SensorSuiteConfig(suite_name, suite)
-
 
 	def getNumSuites(self) -> int:
 		return len(self.sensor_suites)
@@ -149,11 +200,11 @@ class PrimaryConfig():
 		sat_configs = {}
 		for k,v in data['satellites'].items():
 			if 'sensor_suites' in v.keys():
-				sat_configs['k'] = SpacecraftConfig(p.stem, k, v['id'], v['sensor_suites'])
+				sat_configs[k] = SpacecraftConfig(p.stem, k, v['id'], v['sensor_suites'])
 			else:
 				logger.debug(f'Spacecraft definition has no sensor suites field.')
 				console.send(f'Spacecraft definition has no sensor suites field.')
-				sat_configs['k'] = SpacecraftConfig(p.stem, k, v['id'], {})
+				sat_configs[k] = SpacecraftConfig(p.stem, k, v['id'], {})
 
 		return cls(p.stem, data['name'], sats, sat_configs)
 
@@ -168,6 +219,19 @@ class PrimaryConfig():
 
 	def getAllSpacecraftConfigs(self):
 		return self.sat_configs
+
+	def serialiseAllSensors(self) -> dict:
+		sens_dict = {}
+		for sat_name, sat_config in self.sat_configs.items():
+			sat_suites = {}
+			for suite_name, suite in sat_config.sensor_suites.items():
+				sat_suites[suite_name] = {}
+				for sens_name, sens_config in suite.sensors.items():
+					sat_suites[suite_name][sens_name] = sens_config
+
+			sens_dict[sat_config.id] = (sat_name, sat_suites)
+
+		return sens_dict
 
 	def __eq__(self, other) -> bool:
 		if self is None or other is None:

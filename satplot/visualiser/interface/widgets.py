@@ -5,6 +5,7 @@ from typing import Any
 
 from PyQt5 import QtWidgets, QtCore, QtGui
 
+from spherapy.timespan import TimeSpan
 import satplot.visualiser.colours as colours
 
 logger = logging.getLogger(__name__)
@@ -19,6 +20,7 @@ class TimeSlider(QtWidgets.QWidget):
 		self.num_ticks = 1440
 		self.range_per_tick = self.range/self.num_ticks
 		self._callbacks = []
+		self._timespan = None
 		vlayout = QtWidgets.QVBoxLayout()
 		vlayout.setSpacing(0)
 		vlayout.setContentsMargins(2,1,2,1)
@@ -49,6 +51,10 @@ class TimeSlider(QtWidgets.QWidget):
 		vlayout.addLayout(hlayout3)
 		self.slider.valueChanged.connect(self._run_callbacks)
 		self.setLayout(vlayout)
+
+	def setTimespan(self, timespan:TimeSpan):
+		self._timespan = timespan
+		self.setRange(self._timespan.start, self._timespan.end, self._timespan.num_steps)
 
 	def setRange(self, start_dt, end_dt, num_ticks):
 		if start_dt > end_dt:
@@ -115,8 +121,11 @@ class TimeSlider(QtWidgets.QWidget):
 	def add_connect(self, callback):
 		self._callbacks.append(callback)
 
-	def _run_callbacks(self):		
-		self._curr_dt_picker.setDatetime(self.start_dt + (self.slider.value()*self.tick_delta))
+	def _run_callbacks(self):
+		if self._timespan is not None:
+			self._curr_dt_picker.setDatetime(self._timespan[self.slider.value()])
+		else:
+			self._curr_dt_picker.setDatetime(self.start_dt + (self.slider.value()*self.tick_delta))
 		if len(self._callbacks) > 0:
 			for callback in self._callbacks:
 				callback(self.slider.value())
@@ -371,6 +380,54 @@ class ValueSpinner(QtWidgets.QWidget):
 			self._val_box.setValue(int(self.curr_val))
 		self._val_box.blockSignals(False)
 
+class Button(QtWidgets.QWidget):
+	def __init__(self, label, button_label, parent: QtWidgets.QWidget=None) -> None:
+		super().__init__(parent)
+		self._callbacks = []
+		vlayout = QtWidgets.QVBoxLayout()
+		hlayout1 = QtWidgets.QHBoxLayout()
+		hlayout2 = QtWidgets.QHBoxLayout()
+		vlayout.setSpacing(0)
+		hlayout1.setSpacing(0)
+		hlayout2.setSpacing(0)
+		hlayout1.setContentsMargins(0,1,0,1)
+		hlayout2.setContentsMargins(0,1,10,1)
+
+		if label is not None:
+			self._label = QtWidgets.QLabel(label)
+			hlayout1.addWidget(self._label)
+			hlayout1.addStretch()
+		else:
+			hlayout1.addStretch()
+
+		self._button = QtWidgets.QPushButton(button_label)
+		hlayout2.addWidget(self._button)
+		vlayout.addLayout(hlayout1)
+		vlayout.addLayout(hlayout2)
+		self.setLayout(vlayout)
+
+		self._button.clicked.connect(self._run_callbacks)
+
+	def add_connect(self, callback):
+		self._callbacks.append(callback)
+
+	def _run_callbacks(self):
+		if len(self._callbacks) > 0:
+			for callback in self._callbacks:
+				callback()
+		else:
+			logger.warning("No Button callbacks are set")
+
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['type'] = 'Button'
+		state['value'] = None
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		if state['type'] != 'Button':
+			logger.error(f"{self} state was serialised as a {state['type']}, is now a Button")
+
 class ToggleBox(QtWidgets.QWidget):
 	def __init__(self, label, dflt_state, parent: QtWidgets.QWidget=None) -> None:
 		super().__init__(parent)
@@ -411,7 +468,6 @@ class ToggleBox(QtWidgets.QWidget):
 			logger.error(f"{self} state was serialised as a {state['type']}, is now a ToggleBox")
 		self._checkbox.blockSignals(True)
 		self._checkbox.setChecked(state['value'])
-		a = QtWidgets.QCheckBox()
 		self._checkbox.blockSignals(False)
 
 
@@ -436,14 +492,13 @@ class OptionBox(QtWidgets.QWidget):
 			self._label = QtWidgets.QLabel(label)
 			hlayout1.addWidget(self._label)
 			hlayout1.addStretch()
-			vlayout.addLayout(hlayout1)
+		else:
+			hlayout1.addStretch()
 
 		self._optionbox = NonScrollingComboBox()
 		for item in options_list:
 			self._optionbox.addItem(item)
 		self._optionbox.setFocusPolicy(QtCore.Qt.StrongFocus)
-		hlayout1.addWidget(self._label)
-		hlayout1.addStretch()
 		hlayout2.addWidget(self._optionbox)
 		vlayout.addLayout(hlayout1)
 		vlayout.addLayout(hlayout2)
@@ -469,9 +524,17 @@ class OptionBox(QtWidgets.QWidget):
 
 	def _run_callbacks(self, index):
 		self._curr_index = index
+		if self._curr_index == -1:
+			return
 		if len(self._callbacks) > 0:
 			for callback in self._callbacks:
 				callback(index)
+
+	def clear(self):
+		self._optionbox.clear()
+
+	def addItems(self, iterable):
+		self._optionbox.addItems(iterable)
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}

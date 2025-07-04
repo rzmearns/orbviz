@@ -1,6 +1,7 @@
 import logging
 import numpy as np
 import numpy.typing as nptyping
+import pymap3d
 from skyfield.api import wgs84
 from typing import Tuple
 
@@ -58,11 +59,7 @@ class Earth3DAsset(base_assets.AbstractAsset):
 			# args[0] assumed to be timespan
 			logger.error(f"setSource() of {self} requires a {timespan.Timespan} as args[0], not: {type(args[0])}")
 			raise TypeError
-		# TODO: add capability to produce array of skyfields)
-		times = []
-		for ii in range(len(args[0])):
-			times.append(args[0].asSkyfield(ii))
-		self.data['datetimes'] = np.asarray(times)
+		self.data['datetimes'] = args[0].asDatetime()
 		for asset in self.assets.values():
 			asset.setSource(self.data['datetimes'])
 
@@ -93,10 +90,7 @@ class Earth3DAsset(base_assets.AbstractAsset):
 			self._clearFirstDrawFlag()
 		if self.isStale():
 			# calculate rotation of earth
-			nullisland_curr = self.data['nullisland_topos'].at(self.data['datetimes'][self.data['curr_index']]).xyz.km
-
-			rot_rad = np.arctan2(nullisland_curr[1], nullisland_curr[0])
-			self.data['ecef_rads'] = rot_rad
+			self.data['ecef_rads'] = pymap3d.sidereal.greenwichsrt(pymap3d.sidereal.juliandate(self.data['datetimes'][self.data['curr_index']]))
 			R = transforms.rotAround(self.data['ecef_rads'], pg.Z)
 			new_coords = R.dot(self.data['landmass'].T).T
 
@@ -508,7 +502,6 @@ class Earth2DAsset(base_assets.AbstractAsset):
 		# These callbacks need to be set after asset creation as the option dict is populated during draw()
 
 		self._attachToParentView()
-		print(f'finished initialising 2D asset')
 
 	def _initData(self) -> None:
 		if self.data['name'] is None:
@@ -533,7 +526,6 @@ class Earth2DAsset(base_assets.AbstractAsset):
 	def _createVisuals(self) -> None:
 		# Earth Sphere
 		img_data = np.flip(read_png(f'{satplot_paths.data_dir}/earth2D/equirectangular.jpg'),0)
-		print(f'loaded image')
 		self.visuals['earth'] = scene.visuals.Image(
 			img_data,
 			interpolation = 'nearest',
@@ -541,11 +533,9 @@ class Earth2DAsset(base_assets.AbstractAsset):
 			parent=None,
 		)
 		self.visuals['earth'].order = 0
-		print(f"{self.visuals['earth'].order=}")
 		(w,h) = self.visuals['earth'].size
 		self.data['width'] = w
 		self.data['height'] = h
-		print(f'created visual')
 
 	def getDimensions(self) -> Tuple[int, int]:
 		return self.data['width'], self.data['height']

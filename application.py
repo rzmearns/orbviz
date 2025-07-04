@@ -3,6 +3,7 @@ import datetime as dt
 import logging
 import pathlib
 import pickle
+import PIL
 from typing import Any
 import warnings
 
@@ -25,6 +26,8 @@ use(gl='gl+')
 
 class Application():
 	def __init__(self) -> None:
+		satplot.threadpool = threading.Threadpool()
+		logger.info(f"Creating threadpool with {satplot.threadpool.maxThreadCount()} threads")
 		self.pyqt_app = app.use_app("pyqt5")
 		self.pyqt_app.create()
 		self.window = window.MainWindow(title="Sat Plot")
@@ -35,8 +38,7 @@ class Application():
 		self.save_worker = None
 		self.save_worker_thread = None
 		self.save_file = None
-		satplot.threadpool = threading.Threadpool()
-		logger.info(f"Creating threadpool with {satplot.threadpool.maxThreadCount()} threads")
+
 
 	def run(self) -> None:
 		self.window.show()
@@ -138,6 +140,8 @@ def setDefaultPackageOptions() -> None:
 	satplot.running = True
 	satplot.gl_plus = True
 	satplot.debug = False
+	satplot.high_precision = False
+	PIL.Image.MAX_IMAGE_PIXELS = None
 	try:
 		with open('data/spacetrack/.credentials', 'rb') as fp:
 			satplot.spacetrack_credentials = pickle.load(fp)
@@ -150,10 +154,13 @@ if __name__ == '__main__':
 						prog='SatPlot',
 						description='Visualisation software for satellites; including orbits and pointing.')
 	parser.add_argument('--nogl+', action='store_true', dest='nogl_plus')
+	parser.add_argument('--high_precision', action='store_true', dest='high_precision')
 	parser.add_argument('--debug', action='store_true', dest='debug')
 	args = parser.parse_args()
 	if args.nogl_plus:
 		satplot.gl_plus = False
+	if args.high_precision:
+		satplot.high_precision = True
 	if args.debug:
 		satplot.debug = True
 	logger.info(f"Satplot:")

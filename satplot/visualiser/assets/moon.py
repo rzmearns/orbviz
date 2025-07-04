@@ -6,6 +6,7 @@ import vispy.scene as scene
 from vispy.scene.widgets.viewbox import ViewBox
 import vispy.visuals.transforms as vtransforms
 
+import satplot.model.data_models.history_data as history_data
 import satplot.model.geometry.primgeom as pg
 import satplot.util.constants as c
 import satplot.visualiser.colours as colours
@@ -166,8 +167,15 @@ class Moon2DAsset(base_assets.AbstractAsset):
 
 
 	def setSource(self, *args, **kwargs):
-		sats_dict = args[0]
-		first_sat_orbit = list(sats_dict.values())[0]
+		# args[0] history data
+		if type(args[0]) is not history_data.HistoryData:
+			logger.error(f"setSource() of {self} requires a {history_data.HistoryData} as args[1], not: {type(args[1])}")
+			raise TypeError(f"setSource() of {self} requires a {history_data.HistoryData} as args[1], not: {type(args[1])}")
+			return
+
+		self.data['history_src'] = args[0]
+		first_sat_orbit = list(self.data['history_src'].getOrbits().values())[0]
+
 		if type(first_sat_orbit) is not orbit.Orbit:
 			logger.error(f"data source for {self} is not an orbit.Orbit, can't extract moon location data")
 			raise TypeError

@@ -6,7 +6,7 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 
 import satplot.model.data_models.data_types as data_types
 from satplot.model.data_models.history_data import HistoryData
-
+from satplot.model.data_models.earth_raycast_data import (EarthRayCastData)
 import satplot.visualiser.contexts.base_context as base
 from satplot.visualiser.contexts.canvas_wrappers.base_cw import (BaseCanvas)
 from satplot.visualiser.contexts.canvas_wrappers.cw_container import (CWContainer)
@@ -18,15 +18,17 @@ import satplot.visualiser.interface.widgets as widgets
 logger = logging.getLogger(__name__)
 
 class History2DContext(base.BaseContext):
-	data_type = data_types.DataType.HISTORY
+	data_type = [data_types.DataType.HISTORY]
 
-	def __init__(self, name:str, parent_window:QtWidgets.QMainWindow, data:HistoryData):
-		super().__init__(name, data)
+	def __init__(self, name:str, parent_window:QtWidgets.QMainWindow, history_data:HistoryData, raycast_data:EarthRayCastData):
+		super().__init__(name)
 		self.window = parent_window
+		self.data: dict[str, Any] = {}
+		self.data['history'] = history_data
+		self.data['raycast_src'] = raycast_data
 		self._validateDataType()
-		self.data = data
 		self.canvas_wrapper = history2d_cw.History2DCanvasWrapper()
-		self.canvas_wrapper.setModel(self.data)
+		self.canvas_wrapper.setModel(self.data['history'], self.data['raycast_src'])
 		self.controls = Controls(self, self.canvas_wrapper)
 
 		disp_hsplitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)
@@ -68,32 +70,32 @@ class History2DContext(base.BaseContext):
 		self.controls.orbit_controls.submit_button.clicked.connect(self._configureData)
 		self.controls.time_slider.add_connect(self._updateDisplayedIndex)
 		self.sccam_state = False
-		if self.data is None:
+		if self.data['history'] is None:
 			logger.warning(f'Context History3D: {self} does not have a data model.')
 			raise AttributeError(f'Context History3D: {self} does not have a data model.')
-		self.data.data_ready.connect(self._updateDataSources)
-		self.data.data_ready.connect(self._updateControls)
+		self.data['history'].data_ready.connect(self._updateDataSources)
+		self.data['history'].data_ready.connect(self._updateControls)
 
 		self.cw_container.left.connect(self.canvas_wrapper.stopMouseOverTimer)
 
 	def _validateDataType(self) -> None:
-		if self.data is not None and self.data.getType() != self.data_type:
-			console.sendErr(f"Error: history3D context has wrong data type: {self.data.getType()}")
+		if self.data['history'] is not None and self.data['history'].getType() != self.data_type:
+			console.sendErr(f"Error: history3D context has wrong data type: {self.data['history'].getType()}")
 			console.sendErr(f"\t should be: {self.data_type}")
 
 	def _configureData(self) -> None:
 		logger.info(f'Setting up data configuration for context: {self}')
 		console.send('Setting up data configuration')
 		# Timespan configuration
-		if self.data is None:
+		if self.data['history'] is None:
 			logger.warning(f"model data is not set for context {self.config['name']}:{self}")
 			raise ValueError(f"model data is not set for context {self.config['name']}:{self}")
 
-		self.data.updateConfig('timespan_period_start', self.controls.orbit_controls.period_start.datetime)
-		self.data.updateConfig('timespan_period_end', self.controls.orbit_controls.period_end.datetime)
-		self.data.updateConfig('sampling_period', self.controls.orbit_controls.sampling_period.period)
+		self.data['history'].updateConfig('timespan_period_start', self.controls.orbit_controls.period_start.datetime)
+		self.data['history'].updateConfig('timespan_period_end', self.controls.orbit_controls.period_end.datetime)
+		self.data['history'].updateConfig('sampling_period', self.controls.orbit_controls.sampling_period.period)
 		# Primary orbits configuration
-		self.data.setPrimaryConfig(self.controls.orbit_controls.getConfig())
+		self.data['history'].setPrimaryConfig(self.controls.orbit_controls.getConfig())
 
 		# Supplemental configuration
 		has_supplemental_constellation = self.controls.orbit_controls.suppl_constellation_selector.isEnabled()
@@ -102,32 +104,32 @@ class History2DContext(base.BaseContext):
 			if c_config is None:
 				console.sendErr("Supplementary constellation enabled: Please select a constellation.")
 				return
-			self.data.setSupplementalConstellation(c_config)
+			self.data['history'].setSupplementalConstellation(c_config)
 		else:
-			self.data.clearSupplementalConstellation()
+			self.data['history'].clearSupplementalConstellation()
 
 		# Historical pointing
 		if self.controls.orbit_controls.pointing_file_controls.isEnabled():
 			logger.info(f'Pointing defined. Setting pointing configuration for {self}')
-			self.data.updateConfig('is_pointing_defined', True)
+			self.data['history'].updateConfig('is_pointing_defined', True)
 			pointing_file_path = self.controls.orbit_controls.pointing_file_controls._pointing_file_selector.path
 			if pointing_file_path is None or \
 				pointing_file_path == '':
 				console.sendErr("Displaying spacecraft pointing requires a pointing file.")
 				return
-			self.data.updateConfig('pointing_defines_timespan', self.controls.orbit_controls.pointing_file_controls.pointingFileDefinesPeriod())
-			self.data.updateConfig('pointing_file', pointing_file_path)
-			self.data.updateConfig('pointing_invert_transform', self.controls.orbit_controls.pointing_file_controls.pointing_file_inv_toggle.isChecked())
+			self.data['history'].updateConfig('pointing_defines_timespan', self.controls.orbit_controls.pointing_file_controls.pointingFileDefinesPeriod())
+			self.data['history'].updateConfig('pointing_file', pointing_file_path)
+			self.data['history'].updateConfig('pointing_invert_transform', self.controls.orbit_controls.pointing_file_controls.pointing_file_inv_toggle.isChecked())
 		else:
 			logger.info(f'Pointing not defined. Clearing pointing configuration for {self}')
-			self.data.updateConfig('is_pointing_defined', False)
-			self.data.updateConfig('pointing_defines_timespan', False)
-			self.data.updateConfig('pointing_file', None)
-			self.data.updateConfig('pointing_invert_transform', False)
+			self.data['history'].updateConfig('is_pointing_defined', False)
+			self.data['history'].updateConfig('pointing_defines_timespan', False)
+			self.data['history'].updateConfig('pointing_file', None)
+			self.data['history'].updateConfig('pointing_invert_transform', False)
 
 		try:
 			self.controls.orbit_controls.submit_button.setEnabled(False)
-			self.data.process()
+			self.data['history'].process()
 		except Exception as e:
 			logger.warning(f"Error in configuring data for history3D: {e}")
 			console.sendErr(f"Error in configuring data for history3D: {e}")
@@ -136,12 +138,10 @@ class History2DContext(base.BaseContext):
 
 	def _updateControls(self, *args, **kwargs) -> None:
 
-		self.controls.time_slider.setRange(self.data.getTimespan().start,
-									  		self.data.getTimespan().end,
-											len(self.data.getTimespan()))
-		self.controls.orbit_controls.period_start.setDatetime(self.data.getConfigValue('timespan_period_start'))
-		self.controls.orbit_controls.period_end.setDatetime(self.data.getConfigValue('timespan_period_end'))
-		self.controls.time_slider._curr_dt_picker.setDatetime(self.data.getTimespan().start)
+		self.controls.time_slider.setTimespan(self.data['history'].getTimespan())
+		self.controls.orbit_controls.period_start.setDatetime(self.data['history'].getConfigValue('timespan_period_start'))
+		self.controls.orbit_controls.period_end.setDatetime(self.data['history'].getConfigValue('timespan_period_end'))
+		self.controls.time_slider._curr_dt_picker.setDatetime(self.data['history'].getTimespan().start)
 		self.controls.orbit_controls.submit_button.setEnabled(True)
 		self.controls.time_slider.setValue(int(self.controls.time_slider.num_ticks/2))
 
@@ -152,9 +152,9 @@ class History2DContext(base.BaseContext):
 		self._updateDisplayedIndex(self.controls.time_slider.slider.value())
 
 	def _updateDisplayedIndex(self, index:int) -> None:
-		if self.data is None:
-			logger.warning(f"model data is not set for context {self.config['name']}:{self}")
-			ValueError(f"model data is not set for context {self.config['name']}:{self}")
+		if self.data['history'] is None:
+			logger.warning(f"model history data is not set for context {self.config['name']}:{self}")
+			ValueError(f"model history data is not set for context {self.config['name']}:{self}")
 		self.canvas_wrapper.updateIndex(index)
 		self.canvas_wrapper.recomputeRedraw()
 
@@ -165,14 +165,14 @@ class History2DContext(base.BaseContext):
 		pass
 
 	def deSerialise(self, state_dict: dict[str, Any]) -> None:
-		self.data.deSerialise(state_dict['data'])
+		self.data['history'].deSerialise(state_dict['data'])
 		self._updateDataSources()
 		self.canvas_wrapper.deSerialise(state_dict['camera'])
 		self.controls.deSerialise(state_dict['controls'])
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
-		state['data'] = self.data.prepSerialisation()
+		state['data'] = self.data['history'].prepSerialisation()
 		state['controls'] = self.controls.prepSerialisation()
 		state['camera'] = self.canvas_wrapper.prepSerialisation()
 		return state

@@ -10,8 +10,10 @@ from PyQt5 import QtGui
 
 from vispy import scene
 from vispy.app.canvas import MouseEvent, ResizeEvent
+from vispy.scene.cameras import PanZoomCamera
 
 from satplot.model.data_models.history_data import (HistoryData)
+from satplot.model.data_models.earth_raycast_data import (EarthRayCastData)
 import satplot.model.geometry.primgeom as pg
 from satplot.model.data_models.data_types import PrimaryConfig
 from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
@@ -55,7 +57,8 @@ class History2DCanvasWrapper(BaseCanvas):
 		self.grid = self.canvas.central_widget.add_grid()
 
 		self.view_box = self.grid.add_view(0, 0, bgcolor='#008eaf')
-		self.view_box.camera = RestrictedPanZoom.RestrictedPanZoomCamera(limits=(0, IMAGE_SHAPE[0], 0, IMAGE_SHAPE[1]))
+		# self.view_box.camera = RestrictedPanZoom.RestrictedPanZoomCamera(limits=(0, IMAGE_SHAPE[0], 0, IMAGE_SHAPE[1]))
+		self.view_box.camera = PanZoomCamera()
 		self.view_box.camera.set_range(x=(0, IMAGE_SHAPE[0]), y=(0, IMAGE_SHAPE[1]), margin=0)
 		self.vb_aspect_ratio = self.view_box.camera.aspect
 		rect = self.view_box.camera.rect
@@ -77,9 +80,9 @@ class History2DCanvasWrapper(BaseCanvas):
 		self.mouseOverObject = None
 
 	def _buildAssets(self) -> None:
-		print(f'building 2d assets')
 		self.assets['earth'] = earth.Earth2DAsset(v_parent=self.view_box.scene)
 		self.assets['primary_orbit'] = orbit.Orbit2DAsset(v_parent=self.view_box.scene)
+		self.assets['spacecraft'] = spacecraft.Spacecraft2DAsset(v_parent=self.view_box.scene)
 		self.assets['moon'] = moon.Moon2DAsset(v_parent=self.view_box.scene)
 		self.assets['sun'] = sun.Sun2DAsset(v_parent=self.view_box.scene)
 
@@ -90,8 +93,9 @@ class History2DCanvasWrapper(BaseCanvas):
 				active_assets.append(k)
 		return active_assets
 
-	def setModel(self, hist_data:HistoryData) -> None:
+	def setModel(self, hist_data:HistoryData, earth_raycast_data:EarthRayCastData) -> None:
 		self.data_models['history'] = hist_data
+		self.data_models['raycast_src'] = earth_raycast_data
 
 	def modelUpdated(self) -> None:
 		if self.data_models['history'] is None:
@@ -104,21 +108,32 @@ class History2DCanvasWrapper(BaseCanvas):
 		# Update data source for moon asset
 		if len(self.data_models['history'].getConfigValue('primary_satellite_ids')) > 0:
 			self.assets['moon'].setScale(*self.assets['earth'].getDimensions())
-			self.assets['moon'].setSource(self.data_models['history'].getOrbits())
+			self.assets['moon'].setSource(self.data_models['history'])
 			self.assets['moon'].makeActive()
 
 		# Update data source for primary orbit(s)
 		if len(self.data_models['history'].getConfigValue('primary_satellite_ids')) > 0:
 			# TODO: extend to draw multiple primary satellites
 			self.assets['primary_orbit'].setScale(*self.assets['earth'].getDimensions())
-			self.assets['primary_orbit'].setSource(self.data_models['history'].getOrbits())
+			self.assets['primary_orbit'].setSource(self.data_models['history'])
 			self.assets['primary_orbit'].makeActive()
+
+		# Update data source for spacecraft
+		if len(self.data_models['history'].getConfigValue('primary_satellite_ids')) > 0:
+			# TODO: extend to draw multiple primary satellites
+			self.assets['spacecraft'].setScale(*self.assets['earth'].getDimensions())
+			self.assets['spacecraft'].setSource(list(self.data_models['history'].getPrimaryConfig().getAllSpacecraftConfigs().values())[0],
+												self.data_models['history'],
+												self.data_models['raycast_src'])
+			# set scale again after source, so it gets passed to children assets
+			self.assets['spacecraft'].setScale(*self.assets['earth'].getDimensions())
+			self.assets['spacecraft'].makeActive()
 
 		# Update data source for sun asset
 		if len(self.data_models['history'].getConfigValue('primary_satellite_ids')) > 0:
 			self.assets['sun'].makeDormant()
 			self.assets['sun'].setScale(*self.assets['earth'].getDimensions())
-			self.assets['sun'].setSource(self.data_models['history'].getOrbits())
+			self.assets['sun'].setSource(self.data_models['history'])
 			self.assets['sun'].makeActive()
 
 		self.assets['earth'].makeDormant()

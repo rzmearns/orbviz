@@ -30,11 +30,11 @@ class OrbitConfigs(QtWidgets.QWidget):
 		# Add widgets here
 		self.period_start = widgets.DatetimeEntry("Period Start:", dt.datetime.now(tz=dt.timezone.utc)-dt.timedelta(seconds=1.5*60*60))
 		self.period_end = widgets.DatetimeEntry("Period End:", (dt.datetime.now(tz=dt.timezone.utc)+dt.timedelta(seconds=1.5*60*60)))
-		self.sampling_period = widgets.PeriodBox("Sampling Period:", 10)
+		self.sampling_period = widgets.PeriodBox("Sampling Period:", 30)
 		self.button_layout = QtWidgets.QHBoxLayout()
 		self.submit_button = QtWidgets.QPushButton('Recalculate')
 		self.prim_orbit_selector = widgets.FilePicker('Primary Orbit',
-															dflt_file='SpIRIT_XYZ.json',
+															dflt_file='SpIRIT_XYNegZ.json',
 															dflt_dir='data/primary_configs/',
 															save=False)
 		self.pointing_file_controls = PointingFileControls()
@@ -476,6 +476,128 @@ class OptionConfigs(QtWidgets.QWidget):
 					logger.warning(f'{opt_key} not a recognised option for context configuration section {opt_section_title}')
 					continue
 				self.opt_sections[opt_section_title]['opts'][opt_key]['widget_data']['widget'].deSerialise(opt_serialisation)
+
+class SensorViewConfigs(QtWidgets.QWidget):
+
+	valid_sensor_types = [data_types.SensorTypes.FPA]
+	# selected & generate signals have signal arguments of [int, int|None, str|None, str|None]
+	selected = QtCore.pyqtSignal(int, object, object, object)
+	generate = QtCore.pyqtSignal(int, object, object, object)
+
+	def __init__(self, num_views:int =4, parent: QtWidgets.QWidget|None=None) -> None:
+		super().__init__()
+		vlayout = QtWidgets.QVBoxLayout()
+
+		glayout = QtWidgets.QGridLayout()
+		glayout.setVerticalSpacing(1)
+		self._label_font = QtGui.QFont()
+		self._label_font.setWeight(QtGui.QFont.Medium)
+		self._label = QtWidgets.QLabel('Linked Sensor Views')
+		self._label.setFont(self._label_font)
+		self._num_views = num_views
+		glayout.addWidget(self._label,0,0)
+		glayout.setContentsMargins(0,0,0,0)
+
+		self.view_spacecraft_selectors = []
+		self.view_sensor_selectors = []
+		self.view_full_res_generator = []
+
+		for ii in range(self._num_views):
+			self.view_spacecraft_selectors.append(widgets.OptionBox(f'View {ii+1} Spacecraft:',
+																options_list=[]))
+			self.view_sensor_selectors.append(widgets.OptionBox(f'View {ii+1} Sensor:',
+																options_list=[]))
+			self.view_full_res_generator.append(widgets.Button(f'Full Resolution Image','Generate'))
+			glayout.addWidget(self.view_spacecraft_selectors[-1],ii+1,0)
+			glayout.addWidget(self.view_sensor_selectors[-1],ii+1,1)
+			glayout.addWidget(self.view_full_res_generator[-1],ii+1,2)
+
+		selector_links = [self.createSelectorLink(ii) for ii in range(self._num_views)]
+		for ii in range(self._num_views):
+			self.view_spacecraft_selectors[ii].add_connect(selector_links[ii])
+
+		selection_links = [self.createSelectionLink(ii) for ii in range(self._num_views)]
+		for ii in range(self._num_views):
+			self.view_sensor_selectors[ii].add_connect(selection_links[ii])
+
+		generator_links = [self.createGeneratorLink(ii) for ii in range(self._num_views)]
+		for ii in range(self._num_views):
+			self.view_full_res_generator[ii].add_connect(generator_links[ii])
+
+		vlayout.addLayout(glayout)
+		vlayout.addStretch()
+		self.setLayout(vlayout)
+
+	def createSelectorLink(self, selector_idx):
+		def _function(sc_list_idx):
+			self.setSensList(selector_idx, sc_list_idx)
+		return _function
+
+	def createSelectionLink(self, selector_idx):
+		def _function(sens_list_idx):
+			self.onSensorSelection(selector_idx, sens_list_idx)
+		return _function
+
+	def createGeneratorLink(self, selector_idx):
+		def _function():
+			self.onGenerateSelection(selector_idx)
+		return _function
+
+	def setSelectorLists(self, sens_dict):
+		self._sens_dict = {}
+		self._sc_dict = {0:(None,None)}
+		sc_num = 1
+		logger.info(f'Creating list of sensors for all spacecraft')
+		for scid, sc_config in sens_dict.items():
+			self._sc_dict[sc_num] = (scid, sc_config[0])
+			sc_num += 1
+			self._sens_dict[scid] = {0:(None,None)}
+			sens_num = 1
+			for suite_name, suite in sc_config[1].items():
+				for sens_name, sens_config in suite.items():
+					if sens_config['shape'] in self.valid_sensor_types:
+						self._sens_dict[scid][sens_num] = (suite_name, sens_name)
+						sens_num += 1
+
+		logger.info(f'Populating drop down menus with spacecraft')
+		for ii in range(self._num_views):
+			self.view_spacecraft_selectors[ii].clear()
+			sc_items_list = [f'{v[0]}: {v[1]}' for v in self._sc_dict.values()]
+			sc_items_list[0] = ''
+			self.view_spacecraft_selectors[ii].addItems(sc_items_list)
+
+	def setSensList(self, view_id, sc_list_id):
+		logger.info(f'Clearing sensors from drop down menus')
+		self.view_sensor_selectors[view_id].clear()
+		sc_id = self._sc_dict[sc_list_id][0]
+		if sc_id is None:
+			self.onSensorSelection(view_id, None)
+			return
+		sens_list = [f'{v[0]}: {v[1]}' for v in self._sens_dict[sc_id].values()]
+		sens_list[0] = ''
+		logger.info(f'Populating drop down menus with sensors')
+		self.view_sensor_selectors[view_id].addItems(sens_list)
+
+	def onGenerateSelection(self, view_id):
+		if self.view_spacecraft_selectors[view_id].getCurrentIndex() is None or \
+			self.view_sensor_selectors[view_id].getCurrentIndex() is None:
+			return
+		else:
+			sens_list_idx = self.view_sensor_selectors[view_id].getCurrentIndex()+1
+			sc_id = self._sc_dict[self.view_spacecraft_selectors[view_id].getCurrentIndex()+1][0]
+			suite_key = self._sens_dict[sc_id][sens_list_idx][0]
+			sens_key = self._sens_dict[sc_id][sens_list_idx][1]
+			self.generate.emit(view_id, sc_id, suite_key, sens_key)
+
+	def onSensorSelection(self, view_id, sens_list_idx):
+		if self.view_spacecraft_selectors[view_id].getCurrentIndex() is None:
+			self.selected.emit(view_id, None, None, None)
+		else:
+			# OptionBox getCurrentIndex ignores empty first entry in index counting
+			sc_id = self._sc_dict[self.view_spacecraft_selectors[view_id].getCurrentIndex()+1][0]
+			suite_key = self._sens_dict[sc_id][sens_list_idx][0]
+			sens_key = self._sens_dict[sc_id][sens_list_idx][1]
+			self.selected.emit(view_id, sc_id, suite_key, sens_key)
 
 class Toolbar(QtWidgets.QWidget):
 	# TODO: this should be in widgets, not controls	
