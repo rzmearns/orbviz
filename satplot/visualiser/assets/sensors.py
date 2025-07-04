@@ -151,7 +151,6 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 
 	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
 							 rotation:nptyping.NDArray|None=None, quat:nptyping.NDArray|None=None) -> None:
-		print(f"Call setTransform of:{self}")
 		if self.isFirstDraw():
 			self._clearFirstDrawFlag()
 		if self.isStale():
@@ -291,7 +290,6 @@ class SensorSuite2DAsset(base_assets.AbstractCompoundAsset):
 
 	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
 							 rotation:nptyping.NDArray|None=None, quat:nptyping.NDArray|None=None) -> None:
-		start = time.monotonic()
 		if self.isStale():
 			if rotation is None and quat is None:
 				logger.warning(f"Rotation and quaternion passed to sensor suite: {self.data['name']} cannot both be None")
@@ -303,8 +301,6 @@ class SensorSuite2DAsset(base_assets.AbstractCompoundAsset):
 			for asset in self.assets.values():
 				asset.setTransform(pos=pos, rotation=rotation, quat=quat)
 			self._clearStaleFlag()
-		end = time.monotonic()
-		print(f'{end-start=}')
 
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
