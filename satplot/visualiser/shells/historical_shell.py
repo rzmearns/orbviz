@@ -38,15 +38,16 @@ class HistoricalShell():
 		earth_raycast_data_model = earth_raycast_data.EarthRayCastData()
 
 		# Build context panes
-		self.contexts_dict['3d-history'] = history3d_context.History3DContext('3d-history', self.window, history_data_model)
-		self.contexts_dict['2d-history'] = history2d_context.History2DContext('2d-history', self.window, history_data_model, earth_raycast_data_model)
-		self.contexts_dict['sensors-view'] = sensor_views_context.SensorViewsContext('sensors-view', self.window, history_data_model, earth_raycast_data_model)
+		self.contexts_dict['3D-history'] = history3d_context.History3DContext('3D-history', self.window, history_data_model)
+		self.contexts_dict['2D-history'] = history2d_context.History2DContext('2D-history', self.window, history_data_model, earth_raycast_data_model)
+		self.contexts_dict['sensors-view-history'] = sensor_views_context.SensorViewsContext('sensors-view-history', self.window, history_data_model, earth_raycast_data_model)
 
 		# attach relevant toolbars, menubars, add context tabs
 		for context_key in self.contexts_dict.keys():
 			self.toolbars[context_key] = self.contexts_dict[context_key].controls.toolbar
 			self.menubars[context_key] = self.contexts_dict[context_key].controls.menubar
-			self.context_tab_stack.addTab(self.contexts_dict[context_key].widget, context_key)
+			tab_label = ' '.join(context_key.split('-')[:-1]).title()
+			self.context_tab_stack.addTab(self.contexts_dict[context_key].widget, tab_label)
 
 
 		# check toolbar/menubar indices are the same
