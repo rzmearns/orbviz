@@ -1066,6 +1066,43 @@ class StretchTabBar(QtWidgets.QTabBar):
 				return QtCore.QSize(width, size.height())
 		return super().tabSizeHint(index)
 
+class ColumnarStackedTabBar(QtWidgets.QTabBar):
+	def __init__(self, parent=None):
+		super().__init__(parent)
+
+	def tabSizeHint(self, index):
+		s = super().tabSizeHint(index)
+		s.transpose()
+		return s
+
+	def paintEvent(self, event):
+		painter = QtWidgets.QStylePainter(self)
+		opt = QtWidgets.QStyleOptionTab()
+
+		for i in range(self.count()):
+			self.initStyleOption(opt, i)
+			painter.drawControl(QtWidgets.QStyle.CE_TabBarTabShape, opt)
+			painter.save()
+
+			s = opt.rect.size()
+			s.transpose()
+			r = QtCore.QRect(QtCore.QPoint(), s)
+			r.moveCenter(opt.rect.center())
+			opt.rect = r
+
+			c = self.tabRect(i).center()
+			painter.translate(c)
+			painter.rotate(90)
+			painter.translate(-c)
+			painter.drawControl(QtWidgets.QStyle.CE_TabBarTabLabel, opt)
+			painter.restore()
+
+class ColumnarStackedTabWidget(QtWidgets.QTabWidget):
+	def __init__(self, *args, **kwargs):
+		QtWidgets.QTabWidget.__init__(self, *args, **kwargs)
+		self.setTabBar(ColumnarStackedTabBar())
+		self.setTabPosition(QtWidgets.QTabWidget.West)
+
 def embedWidgetsInHBoxLayout(w_list, margin=5):
 	"""Embed a list of widgets into a layout to give it a frame"""
 	result = QtWidgets.QWidget()
