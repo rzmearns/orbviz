@@ -1,0 +1,22 @@
+{
+"center-earth": {
+	"tooltip": "Center Camera on Earth",
+	"menu_item": "Center on Earth",
+	"containing_menu": "camera",	
+	"button_icon": "resources/icons/camera-earth.png",
+	"hotkey": "ctrl+o",
+	"callback": null,
+	"contexts": ["3d-planning"],
+	"toggleable": false
+   },
+"center-spacecraft": {
+	"tooltip": "Center Camera on Satellite",
+	"menu_item": "Center on Satellite",
+	"containing_menu": "camera",
+	"button_icon": "resources/icons/camera-satellite.png",
+	"hotkey": "ctrl+o",
+	"callback": null,
+	"contexts": ["3d-planning"],
+	"toggleable": true
+   }
+}

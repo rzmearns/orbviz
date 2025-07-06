@@ -32,9 +32,6 @@ class History3DContext(base.BaseContext):
 		self.canvas_wrapper.setModel(self.data['history'])
 		self.controls = Controls(self, self.canvas_wrapper)
 
-		self.cw_tabs = QtWidgets.QTabWidget()
-		self.cw_tabs.addTab(self.canvas_wrapper.getCanvas().native, 'History 3D 1')
-
 		disp_hsplitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)
 		disp_hsplitter.setObjectName('disp_hsplitter')
 		disp_hsplitter.setStyleSheet('''
@@ -52,7 +49,7 @@ class History3DContext(base.BaseContext):
 		# | ###
 		'''
 		disp_hsplitter.addWidget(self.controls.config_tabs)
-		disp_hsplitter.addWidget(self.cw_tabs)
+		disp_hsplitter.addWidget(self.canvas_wrapper.getCanvas().native)
 
 		# Build area down to bottom of time slider
 		'''
