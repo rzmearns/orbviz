@@ -619,8 +619,8 @@ class BasicOptionBox(QtWidgets.QWidget):
 
 class FilePicker(QtWidgets.QWidget):
 	def __init__(self, label, 
-			  			dflt_file='',
-						dflt_dir=None, 
+						dflt_file='',
+						dflt_dir=None,
 						save=False,
 						margins=[0,0,0,0],
 						parent: QtWidgets.QWidget=None) -> None:
@@ -642,7 +642,7 @@ class FilePicker(QtWidgets.QWidget):
 			hlayout1.addWidget(self._label)
 			hlayout1.addStretch()
 			vlayout.addLayout(hlayout1)
-		
+
 		self._file_text_box = QtWidgets.QLineEdit(self.path)
 		self._dialog_button = QtWidgets.QPushButton('...')
 		self.caption = f'Pick {label}'
@@ -669,13 +669,13 @@ class FilePicker(QtWidgets.QWidget):
 		options |= QtWidgets.QFileDialog.DontUseNativeDialog
 		if self.dialog_save:
 			filename, _ = QtWidgets.QFileDialog.getSaveFileName(self,
-													   			self.caption,
+																self.caption,
 																f'{self.dflt_dir}{self.dflt_filename}',
 																"All Files (*)",
 																options=options)
 		else:
 			filename, _ = QtWidgets.QFileDialog.getOpenFileName(self,
-													   			self.caption,
+																self.caption,
 																f'{self.dflt_dir}{self.dflt_filename}',
 																"All Files (*)",
 																options=options)
@@ -783,14 +783,14 @@ class DatetimeEntry(QtWidgets.QWidget):
 		hlayout2.setContentsMargins(2,1,2,1)
 		vlayout.setSpacing(0)
 		vlayout.setContentsMargins(2,1,2,1)
-		
+
 		if label is not None:
 			self._label_font = QtGui.QFont()
 			self._label_font.setWeight(QtGui.QFont.Medium)
 			self._label = QtWidgets.QLabel(label)
 			self._label.setFont(self._label_font)
 			hlayout1.addWidget(self._label)
-				
+
 		self._curr_dt = QtWidgets.QLabel(self.datetime.strftime("%Y-%m-%d   %H:%M:%S UTC"))
 		self._mon_sp = QtWidgets.QLabel("-")
 		self._day_sp = QtWidgets.QLabel("-")
@@ -803,7 +803,7 @@ class DatetimeEntry(QtWidgets.QWidget):
 		self._hr_text_box = QtWidgets.QLineEdit(self.datetime.strftime("%H"))
 		self._min_text_box = QtWidgets.QLineEdit(self.datetime.strftime("%M"))
 		self._sec_text_box = QtWidgets.QLineEdit(self.datetime.strftime("%S"))
-		
+
 		# self._text_box.setFixedHeight(20)
 		self._yr_text_box.setFixedWidth(40)
 		self._mon_text_box.setFixedWidth(25)
@@ -943,15 +943,15 @@ class CollapsibleSection(QtWidgets.QWidget):
 			self._hlayout.setSpacing(0)
 
 			self._button = None
-			self._hlayout.addWidget(self.initTitle(title))	
-			self._hlayout.addStretch()		
+			self._hlayout.addWidget(self.initTitle(title))
+			self._hlayout.addStretch()
 
 		def initTitle(self, title=None):
 			self._button = QtWidgets.QToolButton(text=title, checkable=True, checked=False)
 			self._button.setStyleSheet('''
 					QToolButton {
-							  	border: 0px solid;
-		  						text-align: left
+								border: 0px solid;
+								text-align: left
 							}
 							  ''')
 			self._button.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
@@ -962,7 +962,7 @@ class CollapsibleSection(QtWidgets.QWidget):
 		@QtCore.pyqtSlot()
 		def on_pressed(self):
 			checked = self._button.isChecked()
-			if checked:				
+			if checked:
 				self._button.setArrowType(QtCore.Qt.RightArrow)
 			else:
 				self._button.setArrowType(QtCore.Qt.DownArrow)
@@ -1023,7 +1023,7 @@ class Switch(QtWidgets.QPushButton):
 
 class NonScrollingComboBox(QtWidgets.QComboBox):
 	def __init__(self, scrollWidget=None, *args, **kwargs):
-		super(NonScrollingComboBox, self).__init__(*args, **kwargs)  
+		super(NonScrollingComboBox, self).__init__(*args, **kwargs)
 		self.scrollWidget=scrollWidget
 		self.setFocusPolicy(QtCore.Qt.StrongFocus)
 
@@ -1039,6 +1039,32 @@ class NonScrollingComboBox(QtWidgets.QComboBox):
 			return QtWidgets.QComboBox.wheelEvent(self, *args, **kwargs)
 		elif self.scrollWidget is not None:
 			return self.scrollWidget.wheelEvent(*args, **kwargs)
+
+class StretchTabWidget(QtWidgets.QTabWidget):
+	def __init__(self, parent=None):
+		super().__init__(parent)
+		self.bar = StretchTabBar()
+		self.setTabBar(self.bar)
+
+	def resizeEvent(self, event):
+		self.tabBar().setFixedWidth(self.width())
+		super().resizeEvent(event)
+
+class StretchTabBar(QtWidgets.QTabBar):
+	def __init__(self, parent=None):
+		super().__init__(parent)
+		self.setExpanding(True)
+
+	def tabSizeHint(self, index):
+		if self.count() > 0:
+			size = QtWidgets.QTabBar.tabSizeHint(self, index)
+			if self.parent().tabPosition() in [QtWidgets.QTabWidget.West or QtWidgets.QTabWidget.East]:
+				height = int(self.parent().size().height()/self.count())
+				return QtCore.QSize(size.width(), height)
+			elif self.parent().tabPosition() in [QtWidgets.QTabWidget.North or QtWidgets.QTabWidget.South]:
+				width = int(self.parent().size().width()/self.count())
+				return QtCore.QSize(width, size.height())
+		return super().tabSizeHint(index)
 
 def embedWidgetsInHBoxLayout(w_list, margin=5):
 	"""Embed a list of widgets into a layout to give it a frame"""
