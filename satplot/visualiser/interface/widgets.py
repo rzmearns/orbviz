@@ -1101,10 +1101,19 @@ class ColumnarStackedTabBar(QtWidgets.QTabBar):
 			painter.restore()
 
 class ColumnarStackedTabWidget(QtWidgets.QTabWidget):
+	tab_changed = QtCore.pyqtSignal(int,int)
+
 	def __init__(self, *args, **kwargs):
 		QtWidgets.QTabWidget.__init__(self, *args, **kwargs)
 		self.setTabBar(ColumnarStackedTabBar())
 		self.setTabPosition(QtWidgets.QTabWidget.West)
+		self.curr_tab_idx = -1
+		self.currentChanged.connect(self._onTabChange)
+
+	def _onTabChange(self, new_idx):
+		self.tab_changed.emit(self.curr_tab_idx, new_idx)
+		self.curr_tab_idx = new_idx
+
 
 def embedWidgetsInHBoxLayout(w_list, margin=5):
 	"""Embed a list of widgets into a layout to give it a frame"""
