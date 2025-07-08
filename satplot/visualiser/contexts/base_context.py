@@ -44,6 +44,14 @@ class BaseContext(ABC):
 	def _configureData(self) -> None:
 		raise NotImplementedError()
 
+	@abstractmethod
+	def getIndex(self) -> int|None:
+		raise NotImplementedError()
+
+	@abstractmethod
+	def setIndex(self, idx:int) -> None:
+		raise NotImplementedError()
+
 	def prepSerialisation(self) -> dict[str,Any]:
 		state = {}
 		state['data'] = self.data

@@ -108,6 +108,12 @@ class SensorViewsContext(BaseContext):
 		img_data, mo_data, moConverterFunction, img_metadata = self.canvas_wrapper.generateSensorFullRes(sc_id, suite_key, sens_key)
 		img_dialog = satplot_dialogs.fullResSensorImageDialog(img_data, mo_data, moConverterFunction, img_metadata)
 
+	def getIndex(self) -> int|None:
+		return self.controls.time_slider.getValue()
+
+	def setIndex(self, idx:int) -> None:
+		self.controls.time_slider.setValue(idx)
+
 	def loadState(self) -> None:
 		pass
 

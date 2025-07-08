@@ -163,6 +163,12 @@ class History3DContext(base.BaseContext):
 	def saveState(self) -> None:
 		pass
 
+	def getIndex(self) -> int|None:
+		return self.controls.time_slider.getValue()
+
+	def setIndex(self, idx:int) -> None:
+		self.controls.time_slider.setValue(idx)
+
 	def deSerialise(self, state_dict: dict[str, Any]) -> None:
 		self.data['history'].deSerialise(state_dict['data'])
 		self._updateDataSources()
