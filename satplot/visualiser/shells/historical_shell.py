@@ -59,13 +59,14 @@ class HistoricalShell():
 				raise ValueError('Toolbars and Menubars indices do not match')
 				sys.exit()
 
-		self.context_tab_stack.currentChanged.connect(self._changeToolbarsToContext)
+		self.context_tab_stack.tab_changed.connect(self._changeToolbarsToContext)
+		self.context_tab_stack.tab_changed.connect(self._propagateTimeSlider)
 
 		self.layout.addWidget(self.context_tab_stack)
 		self.layout.setContentsMargins(0, 0, 0, 0)
 		self.widget.setLayout(self.layout)
 
-		self._changeToolbarsToContext(1)
+		self._changeToolbarsToContext(self.context_tab_stack.currentIndex(), 1)
 
 	def updateToolbar(self):
 		logger.debug(f'Updating toolbar and menu for {self.name} shell')
@@ -85,7 +86,18 @@ class HistoricalShell():
 			self.toolbars[curr_context_key].setActiveState(True)
 			self.menubars[curr_context_key].setActiveState(True)
 
-	def _changeToolbarsToContext(self, new_context_index:int) -> None:
+	def _propagateTimeSlider(self, old_context_idx:int, new_context_idx:int) -> None:
+		curr_context_idx = old_context_idx
+		curr_context = list(self.contexts_dict.values())[curr_context_idx]
+		new_context = list(self.contexts_dict.values())[new_context_idx]
+		print(f'{curr_context=}')
+		print(f'{new_context=}')
+		curr_slider_idx = curr_context.getIndex()
+		print(f'{curr_slider_idx=}')
+		if curr_slider_idx is not None:
+			new_context.setIndex(curr_slider_idx)
+
+	def _changeToolbarsToContext(self, old_context_idx:int, new_context_index:int) -> None:
 		logger.debug(f'Changing toolbar and menu for {self.name} shell')
 		new_context_key = list(self.toolbars.keys())[new_context_index]
 		# process deselects first in order to clear parent pointer to menubar, otherwise menubar gets deleted (workaround for pyqt5)
