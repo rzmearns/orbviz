@@ -17,6 +17,7 @@ import satplot.visualiser.colours as colours
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.assets.gizmo as gizmo
 import satplot.visualiser.interface.console as console
+import satplot.visualiser.visuals.polygons as polygon_visuals
 import spherapy.orbit as orbit
 
 logger = logging.getLogger(__name__)
@@ -342,10 +343,11 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 		self.data['sc_config'] = None
 		self.data['history_src'] = None
 		self.data['raycast_src'] = None
-		self.data['oth_edge1'] = np.zeros((364,2))
+		self.data['oth_edge1'] = -1*np.ones((364,2))
 		# need to create a valid polygon for instantiation (but before valid data exists)
 		self.data['oth_edge1'][:363,0] = np.arange(0,363)
-		self.data['oth_edge1'][-1,0] = -1
+		self.data['oth_edge1'][-1,1] = -1
+		self.data['oth_edge1'][-2,1] = -2
 		self.data['oth_edge2'] = self.data['oth_edge1'].copy()
 
 	def setSource(self, *args, **kwargs) -> None:
@@ -468,18 +470,18 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 										size=self.opts['spacecraft_marker_size']['value'],
 										symbol='o')
 		self.visuals['marker'].order = -20
-		self.visuals['oth_circle1'] = scene.visuals.Polygon(self.data['oth_edge1'],
+		self.visuals['oth_circle1'] = polygon_visuals.FastPolygon(self.data['oth_edge1'],
 															 color=colours.normaliseColour(self.opts['over_the_horizon_circle_colour']['value']),
 															 border_color=colours.normaliseColour(self.opts['over_the_horizon_circle_colour']['value']),
-															 border_width=1,
+															 border_width=2,
 															 parent=None)
 		self.visuals['oth_circle1'].opacity = self.opts['over_the_horizon_circle_alpha']['value']
 		self.visuals['oth_circle1'].order = 1
 		self.visuals['oth_circle1'].set_gl_state('translucent', depth_test=False)
-		self.visuals['oth_circle2'] = scene.visuals.Polygon(self.data['oth_edge2'],
+		self.visuals['oth_circle2'] = polygon_visuals.FastPolygon(self.data['oth_edge2'],
 															 color=colours.normaliseColour(self.opts['over_the_horizon_circle_colour']['value']),
 															 border_color=colours.normaliseColour(self.opts['over_the_horizon_circle_colour']['value']),
-															 border_width=1,
+															 border_width=2,
 															 parent=None)
 		self.visuals['oth_circle2'].opacity = self.opts['over_the_horizon_circle_alpha']['value']
 		self.visuals['oth_circle2'].order = 1
@@ -540,12 +542,13 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 
 			# Over the horizon circle asset
 			self.data['oth_edge1'], self.data['oth_edge2'], split = self.calcOTHCircle()
-			verts, faces = polygeom.polygonTriangulate(self.data['oth_edge1'])
-			self.visuals['oth_circle1']._mesh.set_data(vertices=verts, faces=faces)
-			# self.visuals['oth_circle1'].pos=self.data['oth_edge1']
-			verts, faces = polygeom.polygonTriangulate(self.data['oth_edge2'])
-			self.visuals['oth_circle2']._mesh.set_data(vertices=verts, faces=faces)
-			# self.visuals['oth_circle2'].pos=self.data['oth_edge2']
+			self.visuals['oth_circle1'].pos = self.data['oth_edge1']
+			# verts, faces = polygeom.polygonTriangulate(self.data['oth_edge1'])
+			# self.visuals['oth_circle1']._mesh.set_data(vertices=verts, faces=faces)
+
+			self.visuals['oth_circle2'].pos = self.data['oth_edge2']
+			# verts, faces = polygeom.polygonTriangulate(self.data['oth_edge2'])
+			# self.visuals['oth_circle2']._mesh.set_data(vertices=verts, faces=faces)
 
 			if split:
 				self.visuals['oth_circle1'].opacity = self.opts['over_the_horizon_circle_alpha']['value']
