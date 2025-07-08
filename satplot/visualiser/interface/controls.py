@@ -619,7 +619,8 @@ class Toolbar(QtWidgets.QWidget):
 	def addButtons(self):
 		# Process 'all' actions first
 		for key, action in self.action_dict.items():
-			if 'all' in action['contexts'] and action['button_icon'] is not None:
+			action_context_list = [ac.lower() for ac in action['contexts']]
+			if 'all'.lower() in action_context_list and action['button_icon'] is not None:
 				self.button_dict[key] = QtWidgets.QAction(QtGui.QIcon(action['button_icon']), action['tooltip'], self)
 				self.button_dict[key].setStatusTip(action['tooltip'])
 				self.button_dict[key].setCheckable(action['toggleable'])
@@ -631,7 +632,8 @@ class Toolbar(QtWidgets.QWidget):
 		self.toolbar.addSeparator()
 
 		for key, action in self.action_dict.items():
-			if self.context_name in action['contexts'] and 'all' not in action['contexts'] and action['button_icon'] is not None:
+			action_context_list = [ac.lower() for ac in action['contexts']]
+			if self.context_name.lower() in action_context_list and 'all' not in action_context_list and action['button_icon'] is not None:
 				self.button_dict[key] = QtWidgets.QAction(QtGui.QIcon(action['button_icon']), action['tooltip'], self)
 				self.button_dict[key].setStatusTip(action['tooltip'])
 				self.button_dict[key].setCheckable(action['toggleable'])
@@ -671,7 +673,8 @@ class Menubar(QtWidgets.QWidget):
 	def addMenuItems(self):
 		# Process 'all' actions first
 		for key, action in self.action_dict.items():
-			if 'all' in action['contexts']:
+			action_context_list = [ac.lower() for ac in action['contexts']]
+			if 'all'.lower() in action_context_list:
 				if action['containing_menu'] not in self.menus.keys():
 					self.menus[action['containing_menu']] = self.menubar.addMenu(action['containing_menu'].capitalize())
 				self.button_dict[key] = QtWidgets.QAction(QtGui.QIcon(action['button_icon']), action['menu_item'], self)
@@ -683,7 +686,8 @@ class Menubar(QtWidgets.QWidget):
 
 		# Process context specific actions
 		for key, action in self.action_dict.items():
-			if self.context_name in action['contexts']:
+			action_context_list = [ac.lower() for ac in action['contexts']]
+			if self.context_name.lower() in action_context_list:
 				if action['containing_menu'] not in self.menus.keys():
 					self.menus[action['containing_menu']] = self.menubar.addMenu(action['containing_menu'].capitalize())
 				self.button_dict[key] = QtWidgets.QAction(QtGui.QIcon(action['button_icon']), action['menu_item'], self)
