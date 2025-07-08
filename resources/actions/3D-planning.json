@@ -6,7 +6,7 @@
 	"button_icon": "resources/icons/camera-earth.png",
 	"hotkey": "ctrl+o",
 	"callback": null,
-	"contexts": ["3d-planning"],
+	"contexts": ["3D-planning"],
 	"toggleable": false
    },
 "center-spacecraft": {
@@ -16,7 +16,7 @@
 	"button_icon": "resources/icons/camera-satellite.png",
 	"hotkey": "ctrl+o",
 	"callback": null,
-	"contexts": ["3d-planning"],
+	"contexts": ["3D-planning"],
 	"toggleable": true
    }
 }
