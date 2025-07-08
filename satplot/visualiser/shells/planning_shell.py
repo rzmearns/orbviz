@@ -19,7 +19,9 @@ import satplot.visualiser.interface.widgets as satplot_widgets
 logger = logging.getLogger(__name__)
 
 class PlanningShell():
-	def __init__(self, parent_window:QtWidgets.QMainWindow, toolbars:dict[str, controls.Toolbar], menubars:dict[str, controls.Menubar]):
+	def __init__(self, parent_window:QtWidgets.QMainWindow, toolbars:dict[str, controls.Toolbar],
+															menubars:dict[str, controls.Menubar],
+															global_earth_rdm:earth_raycast_data.EarthRayCastData|None=None):
 		self.name = 'PLANNING'
 		self.window = parent_window
 		self.widget = QtWidgets.QWidget()
@@ -37,7 +39,10 @@ class PlanningShell():
 
 		# Create empty data models
 		history_data_model = history_data.HistoryData()
-		earth_raycast_data_model = earth_raycast_data.EarthRayCastData()
+		if global_earth_rdm is None:
+			earth_raycast_data_model = earth_raycast_data.EarthRayCastData()
+		else:
+			earth_raycast_data_model = global_earth_rdm
 
 		# Build context panes
 		self.contexts_dict['3D-planning'] = history3d_context.History3DContext('3D-planning', self.window, history_data_model)

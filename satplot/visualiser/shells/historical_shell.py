@@ -19,7 +19,9 @@ import satplot.visualiser.interface.widgets as satplot_widgets
 logger = logging.getLogger(__name__)
 
 class HistoricalShell():
-	def __init__(self, parent_window:QtWidgets.QMainWindow, toolbars:dict[str, controls.Toolbar], menubars:dict[str, controls.Menubar]):
+	def __init__(self, parent_window:QtWidgets.QMainWindow, toolbars:dict[str, controls.Toolbar],
+															menubars:dict[str, controls.Menubar],
+															global_earth_rdm:earth_raycast_data.EarthRayCastData|None=None):
 		self.name = 'HISTORICAL'
 		self.window = parent_window
 		self.widget = QtWidgets.QWidget()
@@ -35,7 +37,10 @@ class HistoricalShell():
 
 		# Create empty data models
 		history_data_model = history_data.HistoryData()
-		earth_raycast_data_model = earth_raycast_data.EarthRayCastData()
+		if global_earth_rdm is None:
+			earth_raycast_data_model = earth_raycast_data.EarthRayCastData()
+		else:
+			earth_raycast_data_model = global_earth_rdm
 
 		# Build context panes
 		self.contexts_dict['3D-history'] = history3d_context.History3DContext('3D-history', self.window, history_data_model)
@@ -100,8 +105,6 @@ class HistoricalShell():
 		if self.active and new_context_key is not None:
 			logger.debug(f'Activating bars for {self.name}:{new_context_key}')
 			self.toolbars[new_context_key].setActiveState(True)
-			for k,v in self.toolbars[new_context_key].button_dict.items():
-				print(f'{k}:{v}')
 			self.menubars[new_context_key].setActiveState(True)
 
 	def serialiseContexts(self) -> dict[str,Any]:

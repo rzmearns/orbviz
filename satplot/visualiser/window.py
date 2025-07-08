@@ -7,6 +7,7 @@ from PyQt5 import QtWidgets, QtCore
 import satplot
 from satplot.visualiser.shells import (historical_shell,
 										planning_shell)
+from satplot.model.data_models import (earth_raycast_data)
 import satplot.visualiser.interface.widgets as satplot_widgets
 import satplot.visualiser.interface.console as console
 import satplot.visualiser.interface.controls as controls
@@ -42,10 +43,12 @@ class MainWindow(QtWidgets.QMainWindow):
 		self.toolbars: dict[str, controls.Toolbar] = {}
 		self.menubars: dict[str, controls.Menubar] = {}
 
+		global_earth_raycast_data = earth_raycast_data.EarthRayCastData()
+
 		# Build shells
-		self.shell_dict['history'] = historical_shell.HistoricalShell(self, self.toolbars, self.menubars)
+		self.shell_dict['history'] = historical_shell.HistoricalShell(self, self.toolbars, self.menubars, global_earth_rdm=global_earth_raycast_data)
 		self.shell_tab_stack.addTab(self.shell_dict['history'].widget,'Historical')
-		self.shell_dict['planning'] = planning_shell.PlanningShell(self, self.toolbars, self.menubars)
+		self.shell_dict['planning'] = planning_shell.PlanningShell(self, self.toolbars, self.menubars, global_earth_rdm=global_earth_raycast_data)
 		self.shell_tab_stack.addTab(self.shell_dict['planning'].widget,'Planning')
 
 
