@@ -41,10 +41,6 @@ class BaseContext(ABC):
 		raise NotImplementedError()
 
 	@abstractmethod
-	def _configureData(self) -> None:
-		raise NotImplementedError()
-
-	@abstractmethod
 	def getIndex(self) -> int|None:
 		raise NotImplementedError()
 

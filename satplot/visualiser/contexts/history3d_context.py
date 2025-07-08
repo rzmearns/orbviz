@@ -67,7 +67,6 @@ class History3DContext(base.BaseContext):
 
 	def connectControls(self) -> None:
 		logger.info(f"Connecting controls of {self.config['name']}")
-		self.controls.orbit_controls.submit_button.clicked.connect(self._configureData)
 		self.controls.time_slider.add_connect(self._updateDisplayedIndex)
 		self.controls.action_dict['center-earth']['callback'] = self._centerCameraEarth
 		self.controls.action_dict['center-spacecraft']['callback'] = self._toggleCameraSpacecraft
@@ -82,59 +81,6 @@ class History3DContext(base.BaseContext):
 		if self.data is not None and self.data['history'].getType() != self.data_type:
 			console.sendErr(f"Error: history3D context has wrong data type: {self.data['history'].getType()}")
 			console.sendErr(f"\t should be: {self.data_type}")
-
-	def _configureData(self) -> None:
-		logger.info(f'Setting up data configuration for context: {self}')
-		console.send('Setting up data configuration')
-		# Timespan configuration
-		if self.data is None:
-			logger.warning(f"model data is not set for context {self.config['name']}:{self}")
-			raise ValueError(f"model data is not set for context {self.config['name']}:{self}")
-
-		self.data['history'].updateConfig('timespan_period_start', self.controls.orbit_controls.period_start.datetime)
-		self.data['history'].updateConfig('timespan_period_end', self.controls.orbit_controls.period_end.datetime)
-		self.data['history'].updateConfig('sampling_period', self.controls.orbit_controls.sampling_period.period)
-		# Primary orbits configuration
-		self.data['history'].setPrimaryConfig(self.controls.orbit_controls.getConfig())
-
-		# Supplemental configuration
-		has_supplemental_constellation = self.controls.orbit_controls.suppl_constellation_selector.isEnabled()
-		if has_supplemental_constellation:
-			c_config = self.controls.orbit_controls.suppl_constellation_selector.getConstellationConfig()
-			if c_config is None:
-				console.sendErr("Supplementary constellation enabled: Please select a constellation.")
-				return
-			self.data['history'].setSupplementalConstellation(c_config)
-		else:
-			self.data['history'].clearSupplementalConstellation()
-
-		# Historical pointing
-		if self.controls.orbit_controls.pointing_file_controls.isEnabled():
-			logger.info(f'Pointing defined. Setting pointing configuration for {self}')
-			self.data['history'].updateConfig('is_pointing_defined', True)
-			pointing_file_path = self.controls.orbit_controls.pointing_file_controls._pointing_file_selector.path
-			if pointing_file_path is None or \
-				pointing_file_path == '':
-				console.sendErr("Displaying spacecraft pointing requires a pointing file.")
-				return
-			self.data['history'].updateConfig('pointing_defines_timespan', self.controls.orbit_controls.pointing_file_controls.pointingFileDefinesPeriod())
-			self.data['history'].updateConfig('pointing_file', pointing_file_path)
-			self.data['history'].updateConfig('pointing_invert_transform', self.controls.orbit_controls.pointing_file_controls.pointing_file_inv_toggle.isChecked())
-		else:
-			logger.info(f'Pointing not defined. Clearing pointing configuration for {self}')
-			self.data['history'].updateConfig('is_pointing_defined', False)
-			self.data['history'].updateConfig('pointing_defines_timespan', False)
-			self.data['history'].updateConfig('pointing_file', None)
-			self.data['history'].updateConfig('pointing_invert_transform', False)
-
-		try:
-			self.controls.orbit_controls.submit_button.setEnabled(False)
-			self.data['history'].process()
-		except Exception as e:
-			logger.warning(f"Error in configuring data for history3D: {e}")
-			console.sendErr(f"Error in configuring data for history3D: {e}")
-			self.controls.orbit_controls.submit_button.setEnabled(True)
-			raise e
 
 	def _updateControls(self, *args, **kwargs) -> None:
 		self.controls.time_slider.setTimespan(self.data['history'].getTimespan())
