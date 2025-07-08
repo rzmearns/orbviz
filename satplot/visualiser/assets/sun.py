@@ -23,6 +23,7 @@ import satplot.util.constants as c
 
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.colours as colours
+import satplot.visualiser.visuals.polygons as polygon_visuals
 import spherapy.orbit as orbit
 
 logger = logging.getLogger(__name__)
@@ -363,15 +364,17 @@ class Sun2DAsset(base_assets.AbstractAsset):
 		self.data['scaled_coords'] = np.zeros((4,2))
 		self.data['curr_index'] = 0
 
-		self.data['terminator_edge'] = np.zeros((364,2))
+		self.data['terminator_edge'] = -1*np.ones((364,2))
 		# need to create a valid polygon for instantiation (but before valid data exists)
 		self.data['terminator_edge'][:363,0] = np.arange(0,363)
-		self.data['terminator_edge'][-1,0] = -1
+		self.data['terminator_edge'][-1,1] = -1
+		self.data['terminator_edge'][-2,1] = -2
 
-		self.data['eclipse_edge'] = np.zeros((180,2))
+		self.data['eclipse_edge'] = -1*np.ones((180,2))
 		# need to create a valid polygon for instantiation (but before valid data exists)
 		self.data['eclipse_edge'][:179,0] = np.arange(0,179)
-		self.data['eclipse_edge'][-1,0] = -1
+		self.data['eclipse_edge'][-1,1] = -1
+		self.data['eclipse_edge'][-2,1] = -2
 
 		self.data['eclipse_edge1'] = self.data['eclipse_edge'].copy()
 		self.data['eclipse_edge2'] = self.data['eclipse_edge'].copy()
@@ -394,17 +397,17 @@ class Sun2DAsset(base_assets.AbstractAsset):
 		self.visuals['marker'].order = -1
 
 
-		self.visuals['terminator'] = scene.visuals.Polygon(self.data['terminator_edge'], color='#000000', border_color='#000000', border_width=0, parent=None)
+		self.visuals['terminator'] = polygon_visuals.FastPolygon(self.data['terminator_edge'], color='#000000', border_color='#000000', border_width=0, parent=None)
 		self.visuals['terminator'].opacity = self.opts['terminator_alpha']['value']
 		self.visuals['terminator'].order = 1
 		self.visuals['terminator'].set_gl_state('translucent', depth_test=False)
 
-		self.visuals['eclipse_patch1'] = scene.visuals.Polygon(self.data['eclipse_edge'], color='#000000', border_color='#000000', border_width=0, parent=None)
+		self.visuals['eclipse_patch1'] = polygon_visuals.FastPolygon(self.data['eclipse_edge'], color='#000000', border_color='#000000', border_width=0, parent=None)
 
 		self.visuals['eclipse_patch1'].opacity = self.opts['eclipse_alpha']['value']
 		self.visuals['eclipse_patch1'].order = 2
 		self.visuals['eclipse_patch1'].set_gl_state('translucent', depth_test=False)
-		self.visuals['eclipse_patch2'] = scene.visuals.Polygon(self.data['eclipse_edge'], color='#000000', border_color='#000000', border_width=0, parent=None)
+		self.visuals['eclipse_patch2'] = polygon_visuals.FastPolygon(self.data['eclipse_edge'], color='#000000', border_color='#000000', border_width=0, parent=None)
 		self.visuals['eclipse_patch2'].opacity = self.opts['eclipse_alpha']['value']
 		self.visuals['eclipse_patch2'].order = 2
 		self.visuals['eclipse_patch2'].set_gl_state('translucent', depth_test=False)
@@ -456,14 +459,12 @@ class Sun2DAsset(base_assets.AbstractAsset):
 			self.data['terminator_edge'][:,0] = (terminator_boundary[:,0]+180) * self.data['horiz_pixel_scale']
 			self.data['terminator_edge'][:,1] = (terminator_boundary[:,1]+90) * self.data['vert_pixel_scale']
 
-			verts, faces = polygeom.polygonTriangulate(self.data['terminator_edge'])
-			self.visuals['terminator']._mesh.set_data(vertices=verts, faces=faces)
+			self.visuals['terminator'].pos = self.data['terminator_edge']
 
 			self.data['eclipse_edge1'], self.data['eclipse_edge2'], split = self.calcEclipseOutline(self.data['coords'][self.data['curr_index']], np.linalg.norm(self.data['coords'][self.data['curr_index']]))
-			verts, faces = polygeom.polygonTriangulate(self.data['eclipse_edge1'])
-			self.visuals['eclipse_patch1']._mesh.set_data(vertices=verts, faces=faces)
-			verts, faces = polygeom.polygonTriangulate(self.data['eclipse_edge2'])
-			self.visuals['eclipse_patch2']._mesh.set_data(vertices=verts, faces=faces)
+
+			self.visuals['eclipse_patch1'].pos = self.data['eclipse_edge1']
+			self.visuals['eclipse_patch2'].pos = self.data['eclipse_edge2']
 
 			if split:
 				self.visuals['eclipse_patch1'].opacity = self.opts['eclipse_alpha']['value']

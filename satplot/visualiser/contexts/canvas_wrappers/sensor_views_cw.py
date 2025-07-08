@@ -41,8 +41,7 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 	def __init__(self, w:int=800, h:int=600, keys:str='interactive', bgcolor:str='white'):
 		self.canvas = scene.canvas.SceneCanvas(size=(w,h),
 										keys=keys,
-										bgcolor=bgcolor,
-										show=True)
+										bgcolor=bgcolor)
 		self.canvas.events.mouse_move.connect(self.onMouseMove)
 		self.canvas.events.mouse_wheel.connect(self.onMouseScroll)
 		self.canvas.events.key_press.connect(self.on_key_press)
