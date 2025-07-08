@@ -75,7 +75,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
 		self.setWindowTitle(title)
 		self.shell_tab_stack.currentChanged.connect(self._changeToolbarsToShell)
-		self.shell_tab_stack.setCurrentIndex(1)
+		self.shell_tab_stack.setCurrentIndex(0)
+		self._changeToolbarsToShell(0)
 
 	def _changeToolbarsToShell(self, new_shell_idx:int) -> None:
 		new_shell = list(self.shell_dict.values())[new_shell_idx]
@@ -83,9 +84,9 @@ class MainWindow(QtWidgets.QMainWindow):
 		for shell in self.shell_dict.values():
 			if shell != new_shell:
 				shell.active = False
-				shell.updateToolbar()
+				shell.updateToolMenuBars(None, None)
 		new_shell.active = True
-		new_shell.updateToolbar()
+		new_shell.updateToolMenuBars(None, None)
 
 	def __del__(self) -> None:
 		sys.stderr = sys.__stderr__

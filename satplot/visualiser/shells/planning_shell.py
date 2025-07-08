@@ -48,6 +48,8 @@ class PlanningShell():
 		for context_key in self.contexts_dict.keys():
 			self.toolbars[context_key] = self.contexts_dict[context_key].controls.toolbar
 			self.menubars[context_key] = self.contexts_dict[context_key].controls.menubar
+			# self.toolbars[context_key].setActiveState(False)
+			# self.menubars[context_key].setActiveState(False)
 			tab_label = ' '.join(context_key.split('-')[:-1]).title()
 			self.context_tab_stack.addTab(self.contexts_dict[context_key].widget, tab_label)
 
@@ -61,32 +63,14 @@ class PlanningShell():
 				raise ValueError('Toolbars and Menubars indices do not match')
 				sys.exit()
 
-		self.context_tab_stack.tab_changed.connect(self._changeToolbarsToContext)
+		self.context_tab_stack.tab_changed.connect(self.updateToolMenuBars)
 		self.context_tab_stack.tab_changed.connect(self._propagateTimeSlider)
 
 		self.layout.addWidget(self.context_tab_stack)
 		self.layout.setContentsMargins(0, 0, 0, 0)
 		self.widget.setLayout(self.layout)
 
-		self._changeToolbarsToContext(self.context_tab_stack.currentIndex(), 1)
-
-	def updateToolbar(self):
-		logger.debug(f'Updating toolbar and menu for {self.name} shell')
-		curr_context_idx = self.context_tab_stack.currentIndex()
-		curr_context_key = list(self.contexts_dict.keys())[curr_context_idx]
-		for context_key, context in self.contexts_dict.items():
-			if self.active and context_key == curr_context_key:
-				# if shell is active, don't deactivate curr context
-				continue
-			else:
-				logger.debug(f'Deactivating bars for {self.name}:{context_key}')
-				self.toolbars[context_key].setActiveState(False)
-				self.menubars[context_key].setActiveState(False)
-
-		if self.active:
-			logger.debug(f'Activating bars for {self.name}:{curr_context_key}')
-			self.toolbars[curr_context_key].setActiveState(True)
-			self.menubars[curr_context_key].setActiveState(True)
+		self.updateToolMenuBars(self.context_tab_stack.currentIndex(), 1)
 
 	def _propagateTimeSlider(self, old_context_idx:int, new_context_idx:int) -> None:
 		curr_context_idx = old_context_idx
@@ -96,19 +80,28 @@ class PlanningShell():
 		if curr_slider_idx is not None:
 			new_context.setIndex(curr_slider_idx)
 
-	def _changeToolbarsToContext(self, old_context_idx:int, new_context_index:int) -> None:
+	def updateToolMenuBars(self, curr_context_idx:int|None, new_context_idx:int|None) -> None:
 		logger.debug(f'Changing toolbar and menu for {self.name} shell')
-		new_context_key = list(self.toolbars.keys())[new_context_index]
-		# process deselects first in order to clear parent pointer to menubar, otherwise menubar gets deleted (workaround for pyqt5)
-		for context_key in self.toolbars.keys():
-			if context_key != new_context_key:
-				logger.debug(f'Deactivating bars for {self.name}:{context_key}')
-				self.toolbars[context_key].setActiveState(False)
-				self.menubars[context_key].setActiveState(False)
+		logger.debug(f'{self.name}:{self.active=}')
 
-		logger.debug(f'Activating bars for {self.name}:{new_context_key}')
-		self.toolbars[new_context_key].setActiveState(True)
-		self.menubars[new_context_key].setActiveState(True)
+		if curr_context_idx is None:
+			curr_context_idx = self.context_tab_stack.currentIndex()
+		curr_context_key = list(self.contexts_dict.keys())[curr_context_idx]
+
+		if new_context_idx is None:
+			new_context_idx = self.context_tab_stack.currentIndex()
+		new_context_key = list(self.contexts_dict.keys())[new_context_idx]
+
+		# process deselects first in order to clear parent pointer to menubar, otherwise menubar gets deleted (workaround for pyqt5)
+		for context_key in self.contexts_dict.keys():
+			logger.debug(f'Deactivating bars for {self.name}:{context_key}')
+			self.toolbars[context_key].setActiveState(False)
+			self.menubars[context_key].setActiveState(False)
+
+		if self.active and new_context_key is not None:
+			logger.debug(f'Activating bars for {self.name}:{new_context_key}')
+			self.toolbars[new_context_key].setActiveState(True)
+			self.menubars[new_context_key].setActiveState(True)
 
 	def serialiseContexts(self) -> dict[str,Any]:
 		state = {}
