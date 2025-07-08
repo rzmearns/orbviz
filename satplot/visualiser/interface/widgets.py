@@ -18,6 +18,7 @@ class TimeSlider(QtWidgets.QWidget):
 		self.range = 2*math.pi
 		self.range_delta = None
 		self.num_ticks = 1440
+		self.tick_delta = None
 		self.range_per_tick = self.range/self.num_ticks
 		self._callbacks = []
 		self._timespan = None
@@ -124,8 +125,10 @@ class TimeSlider(QtWidgets.QWidget):
 	def _run_callbacks(self):
 		if self._timespan is not None:
 			self._curr_dt_picker.setDatetime(self._timespan[self.slider.value()])
-		else:
+		elif self.tick_delta is not None:
 			self._curr_dt_picker.setDatetime(self.start_dt + (self.slider.value()*self.tick_delta))
+		else:
+			return
 		if len(self._callbacks) > 0:
 			for callback in self._callbacks:
 				callback(self.slider.value())
