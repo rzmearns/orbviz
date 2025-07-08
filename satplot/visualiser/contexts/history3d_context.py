@@ -225,7 +225,6 @@ class Controls(base.BaseControls):
 
 		# Wrap config widgets in tabs
 		self.config_tabs = QtWidgets.QTabWidget()
-		self.config_tabs.addTab(self.orbit_controls, 'Orbit')
 		self.config_tabs.addTab(self.config_controls, 'Visual Options')
 
 		# Prep time slider

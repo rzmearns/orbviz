@@ -1,34 +1,31 @@
 import logging
 import sys
 from typing import Any
-
 from PyQt5 import QtWidgets, QtCore, QtGui
 
 import satplot.model.data_models.data_types as data_types
 from satplot.model.data_models.history_data import HistoryData
-from satplot.model.data_models.earth_raycast_data import (EarthRayCastData)
-import satplot.visualiser.contexts.base_context as base
+from satplot.visualiser.contexts.base_context import (BaseContext, BaseControls)
+import satplot.visualiser.interface.controls as controls
 from satplot.visualiser.contexts.canvas_wrappers.base_cw import (BaseCanvas)
-from satplot.visualiser.contexts.canvas_wrappers.cw_container import (CWContainer)
-import satplot.visualiser.contexts.canvas_wrappers.history2d_cw as history2d_cw
+
 import satplot.visualiser.interface.console as console
 import satplot.visualiser.interface.controls as controls
 import satplot.visualiser.interface.widgets as widgets
 
 logger = logging.getLogger(__name__)
 
-class History2DContext(base.BaseContext):
-	data_type = [data_types.DataType.HISTORY]
+class HistoryConfigurationContext(BaseContext):
+	data_type = data_types.DataType.HISTORY
 
-	def __init__(self, name:str, parent_window:QtWidgets.QMainWindow, history_data:HistoryData, raycast_data:EarthRayCastData):
+	def __init__(self, name:str, parent_window:QtWidgets.QMainWindow, history_data:HistoryData):
 		super().__init__(name)
 		self.window = parent_window
-		self.data: dict[str, Any] = {}
+
+		self.data: dict[str,Any] = {}
 		self.data['history'] = history_data
-		self.data['raycast_src'] = raycast_data
-		self._validateDataType()
-		self.canvas_wrapper = history2d_cw.History2DCanvasWrapper()
-		self.canvas_wrapper.setModel(self.data['history'], self.data['raycast_src'])
+
+		self.canvas_wrapper = None
 		self.controls = Controls(self, self.canvas_wrapper)
 
 		disp_hsplitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)
@@ -40,24 +37,15 @@ class History2DContext(base.BaseContext):
 							''')
 		content_widget = QtWidgets.QWidget()
 		content_vlayout = QtWidgets.QVBoxLayout()
-		
-		# Build display area layout
+
+		# Build config area layout
 		'''
-		# | ###
-		# | ###
-		# | ###
+		## | ##
+		## | ##
+		## | ##
 		'''
 		disp_hsplitter.addWidget(self.controls.config_tabs)
-		self.cw_container = CWContainer()
-		self.cw_container.addWidget(self.canvas_wrapper.getCanvas().native)
-		disp_hsplitter.addWidget(self.cw_container)
-		# Build area down to bottom of time slider
-		'''
-		# | ###
-		# | ###
-		# | ###
-		#######
-		'''
+		# disp_hsplitter.addWidget()
 		content_vlayout.addWidget(disp_hsplitter)
 		content_vlayout.addWidget(self.controls.time_slider)
 		content_widget.setLayout(content_vlayout)
@@ -65,29 +53,25 @@ class History2DContext(base.BaseContext):
 		self.layout.setContentsMargins(0, 0, 0, 0)
 		self.layout.addWidget(content_widget)
 
+	def _validateDataType(self) -> None:
+		if self.data is not None and self.data['history'].getType() != self.data_type:
+			console.sendErr(f"Error: history3D context has wrong data type: {self.data['history'].getType()}")
+			console.sendErr(f"\t should be: {self.data_type}")
+
 	def connectControls(self) -> None:
 		logger.info(f"Connecting controls of {self.config['name']}")
 		self.controls.orbit_controls.submit_button.clicked.connect(self._configureData)
-		self.controls.time_slider.add_connect(self._updateDisplayedIndex)
-		self.sccam_state = False
-		if self.data['history'] is None:
+		if self.data is None:
 			logger.warning(f'Context History3D: {self} does not have a data model.')
 			raise AttributeError(f'Context History3D: {self} does not have a data model.')
 		self.data['history'].data_ready.connect(self._updateDataSources)
 		self.data['history'].data_ready.connect(self._updateControls)
 
-		self.cw_container.left.connect(self.canvas_wrapper.stopMouseOverTimer)
-
-	def _validateDataType(self) -> None:
-		if self.data['history'] is not None and self.data['history'].getType() != self.data_type:
-			console.sendErr(f"Error: history3D context has wrong data type: {self.data['history'].getType()}")
-			console.sendErr(f"\t should be: {self.data_type}")
-
 	def _configureData(self) -> None:
 		logger.info(f'Setting up data configuration for context: {self}')
 		console.send('Setting up data configuration')
 		# Timespan configuration
-		if self.data['history'] is None:
+		if self.data is None:
 			logger.warning(f"model data is not set for context {self.config['name']}:{self}")
 			raise ValueError(f"model data is not set for context {self.config['name']}:{self}")
 
@@ -137,7 +121,6 @@ class History2DContext(base.BaseContext):
 			raise e
 
 	def _updateControls(self, *args, **kwargs) -> None:
-
 		self.controls.time_slider.setTimespan(self.data['history'].getTimespan())
 		self.controls.orbit_controls.period_start.setDatetime(self.data['history'].getConfigValue('timespan_period_start'))
 		self.controls.orbit_controls.period_end.setDatetime(self.data['history'].getConfigValue('timespan_period_end'))
@@ -146,22 +129,6 @@ class History2DContext(base.BaseContext):
 		self.controls.time_slider.setValue(int(self.controls.time_slider.num_ticks/2))
 
 	def _updateDataSources(self) -> None:
-		self.canvas_wrapper.modelUpdated()
-		self.controls.rebuildOptions()
-		self.canvas_wrapper.setFirstDrawFlags()
-		self._updateDisplayedIndex(self.controls.time_slider.slider.value())
-
-	def _updateDisplayedIndex(self, index:int) -> None:
-		if self.data['history'] is None:
-			logger.warning(f"model history data is not set for context {self.config['name']}:{self}")
-			ValueError(f"model history data is not set for context {self.config['name']}:{self}")
-		self.canvas_wrapper.updateIndex(index)
-		self.canvas_wrapper.recomputeRedraw()
-
-	def loadState(self) -> None:
-		pass
-
-	def saveState(self) -> None:
 		pass
 
 	def getIndex(self) -> int|None:
@@ -170,35 +137,27 @@ class History2DContext(base.BaseContext):
 	def setIndex(self, idx:int) -> None:
 		self.controls.time_slider.setValue(idx)
 
-	def deSerialise(self, state_dict: dict[str, Any]) -> None:
-		self.data['history'].deSerialise(state_dict['data'])
-		self._updateDataSources()
-		self.canvas_wrapper.deSerialise(state_dict['camera'])
-		self.controls.deSerialise(state_dict['controls'])
+	def loadState(self) -> None:
+		pass
 
-	def prepSerialisation(self) -> dict[str, Any]:
-		state = {}
-		state['data'] = self.data['history'].prepSerialisation()
-		state['controls'] = self.controls.prepSerialisation()
-		state['camera'] = self.canvas_wrapper.prepSerialisation()
-		return state
-
+	def saveState(self) -> None:
+		pass
 		
-class Controls(base.BaseControls):
-	def __init__(self, parent_context:base.BaseContext, canvas_wrapper:BaseCanvas):
+class Controls(BaseControls):
+	def __init__(self, parent_context:BaseContext, canvas_wrapper: BaseCanvas|None) -> None:
 		self.context = parent_context
-		self.cw = canvas_wrapper
+		self.cw = None
 		super().__init__(self.context.config['name'])
+
 		# Prep config widgets
 		self.orbit_controls = controls.OrbitConfigs()
-		self.config_controls = controls.OptionConfigs(self.cw.assets)
 
 		# Wrap config widgets in tabs
 		self.config_tabs = QtWidgets.QTabWidget()
-		self.config_tabs.addTab(self.config_controls, 'Visual Options')
+		self.config_tabs.addTab(self.orbit_controls, 'Orbit')
 
 		# Prep time slider
-		self.time_slider = widgets.TimeSlider()
+		self.time_slider = widgets.TimeSlider(allow_no_callbacks=True)
 		self.time_slider.setFixedHeight(50)
 
 		# Prep toolbars
@@ -206,42 +165,27 @@ class Controls(base.BaseControls):
 		self.menubar = controls.Menubar(self.context.window, self.action_dict, context_name=self.context.config['name'])
 
 		self.setHotkeys()
-		self._connectSliderCamUpdate()
+
 
 	def setHotkeys(self):
 		self.shortcuts={}
-		self.shortcuts['PgDown'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgDown'), self.context.window)
-		self.shortcuts['PgDown'].activated.connect(self.time_slider.incrementValue)
+		# self.shortcuts['PgDown'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgDown'), self.context.window)
+		# self.shortcuts['PgDown'].activated.connect(self.time_slider.incrementValue)
 		# self.shortcuts['PgDown'].activated.connect(self._updateCam)
-		self.shortcuts['PgUp'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgUp'), self.context.window)
-		self.shortcuts['PgUp'].activated.connect(self.time_slider.decrementValue)
+		# self.shortcuts['PgUp'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgUp'), self.context.window)
+		# self.shortcuts['PgUp'].activated.connect(self.time_slider.decrementValue)
 		# self.shortcuts['PgUp'].activated.connect(self._updateCam)
-		# self.shortcuts['Home'] = QtWidgets.QShortcut(QtGui.QKeySequence('Home'), self.context.window)
-		# self.shortcuts['Home'].activated.connect(self.time_slider.setBeginning)
-		# self.shortcuts['Home'].activated.connect(self._updateCam)
-		# self.shortcuts['End'] = QtWidgets.QShortcut(QtGui.QKeySequence('End'), self.context.window)
-		# self.shortcuts['End'].activated.connect(self.time_slider.setEnd)
-		# self.shortcuts['End'].activated.connect(self._updateCam)
-
-	def _connectSliderCamUpdate(self):
-		self.time_slider.slider.valueChanged.connect(self._updateCam)
-
-	def _updateCam(self):
-		if self.context.sccam_state and self.context.canvas_wrapper is not None:
-			self.context.canvas_wrapper.centerCameraSpacecraft(set_zoom=False)
+		self.shortcuts['Home'] = QtWidgets.QShortcut(QtGui.QKeySequence('Home'), self.context.window)
+		self.shortcuts['Home'].activated.connect(self.time_slider.setBeginning)
+		self.shortcuts['End'] = QtWidgets.QShortcut(QtGui.QKeySequence('End'), self.context.window)
+		self.shortcuts['End'].activated.connect(self.time_slider.setEnd)
 
 	def prepSerialisation(self):
 		state = {}
 		state['orbit_controls'] = self.orbit_controls.prepSerialisation()
-		state['config_controls'] = self.config_controls.prepSerialisation()
 		state['time_slider'] = self.time_slider.prepSerialisation()
 		return state
 
 	def deSerialise(self, state):
 		self.orbit_controls.deSerialise(state['orbit_controls'])
 		self.time_slider.deSerialise(state['time_slider'])
-		self.config_controls.deSerialise(state['config_controls'])
-
-
-	def rebuildOptions(self):
-		self.config_controls.rebuild()

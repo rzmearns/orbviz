@@ -11,6 +11,7 @@ from satplot.visualiser.contexts import (base_context,
 											blank_context,
 											history2d_context,
 											history3d_context,
+											history_configuration_context,
 											sensor_views_context)
 import satplot.visualiser.interface.console as console
 import satplot.visualiser.interface.controls as controls
@@ -45,6 +46,7 @@ class PlanningShell():
 			earth_raycast_data_model = global_earth_rdm
 
 		# Build context panes
+		self.contexts_dict['configuration-history'] = history_configuration_context.HistoryConfigurationContext('configuration-history', self.window, history_data_model)
 		self.contexts_dict['3D-planning'] = history3d_context.History3DContext('3D-planning', self.window, history_data_model)
 		self.contexts_dict['2D-planning'] = history2d_context.History2DContext('2D-planning', self.window, history_data_model, earth_raycast_data_model)
 		self.contexts_dict['sensors-view-planning'] = sensor_views_context.SensorViewsContext('sensors-view-planning', self.window, history_data_model, earth_raycast_data_model)
