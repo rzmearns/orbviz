@@ -11,7 +11,7 @@ import satplot.visualiser.colours as colours
 logger = logging.getLogger(__name__)
 
 class TimeSlider(QtWidgets.QWidget):
-	def __init__(self, parent: QtWidgets.QWidget=None) -> None:
+	def __init__(self, parent: QtWidgets.QWidget|None=None, allow_no_callbacks=False) -> None:
 		super().__init__(parent)
 		self.start_dt = None
 		self.end_dt = None
@@ -19,6 +19,7 @@ class TimeSlider(QtWidgets.QWidget):
 		self.range_delta = None
 		self.num_ticks = 1440
 		self.tick_delta = None
+		self._allow_no_callbacks = allow_no_callbacks
 		self.range_per_tick = self.range/self.num_ticks
 		self._callbacks = []
 		self._timespan = None
@@ -120,6 +121,8 @@ class TimeSlider(QtWidgets.QWidget):
 		self.slider.setMaximum(self.num_ticks-1)
 
 	def add_connect(self, callback):
+		if self._allow_no_callbacks:
+			logger.warning('A callback is being set on a Time Slider intended for no _callbacks')
 		self._callbacks.append(callback)
 
 	def _run_callbacks(self):
@@ -132,7 +135,7 @@ class TimeSlider(QtWidgets.QWidget):
 		if len(self._callbacks) > 0:
 			for callback in self._callbacks:
 				callback(self.slider.value())
-		else:
+		elif not self._allow_no_callbacks:
 			logger.warning("No Time Slider callbacks are set")
 
 	def prepSerialisation(self) -> dict[str, Any]:
