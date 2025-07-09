@@ -167,10 +167,11 @@ class SpacecraftConfig():
 
 class PrimaryConfig():
 	def __init__(self, filestem:str, name:str, satellites:dict[int, str], sat_configs:dict[str, SpacecraftConfig]):
-		self.filestem = filestem
-		self.name = name
-		self.sats = satellites
-		self.sat_configs = sat_configs
+		self.filestem:str = filestem
+		self.name:str = name
+		self.sats:dict[int,str] = satellites
+		self.num_sats:int = len(self.sats.keys())
+		self.sat_configs:dict[int,SpacecraftConfig] = sat_configs
 
 		logger.info(f'Created primary configuration with name:{self.name}, sats:{self.sats}, sat_configs:{self.sat_configs}')
 
