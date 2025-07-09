@@ -1,12 +1,15 @@
 import datetime as dt
 import logging
 import math
+import pathlib
 from typing import Any
 
 from PyQt5 import QtWidgets, QtCore, QtGui
 
-from spherapy.timespan import TimeSpan
+import satplot.model.data_models.data_types as satplot_data_types
 import satplot.visualiser.colours as colours
+
+from spherapy.timespan import TimeSpan
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +103,7 @@ class TimeSlider(QtWidgets.QWidget):
 			self._start_dt_label.setText(self.start_dt.strftime("%Y-%m-%d   %H:%M:%S"))
 		else:
 			self._start_dt_label.setText('-')
-		if self.end_dt is not None:			
+		if self.end_dt is not None:
 			self._end_dt_label.setText(self.end_dt.strftime("%Y-%m-%d   %H:%M:%S"))
 		else:
 			self._end_dt_label.setText('-')
@@ -164,7 +167,7 @@ class TimeSlider(QtWidgets.QWidget):
 			hlayout = QtWidgets.QHBoxLayout()
 			hlayout.setSpacing(0)
 			hlayout.setContentsMargins(2,1,2,1)
-			
+
 			self._mon_sp = QtWidgets.QLabel("-")
 			self._day_sp = QtWidgets.QLabel("-")
 			self._hr_sp = QtWidgets.QLabel("     ")
@@ -176,7 +179,7 @@ class TimeSlider(QtWidgets.QWidget):
 			self._hr_text_box = QtWidgets.QLineEdit('-')
 			self._min_text_box = QtWidgets.QLineEdit('-')
 			self._sec_text_box = QtWidgets.QLineEdit('-')
-			
+
 			fixed_height = 20
 
 			self._yr_text_box.setFixedHeight(fixed_height)
@@ -251,7 +254,7 @@ class ColourPicker(QtWidgets.QWidget):
 		closed_layout.setContentsMargins(2,1,2,1)
 		# open_layout.setSpacing(0)
 		open_layout.setContentsMargins(2,1,2,1)
-		
+
 		self._label = QtWidgets.QLabel(label)
 		self._colour_box = QtWidgets.QPushButton()
 		self._colour_box.setStyleSheet(f"background-color : {self.curr_hex}")
@@ -265,7 +268,7 @@ class ColourPicker(QtWidgets.QWidget):
 		closed_layout.addWidget(self._label)
 		closed_layout.addWidget(self._colour_box)
 		closed_layout.addWidget(self._text_box)
-		
+
 
 		self._colorpicker = QtWidgets.QColorDialog()
 		self._colorpicker.setOptions(QtWidgets.QColorDialog.DontUseNativeDialog)
@@ -273,7 +276,7 @@ class ColourPicker(QtWidgets.QWidget):
 		self._colorpicker.colorSelected.connect(self._set_colour)
 		self._text_box.textEdited.connect(self._run_callbacks)
 		self._text_box.returnPressed.connect(self._run_callbacks)
-		
+
 		self.setLayout(closed_layout)
 
 	def add_connect(self, callback):
@@ -320,16 +323,16 @@ class ValueSpinner(QtWidgets.QWidget):
 		self.allow_float = not integer
 		if fraction:
 			self.allow_float = True
-		
+
 		if self.allow_float:
 			self.curr_val = dflt_val
 		else:
 			self.curr_val = int(dflt_val)
-		
 
-		layout = QtWidgets.QHBoxLayout()	
+
+		layout = QtWidgets.QHBoxLayout()
 		layout.setContentsMargins(2,1,2,1)
-		
+
 		self._label = QtWidgets.QLabel(label)
 		if self.allow_float or fraction:
 			self._val_box = QtWidgets.QDoubleSpinBox()
@@ -340,12 +343,12 @@ class ValueSpinner(QtWidgets.QWidget):
 		else:
 			self._val_box.setRange(0,1)
 			self._val_box.setSingleStep(0.1)
-		self._val_box.setValue(self.curr_val)		
+		self._val_box.setValue(self.curr_val)
 		self._val_box.setFixedWidth(80)
 		self._val_box.setFixedHeight(20)
 
 		layout.addWidget(self._label)
-		layout.addWidget(self._val_box)	
+		layout.addWidget(self._val_box)
 
 		self._val_box.textChanged.connect(self._run_callbacks)
 		self._val_box.valueChanged.connect(self._run_callbacks)
@@ -356,7 +359,7 @@ class ValueSpinner(QtWidgets.QWidget):
 		self._callbacks.append(callback)
 
 	def _run_callbacks(self):
-		
+
 		if self.allow_float:
 			self.curr_val = self._val_box.value()
 		else:
@@ -624,7 +627,7 @@ class BasicOptionBox(QtWidgets.QWidget):
 			logger.error(f"{state['value']} is not a local valid option. Displaying data, but can't set options.")
 
 class FilePicker(QtWidgets.QWidget):
-	def __init__(self, label, 
+	def __init__(self, label,
 						dflt_file='',
 						dflt_dir=None,
 						save=False,
@@ -632,14 +635,15 @@ class FilePicker(QtWidgets.QWidget):
 						parent: QtWidgets.QWidget=None) -> None:
 		super().__init__(parent)
 		self._callbacks = []
-		self.path = f'{dflt_dir}{dflt_file}'
+		self._dflt_path = pathlib.Path(f'{dflt_dir}').joinpath(dflt_file)
+		self.path = pathlib.Path(f'{dflt_dir}').joinpath(dflt_file)
 		vlayout = QtWidgets.QVBoxLayout()
 		hlayout1 = QtWidgets.QHBoxLayout()
 		hlayout2 = QtWidgets.QHBoxLayout()
 		vlayout.setSpacing(0)
 		hlayout1.setSpacing(0)
-		hlayout2.setSpacing(0)
 		hlayout1.setContentsMargins(0,1,0,0)
+		hlayout2.setSpacing(0)
 		hlayout2.setContentsMargins(0,0,10,1)
 		vlayout.setContentsMargins(margins[0],margins[1],margins[2],margins[3])
 
@@ -649,40 +653,56 @@ class FilePicker(QtWidgets.QWidget):
 			hlayout1.addStretch()
 			vlayout.addLayout(hlayout1)
 
-		self._file_text_box = QtWidgets.QLineEdit(self.path)
+		# Create widgets
+		self._file_text_box = QtWidgets.QLineEdit(str(self.path.resolve()))
+		self._err_label = QtWidgets.QLabel('')
 		self._dialog_button = QtWidgets.QPushButton('...')
-		self.caption = f'Pick {label}'
-		self.dflt_dir = dflt_dir
-		self.dflt_filename = dflt_file
-		self.dialog_save = save
-		self._dialog_button.clicked.connect(self.openFilenameDialog)
-		self._file_text_box.textChanged.connect(self.setPath)
+		self._dialog_save_flag = save
+		self._dialog_caption = f'Pick {label}'
+		# Set styling
 		self._dialog_button.setFixedWidth(25)
-
+		err_font = QtGui.QFont()
+		err_font.setBold(True)
+		self._err_label.setFont(err_font)
+		self._err_label.setStyleSheet('''
+										QLabel {
+												color:#FF0000;
+												}
+									''');
 
 		hlayout2.addWidget(self._file_text_box)
 		hlayout2.addSpacing(5)
 		hlayout2.addWidget(self._dialog_button)
-
 		vlayout.addLayout(hlayout2)
+		vlayout.addWidget(self._err_label)
 		self.setLayout(vlayout)
 
-	def setPath(self):
+		self._dialog_button.clicked.connect(self.openFilenameDialog)
+		self._file_text_box.textChanged.connect(self._setPath)
+		self._file_text_box.textChanged.connect(self._run_callbacks)
+
+	def _setPath(self):
 		self.path = self._file_text_box.text()
+
+	def setError(self, err_text:str) -> None:
+		self._err_label.setText(err_text)
+
+	def clearError(self) -> None:
+		self._err_label.setText('')
 
 	def openFilenameDialog(self):
 		options = QtWidgets.QFileDialog.Options()
 		options |= QtWidgets.QFileDialog.DontUseNativeDialog
-		if self.dialog_save:
+		if self._dialog_save_flag:
 			filename, _ = QtWidgets.QFileDialog.getSaveFileName(self,
-																self.caption,
-																f'{self.dflt_dir}{self.dflt_filename}',
+																self._dialog_caption,
+																str(self._dflt_path),
 																"All Files (*)",
 																options=options)
 		else:
 			filename, _ = QtWidgets.QFileDialog.getOpenFileName(self,
-																self.caption,
-																f'{self.dflt_dir}{self.dflt_filename}',
+																self._dialog_caption,
+																str(self._dflt_path),
 																"All Files (*)",
 																options=options)
 		self.path = filename
@@ -694,7 +714,7 @@ class FilePicker(QtWidgets.QWidget):
 	def _run_callbacks(self):
 		if len(self._callbacks) > 0:
 			for callback in self._callbacks:
-				callback(self._checkbox.isChecked())
+				callback(self.path)
 		else:
 			logger.warning("No FilePicker callbacks are set")
 
