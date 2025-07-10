@@ -105,8 +105,26 @@ class SensorSuiteConfig():
 	def getSensorNames(self) -> list[str]:
 		return list(self.sensors.keys())
 
+	def getNumSensors(self) -> int:
+		return len(self.sensors.keys())
+
 	def getSensorConfig(self, sensor_name) -> dict[str, Any]:
 		return self.sensors[sensor_name]
+
+	def getSensorDisplayConfig(self, sensor_name) -> dict[str,str]:
+		sens_config = self.getSensorConfig(sensor_name)
+		type = sens_config['shape']
+		if type == SensorTypes.CONE:
+			return {'type':str(sens_config['shape']),
+					'fov':str(sens_config['fov']),
+					'range':str(sens_config['range'])}
+		elif type == SensorTypes.FPA:
+			return 	{'type':str(sens_config['shape']),
+					'fov':str(sens_config['fov']),
+					'resolution':str(sens_config['resolution']),
+					'range':str(sens_config['range'])}
+		else:
+			return {}
 
 	def __eq__(self, other) -> bool:
 		if self is None or other is None:
