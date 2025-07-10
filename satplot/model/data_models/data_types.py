@@ -137,10 +137,10 @@ class SensorSuiteConfig():
 
 class SpacecraftConfig():
 	def __init__(self, filestem:str, name:str, sat_id:int, sensor_suites_dict:dict[str, dict]):
-		self.filestem = filestem
-		self.name = name
-		self.id = sat_id
-		self.sensor_suites = {}
+		self.filestem:str = filestem
+		self.name:str = name
+		self.id:int = sat_id
+		self.sensor_suites:dict[str,SensorSuiteConfig] = {}
 
 		for suite_name, suite in sensor_suites_dict.items():
 			self.sensor_suites[suite_name] = SensorSuiteConfig(suite_name, suite)
