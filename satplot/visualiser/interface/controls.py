@@ -2,6 +2,7 @@ import datetime as dt
 import json
 import logging
 import os
+import pathlib
 import string
 from typing import Any
 
@@ -9,10 +10,68 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 from vispy.scene.widgets import widget
 
 import satplot.model.data_models.data_types as data_types
+import satplot.util.paths as satplot_paths
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.interface.widgets as widgets
 
 logger = logging.getLogger(__name__)
+
+class PrimaryConfig(QtWidgets.QWidget):
+	prim_config_dir = 'data/primary_configs/'
+
+	def __init__(self, parent: QtWidgets.QWidget|None=None) -> None:
+		super().__init__(parent)
+		self.pane_groupbox = QtWidgets.QGroupBox('Primary Satellite Configuration')
+		self.pane_layout = QtWidgets.QVBoxLayout()
+		self.pane_layout.setSpacing(10)
+		# dflt_config_file = satplot_paths.prim_cnfg_dir.joinpath('SpIRIT_XYNegZ.json')
+		dflt_config_file = satplot_paths.prim_cnfg_dir.joinpath('multiSpIRIT.json')
+		self.tmp_prim_config = None
+		self.prim_config_selector = widgets.FilePicker('Configuration File',
+															dflt_file=dflt_config_file.name,
+															dflt_dir=dflt_config_file.parent,
+															save=False)
+		self.prim_config_display = widgets.PrimaryConfigDisplay()
+
+		self.pane_layout.addWidget(self.prim_config_selector)
+		self.pane_layout.addWidget(self.prim_config_display)
+		self.pane_layout.addStretch()
+		self.pane_groupbox.setLayout(self.pane_layout)
+		# self.pane_groupbox.setLayout(self.pane_layout)
+
+
+		self.scroll_area = QtWidgets.QScrollArea()
+		self.scroll_area.setWidget(self.pane_groupbox)
+		self.scroll_area.setWidgetResizable(True)
+		# self.scroll_area.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
+		# self.scroll_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
+
+		self._loadTempConfig(dflt_config_file)
+
+		self.config_layout = QtWidgets.QVBoxLayout()
+		self.config_layout.setObjectName('Primary config layout')
+		self.config_layout.addWidget(self.scroll_area)
+		self.setLayout(self.config_layout)
+
+		self.prim_config_selector.add_connect(self._loadTempConfig)
+
+	def _loadTempConfig(self, cnfg_file:pathlib.Path):
+		try:
+			self.tmp_prim_config = data_types.PrimaryConfig.fromJSON(cnfg_file)
+			self.prim_config_display.updateConfig(self.tmp_prim_config)
+			self.prim_config_selector.clearError()
+		except KeyError as e:
+			self.tmp_prim_config = None
+			self.prim_config_selector.setError('Not a valid configuration file')
+			self.prim_config_display.clearConfig()
+		self.pane_groupbox.updateGeometry()
+
+class NewOrbitConfigs(QtWidgets.QWidget):
+	def __init__(self, parent: QtWidgets.QWidget|None=None) -> None:
+		super().__init__(parent)
+		self.period_start = widgets.DatetimeEntry("Period Start:", dt.datetime.now(tz=dt.timezone.utc)-dt.timedelta(seconds=1.5*60*60))
+		self.period_end = widgets.DatetimeEntry("Period End:", (dt.datetime.now(tz=dt.timezone.utc)+dt.timedelta(seconds=1.5*60*60)))
+		self.sampling_period = widgets.PeriodBox("Sampling Period:", 30)
 
 class OrbitConfigs(QtWidgets.QWidget):
 
@@ -24,7 +83,6 @@ class OrbitConfigs(QtWidgets.QWidget):
 		# self.setFixedWidth(400)
 		# self.setFixedHeight(500)
 		self.pane_layout = QtWidgets.QVBoxLayout()
-		self.config_layout = QtWidgets.QVBoxLayout()
 		self.pane_layout.setSpacing(10)
 
 		# Add widgets here

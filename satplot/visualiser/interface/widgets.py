@@ -1137,6 +1137,218 @@ class ColumnarStackedTabWidget(QtWidgets.QTabWidget):
 		self.tab_changed.emit(self.curr_tab_idx, new_idx)
 		self.curr_tab_idx = new_idx
 
+class PrimaryConfigDisplay(QtWidgets.QWidget):
+	def __init__(self, parent: QtWidgets.QWidget|None=None):
+		super().__init__(parent)
+
+		self.pane_layout = QtWidgets.QVBoxLayout()
+		# self.pane_layout = QtWidgets.QGridLayout()
+		self._cnfg_label = QtWidgets.QLabel('Configuration Preview')
+
+		self._cnfg_table = QtWidgets.QTableWidget(1,2)
+		self._cnfg_table.setRowCount(2)
+		self._cnfg_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+		self._cnfg_table.setItem(0,0,QtWidgets.QTableWidgetItem('Configuration File:'))
+		self._cnfg_table.setItem(1,0,QtWidgets.QTableWidgetItem('Configuration Name:'))
+
+		self._satellites_table = QtWidgets.QTableWidget(1,2)
+		self._satellites_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+		self._satellites_table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
+
+		self._entry_font = self._cnfg_table.item(0,0).font()
+		self._header_font = self._cnfg_table.item(0,0).font()
+		self._entry_font.setPointSize(9)
+		self._header_font.setPointSize(10)
+		self._header_font.setWeight(QtGui.QFont.Medium)
+		self._sensor_tables = []
+
+		self._setStyling()
+
+		self.pane_layout.addWidget(self._cnfg_label)
+		self.pane_layout.addWidget(self._cnfg_table)
+		self.pane_layout.addWidget(self._satellites_table)
+
+		self.setLayout(self.pane_layout)
+
+	def _setStyling(self):
+		# Config title
+		_label_font = QtGui.QFont()
+		_label_font.setWeight(QtGui.QFont.Medium)
+		self._cnfg_label.setFont(_label_font)
+		self._cnfg_table.setStyleSheet('''
+										QTableWidget {
+														background-color:#00000000;
+										}
+									''');
+		self._cnfg_table.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
+		self._cnfg_table.setFocusPolicy(QtCore.Qt.NoFocus)
+		self._cnfg_table.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
+		for row_num in range(self._cnfg_table.rowCount()):
+			self._cnfg_table.setRowHeight(row_num, 6)
+			for col_num in range(self._cnfg_table.columnCount()):
+				if self._cnfg_table.item(row_num,col_num) is not None:
+					# self._cnfg_table.item(row_num,col_num).setFlags(QtCore.Qt.NoItemFlags)
+					# flags = self._cnfg_table.item(row_num,col_num).flags()
+					# print(f'{int(flags)=}')
+					if col_num == 0:
+						self._cnfg_table.item(row_num,col_num).setFont(self._header_font)
+					else:
+						self._cnfg_table.item(row_num,col_num).setFont(self._entry_font)
+
+		self._cnfg_table.verticalHeader().hide()
+		self._cnfg_table.horizontalHeader().hide()
+		self._cnfg_table.setShowGrid(False)
+		self._cnfg_table.setFixedSize(self._cnfg_table.sizeHint())
+
+		# Satelites table
+		self._satellites_table.setHorizontalHeaderLabels(['Sat Name', 'Satcat ID'])
+		self._satellites_table.horizontalHeader().setDefaultAlignment(QtCore.Qt.AlignLeft)
+		self._satellites_table.horizontalHeader().setFont(self._header_font)
+		self._satellites_table.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
+		self._satellites_table.setFocusPolicy(QtCore.Qt.NoFocus)
+		self._satellites_table.verticalHeader().hide()
+		for row_num in range(self._satellites_table.rowCount()):
+			self._satellites_table.setRowHeight(row_num, 6)
+			for col_num in range(self._satellites_table.columnCount()):
+				if self._satellites_table.item(row_num,col_num) is not None:
+					self._satellites_table.item(row_num,col_num).setFont(self._entry_font)
+					# self._satellites_table.item(row_num,col_num).setFlags(QtCore.Qt.ItemIsEnabled)
+					# flags = self._satellites_table.item(row_num,col_num).flags()
+					# print(f'{int(flags)=}')
+
+		self._satellites_table.horizontalHeader().setStyleSheet('''
+														QHeaderView::section {
+																background-color: #00000000;
+    															border: 0px;
+														}
+														''')
+		self._satellites_table.setStyleSheet('''
+												QTableWidget {
+																background-color:#00000000;
+												}
+											''');
+		self._satellites_table.setShowGrid(False)
+		self._satellites_table.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
+		self._satellites_table.setFixedSize(self._satellites_table.sizeHint())
+
+	def _setSensorTableStyling(self, table:QtWidgets.QTableWidget):
+
+		table.setHorizontalHeaderLabels(['Sensor Suite', 'Sensor','',''])
+		table.horizontalHeader().setDefaultAlignment(QtCore.Qt.AlignLeft)
+		table.horizontalHeader().setFont(self._header_font)
+
+		table.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
+		table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+		table.setFocusPolicy(QtCore.Qt.NoFocus)
+		table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
+		table.verticalHeader().hide()
+		table.setStyleSheet('''
+								QTableWidget {
+											background-color:#00000000;
+											}
+							''');
+		table.horizontalHeader().setStyleSheet('''
+													QHeaderView::section {
+																		background-color: #00000000;
+    																	border: 0px;
+																		}
+												''')
+		table.setShowGrid(False)
+
+		# set row heights and fonts
+		table_height = 0
+		for row_num in range(table.rowCount()):
+			table.setRowHeight(row_num, 6)
+			table_height += table.rowHeight(row_num)
+			for col_num in range(table.columnCount()):
+				if table.item(row_num,col_num) is not None:
+					table.item(row_num,col_num).setFlags(QtCore.Qt.ItemIsEnabled)
+					table.item(row_num,col_num).setFont(self._entry_font)
+
+		table.resizeColumnsToContents()
+
+		# Turn off scrollbar
+		table.verticalScrollBar().setDisabled(True)
+		table.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff);
+		table.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
+		table.setMinimumHeight(table.sizeHint().height());
+
+	def updateConfig(self, config:satplot_data_types.PrimaryConfig):
+		self.config = config
+		self._cnfg_table.setItem(0,1,QtWidgets.QTableWidgetItem(f'{self.config.filestem}.json'))
+		self._cnfg_table.setItem(1,1,QtWidgets.QTableWidgetItem(f'{self.config.name}'))
+		self._cnfg_table.resizeColumnsToContents()
+		self._populateSatellites()
+		self._satellites_table.resizeColumnsToContents()
+		self._setStyling()
+
+	def clearConfig(self) -> None:
+		self._satellites_table.setRowCount(0)
+
+	def _populateSatellites(self):
+		# delete old widgets
+		for ii in range(len(self._sensor_tables)-1,-1,-1):
+			if isinstance(self._sensor_tables[ii],QtWidgets.QSpacerItem):
+				self.pane_layout.removeItem(self._sensor_tables[ii])
+			else:
+				self._sensor_tables[ii].deleteLater()
+			# if isinstance(self._sensor_tables[ii],CollapsibleSection):
+			# 	self.grid_row -= 1
+			self._sensor_tables.pop(ii)
+
+
+		num_sats = self.config.num_sats
+		self._satellites_table.setRowCount(num_sats)
+		# Populate list of satellites in primary config
+		for ii, (sat_id, sat_name) in enumerate(self.config.sats.items()):
+			self._satellites_table.setItem(ii, 0, QtWidgets.QTableWidgetItem(sat_name))
+			self._satellites_table.setItem(ii, 1, QtWidgets.QTableWidgetItem(str(sat_id)))
+
+		for sat_name, satellite in self.config.sat_configs.items():
+			# For each satellite create collapsible section
+			sat_cs = CollapsibleSection(title=sat_name)
+			# self.pane_layout.addWidget(sat_cs, self.grid_row,0)
+			self.pane_layout.addWidget(sat_cs)
+			# self.grid_row+=1
+			self._sensor_tables.append(sat_cs)
+
+			sat_cs.toggleCollapsed()
+
+			if satellite.getNumSuites()==0:
+				self.pane_layout.addWidget(QtWidgets.QLabel('No Sensors'))
+			else:
+				num_rows = 0
+				# calculate how many rows to contain all data about sensor suites
+				for suite_name, suite in satellite.sensor_suites.items():
+					for sens_name in suite.getSensorNames():
+						sens_config = suite.getSensorDisplayConfig(sens_name)
+						num_rows += len(sens_config.keys())
+
+				sat_table = QtWidgets.QTableWidget(num_rows,4)
+				row_num = 0
+				for suite_name, suite in satellite.sensor_suites.items():
+					sat_table.setItem(row_num,0,QtWidgets.QTableWidgetItem(suite_name))
+					for sens_name in suite.getSensorNames():
+						sens_config = suite.getSensorDisplayConfig(sens_name)
+						sat_table.setItem(row_num,1,QtWidgets.QTableWidgetItem(sens_name))
+						# row_num += 1
+						for field, val in sens_config.items():
+							sat_table.setItem(row_num,2,QtWidgets.QTableWidgetItem(f'{field}:'))
+							sat_table.setItem(row_num,3,QtWidgets.QTableWidgetItem(val))
+							row_num += 1
+						# add row between sensors
+						row_num += 1
+
+				self._setSensorTableStyling(sat_table)
+				sat_cs.addWidget(sat_table)
+				self._sensor_tables.append(sat_table)
+
+			# Add spacer to bottom
+			# spacer = QtWidgets.QSpacerItem(10,10,QtWidgets.QSizePolicy.Expanding,QtWidgets.QSizePolicy.Expanding)
+			# self.pane_layout.addItem(spacer)
+			# self.pane_layout.addStretch()
+			# self._sensor_tables.append(spacer)
+
 
 def embedWidgetsInHBoxLayout(w_list, margin=5):
 	"""Embed a list of widgets into a layout to give it a frame"""
