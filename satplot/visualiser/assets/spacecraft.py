@@ -60,10 +60,10 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 		if args[1] is not None:
 
 			self.data['pointing_defined'] = True
-			logger.debug(f'spacecraft has pointing')
+			logger.debug(f'Spacecraft3DAsset has pointing')
 		else:
 			self.data['pointing_defined'] = False
-			logger.debug(f'spacecraft has NO pointing')
+			logger.debug(f'Spacecraft3DAsset has NO pointing')
 
 		sats_dict = args[0]
 		first_sat_orbit = list(sats_dict.values())[0]
@@ -350,10 +350,17 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 		self.data['oth_edge1'][-2,1] = -2
 		self.data['oth_edge2'] = self.data['oth_edge1'].copy()
 
+		self.data['old_config_filestem'] = None
+		self.data['old_suite_names'] = None
+		self.data['old_sc_config'] = None
+		self.data['old_pointing_defined'] = False
+
 	def setSource(self, *args, **kwargs) -> None:
 		# args[0] spacecraft configuration
 		# args[1] history data
 		# args[2] ray cast src data
+
+		# TODO: if historydata already gets updated, there's no need to call this again
 
 		if type(args[0]) is not data_types.SpacecraftConfig:
 			logger.error(f"setSource() of {self} requires a {data_types.SpacecraftConfig} as args[0], not: {type(args[0])}")
@@ -373,19 +380,6 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 			logger.error(f"setSource() of {self} requires a {earth_raycast_data.EarthRayCastData} as args[2], not: {type(args[2])}")
 			raise TypeError(f"setSource() of {self} requires a {earth_raycast_data.EarthRayCastData} as args[2], not: {type(args[2])}")
 			return
-
-		# store old sensor configs
-		old_sc_config = self.data['sc_config']
-		if old_sc_config:
-			old_config_filestem = old_sc_config.filestem
-			old_suite_names = list(old_sc_config.getSensorSuites().keys())
-		else:
-			old_config_filestem = None
-			old_suite_names = []
-		if self.data['history_src']:
-			old_pointing_defined = self.data['history_src'].getConfigValue('is_pointing_defined')
-		else:
-			old_pointing_defined = False
 
 		# assign data sources
 		self.data['sc_config'] = args[0]
@@ -413,21 +407,34 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 		else:
 			self.data['strings'] = ['']
 
-		if old_pointing_defined and self.data['sc_config'] == old_sc_config:
+		if self.data['old_pointing_defined'] and self.data['sc_config'] == self.data['old_sc_config']:
 			# config has not changed -> don't need to re-instantiate sensors
 			logger.debug('Spacecraft pointing related config has not changed')
 			config_changed = False
 			return
 
 		# remove old sensors if there were some
-		if old_pointing_defined and old_sc_config != self.data['sc_config']:
+		if self.data['old_pointing_defined'] and self.data['old_sc_config'] != self.data['sc_config']:
 			# If pointing had previously been defined -> old sensors, options need to be removed
 			# if no pointing, no point having sensors
-			self._removeSensorAssets(old_suite_names)
+			self._removeSensorAssets(self.data['old_suite_names'])
 
 		if self.data['history_src'].getConfigValue('is_pointing_defined'):
 			self._instantiateSensorAssets()
 			self._setSensorAssetSources()
+
+		# store values for next time source is set
+		self.data['old_sc_config'] = self.data['sc_config']
+		if self.data['old_sc_config']:
+			self.data['old_config_filestem'] = self.data['old_sc_config'].filestem
+			self.data['old_suite_names'] = list(self.data['old_sc_config'].getSensorSuites().keys())
+		else:
+			self.data['old_config_filestem'] = None
+			self.data['old_suite_names'] = []
+		if self.data['history_src']:
+			self.data['old_pointing_defined'] = self.data['history_src'].getConfigValue('is_pointing_defined')
+		else:
+			self.data['old_pointing_defined'] = False
 
 	def setScale(self, horizontal_size, vertical_size):
 		self.data['horiz_pixel_scale'] = horizontal_size/360
