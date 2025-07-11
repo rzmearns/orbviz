@@ -7,6 +7,7 @@ from typing import Any
 from PyQt5 import QtWidgets, QtCore, QtGui
 
 import satplot.model.data_models.data_types as satplot_data_types
+import satplot.util.paths as satplot_paths
 import satplot.visualiser.colours as colours
 
 from spherapy.timespan import TimeSpan
@@ -657,7 +658,8 @@ class FilePicker(QtWidgets.QWidget):
 			vlayout.addLayout(hlayout1)
 
 		# Create widgets
-		self._file_text_box = QtWidgets.QLineEdit(str(self.path.resolve()))
+		path_to_show = self.path.relative_to(satplot_paths.data_dir)
+		self._file_text_box = QtWidgets.QLineEdit(f'{path_to_show}')
 		self._err_label = QtWidgets.QLabel('')
 		self._dialog_button = QtWidgets.QPushButton('...')
 		self._dialog_save_flag = save
@@ -710,7 +712,11 @@ class FilePicker(QtWidgets.QWidget):
 																options=options)
 		self.path = pathlib.Path(filename)
 		self._file_text_box.blockSignals(True)
-		self._file_text_box.setText(f'.../{self.path.name}')
+		try:
+			path_to_show = self.path.relative_to(satplot_paths.data_dir)
+		except ValueError:
+			path_to_show = self.path.resolve()
+		self._file_text_box.setText(f'{path_to_show}')
 		self._file_text_box.blockSignals(False)
 
 	def add_connect(self, callback):
