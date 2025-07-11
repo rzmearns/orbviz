@@ -68,7 +68,7 @@ class History2DContext(base.BaseContext):
 	def connectControls(self) -> None:
 		logger.info(f"Connecting controls of {self.config['name']}")
 		self.controls.time_slider.add_connect(self._updateDisplayedIndex)
-		self.sccam_state = False
+		self.controls.action_dict['center-earth']['callback'] = self._centerCameraEarth
 		if self.data['history'] is None:
 			logger.warning(f'Context History3D: {self} does not have a data model.')
 			raise AttributeError(f'Context History3D: {self} does not have a data model.')
@@ -125,7 +125,9 @@ class History2DContext(base.BaseContext):
 		state['camera'] = self.canvas_wrapper.prepSerialisation()
 		return state
 
-		
+	def _centerCameraEarth(self) -> None:
+		self.canvas_wrapper.centerCameraEarth()
+
 class Controls(base.BaseControls):
 	def __init__(self, parent_context:base.BaseContext, canvas_wrapper:BaseCanvas):
 		self.context = parent_context

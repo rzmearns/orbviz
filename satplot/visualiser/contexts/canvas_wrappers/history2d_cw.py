@@ -151,6 +151,13 @@ class History2DCanvasWrapper(BaseCanvas):
 		for asset in self.assets.values():
 			asset.setFirstDrawFlagRecursive()
 
+	def centerCameraEarth(self) -> None:
+		if self.canvas is None:
+			logger.warning(f"Canvas has not been set for History2D Canvas Wrapper. No camera to center")
+			raise AttributeError(f"Canvas has not been set for History2D Canvas Wrapper. No camera to center")
+		self.view_box.camera.resetToExtents()
+		self.canvas.update()
+
 	def prepSerialisation(self) -> dict[str,Any]:
 		# state = {}
 		# state['cam-center'] = self.view_box.camera.center
