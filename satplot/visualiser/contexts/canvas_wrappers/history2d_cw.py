@@ -56,8 +56,7 @@ class History2DCanvasWrapper(BaseCanvas):
 		self.grid = self.canvas.central_widget.add_grid()
 
 		self.view_box = self.grid.add_view(0, 0, bgcolor='#008eaf')
-		# self.view_box.camera = RestrictedPanZoom.RestrictedPanZoomCamera(limits=(0, IMAGE_SHAPE[0], 0, IMAGE_SHAPE[1]))
-		self.view_box.camera = PanZoomCamera()
+		self.view_box.camera = RestrictedPanZoom.RestrictedPanZoomCamera(limits=(0, IMAGE_SHAPE[0], 0, IMAGE_SHAPE[1]))
 		self.view_box.camera.set_range(x=(0, IMAGE_SHAPE[0]), y=(0, IMAGE_SHAPE[1]), margin=0)
 		self.vb_aspect_ratio = self.view_box.camera.aspect
 		rect = self.view_box.camera.rect
