@@ -68,6 +68,7 @@ class HistoricalShell():
 				raise ValueError('Toolbars and Menubars indices do not match')
 				sys.exit()
 
+		history_data_model.data_ready.connect(self._onDataReadySwapTabs)
 		self.context_tab_stack.tab_changed.connect(self.updateToolMenuBars)
 		self.context_tab_stack.tab_changed.connect(self._propagateTimeSlider)
 
@@ -77,6 +78,8 @@ class HistoricalShell():
 
 		self.updateToolMenuBars(self.context_tab_stack.currentIndex(), 1)
 
+	def _onDataReadySwapTabs(self) -> None:
+		self.context_tab_stack.setCurrentIndex(1)
 
 	def _propagateTimeSlider(self, old_context_idx:int, new_context_idx:int) -> None:
 		curr_context_idx = old_context_idx

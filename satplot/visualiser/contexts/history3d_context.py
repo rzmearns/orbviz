@@ -84,10 +84,7 @@ class History3DContext(base.BaseContext):
 
 	def _updateControls(self, *args, **kwargs) -> None:
 		self.controls.time_slider.setTimespan(self.data['history'].getTimespan())
-		self.controls.orbit_controls.period_start.setDatetime(self.data['history'].getConfigValue('timespan_period_start'))
-		self.controls.orbit_controls.period_end.setDatetime(self.data['history'].getConfigValue('timespan_period_end'))
 		self.controls.time_slider._curr_dt_picker.setDatetime(self.data['history'].getTimespan().start)
-		self.controls.orbit_controls.submit_button.setEnabled(True)
 		self.controls.time_slider.setValue(int(self.controls.time_slider.num_ticks/2))
 
 	def _updateDataSources(self) -> None:
@@ -166,7 +163,6 @@ class Controls(base.BaseControls):
 		self.cw = canvas_wrapper
 		super().__init__(self.context.config['name'])
 		# Prep config widgets
-		self.orbit_controls = controls.OrbitConfigs()
 		self.config_controls = controls.OptionConfigs(self.cw.assets)
 
 		# Wrap config widgets in tabs
@@ -208,13 +204,11 @@ class Controls(base.BaseControls):
 
 	def prepSerialisation(self):
 		state = {}
-		state['orbit_controls'] = self.orbit_controls.prepSerialisation()
 		state['config_controls'] = self.config_controls.prepSerialisation()
 		state['time_slider'] = self.time_slider.prepSerialisation()
 		return state
 
 	def deSerialise(self, state):
-		self.orbit_controls.deSerialise(state['orbit_controls'])
 		self.time_slider.deSerialise(state['time_slider'])
 		self.config_controls.deSerialise(state['config_controls'])
 

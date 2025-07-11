@@ -22,10 +22,11 @@ class PrimaryConfig(QtWidgets.QWidget):
 	def __init__(self, parent: QtWidgets.QWidget|None=None) -> None:
 		super().__init__(parent)
 		# Layout containers
-		self.super_layout = QtWidgets.QVBoxLayout()
+		super_layout = QtWidgets.QVBoxLayout()
+		# Need to keep a reference to pane_groupbox so we can update geometry when loading a different config
 		self.pane_groupbox = QtWidgets.QGroupBox('Primary Satellite Configuration')
-		self.config_layout = QtWidgets.QVBoxLayout()
-		self.config_layout.setSpacing(10)
+		config_vlayout = QtWidgets.QVBoxLayout()
+		config_vlayout.setSpacing(10)
 
 		# Configuration widgets
 		dflt_config_file = satplot_paths.prim_cnfg_dir.joinpath('SpIRIT_XYNegZ.json')
@@ -37,18 +38,18 @@ class PrimaryConfig(QtWidgets.QWidget):
 		self.prim_config_display = widgets.PrimaryConfigDisplay()
 
 		# Place configuration widgets
-		self.config_layout.addWidget(self.prim_config_selector)
-		self.config_layout.addWidget(self.prim_config_display)
-		self.config_layout.addStretch()
-		self.pane_groupbox.setLayout(self.config_layout)
+		config_vlayout.addWidget(self.prim_config_selector)
+		config_vlayout.addWidget(self.prim_config_display)
+		config_vlayout.addStretch()
+		self.pane_groupbox.setLayout(config_vlayout)
 
 		# Scrollable container
-		self.scroll_area = QtWidgets.QScrollArea()
-		self.scroll_area.setWidget(self.pane_groupbox)
-		self.scroll_area.setWidgetResizable(True)
+		scroll_area = QtWidgets.QScrollArea()
+		scroll_area.setWidget(self.pane_groupbox)
+		scroll_area.setWidgetResizable(True)
 
-		self.super_layout.addWidget(self.scroll_area)
-		self.setLayout(self.super_layout)
+		super_layout.addWidget(scroll_area)
+		self.setLayout(super_layout)
 
 		# Set up connections
 		self._loadTempConfig(dflt_config_file)
@@ -65,14 +66,19 @@ class PrimaryConfig(QtWidgets.QWidget):
 			self.prim_config_display.clearConfig()
 		self.pane_groupbox.updateGeometry()
 
+	def getConfig(self) -> data_types.PrimaryConfig:
+		if self.tmp_prim_config is None:
+			raise ValueError('A Primary Configuration has not been loaded yet.')
+		return self.tmp_prim_config
+
 class TimePeriodConfig(QtWidgets.QWidget):
 	def __init__(self, parent: QtWidgets.QWidget|None=None) -> None:
 		super().__init__(parent)
 		# Layout containers
-		self.super_layout = QtWidgets.QVBoxLayout()
-		self.pane_groupbox = QtWidgets.QGroupBox('Time Period Configuration')
-		self.config_layout = QtWidgets.QVBoxLayout()
-		self.config_layout.setSpacing(10)
+		super_layout = QtWidgets.QVBoxLayout()
+		pane_groupbox = QtWidgets.QGroupBox('Manual Time Period')
+		config_vlayout = QtWidgets.QVBoxLayout()
+		config_vlayout.setSpacing(10)
 
 		# Configuration Widgets
 		self.period_start = widgets.DatetimeEntry("Period Start:", dt.datetime.now(tz=dt.timezone.utc)-dt.timedelta(seconds=1.5*60*60))
@@ -80,177 +86,78 @@ class TimePeriodConfig(QtWidgets.QWidget):
 		self.sampling_period = widgets.PeriodBox("Sampling Period:", 30)
 
 		# Place configuration widgets
-		self.config_layout.addWidget(self.period_start)
-		self.config_layout.addWidget(self.period_end)
-		self.config_layout.addWidget(self.sampling_period)
-		self.pane_groupbox.setLayout(self.config_layout)
+		config_vlayout.addWidget(self.period_start)
+		config_vlayout.addWidget(self.period_end)
+		config_vlayout.addWidget(self.sampling_period)
+		pane_groupbox.setLayout(config_vlayout)
 
 		# Scrollable container
-		self.scroll_area = QtWidgets.QScrollArea()
-		self.scroll_area.setWidget(self.pane_groupbox)
-		self.scroll_area.setWidgetResizable(True)
+		scroll_area = QtWidgets.QScrollArea()
+		scroll_area.setWidget(pane_groupbox)
+		scroll_area.setWidgetResizable(True)
 
-		self.super_layout.addWidget(self.scroll_area)
-		self.setLayout(self.super_layout)
+		super_layout.addWidget(scroll_area)
+		self.setLayout(super_layout)
 
 		# Set up connections
 
-class OrbitConfigs(QtWidgets.QWidget):
+	def getPeriodStart(self) -> dt.datetime:
+		return self.period_start.datetime
 
-	prim_config_dir = 'data/primary_configs/'
+	def getPeriodEnd(self) -> dt.datetime:
+		return self.period_end.datetime
 
-	def __init__(self, parent: QtWidgets.QWidget|None=None) -> None:
-		super().__init__(parent)
-		self.pane_groupbox = QtWidgets.QGroupBox('Orbit Configuration')
-		# self.setFixedWidth(400)
-		# self.setFixedHeight(500)
-		self.pane_layout = QtWidgets.QVBoxLayout()
-		self.pane_layout.setSpacing(10)
-
-		# Add widgets here
-		self.period_start = widgets.DatetimeEntry("Period Start:", dt.datetime.now(tz=dt.timezone.utc)-dt.timedelta(seconds=1.5*60*60))
-		self.period_end = widgets.DatetimeEntry("Period End:", (dt.datetime.now(tz=dt.timezone.utc)+dt.timedelta(seconds=1.5*60*60)))
-		self.sampling_period = widgets.PeriodBox("Sampling Period:", 30)
-		self.button_layout = QtWidgets.QHBoxLayout()
-		self.submit_button = QtWidgets.QPushButton('Recalculate')
-		self.prim_orbit_selector = widgets.FilePicker('Primary Orbit',
-															dflt_file='SpIRIT_XYNegZ.json',
-															dflt_dir='data/primary_configs/',
-															save=False)
-		self.pointing_file_controls = HistoricalPointingConfig()
-		
-		self.suppl_constellation_selector = ConstellationControls()
-
-		self.pane_layout.addWidget(self.period_start)
-		self.pane_layout.addWidget(self.period_end)
-		self.pane_layout.addWidget(self.sampling_period)
-		self.pane_layout.addWidget(self.prim_orbit_selector)
-		self.pane_layout.addWidget(self.pointing_file_controls)
-
-		self.pane_layout.addWidget(self.suppl_constellation_selector)
-
-		self.button_layout.addStretch()
-		self.button_layout.addWidget(self.submit_button)
-		self.button_layout.addStretch()
-		self.pane_layout.addLayout(self.button_layout)
-
-		self.pane_layout.addStretch()
-		self.pane_groupbox.setLayout(self.pane_layout)
-
-		self.scroll_area = QtWidgets.QScrollArea()
-		self.scroll_area.setWidget(self.pane_groupbox)
-		self.scroll_area.setWidgetResizable(True)
-		self.suppl_constellation_selector.setContainingScrollWidget(self.scroll_area)
-		self.config_layout = QtWidgets.QVBoxLayout(self)
-		self.config_layout.setObjectName('Orbit config layout')
-		self.config_layout.addWidget(self.scroll_area)
-
-		# self.setLayout(self.config_layout)
-
-	def prepSerialisation(self) -> dict[str, Any]:
-		state = {}
-		state['period_start'] = self.period_start.prepSerialisation()
-		state['period_end'] = self.period_end.prepSerialisation()
-		state['sampling_period'] = self.sampling_period.prepSerialisation()
-		state['primary_config'] = self.prim_orbit_selector.prepSerialisation()
-		state['pointing_controls'] = self.pointing_file_controls.prepSerialisation()
-		state['suppl_constellation_controls'] = self.suppl_constellation_selector.prepSerialisation()
-		return state
-
-	def deSerialise(self, state:dict[str, Any]) -> None:
-		self.period_start.deSerialise(state['period_start'])
-		self.period_end.deSerialise(state['period_end'])
-		self.sampling_period.deSerialise(state['sampling_period'])
-		self.prim_orbit_selector.deSerialise(state['primary_config'])
-		self.pointing_file_controls.deSerialise(state['pointing_controls'])
-		self.suppl_constellation_selector.deSerialise(state['suppl_constellation_controls'])
-
-	def getConfig(self) -> data_types.PrimaryConfig:
-		return data_types.PrimaryConfig.fromJSON(self.prim_orbit_selector.path)
+	def getSamplingPeriod(self) -> int:
+		return self.sampling_period.period
 
 class HistoricalPointingConfig(QtWidgets.QWidget):
 	def __init__(self, *args, **kwargs):
 		super().__init__()
 		# Layout containers
-		self.super_layout = QtWidgets.QVBoxLayout()
-		self.pane_groupbox = QtWidgets.QGroupBox('Historical Pointing Configuration',self)
-		self.config_glayout = QtWidgets.QGridLayout()
-		self.config_glayout.setVerticalSpacing(1)
-		self.config_glayout.setContentsMargins(0,0,0,0)
+		super_layout = QtWidgets.QVBoxLayout()
+		pane_groupbox = QtWidgets.QGroupBox('Historical Pointing Data')
+		config_vlayout = QtWidgets.QVBoxLayout()
+		config_vlayout.setSpacing(10)
+		inv_switch_vlayout = QtWidgets.QVBoxLayout()
+		inv_switch_vlayout.setSpacing(0)
 
 		# Configuration widgets
-		self._label_font = QtGui.QFont()
-		self._label_font.setWeight(QtGui.QFont.Medium)
-		self._label = QtWidgets.QLabel('Pointing File')
-		self._label.setFont(self._label_font)
-		self._en_label = QtWidgets.QLabel('Enable:')
-		self._enable = QtWidgets.QCheckBox()
-		self._enable_list = []
-		self._pointing_file_selector = widgets.FilePicker(None,
-												   			dflt_file='20240108_test_quaternion_X_ECI_parallel_Z_Zenith.csv',
-															dflt_dir='data/pointing/',
+		dflt_config_file = satplot_paths.pnt_dir.joinpath('20240108_test_quaternion_X_ECI_parallel_Z_Zenith.csv')
+		self._pointing_file_selector = widgets.FilePicker('Pointing File',
+												   			dflt_file=dflt_config_file.name,
+															dflt_dir=dflt_config_file.parent,
 															save=False,
 															margins=[0,0,0,0])
-		self.pointing_file_inv_toggle = widgets.Switch()
-		self.pointing_file_inv_toggle.setChecked(True)
-		self.pointing_file_inv_label = QtWidgets.QLabel('Pointing File frame\ntransform direction')
-		self.pointing_file_inv_off_label = QtWidgets.QLabel('BF->ECI')
-		self.pointing_file_inv_on_label = QtWidgets.QLabel('ECI->BF')
-		self.use_pointing_period_label = QtWidgets.QLabel('Use pointing file\nto define period')
-		self.use_pointing_period = QtWidgets.QCheckBox()
+		self.pointing_file_inv_toggle = widgets.LabelledSwitch(labels=('BF->ECI','ECI->BF'), dflt_state=True)
+		_label_font = QtGui.QFont()
+		_label_font.setWeight(QtGui.QFont.Medium)
+		pointing_file_inv_label = QtWidgets.QLabel('Pointing File frame transform direction:')
+		pointing_file_inv_label.setFont(_label_font)
 
 		# Place configuration widgets
-		self.config_glayout.addWidget(self._en_label,1,0)
-		self.config_glayout.addWidget(self._enable,1,2)
-		self.config_glayout.addWidget(self._pointing_file_selector,2,0,1,-1)
-		self.config_glayout.addWidget(self._label,0,0,1,-1)
-		self.config_glayout.addWidget(self.pointing_file_inv_label,3,0)
-		self.config_glayout.addWidget(self.pointing_file_inv_off_label,3,6)
-		self.config_glayout.addWidget(self.pointing_file_inv_toggle,3,7)
-		self.config_glayout.addWidget(self.pointing_file_inv_on_label,3,8)
-		self.config_glayout.addWidget(self.use_pointing_period_label,4,0)
-		self.config_glayout.addWidget(self.use_pointing_period,4,2)
-		self.pane_groupbox.setLayout(self.config_glayout)
+		config_vlayout.addWidget(self._pointing_file_selector)
+		inv_switch_vlayout.addWidget(pointing_file_inv_label)
+		inv_switch_vlayout.addWidget(self.pointing_file_inv_toggle)
+		config_vlayout.addLayout(inv_switch_vlayout)
+		pane_groupbox.setLayout(config_vlayout)
 
 		# Scrollable container
-		self.scroll_area = QtWidgets.QScrollArea()
-		self.scroll_area.setWidget(self.pane_groupbox)
-		self.scroll_area.setWidgetResizable(True)
+		scroll_area = QtWidgets.QScrollArea()
+		scroll_area.setWidget(pane_groupbox)
+		scroll_area.setWidgetResizable(True)
 
-		self.super_layout.addWidget(self.scroll_area)
-		self.setLayout(self.super_layout)
+		super_layout.addWidget(scroll_area)
+		self.setLayout(super_layout)
 
-		# Set up connections
-		self._enable.toggled.connect(self.enableState)
-		self._enable.setChecked(False)
-		self.addWidgetToEnable(self._pointing_file_selector)
-		self.addWidgetToEnable(self.pointing_file_inv_label)
-		self.addWidgetToEnable(self.pointing_file_inv_off_label)
-		self.addWidgetToEnable(self.pointing_file_inv_on_label)
-		self.addWidgetToEnable(self.pointing_file_inv_toggle)
-		self.addWidgetToEnable(self.use_pointing_period_label)
-		self.addWidgetToEnable(self.use_pointing_period)
-		self.enableState(False)
+	def getPointingConfig(self) -> pathlib.Path:
+		return self._pointing_file_selector.path
 
-	def isEnabled(self):
-		return self._enable.isChecked()
-
-	def enableState(self, state):
-		for widget in self._enable_list:
-			widget.setDisabled(not state)
-
-	def addWidgetToEnable(self, widget):
-		self._enable_list.append(widget)
-
-	def pointingFileDefinesPeriod(self):
-		return self.use_pointing_period.isChecked()
+	def isPointingTransformInverse(self) -> bool:
+		return self.pointing_file_inv_toggle.isChecked()
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
-		state['enabled'] = {}
-		state['enabled']['value'] = self._enable.isChecked()
 		state['use_pointing_period'] = {}
-		state['use_pointing_period']['value'] = self.use_pointing_period.isChecked()
 		state['pointing_file'] = self._pointing_file_selector.prepSerialisation()
 		state['frame_inv'] = self.pointing_file_inv_toggle.prepSerialisation()
 		return state
@@ -258,8 +165,6 @@ class HistoricalPointingConfig(QtWidgets.QWidget):
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		self._pointing_file_selector.deSerialise(state['pointing_file'])
 		self.pointing_file_inv_toggle.deSerialise(state['frame_inv'])
-		self.use_pointing_period.setChecked(state['use_pointing_period']['value'])
-		self._enable.setChecked(state['enabled']['value'])
 
 class ConstellationControls(QtWidgets.QWidget):
 	c_config_dir = 'data/constellation_configs/'
@@ -267,88 +172,74 @@ class ConstellationControls(QtWidgets.QWidget):
 	constellation_options = [c.split('.')[0].replace('_',' ') for c in c_configs]
 
 	def __init__(self, *args, **kwargs):
-		super().__init__()		
+		super().__init__()
 		# Layout containers
-		self.super_layout = QtWidgets.QVBoxLayout()
+		super_layout = QtWidgets.QVBoxLayout()
+		# Need to keep a reference to pane_groupbox so we can update geometry when loading a different config
 		self.pane_groupbox = QtWidgets.QGroupBox('Supplementary Constellation Configuration')
-		self.config_glayout = QtWidgets.QGridLayout()
-		self.config_glayout.setVerticalSpacing(1)
+		config_vlayout = QtWidgets.QVBoxLayout()
+		config_vlayout.setSpacing(10)
 
 		# Configuration Widgets
-		self._label_font = QtGui.QFont()
-		self._label_font.setWeight(QtGui.QFont.Medium)
-		self._label = QtWidgets.QLabel('Constellation')
-		self._label.setFont(self._label_font)
-		self._en_label = QtWidgets.QLabel('Enable:')
-		self._enable = QtWidgets.QCheckBox()
-		self._enable_list = []
-		self.suppl_constellation_selector = widgets.OptionBox('Constellations',
-															options_list=self.constellation_options)
+		dflt_config_file = satplot_paths.constellation_dir.joinpath('Iridium_SMALL.json')
+		self.tmp_const_config = None
+		self.const_config_selector = widgets.FilePicker('Configuration File',
+															dflt_file=dflt_config_file.name,
+															dflt_dir=dflt_config_file.parent,
+															save=False)
+		self.const_config_display = widgets.ConstellationConfigDisplay()
 
 		# Place configuration widgets
-		self.config_glayout.addWidget(self._label,0,0,1,-1)
-		self.config_glayout.setContentsMargins(0,0,0,0)
-		self.config_glayout.addWidget(self._en_label,1,0)
-		self.config_glayout.addWidget(self._enable,1,2)
-		self.config_glayout.addWidget(self.suppl_constellation_selector,2,0,1,-1)
-		self.pane_groupbox.setLayout(self.config_glayout)
+		config_vlayout.addWidget(self.const_config_selector)
+		config_vlayout.addWidget(self.const_config_display)
+		config_vlayout.addStretch()
+		self.pane_groupbox.setLayout(config_vlayout)
 
 		# Scrollable container
-		self.scroll_area = QtWidgets.QScrollArea()
-		self.scroll_area.setWidget(self.pane_groupbox)
-		self.scroll_area.setWidgetResizable(True)
+		scroll_area = QtWidgets.QScrollArea()
+		scroll_area.setWidget(self.pane_groupbox)
+		scroll_area.setWidgetResizable(True)
 
 
-		self.super_layout.addWidget(self.scroll_area)
-		self.setLayout(self.super_layout)
+		super_layout.addWidget(scroll_area)
+		self.setLayout(super_layout)
 
 		# Set up connections
-		self._enable.toggled.connect(self.enableState)
-		self._enable.setChecked(False)
-		self.addWidgetToEnable(self.suppl_constellation_selector)
-		self.enableState(False)
+		self._loadTempConfig(dflt_config_file)
+		self.const_config_selector.add_connect(self._loadTempConfig)
 
-	def isEnabled(self):
-		return self._enable.isChecked()
+	def _loadTempConfig(self, cnfg_file:pathlib.Path):
+		try:
+			self.tmp_const_config = data_types.ConstellationConfig.fromJSON(cnfg_file)
+			self.const_config_display.updateConfig(self.tmp_const_config)
+			self.const_config_selector.clearError()
+		except KeyError as e:
+			self.tmp_prim_config = None
+			self.const_config_selector.setError('Not a valid configuration file')
+			self.const_config_display.clearConfig()
+		self.pane_groupbox.updateGeometry()
 
-	def enableState(self, state):
-		for widget in self._enable_list:
-			widget.setDisabled(not state)
-
-	def addWidgetToEnable(self, widget):
-		self._enable_list.append(widget)
-
-	def setContainingScrollWidget(self, widget):
-		self.suppl_constellation_selector.setContainingScrollWidget(widget)
-
-	def getConstellationConfig(self):
-		c_index = self.getCurrentIndex()
-		if c_index is None:
-			return None
-		with open(f'{self.c_config_dir}{self.c_configs[c_index]}','r') as fp:
-			c_config = json.load(fp)
-		return c_config
-
-	def getCurrentIndex(self):
-		return self.suppl_constellation_selector.getCurrentIndex()
+	def getConfig(self) -> data_types.ConstellationConfig:
+		if self.tmp_const_config is None:
+			raise ValueError('A Constellation Configuration has not been loaded yet.')
+		return self.tmp_const_config
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
-		state['enabled'] = {}
-		state['enabled']['value'] = self._enable.isChecked()
-		state['constellation'] = self.suppl_constellation_selector.prepSerialisation()
+		# state['constellation'] = self.suppl_constellation_selector.prepSerialisation()
 		return state
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
-		self.suppl_constellation_selector.deSerialise(state['constellation'])
-		self._enable.setChecked(state['enabled']['value'])
+		# self.suppl_constellation_selector.deSerialise(state['constellation'])
+		# self._enable.setChecked(state['enabled']['value'])
+		pass
 
 class OptionConfigs(QtWidgets.QWidget):
 	def __init__(self, asset_dict, parent: QtWidgets.QWidget|None=None) -> None:
 		super().__init__(parent)
 
 		self.la_dict = asset_dict
-		
+
 		self.pane_groupbox = QtWidgets.QGroupBox('Visual Options')
 		# self.setFixedWidth(400)
 		self.pane_layout = QtWidgets.QVBoxLayout()
@@ -368,7 +259,7 @@ class OptionConfigs(QtWidgets.QWidget):
 
 
 		self.setLayout(self.config_layout)
-	
+
 	def rebuild(self):
 		self.buildWidgetPane(self.la_dict, self.pane_layout)
 
@@ -695,7 +586,7 @@ class SensorViewConfigs(QtWidgets.QWidget):
 			self.selected.emit(view_id, sc_id, suite_key, sens_key)
 
 class Toolbar(QtWidgets.QWidget):
-	# TODO: this should be in widgets, not controls	
+	# TODO: this should be in widgets, not controls
 	def __init__(self, parent_window:QtWidgets.QMainWindow|None, action_dict, context_name=None):
 		super().__init__()
 		self.parent_window = parent_window
@@ -795,7 +686,7 @@ class Menubar(QtWidgets.QWidget):
 	def setActiveState(self, state):
 		if state:
 			self.parent_window.setMenuBar(self.menubar)
-		else:	
+		else:
 			self.menubar.setParent(None)
 
 def pretty(d, indent=0):

@@ -648,7 +648,10 @@ class FilePicker(QtWidgets.QWidget):
 		vlayout.setContentsMargins(margins[0],margins[1],margins[2],margins[3])
 
 		if label is not None:
+			_label_font = QtGui.QFont()
+			_label_font.setWeight(QtGui.QFont.Medium)
 			self._label = QtWidgets.QLabel(label)
+			self._label.setFont(_label_font)
 			hlayout1.addWidget(self._label)
 			hlayout1.addStretch()
 			vlayout.addLayout(hlayout1)
@@ -682,7 +685,7 @@ class FilePicker(QtWidgets.QWidget):
 		self._file_text_box.textChanged.connect(self._run_callbacks)
 
 	def _setPath(self):
-		self.path = self._file_text_box.text()
+		self.path = pathlib.Path(self._file_text_box.text())
 
 	def setError(self, err_text:str) -> None:
 		self._err_label.setText(err_text)
@@ -705,8 +708,10 @@ class FilePicker(QtWidgets.QWidget):
 																str(self._dflt_path),
 																"All Files (*)",
 																options=options)
-		self.path = filename
-		self._file_text_box.setText(self.path)
+		self.path = pathlib.Path(filename)
+		self._file_text_box.blockSignals(True)
+		self._file_text_box.setText(f'.../{self.path.name}')
+		self._file_text_box.blockSignals(False)
 
 	def add_connect(self, callback):
 		self._callbacks.append(callback)
@@ -914,8 +919,8 @@ class DatetimeEntry(QtWidgets.QWidget):
 		self.setDatetime(state['value'])
 
 class CollapsibleSection(QtWidgets.QWidget):
-# Ported to PyQT5 and modified, original widget by Caroline Beyne, github user: cbeyne
-# https://github.com/By0ute/pyqt-collapsible-widget/blob/master/code/FrameLayout.py
+	# Ported to PyQT5 and modified, original widget by Caroline Beyne, github user: cbeyne
+	# https://github.com/By0ute/pyqt-collapsible-widget/blob/master/code/FrameLayout.py
 	def __init__(self, parent=None, title=None):
 		QtWidgets.QFrame.__init__(self, parent=parent)
 
@@ -993,11 +998,37 @@ class CollapsibleSection(QtWidgets.QWidget):
 			else:
 				self._button.setArrowType(QtCore.Qt.DownArrow)
 
-class Switch(QtWidgets.QPushButton):
+class LabelledSwitch(QtWidgets.QWidget):
 	toggle = QtCore.pyqtSignal(bool)
-	def __init__(self, parent = None):
+
+	def __init__(self, dflt_state:bool=True, labels:tuple[str,str]=('',''), *args, **kwargs):
+		super().__init__()
+		switch_hlayout = QtWidgets.QHBoxLayout()
+		switch_hlayout.setSpacing(10)
+		switch_hlayout.setContentsMargins(0,0,0,0)
+
+		_off_label = QtWidgets.QLabel(labels[0])
+		_on_label = QtWidgets.QLabel(labels[1])
+		self._switch = Switch(dflt_state=dflt_state)
+
+		switch_hlayout.addWidget(_off_label)
+		switch_hlayout.addWidget(self._switch)
+		switch_hlayout.addWidget(_on_label)
+		switch_hlayout.addStretch()
+
+		self.setLayout(switch_hlayout)
+
+		self._switch.toggled.connect(self.toggle.emit)
+
+	def isChecked(self) -> bool:
+		return self._switch.isChecked()
+
+class Switch(QtWidgets.QPushButton):
+
+	def __init__(self, dflt_state:bool=True, parent = None):
 		super().__init__(parent)
 		self.setCheckable(True)
+		self.setChecked(dflt_state)
 		self.setMinimumWidth(66)
 		self.setMinimumHeight(22)
 
@@ -1187,9 +1218,6 @@ class PrimaryConfigDisplay(QtWidgets.QWidget):
 			self._cnfg_table.setRowHeight(row_num, 6)
 			for col_num in range(self._cnfg_table.columnCount()):
 				if self._cnfg_table.item(row_num,col_num) is not None:
-					# self._cnfg_table.item(row_num,col_num).setFlags(QtCore.Qt.NoItemFlags)
-					# flags = self._cnfg_table.item(row_num,col_num).flags()
-					# print(f'{int(flags)=}')
 					if col_num == 0:
 						self._cnfg_table.item(row_num,col_num).setFont(self._header_font)
 					else:
@@ -1212,9 +1240,6 @@ class PrimaryConfigDisplay(QtWidgets.QWidget):
 			for col_num in range(self._satellites_table.columnCount()):
 				if self._satellites_table.item(row_num,col_num) is not None:
 					self._satellites_table.item(row_num,col_num).setFont(self._entry_font)
-					# self._satellites_table.item(row_num,col_num).setFlags(QtCore.Qt.ItemIsEnabled)
-					# flags = self._satellites_table.item(row_num,col_num).flags()
-					# print(f'{int(flags)=}')
 
 		self._satellites_table.horizontalHeader().setStyleSheet('''
 														QHeaderView::section {
@@ -1343,11 +1368,115 @@ class PrimaryConfigDisplay(QtWidgets.QWidget):
 				sat_cs.addWidget(sat_table)
 				self._sensor_tables.append(sat_table)
 
-			# Add spacer to bottom
-			# spacer = QtWidgets.QSpacerItem(10,10,QtWidgets.QSizePolicy.Expanding,QtWidgets.QSizePolicy.Expanding)
-			# self.pane_layout.addItem(spacer)
-			# self.pane_layout.addStretch()
-			# self._sensor_tables.append(spacer)
+class ConstellationConfigDisplay(QtWidgets.QWidget):
+	def __init__(self, parent: QtWidgets.QWidget|None=None):
+		super().__init__(parent)
+
+		self.pane_layout = QtWidgets.QVBoxLayout()
+		# self.pane_layout = QtWidgets.QGridLayout()
+		self._cnfg_label = QtWidgets.QLabel('Configuration Preview')
+
+		self._cnfg_table = QtWidgets.QTableWidget(1,2)
+		self._cnfg_table.setRowCount(2)
+		self._cnfg_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+		self._cnfg_table.setItem(0,0,QtWidgets.QTableWidgetItem('Configuration File:'))
+		self._cnfg_table.setItem(1,0,QtWidgets.QTableWidgetItem('Configuration Name:'))
+		self._cnfg_table.setItem(2,0,QtWidgets.QTableWidgetItem('Configuration Beam Width:'))
+
+		self._satellites_table = QtWidgets.QTableWidget(1,2)
+		self._satellites_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+		self._satellites_table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
+
+		self._entry_font = self._cnfg_table.item(0,0).font()
+		self._header_font = self._cnfg_table.item(0,0).font()
+		self._entry_font.setPointSize(9)
+		self._header_font.setPointSize(10)
+		self._header_font.setWeight(QtGui.QFont.Medium)
+		self._sensor_tables = []
+
+		self._setStyling()
+
+		self.pane_layout.addWidget(self._cnfg_label)
+		self.pane_layout.addWidget(self._cnfg_table)
+		self.pane_layout.addWidget(self._satellites_table)
+
+		self.setLayout(self.pane_layout)
+
+	def _setStyling(self):
+		# Config title
+		_label_font = QtGui.QFont()
+		_label_font.setWeight(QtGui.QFont.Medium)
+		self._cnfg_label.setFont(_label_font)
+		self._cnfg_table.setStyleSheet('''
+										QTableWidget {
+														background-color:#00000000;
+										}
+									''');
+		self._cnfg_table.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
+		self._cnfg_table.setFocusPolicy(QtCore.Qt.NoFocus)
+		self._cnfg_table.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
+		for row_num in range(self._cnfg_table.rowCount()):
+			self._cnfg_table.setRowHeight(row_num, 6)
+			for col_num in range(self._cnfg_table.columnCount()):
+				if self._cnfg_table.item(row_num,col_num) is not None:
+					if col_num == 0:
+						self._cnfg_table.item(row_num,col_num).setFont(self._header_font)
+					else:
+						self._cnfg_table.item(row_num,col_num).setFont(self._entry_font)
+
+		self._cnfg_table.verticalHeader().hide()
+		self._cnfg_table.horizontalHeader().hide()
+		self._cnfg_table.setShowGrid(False)
+		self._cnfg_table.setFixedSize(self._cnfg_table.sizeHint())
+
+		# Satelites table
+		self._satellites_table.setHorizontalHeaderLabels(['Sat Name', 'Satcat ID'])
+		self._satellites_table.horizontalHeader().setDefaultAlignment(QtCore.Qt.AlignLeft)
+		self._satellites_table.horizontalHeader().setFont(self._header_font)
+		self._satellites_table.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
+		self._satellites_table.setFocusPolicy(QtCore.Qt.NoFocus)
+		self._satellites_table.verticalHeader().hide()
+		for row_num in range(self._satellites_table.rowCount()):
+			self._satellites_table.setRowHeight(row_num, 6)
+			for col_num in range(self._satellites_table.columnCount()):
+				if self._satellites_table.item(row_num,col_num) is not None:
+					self._satellites_table.item(row_num,col_num).setFont(self._entry_font)
+
+		self._satellites_table.horizontalHeader().setStyleSheet('''
+														QHeaderView::section {
+																background-color: #00000000;
+    															border: 0px;
+														}
+														''')
+		self._satellites_table.setStyleSheet('''
+												QTableWidget {
+																background-color:#00000000;
+												}
+											''');
+		self._satellites_table.setShowGrid(False)
+		self._satellites_table.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
+		self._satellites_table.setFixedSize(self._satellites_table.sizeHint())
+
+	def updateConfig(self, config:satplot_data_types.ConstellationConfig):
+		self.config = config
+		self._cnfg_table.setItem(0,1,QtWidgets.QTableWidgetItem(f'{self.config.filestem}.json'))
+		self._cnfg_table.setItem(1,1,QtWidgets.QTableWidgetItem(f'{self.config.name}'))
+		self._cnfg_table.setItem(2,1,QtWidgets.QTableWidgetItem(f'{self.config.beam_width}'))
+		self._cnfg_table.resizeColumnsToContents()
+		self._populateSatellites()
+		self._satellites_table.resizeColumnsToContents()
+		self._setStyling()
+
+	def clearConfig(self) -> None:
+		self._satellites_table.setRowCount(0)
+
+	def _populateSatellites(self):
+		num_sats = self.config.num_sats
+		self._satellites_table.setRowCount(num_sats)
+		# Populate list of satellites in primary config
+		for ii, (sat_id, sat_name) in enumerate(self.config.sats.items()):
+			self._satellites_table.setItem(ii, 0, QtWidgets.QTableWidgetItem(sat_name))
+			self._satellites_table.setItem(ii, 1, QtWidgets.QTableWidgetItem(str(sat_id)))
 
 
 def embedWidgetsInHBoxLayout(w_list, margin=5):
