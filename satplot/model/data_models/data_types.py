@@ -25,10 +25,12 @@ class SensorTypes(Enum):
 		return value in cls._value2member_map_
 
 class ConstellationConfig():
-	def __init__(self, name:str, beam_width:float, satellites:dict[int, str]):
-		self.name = name
-		self.beam_width = beam_width
-		self.sats = satellites
+	def __init__(self, filestem:str, name:str, beam_width:float, satellites:dict[int, str]):
+		self.filestem:str = filestem
+		self.name:str = name
+		self.sats:dict[int,str] = satellites
+		self.num_sats:int = len(self.sats.keys())
+		self.beam_width:float = beam_width
 
 	@classmethod
 	def fromJSON(cls, path:str | pathlib.Path):
@@ -57,7 +59,7 @@ class ConstellationConfig():
 		for k,v in data['satellites'].items():
 			sats[v] = k
 
-		return cls(data['name'], data['beam_width'], sats)
+		return cls(p.stem, data['name'], data['beam_width'], sats)
 
 class SensorSuiteConfig():
 	def __init__(self, name:str, d:dict):
