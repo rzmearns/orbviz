@@ -70,14 +70,14 @@ class PlanningShell():
 				raise ValueError('Toolbars and Menubars indices do not match')
 				sys.exit()
 
-		self.context_tab_stack.tab_changed.connect(self.updateToolMenuBars)
+		self.context_tab_stack.tab_changed.connect(self.updateActiveContext)
 		self.context_tab_stack.tab_changed.connect(self._propagateTimeSlider)
 
 		self.layout.addWidget(self.context_tab_stack)
 		self.layout.setContentsMargins(0, 0, 0, 0)
 		self.widget.setLayout(self.layout)
 
-		self.updateToolMenuBars(self.context_tab_stack.currentIndex(), 1)
+		self.updateActiveContext(self.context_tab_stack.currentIndex(), 1)
 
 	def _propagateTimeSlider(self, old_context_idx:int, new_context_idx:int) -> None:
 		curr_context_idx = old_context_idx
@@ -87,7 +87,7 @@ class PlanningShell():
 		if curr_slider_idx is not None:
 			new_context.setIndex(curr_slider_idx)
 
-	def updateToolMenuBars(self, curr_context_idx:int|None, new_context_idx:int|None) -> None:
+	def updateActiveContext(self, curr_context_idx:int|None, new_context_idx:int|None) -> None:
 		logger.debug(f'Changing toolbar and menu for {self.name} shell')
 		logger.debug(f'{self.name}:{self.active=}')
 
@@ -110,6 +110,9 @@ class PlanningShell():
 			self.toolbars[new_context_key].setActiveState(True)
 			self.menubars[new_context_key].setActiveState(True)
 
+		self.contexts_dict[curr_context_key].makeDormant()
+		self.contexts_dict[new_context_key].makeActive()
+
 	def serialiseContexts(self) -> dict[str,Any]:
 		state = {}
 		for context_key, context in self.contexts_dict.items():
@@ -120,3 +123,9 @@ class PlanningShell():
 	def deserialiseContexts(self, state:dict[str,Any]) -> None:
 		for context_key, context_dict in state.items():
 			self.contexts_dict[context_key].deSerialise(context_dict)
+
+	def makeActive(self) -> None:
+		self.active = True
+
+	def makeDormant(self) -> None:
+		self.active = False

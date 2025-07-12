@@ -1,5 +1,5 @@
 import logging
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore, QtGui
 from typing import Any
 
 import satplot.model.data_models.data_types as data_types
@@ -139,6 +139,18 @@ class Controls(BaseControls):
 		# Prep toolbars
 		self.toolbar = controls.Toolbar(self.context.window, self.action_dict, context_name=self.context.config['name'])
 		self.menubar = controls.Menubar(self.context.window, self.action_dict, context_name=self.context.config['name'])
+
+		self.setHotkeys()
+
+	def setHotkeys(self):
+		self.shortcuts['PgDown'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgDown'), self.context.widget)
+		self.shortcuts['PgDown'].activated.connect(self.time_slider.incrementValue)
+		self.shortcuts['PgUp'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgUp'), self.context.widget)
+		self.shortcuts['PgUp'].activated.connect(self.time_slider.decrementValue)
+		self.shortcuts['Home'] = QtWidgets.QShortcut(QtGui.QKeySequence('Home'), self.context.widget)
+		self.shortcuts['Home'].activated.connect(self.time_slider.setBeginning)
+		self.shortcuts['End'] = QtWidgets.QShortcut(QtGui.QKeySequence('End'), self.context.widget)
+		self.shortcuts['End'].activated.connect(self.time_slider.setEnd)
 
 	def updateSensorViewLists(self):
 		sens_dict = self.context.data['history'].getPrimaryConfig().serialiseAllSensors()

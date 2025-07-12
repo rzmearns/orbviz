@@ -86,10 +86,10 @@ class MainWindow(QtWidgets.QMainWindow):
 		logger.debug(f'Changing Shells to {new_shell.name}')
 		for shell in self.shell_dict.values():
 			if shell != new_shell:
-				shell.active = False
-				shell.updateToolMenuBars(None, None)
-		new_shell.active = True
-		new_shell.updateToolMenuBars(None, None)
+				shell.makeDormant()
+				shell.updateActiveContext(None, None)
+		new_shell.makeActive()
+		new_shell.updateActiveContext(None, None)
 
 	def __del__(self) -> None:
 		sys.stderr = sys.__stderr__

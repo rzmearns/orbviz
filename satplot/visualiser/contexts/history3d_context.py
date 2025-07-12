@@ -181,17 +181,16 @@ class Controls(base.BaseControls):
 		self._connectSliderCamUpdate()
 
 	def setHotkeys(self):
-		self.shortcuts={}
-		# self.shortcuts['PgDown'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgDown'), self.context.window)
-		# self.shortcuts['PgDown'].activated.connect(self.time_slider.incrementValue)
-		# self.shortcuts['PgDown'].activated.connect(self._updateCam)
-		# self.shortcuts['PgUp'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgUp'), self.context.window)
-		# self.shortcuts['PgUp'].activated.connect(self.time_slider.decrementValue)
-		# self.shortcuts['PgUp'].activated.connect(self._updateCam)
-		self.shortcuts['Home'] = QtWidgets.QShortcut(QtGui.QKeySequence('Home'), self.context.window)
+		self.shortcuts['PgDown'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgDown'), self.context.widget)
+		self.shortcuts['PgDown'].activated.connect(self.time_slider.incrementValue)
+		self.shortcuts['PgDown'].activated.connect(self._updateCam)
+		self.shortcuts['PgUp'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgUp'), self.context.widget)
+		self.shortcuts['PgUp'].activated.connect(self.time_slider.decrementValue)
+		self.shortcuts['PgUp'].activated.connect(self._updateCam)
+		self.shortcuts['Home'] = QtWidgets.QShortcut(QtGui.QKeySequence('Home'), self.context.widget)
 		self.shortcuts['Home'].activated.connect(self.time_slider.setBeginning)
 		self.shortcuts['Home'].activated.connect(self._updateCam)
-		self.shortcuts['End'] = QtWidgets.QShortcut(QtGui.QKeySequence('End'), self.context.window)
+		self.shortcuts['End'] = QtWidgets.QShortcut(QtGui.QKeySequence('End'), self.context.widget)
 		self.shortcuts['End'].activated.connect(self.time_slider.setEnd)
 		self.shortcuts['End'].activated.connect(self._updateCam)
 
