@@ -1,12 +1,14 @@
 import numpy as np
 import sys
+from typing import Any
+
+from PyQt5 import QtCore
 
 from vispy import scene
 from vispy.scene.widgets.viewbox import ViewBox
 from vispy.scene.canvas import SceneCanvas
 
 import satplot.visualiser.colours as colours
-
 
 class PopUpTextBox():
 	def __init__(self, v_parent:ViewBox|None=None,
@@ -43,6 +45,7 @@ class PopUpTextBox():
 									pos = (0,0))
 		self.t_visual.visible = False
 		self.b_visual.visible = False
+		self.notifier = self.Notifier()
 
 	def getWidth(self) -> int:
 		return self.b_visual.width
@@ -70,7 +73,6 @@ class PopUpTextBox():
 
 		self.setPos(pos)
 
-
 	def updateCenter(self) -> None:
 		self.center = ((self.pos[0] + self.t_width/2+self.padding[0]),
 				 		((self.pos[1] - self.t_height/2-self.padding[3])))
@@ -94,8 +96,9 @@ class PopUpTextBox():
 			self.b_visual.update()
 
 	def setText(self, text:str) -> None:
-		self.text = text
-		self.t_visual.text = text
+		self.text = str.replace(text,'\x1D','')
+		self.t_visual.text = self.text
+		self.notifier.emit(text)
 		self.updateBounds()
 
 	def setVisible(self, state:bool) -> None:
@@ -207,3 +210,11 @@ class PopUpTextBox():
 			dx = -width / 2.
 
 		return height, max_width, descender, dx, dy
+
+	class Notifier(QtCore.QObject):
+		text_updated = QtCore.pyqtSignal(str)
+		def __init__(self):
+			super().__init__()
+
+		def emit(self, s):
+			self.text_updated.emit(s)
