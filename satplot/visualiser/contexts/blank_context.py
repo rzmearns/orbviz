@@ -1,3 +1,4 @@
+import pathlib
 from PyQt5 import QtWidgets, QtCore
 
 from satplot.visualiser.contexts.base_context import (BaseContext, BaseControls)
@@ -29,12 +30,24 @@ class BlankContext(BaseContext):
 	def _configureData(self) -> None:
 		pass
 
+	def getTimeSliderIndex(self) -> int|None:
+		return None
+
+	def setIndex(self, idx:int) -> None:
+		pass
+
 	def loadState(self) -> None:
 		pass
 
 	def saveState(self) -> None:
 		pass
-		
+
+	def saveGif(self, file:pathlib.Path, loop=True):
+		pass
+
+	def setupGIFDialog(self):
+		pass
+
 class Controls(BaseControls):
 	def __init__(self, parent_context:BaseContext, canvas_wrapper: BaseCanvas|None) -> None:
 		self.context = parent_context

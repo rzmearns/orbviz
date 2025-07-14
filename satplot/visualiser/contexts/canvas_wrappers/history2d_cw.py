@@ -10,8 +10,10 @@ from PyQt5 import QtGui
 
 from vispy import scene
 from vispy.app.canvas import MouseEvent, ResizeEvent
+from vispy.scene.cameras import PanZoomCamera
 
 from satplot.model.data_models.history_data import (HistoryData)
+from satplot.model.data_models.earth_raycast_data import (EarthRayCastData)
 import satplot.model.geometry.primgeom as pg
 from satplot.model.data_models.data_types import PrimaryConfig
 from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
@@ -47,8 +49,7 @@ class History2DCanvasWrapper(BaseCanvas):
 	def __init__(self, w:int=1200, h:int=600, keys:str='interactive', bgcolor:str='white'):
 		self.canvas = scene.canvas.SceneCanvas(size=(w,h),
 										keys=keys,
-										bgcolor=bgcolor,
-										show=True)
+										bgcolor=bgcolor)
 		self.canvas.events.mouse_move.connect(self.onMouseMove)
 		self.canvas.events.mouse_wheel.connect(self.onMouseScroll)
 		self.canvas.events.resize.connect(self.onResize)
@@ -77,9 +78,9 @@ class History2DCanvasWrapper(BaseCanvas):
 		self.mouseOverObject = None
 
 	def _buildAssets(self) -> None:
-		print(f'building 2d assets')
 		self.assets['earth'] = earth.Earth2DAsset(v_parent=self.view_box.scene)
 		self.assets['primary_orbit'] = orbit.Orbit2DAsset(v_parent=self.view_box.scene)
+		self.assets['spacecraft'] = spacecraft.Spacecraft2DAsset(v_parent=self.view_box.scene)
 		self.assets['moon'] = moon.Moon2DAsset(v_parent=self.view_box.scene)
 		self.assets['sun'] = sun.Sun2DAsset(v_parent=self.view_box.scene)
 
@@ -90,8 +91,9 @@ class History2DCanvasWrapper(BaseCanvas):
 				active_assets.append(k)
 		return active_assets
 
-	def setModel(self, hist_data:HistoryData) -> None:
+	def setModel(self, hist_data:HistoryData, earth_raycast_data:EarthRayCastData) -> None:
 		self.data_models['history'] = hist_data
+		self.data_models['raycast_src'] = earth_raycast_data
 
 	def modelUpdated(self) -> None:
 		if self.data_models['history'] is None:
@@ -104,21 +106,32 @@ class History2DCanvasWrapper(BaseCanvas):
 		# Update data source for moon asset
 		if len(self.data_models['history'].getConfigValue('primary_satellite_ids')) > 0:
 			self.assets['moon'].setScale(*self.assets['earth'].getDimensions())
-			self.assets['moon'].setSource(self.data_models['history'].getOrbits())
+			self.assets['moon'].setSource(self.data_models['history'])
 			self.assets['moon'].makeActive()
 
 		# Update data source for primary orbit(s)
 		if len(self.data_models['history'].getConfigValue('primary_satellite_ids')) > 0:
 			# TODO: extend to draw multiple primary satellites
 			self.assets['primary_orbit'].setScale(*self.assets['earth'].getDimensions())
-			self.assets['primary_orbit'].setSource(self.data_models['history'].getOrbits())
+			self.assets['primary_orbit'].setSource(self.data_models['history'])
 			self.assets['primary_orbit'].makeActive()
+
+		# Update data source for spacecraft
+		if len(self.data_models['history'].getConfigValue('primary_satellite_ids')) > 0:
+			# TODO: extend to draw multiple primary satellites
+			self.assets['spacecraft'].setScale(*self.assets['earth'].getDimensions())
+			self.assets['spacecraft'].setSource(list(self.data_models['history'].getPrimaryConfig().getAllSpacecraftConfigs().values())[0],
+												self.data_models['history'],
+												self.data_models['raycast_src'])
+			# set scale again after source, so it gets passed to children assets
+			self.assets['spacecraft'].setScale(*self.assets['earth'].getDimensions())
+			self.assets['spacecraft'].makeActive()
 
 		# Update data source for sun asset
 		if len(self.data_models['history'].getConfigValue('primary_satellite_ids')) > 0:
 			self.assets['sun'].makeDormant()
 			self.assets['sun'].setScale(*self.assets['earth'].getDimensions())
-			self.assets['sun'].setSource(self.data_models['history'].getOrbits())
+			self.assets['sun'].setSource(self.data_models['history'])
 			self.assets['sun'].makeActive()
 
 		self.assets['earth'].makeDormant()
@@ -137,6 +150,13 @@ class History2DCanvasWrapper(BaseCanvas):
 	def setFirstDrawFlags(self) -> None:
 		for asset in self.assets.values():
 			asset.setFirstDrawFlagRecursive()
+
+	def centerCameraEarth(self) -> None:
+		if self.canvas is None:
+			logger.warning(f"Canvas has not been set for History2D Canvas Wrapper. No camera to center")
+			raise AttributeError(f"Canvas has not been set for History2D Canvas Wrapper. No camera to center")
+		self.view_box.camera.resetToExtents()
+		self.canvas.update()
 
 	def prepSerialisation(self) -> dict[str,Any]:
 		# state = {}
@@ -217,7 +237,7 @@ class History2DCanvasWrapper(BaseCanvas):
 		event_world_x, event_world_y = self.mapScreenPosToWorld(pp)
 		event_lon = (event_world_x/self.horiz_pixel_scale - 180)
 		event_lat = (event_world_y/self.vert_pixel_scale - 90)
-		text = f'{event_lon:.2f}, {event_lat:.2f}'
+		text = self._formatLatLong(event_lat, event_lon)
 
 		for jj, mo_info in enumerate(mo_infos):
 			for ii, pos in enumerate(mo_info['screen_pos']):
@@ -238,6 +258,22 @@ class History2DCanvasWrapper(BaseCanvas):
 		self.mouseOverText.setVisible(False)
 		last_mevnt_time = time.monotonic()
 		pass
+
+	def _formatLatLong(self, event_lat:float, event_lon:float) -> str:
+		if event_lat < 0:
+			lat_hemisphere = 'S'
+		elif event_lat > 0:
+			lat_hemisphere = 'N'
+		else:
+			lat_hemisphere = ''
+		if event_lon < 0:
+			lon_hemisphere = 'W'
+		elif event_lon > 0:
+			lon_hemisphere = 'E'
+		else:
+			lon_hemisphere = ''
+		out_str = f'{abs(event_lat):.1f}{lat_hemisphere}, \x1D{abs(event_lon):.1f}{lon_hemisphere}'
+		return out_str
 
 	def onResize(self, event:ResizeEvent) -> None:
 		pass

@@ -6,6 +6,7 @@ import vispy.scene as scene
 from vispy.scene.widgets.viewbox import ViewBox
 import vispy.visuals.transforms as vtransforms
 
+import satplot.model.data_models.history_data as history_data
 import satplot.model.geometry.primgeom as pg
 import satplot.util.constants as c
 import satplot.visualiser.colours as colours
@@ -71,25 +72,25 @@ class Moon3DAsset(base_assets.AbstractAsset):
 												'help': '',
 												'static': True,
 												'callback': self.setMoonSphereVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['moon_sphere_colour'] = {'value': (61,61,61),
 												'type': 'colour',
 												'help': '',
 												'static': True,
 												'callback': self.setMoonSphereColour,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['moon_distance_kms'] = {'value': 15000,
 										  		'type': 'number',
 												'help': '',
 												'static': True,
 												'callback': self.setMoonDistance,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['moon_sphere_radius_kms'] = {'value': 786,
 										  		'type': 'number',
 												'help': '',
 												'static': True,
 												'callback': self.setMoonSphereRadius,
-											'widget': None}
+											'widget_data': None}
 
 		# moon radius calculated using 6deg angular size
 
@@ -166,8 +167,15 @@ class Moon2DAsset(base_assets.AbstractAsset):
 
 
 	def setSource(self, *args, **kwargs):
-		sats_dict = args[0]
-		first_sat_orbit = list(sats_dict.values())[0]
+		# args[0] history data
+		if type(args[0]) is not history_data.HistoryData:
+			logger.error(f"setSource() of {self} requires a {history_data.HistoryData} as args[1], not: {type(args[1])}")
+			raise TypeError(f"setSource() of {self} requires a {history_data.HistoryData} as args[1], not: {type(args[1])}")
+			return
+
+		self.data['history_src'] = args[0]
+		first_sat_orbit = list(self.data['history_src'].getOrbits().values())[0]
+
 		if type(first_sat_orbit) is not orbit.Orbit:
 			logger.error(f"data source for {self} is not an orbit.Orbit, can't extract moon location data")
 			raise TypeError
@@ -219,25 +227,25 @@ class Moon2DAsset(base_assets.AbstractAsset):
 												'help': '',
 												'static': True,
 												'callback': self.setVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_moon_marker'] = {'value': True,
 												'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': self.setMoonMarkerVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['moon_marker_colour'] = {'value': (159,159,159),
 												'type': 'colour',
 												'help': '',
 												'static': True,
 												'callback': self.setMoonMarkerColour,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['moon_marker_size'] = {'value': 30,
 												'type': 'number',
 												'help': '',
 												'static': True,
 												'callback': self.setMoonMarkerSize,
-											'widget': None}
+											'widget_data': None}
 
 		# sun radius calculated using 6deg angular size
 

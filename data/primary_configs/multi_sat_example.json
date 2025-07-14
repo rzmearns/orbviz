@@ -1,0 +1,20 @@
+{
+	"name": "MultiSat",
+	"satellites":{
+		"SpIRIT":{
+			"id": 58468,
+			"sensor_suites":{
+			}
+		},
+		"Iridium 106":{
+			"id": 41917,
+			"sensor_suites":{
+			}
+		},
+		"Iridium 103":{
+			"id": 41918,
+			"sensor_suites":{
+			}
+		}
+	}
+}

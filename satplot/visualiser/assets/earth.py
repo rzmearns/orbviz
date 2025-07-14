@@ -1,6 +1,7 @@
 import logging
 import numpy as np
 import numpy.typing as nptyping
+import pymap3d
 from skyfield.api import wgs84
 from typing import Tuple
 import os
@@ -59,11 +60,7 @@ class Earth3DAsset(base_assets.AbstractAsset):
 			# args[0] assumed to be timespan
 			logger.error(f"setSource() of {self} requires a {timespan.Timespan} as args[0], not: {type(args[0])}")
 			raise TypeError
-		# TODO: add capability to produce array of skyfields)
-		times = []
-		for ii in range(len(args[0])):
-			times.append(args[0].asSkyfield(ii))
-		self.data['datetimes'] = np.asarray(times)
+		self.data['datetimes'] = args[0].asDatetime()
 		for asset in self.assets.values():
 			asset.setSource(self.data['datetimes'])
 
@@ -94,10 +91,7 @@ class Earth3DAsset(base_assets.AbstractAsset):
 			self._clearFirstDrawFlag()
 		if self.isStale():
 			# calculate rotation of earth
-			nullisland_curr = self.data['nullisland_topos'].at(self.data['datetimes'][self.data['curr_index']]).xyz.km
-
-			rot_rad = np.arctan2(nullisland_curr[1], nullisland_curr[0])
-			self.data['ecef_rads'] = rot_rad
+			self.data['ecef_rads'] = pymap3d.sidereal.greenwichsrt(pymap3d.sidereal.juliandate(self.data['datetimes'][self.data['curr_index']]))
 			R = transforms.rotAround(self.data['ecef_rads'], pg.Z)
 			new_coords = R.dot(self.data['landmass'].T).T
 
@@ -117,61 +111,61 @@ class Earth3DAsset(base_assets.AbstractAsset):
 												'help': '',
 												'static': True,
 												'callback': self.setVisibilityRecursive,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_earth_sphere'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': self.setEarthSphereVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['earth_sphere_colour'] = {'value': (220,220,220),
 												'type': 'colour',
 												'help': '',
 												'static': True,
 												'callback': self.setEarthSphereColour,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_earth_axis'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': self.setEarthAxisVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['earth_axis_colour'] = {'value': (255,0,0),
 												'type': 'colour',
 												'help': '',
 												'static': True,
 												'callback': self.setEarthAxisColour,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_parallels'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': None,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_equator'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': None,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_meridians'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': None,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_landmass'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': self.setLandmassVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['landmass_colour'] = {'value': (0,0,0),
 												'type': 'colour',
 												'help': '',
 												'static': True,
 												'callback': self.setLandMassColour,
-											'widget': None}
+											'widget_data': None}
 
 		self.opts = self._dflt_opts.copy()
 
@@ -292,31 +286,31 @@ class ParallelsGrid3DAsset(base_assets.AbstractSimpleAsset):
 											'help': '',
 											'static': True,
 											'callback': self.setEquatorColour,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['equator_width'] = 	{'value': 2.0,
 											'type': 'float',
 											'help': '',
 											'static': True,
 											'callback': self.setEquatorWidth,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['parallel_spacing'] = {'value': 15,
 											'type': 'integer',
 											'help': '',
 											'static': True,
 											'callback': self.setParallelsSpacing,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['parallel_colour'] = {'value': (0,0,0),
 											'type': 'colour',
 											'help': '',
 											'static': True,
 											'callback': self.setParallelsColour,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['parallel_width'] = {'value': 0.5,
 											'type': 'float',
 											'help': '',
 											'static': True,
 											'callback': self.setParallelsWidth,
-											'widget': None}
+											'widget_data': None}
 		self.opts = self._dflt_opts.copy()
 	
 	#----- OPTIONS CALLBACKS -----#
@@ -434,19 +428,19 @@ class MeridiansGrid3DAsset(base_assets.AbstractSimpleAsset):
 											'help': '',
 											'static': True,
 											'callback': self.setMeridianSpacing,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['meridian_colour'] = {'value': (0,0,0),
 											'type': 'colour',
 											'help': '',
 											'static': True,
 											'callback': self.setMeridiansColour,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['meridian_width'] = {'value': 0.5,
 											'type': 'float',
 											'help': '',
 											'static': True,
 											'callback': self.setMeridiansWidth,
-											'widget': None}
+											'widget_data': None}
 		self.opts = self._dflt_opts.copy()
 
 	#----- OPTIONS CALLBACKS -----#
@@ -509,7 +503,6 @@ class Earth2DAsset(base_assets.AbstractAsset):
 		# These callbacks need to be set after asset creation as the option dict is populated during draw()
 
 		self._attachToParentView()
-		print(f'finished initialising 2D asset')
 
 	def _initData(self) -> None:
 		if self.data['name'] is None:
@@ -533,9 +526,8 @@ class Earth2DAsset(base_assets.AbstractAsset):
 
 	def _createVisuals(self) -> None:
 		# Earth Sphere
-		img_path = os.path.join(satplot_paths.data_dir,'earth2D','equirectangular.jpg')
+		img_path = satplot_paths.data_dir.joinpath('earth2D').joinpath('equirectangular.jpg')
 		img_data = np.flip(read_png(img_path),0)
-		print(f'loaded image')
 		self.visuals['earth'] = scene.visuals.Image(
 			img_data,
 			interpolation = 'nearest',
@@ -543,11 +535,9 @@ class Earth2DAsset(base_assets.AbstractAsset):
 			parent=None,
 		)
 		self.visuals['earth'].order = 0
-		print(f"{self.visuals['earth'].order=}")
 		(w,h) = self.visuals['earth'].size
 		self.data['width'] = w
 		self.data['height'] = h
-		print(f'created visual')
 
 	def getDimensions(self) -> Tuple[int, int]:
 		return self.data['width'], self.data['height']
@@ -569,61 +559,61 @@ class Earth2DAsset(base_assets.AbstractAsset):
 												'help': '',
 												'static': True,
 												'callback': self.setVisibilityRecursive,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_earth_sphere'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': self.setEarthSphereVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['earth_sphere_colour'] = {'value': (220,220,220),
 												'type': 'colour',
 												'help': '',
 												'static': True,
 												'callback': self.setEarthSphereColour,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_earth_axis'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': self.setEarthAxisVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['earth_axis_colour'] = {'value': (255,0,0),
 												'type': 'colour',
 												'help': '',
 												'static': True,
 												'callback': self.setEarthAxisColour,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_parallels'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': None,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_equator'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': None,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_meridians'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': None,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['plot_landmass'] = {'value': True,
 										  		'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': self.setLandmassVisibility,
-											'widget': None}
+											'widget_data': None}
 		self._dflt_opts['landmass_colour'] = {'value': (0,0,0),
 												'type': 'colour',
 												'help': '',
 												'static': True,
 												'callback': self.setLandMassColour,
-											'widget': None}
+											'widget_data': None}
 
 		self.opts = self._dflt_opts.copy()
 

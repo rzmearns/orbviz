@@ -1,12 +1,14 @@
 import numpy as np
 import sys
+from typing import Any
+
+from PyQt5 import QtCore
 
 from vispy import scene
 from vispy.scene.widgets.viewbox import ViewBox
 from vispy.scene.canvas import SceneCanvas
 
 import satplot.visualiser.colours as colours
-
 
 class PopUpTextBox():
 	def __init__(self, v_parent:ViewBox|None=None,
@@ -43,6 +45,7 @@ class PopUpTextBox():
 									pos = (0,0))
 		self.t_visual.visible = False
 		self.b_visual.visible = False
+		self.notifier = self.Notifier()
 
 	def getWidth(self) -> int:
 		return self.b_visual.width
@@ -70,7 +73,6 @@ class PopUpTextBox():
 
 		self.setPos(pos)
 
-
 	def updateCenter(self) -> None:
 		self.center = ((self.pos[0] + self.t_width/2+self.padding[0]),
 				 		((self.pos[1] - self.t_height/2-self.padding[3])))
@@ -94,12 +96,19 @@ class PopUpTextBox():
 			self.b_visual.update()
 
 	def setText(self, text:str) -> None:
-		self.t_visual.text = text
+		self.text = str.replace(text,'\x1D','')
+		self.t_visual.text = self.text
+		self.notifier.emit(text)
 		self.updateBounds()
 
 	def setVisible(self, state:bool) -> None:
 		self.t_visual.visible = state
 		self.b_visual.visible = state
+
+	def setParent(self, v_parent:ViewBox|None=None) -> None:
+		self.v_parent = v_parent
+		self.t_visual.parent = v_parent
+		self.b_visual.parent = v_parent
 
 	def _vboInfo(self, text, font, anchor_x, anchor_y) -> tuple[float, float, float, float, float]:
 		prev = None
@@ -145,6 +154,13 @@ class PopUpTextBox():
 		# Keep track of y_offset to set lines at right position
 		y_offset = 0
 
+		# When a line break occur, record the vertices index value
+		vi_marker = 0
+		ii_offset = 0  # Offset since certain characters won't be drawn
+
+		# The running tracker of characters vertex index
+		vi = 0
+		max_width = 0
 		for ii, char in enumerate(text):
 			if ord(char) in esc_seq:
 				if esc_seq[ord(char)] < 0:
@@ -161,6 +177,7 @@ class PopUpTextBox():
 					ii_offset -= 1
 					# Reset variables that affects x-direction positioning
 					x_off = -slop
+					max_width = max(max_width, width)
 					width = 0
 					# Add offset in y-direction
 					y_offset += esc_seq[ord(char)] * lineheight
@@ -178,6 +195,8 @@ class PopUpTextBox():
 				height = max(height, glyph['size'][1] - 2*slop)
 				prev = char
 
+		max_width = max(max_width, width)
+
 		dx = dy = 0
 		if anchor_y == 'top':
 			dy = -descender
@@ -190,4 +209,12 @@ class PopUpTextBox():
 		elif anchor_x == 'center':
 			dx = -width / 2.
 
-		return height, width, descender, dx, dy
+		return height, max_width, descender, dx, dy
+
+	class Notifier(QtCore.QObject):
+		text_updated = QtCore.pyqtSignal(str)
+		def __init__(self):
+			super().__init__()
+
+		def emit(self, s):
+			self.text_updated.emit(s)

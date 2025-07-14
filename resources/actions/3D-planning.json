@@ -1,0 +1,42 @@
+{
+"center-earth": {
+	"tooltip": "Center Camera on Earth",
+	"menu_item": "Center on Earth",
+	"containing_menu": "camera",	
+	"button_icon": "resources/icons/camera-earth.png",
+	"hotkey": "ctrl+o",
+	"callback": null,
+	"contexts": ["3D-planning"],
+	"toggleable": false
+   },
+"center-spacecraft": {
+	"tooltip": "Center Camera on Satellite",
+	"menu_item": "Center on Satellite",
+	"containing_menu": "camera",
+	"button_icon": "resources/icons/camera-satellite.png",
+	"hotkey": "ctrl+o",
+	"callback": null,
+	"contexts": ["3D-planning"],
+	"toggleable": true
+   },
+"save-gif": {
+	"tooltip": "Capture GIF",
+	"menu_item": "Save GIF",
+	"containing_menu": "record",
+	"button_icon": "resources/icons/video-record.png",
+	"hotkey": "ctrl+o",
+	"callback": null,
+	"contexts": ["3d-planning"],
+	"toggleable": false
+   },
+"save-screenshot": {
+	"tooltip": "Capture Screenshot",
+	"menu_item": "Save Screenshot",
+	"containing_menu": "record",
+	"button_icon": "resources/icons/camera-record.png",
+	"hotkey": "ctrl+o",
+	"callback": null,
+	"contexts": ["3d-planning"],
+	"toggleable": false
+   }
+}
