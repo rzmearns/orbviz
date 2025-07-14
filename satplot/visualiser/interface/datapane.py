@@ -28,8 +28,25 @@ class DataPaneWidget(QtWidgets.QWidget):
 		self._setStyling()
 		super_vlayout.addWidget(self._table)
 		super_vlayout.addStretch()
-		self.setLayout(super_vlayout)
 
+
+		_label_font = QtGui.QFont()
+		_label_font.setWeight(QtGui.QFont.Medium)
+		_mouse_font = QtGui.QFont()
+		_mouse_font.setItalic(True)
+		_mouse_font.setPointSize(8)
+		mouse_vlayout = QtWidgets.QVBoxLayout()
+		self.mouseover_text = QtWidgets.QLabel('')
+		self.mouseover_text.setFont(_mouse_font)
+		self.mouseover_fontmetric = self.mouseover_text.fontMetrics()
+		mouse_groupbox = QtWidgets.QGroupBox('Mouse Over Info')
+		mouse_groupbox.setFont(_label_font)
+
+		mouse_vlayout.addWidget(self.mouseover_text)
+		mouse_groupbox.setLayout(mouse_vlayout)
+		super_vlayout.addWidget(mouse_groupbox)
+
+		self.setLayout(super_vlayout)
 		self._model.rowsInserted.connect(self._setRowStyling)
 		self._model.dataChanged.connect(self._autoSetColWidth)
 
@@ -71,6 +88,12 @@ class DataPaneWidget(QtWidgets.QWidget):
 		for col_num in range(self._model.columnCount()):
 			self._table.resizeColumnToContents(col_num)
 
+	def setMouseText(self,text):
+		if self.geometry().width() < self.mouseover_fontmetric.boundingRect(text).width():
+			new_text = str.replace(text, '\x1D', '\n')
+		else:
+			new_text = text
+		self.mouseover_text.setText(new_text)
 
 	class DataPaneTable(QtWidgets.QTableView):
 		def __init__(self):
