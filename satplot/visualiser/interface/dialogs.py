@@ -105,8 +105,6 @@ class GIFDialog():
 		self.window.setWindowModality(QtCore.Qt.NonModal)
 
 		self._loop_option = widgets.ToggleBox("Loop GIF?", True)
-		print(f'{satplot_paths.data_dir=}')
-		print(f'{satplot_paths.gifs_dir=}')
 		self._file_selector = widgets.FilePicker("Save GIF as:",
 										   			dflt_file=f"{dt.datetime.now().strftime('%Y-%m-%d_%H%M%S')}_{self.fname_str}.gif",
 													dflt_dir=f'{satplot_paths.gifs_dir}',
@@ -380,7 +378,6 @@ class fullResSensorImageDialog():
 		self.mouseOverText.setParent(self.view.scene)
 		self.mouseOverText.setVisible(True)
 		self.mouseOverText.setParent(self.canvas.scene)
-		print(self.mouseOverText.text)
 		self.mouseOverTimer.stop()
 
 	def stopMouseOverTimer(self) -> None:
@@ -391,7 +388,6 @@ class fullResSensorImageDialog():
 		return vb_pos
 
 	def _buildDataPane(self, img_metadata):
-		print('Building Img datapane')
 		old_np_options = np.get_printoptions()
 		np.set_printoptions(precision=4)
 		for k,v in img_metadata.items():
