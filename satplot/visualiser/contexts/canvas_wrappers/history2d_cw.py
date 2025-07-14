@@ -237,7 +237,7 @@ class History2DCanvasWrapper(BaseCanvas):
 		event_world_x, event_world_y = self.mapScreenPosToWorld(pp)
 		event_lon = (event_world_x/self.horiz_pixel_scale - 180)
 		event_lat = (event_world_y/self.vert_pixel_scale - 90)
-		text = f'{event_lon:.2f}, \x1D{event_lat:.2f}'
+		text = self._formatLatLong(event_lat, event_lon)
 
 		for jj, mo_info in enumerate(mo_infos):
 			for ii, pos in enumerate(mo_info['screen_pos']):
@@ -258,6 +258,22 @@ class History2DCanvasWrapper(BaseCanvas):
 		self.mouseOverText.setVisible(False)
 		last_mevnt_time = time.monotonic()
 		pass
+
+	def _formatLatLong(self, event_lat:float, event_lon:float) -> str:
+		if event_lat < 0:
+			lat_hemisphere = 'S'
+		elif event_lat > 0:
+			lat_hemisphere = 'N'
+		else:
+			lat_hemisphere = ''
+		if event_lon < 0:
+			lon_hemisphere = 'W'
+		elif event_lon > 0:
+			lon_hemisphere = 'E'
+		else:
+			lon_hemisphere = ''
+		out_str = f'{abs(event_lat):.1f}{lat_hemisphere}, \x1D{abs(event_lon):.1f}{lon_hemisphere}'
+		return out_str
 
 	def onResize(self, event:ResizeEvent) -> None:
 		pass

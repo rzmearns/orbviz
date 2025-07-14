@@ -17,9 +17,19 @@ def setUpLogLevels():
 	# spherapy
 
 	# satplot
-	logging.getLogger('satplot.visualiser.interface').setLevel(logging.INFO)
-	logging.getLogger('satplot.visualiser.assets').setLevel(logging.INFO)
 
+	logging.getLogger('satplot.visualiser').setLevel(logging.DEBUG)
+	logging.getLogger('satplot.visualiser.window').setLevel(logging.DEBUG)
+	logging.getLogger('satplot.visualiser.assets').setLevel(logging.INFO)
+	logging.getLogger('satplot.visualiser.assets.spacecraft').setLevel(logging.DEBUG)
+	logging.getLogger('satplot.visualiser.cameras').setLevel(logging.INFO)
+	logging.getLogger('satplot.visualiser.contexts').setLevel(logging.DEBUG)
+	logging.getLogger('satplot.visualiser.contexts.canvas_wrappers').setLevel(logging.INFO)
+	logging.getLogger('satplot.visualiser.interface').setLevel(logging.INFO)
+	logging.getLogger('satplot.visualiser.shells').setLevel(logging.DEBUG)
+	logging.getLogger('satplot.model.data_models').setLevel(logging.INFO)
+	logging.getLogger('satplot.model.geometry').setLevel(logging.INFO)
+	logging.getLogger('satplot.model.lens_models').setLevel(logging.INFO)
 
 def configureLogger():
 	# Create handlers
