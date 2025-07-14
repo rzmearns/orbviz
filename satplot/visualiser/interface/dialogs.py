@@ -17,11 +17,11 @@ from vispy.app.canvas import MouseEvent
 
 import satplot
 from satplot.model.data_models import datapane as datapane_model
-import satplot.util.paths as paths
 import satplot.util.hashing as satplot_hashing
 import satplot.util.paths as satplot_paths
 import satplot.visualiser.assets.widgets as vispy_widgets
 import satplot.visualiser.cameras.RestrictedPanZoom as RestrictedPanZoom
+import satplot.visualiser.interface.console as console
 import satplot.visualiser.interface.datapane as datapane
 import satplot.visualiser.interface.widgets as widgets
 
@@ -91,13 +91,13 @@ class SpaceTrackCredentialsDialog():
 		self.window.close()
 
 class GIFDialog():
-	def __init__(self, parent_window, opening_context, camera_type:str, dflt_camera_data:dict[str,float], num_ticks:int):
-
-		if camera_type not in ['Turntable']:
+	def __init__(self, parent_window, opening_context, camera_type:str, dflt_camera_data:dict[str,float], num_ticks:int, three_dim=True):
+		if camera_type not in ['Turntable', 'RestrictedPanZoom']:
 			raise ValueError("GIF capture not supported for this context's camera type")
 
 		self.parent = parent_window
 		self.opening_context = opening_context
+		self.three_dim = three_dim
 		self.window = QtWidgets.QDialog(parent=self.parent)
 		self.name_str = ' '.join(self.opening_context.config['name'].split('_')).capitalize()
 		self.fname_str = self.opening_context.config['name']
@@ -105,9 +105,11 @@ class GIFDialog():
 		self.window.setWindowModality(QtCore.Qt.NonModal)
 
 		self._loop_option = widgets.ToggleBox("Loop GIF?", True)
+		print(f'{satplot_paths.data_dir=}')
+		print(f'{satplot_paths.gifs_dir=}')
 		self._file_selector = widgets.FilePicker("Save GIF as:",
 										   			dflt_file=f"{dt.datetime.now().strftime('%Y-%m-%d_%H%M%S')}_{self.fname_str}.gif",
-													dflt_dir=f'{paths.data_dir}/gifs/',
+													dflt_dir=f'{satplot_paths.gifs_dir}',
 													save=True,
 													margins=[0,0,0,0],
 													width=600)
@@ -135,47 +137,47 @@ class GIFDialog():
 		hlayout1.addStretch()
 		layout.addLayout(hlayout1)
 
-		hlayout2 = QtWidgets.QHBoxLayout()
-		hlayout2.addWidget(self._camera_adjust_option)
-		hlayout2.addStretch()
-		layout.addLayout(hlayout2)
+		if self.three_dim:
+			hlayout2 = QtWidgets.QHBoxLayout()
+			hlayout2.addWidget(self._camera_adjust_option)
+			hlayout2.addStretch()
+			layout.addLayout(hlayout2)
+			camera_adjust_hlayout = QtWidgets.QHBoxLayout()
+			camera_adjust_vlayout = QtWidgets.QVBoxLayout()
 
-		camera_adjust_hlayout = QtWidgets.QHBoxLayout()
-		camera_adjust_vlayout = QtWidgets.QVBoxLayout()
+			self._camera_adjust_extensions_options = QtWidgets.QWidget()
+			self._camera_adjust_enable_list = []
+			self._camera_adjust_option.add_connect(self._enableCameraAdjustState)
+			self._camera_adjust_option.setState(False)
+			self._enableCameraAdjustState(False)
+			self._camera_adjust_option.add_connect(self._camera_adjust_extensions_options.setVisible)
+			self.camera_adjustment_data_sources = {}
 
-		self._camera_adjust_extensions_options = QtWidgets.QWidget()
-		self._camera_adjust_enable_list = []
-		self._camera_adjust_option.add_connect(self._enableCameraAdjustState)
-		self._camera_adjust_option.setState(False)
-		self._enableCameraAdjustState(False)
-		self._camera_adjust_option.add_connect(self._camera_adjust_extensions_options.setVisible)
-		self.camera_adjustment_data_sources = {}
+			if camera_type == 'Turntable':
+				self._camera_adjust_option.setLabel("Rotate while capturing?")
+				self._start_azimuth = widgets.ValueBox('Start Azimuth:', dflt_camera_data['az_start'], margins=[20,1,2,1])
+				self._start_elevation = widgets.ValueBox('Start Elevation:', dflt_camera_data['el_start'], margins=[20,1,2,1])
+				self._total_elevation_delta = widgets.ValueBox('Rotate Elevation Through:', 0, margins=[20,1,2,1])
+				self._total_azimuth_delta = widgets.ValueBox('Rotate Azimuth Through:', 360, margins=[20,1,2,1])
+				self.camera_adjustment_data_sources['az_start'] = self._start_azimuth
+				self.camera_adjustment_data_sources['el_start'] = self._start_elevation
+				self.camera_adjustment_data_sources['az_range'] = self._total_azimuth_delta
+				self.camera_adjustment_data_sources['el_range'] = self._total_elevation_delta
+				self._addWidgetToCameraAdjustEnabled(self._start_azimuth)
+				self._addWidgetToCameraAdjustEnabled(self._start_elevation)
+				self._addWidgetToCameraAdjustEnabled(self._total_azimuth_delta)
+				self._addWidgetToCameraAdjustEnabled(self._total_elevation_delta)
+				camera_adjust_vlayout.addWidget(self._start_azimuth)
+				camera_adjust_vlayout.addWidget(self._start_elevation)
+				camera_adjust_vlayout.addWidget(self._total_elevation_delta)
+				camera_adjust_vlayout.addWidget(self._total_azimuth_delta)
 
-		if camera_type == 'Turntable':
-			self._camera_adjust_option.setLabel("Rotate while capturing?")
-			self._start_azimuth = widgets.ValueBox('Start Azimuth:', dflt_camera_data['az_start'], margins=[20,1,2,1])
-			self._start_elevation = widgets.ValueBox('Start Elevation:', dflt_camera_data['el_start'], margins=[20,1,2,1])
-			self._total_elevation_delta = widgets.ValueBox('Rotate Elevation Through:', 0, margins=[20,1,2,1])
-			self._total_azimuth_delta = widgets.ValueBox('Rotate Azimuth Through:', 360, margins=[20,1,2,1])
-			self.camera_adjustment_data_sources['az_start'] = self._start_azimuth
-			self.camera_adjustment_data_sources['el_start'] = self._start_elevation
-			self.camera_adjustment_data_sources['az_range'] = self._total_azimuth_delta
-			self.camera_adjustment_data_sources['el_range'] = self._total_elevation_delta
-			self._addWidgetToCameraAdjustEnabled(self._start_azimuth)
-			self._addWidgetToCameraAdjustEnabled(self._start_elevation)
-			self._addWidgetToCameraAdjustEnabled(self._total_azimuth_delta)
-			self._addWidgetToCameraAdjustEnabled(self._total_elevation_delta)
-			camera_adjust_vlayout.addWidget(self._start_azimuth)
-			camera_adjust_vlayout.addWidget(self._start_elevation)
-			camera_adjust_vlayout.addWidget(self._total_elevation_delta)
-			camera_adjust_vlayout.addWidget(self._total_azimuth_delta)
+			camera_adjust_hlayout.addLayout(camera_adjust_vlayout)
+			camera_adjust_hlayout.addStretch()
+			self._camera_adjust_extensions_options.setLayout(camera_adjust_hlayout)
+			self._camera_adjust_extensions_options.setVisible(False)
 
-		camera_adjust_hlayout.addLayout(camera_adjust_vlayout)
-		camera_adjust_hlayout.addStretch()
-		self._camera_adjust_extensions_options.setLayout(camera_adjust_hlayout)
-		self._camera_adjust_extensions_options.setVisible(False)
-
-		layout.addWidget(self._camera_adjust_extensions_options)
+			layout.addWidget(self._camera_adjust_extensions_options)
 		layout.addWidget(self._time_slider)
 
 		hlayout4 = QtWidgets.QHBoxLayout()
@@ -236,7 +238,8 @@ class GIFDialog():
 		self.window.close()
 		slider_range = self._time_slider.getRange()
 		camera_adjustment_data = {}
-		if self._isCameraAdjustEnabled():
+
+		if self.three_dim and self._isCameraAdjustEnabled() :
 
 			for k,v in self.camera_adjustment_data_sources.items():
 				camera_adjustment_data[k] = v.getValue()
@@ -355,7 +358,7 @@ class fullResSensorImageDialog():
 		self.window.exec_()
 
 	def save(self):
-		dflt_path = satplot_paths.data_dir/'screenshots'
+		dflt_path = satplot_paths.screenshot_dir
 		save_file = self._saveFileDialog('Sensor Image Save...', dflt_path, self.filename)
 		if save_file.name != '':
 			self.save_file = pathlib.Path(save_file)
@@ -367,6 +370,8 @@ class fullResSensorImageDialog():
 			metadata_file = self.save_file.with_suffix('.md')
 			with open(metadata_file,'w') as fp:
 				json.dump(self.img_metadata,fp,indent=4)
+			console.send(f'Saved sensor image as {save_file}')
+			console.send(f'Saved sensor image metadata as {metadata_file}')
 
 	def cancel(self):
 		self.window.close()
