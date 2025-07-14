@@ -720,7 +720,7 @@ class FilePicker(QtWidgets.QWidget):
 		self._file_text_box.textChanged.connect(self._run_callbacks)
 
 	def _setPath(self):
-		self.path = pathlib.Path(self._file_text_box.text())
+		self.path = pathlib.Path(satplot_paths.data_dir.joinpath(self._file_text_box.text()))
 
 	def setError(self, err_text:str) -> None:
 		self._err_label.setText(err_text)
@@ -729,7 +729,7 @@ class FilePicker(QtWidgets.QWidget):
 		self._err_label.setText('')
 
 	def getPath(self) -> pathlib.Path:
-		return pathlib.Path(self._file_text_box.text())
+		return self.path
 
 	def openFilenameDialog(self):
 		options = QtWidgets.QFileDialog.Options()
