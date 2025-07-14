@@ -47,7 +47,8 @@ class DataPaneModel(QtCore.QAbstractTableModel):
 		column = index.column()
 		if role == QtCore.Qt.DisplayRole:
 			val = list(self._items[row].values())[column]
-
+			if val == 'quat':
+				val = ''
 			# if it's a lambda, call it
 			if isinstance(val, Callable):
 				try:
@@ -59,25 +60,13 @@ class DataPaneModel(QtCore.QAbstractTableModel):
 			else:
 				return_val = val
 
-			# format different value types
-			if isinstance(return_val, float):
-				return f'{return_val:.2f}'
-			elif isinstance(return_val, np.ndarray):
-				s = '['
-				for el in return_val:
-					s += f'{el:.2f}, '
-				s = s[:-2]
-				s += ']'
-				return s
-			elif isinstance(return_val, tuple):
-				s = '('
-				for el in return_val:
-					s += f'{el:.2f}, '
-				s = s[:-2]
-				s += ')'
-				return s
-			else:
-				return f'{return_val}'
+			# # infer display precision based on unit type (will always return None for parameter name column and unit column)
+			if column == 1:
+				unit_type = self._items[row]['unit']
+				display_precision = self._getDisplayPrecision(unit_type)
+				return_val = self._formatReturnVal(return_val, display_precision)
+
+			return f'{return_val}'
 
 	def removeEntries(self, uds_list: list[tuple[str, str]]) -> None:
 		for el in uds_list:
@@ -126,3 +115,49 @@ class DataPaneModel(QtCore.QAbstractTableModel):
 		# required by QT
 		self.endRemoveRows()
 
+	def _getDisplayPrecision(self, unit_type:str):
+		return { 'km': 2,
+				  '°': 2,
+				  'km/s':2,
+				  'm/s':2,
+				  'quat':4,
+				  '[x,y,z,w]':4,
+				  '[w,x,y,z]':4
+		}.get(unit_type,None)
+
+	def _formatReturnVal(self, return_val, display_precision):
+		if isinstance(return_val, float):
+			return f'{return_val:.{display_precision}f}'
+		elif isinstance(return_val, np.ndarray):
+			s = '['
+			for el in return_val:
+				s += f'{el:.{display_precision}f}, '
+			s = s[:-2]
+			s += ']'
+			return s
+		elif isinstance(return_val, list):
+			s = '['
+			for el in return_val:
+				if display_precision is None and not isinstance(el,str):
+					s += f'{el:.2f}, '
+				elif isinstance(el,str):
+					s += f'{el}, '
+				else:
+					s += f'{el:.{display_precision}f}, '
+			s = s[:-2]
+			s += ']'
+			return s
+		elif isinstance(return_val, tuple):
+			s = '('
+			for el in return_val:
+				if display_precision is None and not isinstance(el,str):
+					s += f'{el:.2f}, '
+				elif isinstance(el,str):
+					s += f'{el}, '
+				else:
+					s += f'{el:.{display_precision}f}, '
+			s = s[:-2]
+			s += ')'
+			return s
+		else:
+			return f'{return_val}'

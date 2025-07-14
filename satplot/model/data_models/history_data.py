@@ -267,7 +267,7 @@ class HistoryData(BaseDataModel):
 						'unit':'m/s'})
 		self.datapane_data.append({'parameter':'Quaternion',
 						'value':lambda : list(self.pointings.values())[0][self.curr_index,:],
-						'unit':''})
+						'unit':'quat'})
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
