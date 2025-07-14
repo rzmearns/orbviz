@@ -200,7 +200,7 @@ class History3DContext(base.BaseContext):
 		new_y = self.window.height() - (new_pos.y() + geom[3])
 		viewport = (new_pos.x() * ratio, new_y * ratio, geom[2] * ratio, geom[3] * ratio)
 
-		for ii in range(num_steps):
+		for ii in range(start_idx, end_idx):
 
 			self.canvas_wrapper.view_box.camera.azimuth = start_azimuth - ii*azimuth_step_angle
 			self.canvas_wrapper.view_box.camera.elevation = start_elevation - ii*elevation_step_angle
@@ -209,7 +209,10 @@ class History3DContext(base.BaseContext):
 
 			im = _screenshot(viewport=viewport)
 			writer.append_data(im)
-
+			# use this to print to console on last iteration, otherwise thread doesn't get serviced until after writer closes
+			if ii==end_idx-1:
+				console.send(f"Writing file. Please wait...")
+				app.process_events()
 
 		writer.close()
 		self.canvas_wrapper.view_box.camera.azimuth = start_azimuth
