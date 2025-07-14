@@ -169,8 +169,11 @@ class History2DContext(base.BaseContext):
 
 			im = _screenshot(viewport=viewport)
 			writer.append_data(im)
+			# use this to print to console on last iteration, otherwise thread doesn't get serviced until after writer closes
+			if ii==end_idx-1:
+				console.send(f"Writing file. Please wait...")
+				app.process_events()
 
-		console.send(f"Writing file. Please wait...")
 		writer.close()
 		self.controls.time_slider.setValue(start_idx)
 		console.send(f"Saved {self.config['name']} GIF to {file}")
@@ -224,6 +227,9 @@ class Controls(base.BaseControls):
 	def _updateCam(self):
 		if self.context.sccam_state and self.context.canvas_wrapper is not None:
 			self.context.canvas_wrapper.centerCameraSpacecraft(set_zoom=False)
+
+	def getCurrIndex(self):
+		return self.time_slider.getValue()
 
 	def prepSerialisation(self):
 		state = {}

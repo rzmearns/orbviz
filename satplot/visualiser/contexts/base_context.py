@@ -121,3 +121,7 @@ class BaseControls:
 		with open(f'resources/actions/{self.context_name}.json','r') as fp:
 			context_action_dict = json.load(fp)
 		self.action_dict = {**all_action_dict, **context_action_dict}
+
+	@abstractmethod
+	def getCurrIndex(self):
+		raise NotImplementedError
