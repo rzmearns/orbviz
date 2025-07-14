@@ -98,9 +98,9 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 						'lens_model':sensor_asset.data['lens_model'].__name__,
 						'current time [yyyy-mm-dd hh:mm:ss]': sensor_asset.data['curr_datetime'],
 						'sensor body frame quaternion [x,y,z,w]': sensor_asset.data['bf_quat'],
-						'spacecraft quaternion [x,y,z,w]': sc_asset.data['curr_quat'].tolist(),
-						'spacecraft eci position [km]': sc_asset.data['curr_pos'].tolist(),
-						'sensor eci quaternion [x,y,z,w]': sensor_asset.data['curr_quat'].tolist(),
+						'spacecraft quaternion [x,y,z,w]': sc_asset.data['curr_quat'].reshape(4,).tolist(),
+						'spacecraft eci position [km]': sc_asset.data['curr_pos'].reshape(3,).tolist(),
+						'sensor eci quaternion [x,y,z,w]': sensor_asset.data['curr_quat'].reshape(4,).tolist(),
 						'image md5 hash': None
 						}
 
