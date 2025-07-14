@@ -237,7 +237,7 @@ class History2DCanvasWrapper(BaseCanvas):
 		event_world_x, event_world_y = self.mapScreenPosToWorld(pp)
 		event_lon = (event_world_x/self.horiz_pixel_scale - 180)
 		event_lat = (event_world_y/self.vert_pixel_scale - 90)
-		text = f'{event_lon:.2f}, {event_lat:.2f}'
+		text = f'{event_lon:.2f}, \x1D{event_lat:.2f}'
 
 		for jj, mo_info in enumerate(mo_infos):
 			for ii, pos in enumerate(mo_info['screen_pos']):
