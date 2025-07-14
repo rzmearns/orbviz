@@ -195,6 +195,7 @@ class Controls(BaseControls):
 		const_selection_widget.setLayout(const_selection_vlayout)
 
 		self.btn_hlayout = QtWidgets.QHBoxLayout()
+		self.btn_hlayout.addStretch()
 		self.btn_hlayout.addWidget(self.submit_button)
 		self.btn_hlayout.addStretch()
 
