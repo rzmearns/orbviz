@@ -1,4 +1,5 @@
 from abc import abstractmethod
+import logging
 import traceback
 from typing import Any
 
@@ -7,11 +8,12 @@ from PyQt5 import QtCore
 from satplot.model.data_models.data_types import DataType
 import satplot.visualiser.interface.console as console
 
-
+logger = logging.getLogger(__name__)
 
 class BaseDataModel(QtCore.QObject):
 	data_ready = QtCore.pyqtSignal()
 	data_err = QtCore.pyqtSignal()
+	index_updated = QtCore.pyqtSignal()
 
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
@@ -24,6 +26,7 @@ class BaseDataModel(QtCore.QObject):
 
 	def updateConfig(self, param:str, val:Any) -> None:
 		if param not in self.config.keys():
+			logger.error(f"{param} not a valid configuration option for {self.config['data_type']}")
 			raise ValueError(f"{param} not a valid configuration option for {self.config['data_type']}")
 		self._setConfig(param, val)
 
@@ -41,8 +44,13 @@ class BaseDataModel(QtCore.QObject):
 		exctype = err[0]
 		value = err[1]
 		traceback = err[2]
+		logger.error(value)
 		console.send(value)
 		self.data_err.emit()
+
+	def updateIndex(self, index:int) -> None:
+		self.curr_index = index
+		self.index_updated.emit()
 
 	@abstractmethod
 	def prepSerialisation(self) -> dict[str, Any]:

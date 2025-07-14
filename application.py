@@ -1,7 +1,9 @@
 import argparse
 import datetime as dt
+import logging
 import pathlib
 import pickle
+import PIL
 from typing import Any
 import warnings
 
@@ -9,19 +11,23 @@ from PyQt5 import QtWidgets, QtCore
 from vispy import app, use
 
 import satplot
+import satplot.util.logging as satplot_logging
 import satplot.util.threading as threading
 from satplot.visualiser.contexts.canvas_wrappers.base_cw import (BaseCanvas)
 import satplot.visualiser.interface.console as console
 import satplot.visualiser.interface.dialogs as dialogs
 import satplot.visualiser.window as window
 
+logger = logging.getLogger('satplot')
 
 warnings.filterwarnings("ignore", message="Optimal rotation is not uniquely or poorly defined for the given sets of vectors.")
-
+satplot_logging.configureLogger()
 use(gl='gl+')
 
 class Application():
 	def __init__(self) -> None:
+		satplot.threadpool = threading.Threadpool()
+		logger.info(f"Creating threadpool with {satplot.threadpool.maxThreadCount()} threads")
 		self.pyqt_app = app.use_app("pyqt5")
 		self.pyqt_app.create()
 		self.window = window.MainWindow(title="Sat Plot")
@@ -32,19 +38,19 @@ class Application():
 		self.save_worker = None
 		self.save_worker_thread = None
 		self.save_file = None
-		satplot.threadpool = threading.Threadpool()
-		print(f"Creating threadpool with {satplot.threadpool.maxThreadCount()} threads")
+
 
 	def run(self) -> None:
 		self.window.show()
 		self.pyqt_app.run()
 
 	def _connectControls(self) -> None:
-		for context in self.window.contexts_dict.values():
-			context.connectControls()
-			self._connectAllContextControls(context)
-			context.controls.toolbar.addButtons()
-			context.controls.menubar.addMenuItems()	
+		for shell in self.window.shell_dict.values():
+			for context in shell.contexts_dict.values():
+				context.connectControls()
+				self._connectAllContextControls(context)
+				context.controls.toolbar.addButtons()
+				context.controls.menubar.addMenuItems()
 
 	def _connectAllContextControls(self, context:BaseCanvas) -> None:
 		if context.controls is not None:
@@ -53,6 +59,7 @@ class Application():
 			context.controls.action_dict['load']['callback'] = self.load
 			context.controls.action_dict['spacetrak-credentials']['callback'] = dialogs.SpaceTrackCredentialsDialog
 		else:
+			logger.error(f'context: {context} does not have an associated action dictionary from a resources/actions/<context>.json file.')
 			raise ValueError()
 
 
@@ -70,6 +77,7 @@ class Application():
 			self._saveState()
 
 	def _saveState(self) -> None:
+		logger.info(f'Saving State to {self.save_file}')
 		console.send(f'Saving State to {self.save_file}')
 		state = self.prepSerialisation()
 		if self.save_file is not None:
@@ -85,6 +93,7 @@ class Application():
 			self._loadState(load_file)
 
 	def _loadState(self, load_file:pathlib.Path) -> None:
+		logger.info(f'Loading State from {load_file}')
 		console.send(f'Loading State from {load_file}')
 		with open(load_file, 'rb') as picklefp:
 			state = pickle.load(picklefp)
@@ -120,9 +129,11 @@ class Application():
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['metadata']['version'] != satplot.version:
-			print(f"This satplot state was not created with this version of satplot: file {state['metadata']['version']}, satplot {satplot.verison}")
+			logger.error(f"This satplot state was not created with this version of satplot: file {state['metadata']['version']}, satplot {satplot.version}")
+			pass
 		if state['metadata']['gl_plus'] != satplot.gl_plus:
-			print(f"WARNING: this file was created with a different GL mode: GL+ = {satplot.gl_plus}. It may not load correctly.")
+			logger.error(f"WARNING: this file was created with a different GL mode: GL+ = {satplot.gl_plus}. It may not load correctly.")
+			pass
 
 		self.window.deserialiseContexts(state['window_contexts'])
 
@@ -130,6 +141,8 @@ def setDefaultPackageOptions() -> None:
 	satplot.running = True
 	satplot.gl_plus = True
 	satplot.debug = False
+	satplot.high_precision = False
+	PIL.Image.MAX_IMAGE_PIXELS = None
 	try:
 		with open('data/spacetrack/.credentials', 'rb') as fp:
 			satplot.spacetrack_credentials = pickle.load(fp)
@@ -142,14 +155,17 @@ if __name__ == '__main__':
 						prog='SatPlot',
 						description='Visualisation software for satellites; including orbits and pointing.')
 	parser.add_argument('--nogl+', action='store_true', dest='nogl_plus')
+	parser.add_argument('--high_precision', action='store_true', dest='high_precision')
 	parser.add_argument('--debug', action='store_true', dest='debug')
 	args = parser.parse_args()
 	if args.nogl_plus:
 		satplot.gl_plus = False
+	if args.high_precision:
+		satplot.high_precision = True
 	if args.debug:
 		satplot.debug = True
-	print(f"Satplot:")
-	print(f"\tVersion:{satplot.version}")
+	logger.info(f"Satplot:")
+	logger.info(f"\tVersion:{satplot.version}")
 	application = Application()
 	application.run()
 

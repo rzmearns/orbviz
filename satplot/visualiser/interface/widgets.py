@@ -1,23 +1,32 @@
 import datetime as dt
+import logging
 import math
 import pathlib
 from typing import Any
 
 from PyQt5 import QtWidgets, QtCore, QtGui
 
+import satplot.model.data_models.data_types as satplot_data_types
+import satplot.util.paths as satplot_paths
 import satplot.visualiser.colours as colours
 
+from spherapy.timespan import TimeSpan
+
+logger = logging.getLogger(__name__)
 
 class TimeSlider(QtWidgets.QWidget):
-	def __init__(self, parent: QtWidgets.QWidget=None) -> None:
+	def __init__(self, parent: QtWidgets.QWidget|None=None, allow_no_callbacks=False) -> None:
 		super().__init__(parent)
 		self.start_dt = None
 		self.end_dt = None
 		self.range = 2*math.pi
 		self.range_delta = None
 		self.num_ticks = 1440
+		self.tick_delta = None
+		self._allow_no_callbacks = allow_no_callbacks
 		self.range_per_tick = self.range/self.num_ticks
 		self._callbacks = []
+		self._timespan = None
 		vlayout = QtWidgets.QVBoxLayout()
 		vlayout.setSpacing(0)
 		vlayout.setContentsMargins(2,1,2,1)
@@ -49,9 +58,14 @@ class TimeSlider(QtWidgets.QWidget):
 		self.slider.valueChanged.connect(self._run_callbacks)
 		self.setLayout(vlayout)
 
+	def setTimespan(self, timespan:TimeSpan):
+		self._timespan = timespan
+		self.setRange(self._timespan.start, self._timespan.end, self._timespan.num_steps)
+
 	def setRange(self, start_dt, end_dt, num_ticks):
 		if start_dt > end_dt:
-			raise ValueError(f"Period End {end_dt} must be after Period Start {start_dt}")
+			logger.warning(f"Period End {end_dt} must be after Period Start {start_dt} when setting timeslider range.")
+			raise ValueError(f"Period End {end_dt} must be after Period Start {start_dt} when setting timeslider range.")
 		self.start_dt = start_dt.replace(tzinfo=None)
 		self.end_dt = end_dt.replace(tzinfo=None)
 		self.range_delta = end_dt - start_dt
@@ -114,15 +128,22 @@ class TimeSlider(QtWidgets.QWidget):
 		self.slider.setMaximum(self.num_ticks-1)
 
 	def add_connect(self, callback):
+		if self._allow_no_callbacks:
+			logger.warning('A callback is being set on a Time Slider intended for no _callbacks')
 		self._callbacks.append(callback)
 
 	def _run_callbacks(self):
-		self._curr_dt_picker.setDatetime(self.start_dt + (self.slider.value()*self.tick_delta))
+		if self._timespan is not None:
+			self._curr_dt_picker.setDatetime(self._timespan[self.slider.value()])
+		elif self.tick_delta is not None:
+			self._curr_dt_picker.setDatetime(self.start_dt + (self.slider.value()*self.tick_delta))
+		else:
+			return
 		if len(self._callbacks) > 0:
 			for callback in self._callbacks:
 				callback(self.slider.value())
-		else:
-			print("No Time Slider callbacks are set")
+		elif not self._allow_no_callbacks:
+			logger.warning("No Time Slider callbacks are set")
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
@@ -135,7 +156,7 @@ class TimeSlider(QtWidgets.QWidget):
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['type'] != 'timeSlider':
-			print(f"{self} state was serialised as a {state['type']}, is now a timeSlider")
+			logger.error(f"{self} state was serialised as a {state['type']}, is now a timeSlider")
 			return
 		self.setRange(state['start_dt'], state['end_dt'], state['num_ticks'])
 		self.setValue(state['curr_index'])
@@ -150,6 +171,20 @@ class SmallDatetimeEntry(QtWidgets.QWidget):
 		hlayout = QtWidgets.QHBoxLayout()
 		hlayout.setSpacing(0)
 		hlayout.setContentsMargins(2,1,2,1)
+
+		self._mon_sp = QtWidgets.QLabel("-")
+		self._day_sp = QtWidgets.QLabel("-")
+		self._hr_sp = QtWidgets.QLabel("     ")
+		self._min_sp = QtWidgets.QLabel(":")
+		self._sec_sp = QtWidgets.QLabel(":")
+		self._yr_text_box = QtWidgets.QLineEdit('-')
+		self._mon_text_box = QtWidgets.QLineEdit('-')
+		self._day_text_box = QtWidgets.QLineEdit('-')
+		self._hr_text_box = QtWidgets.QLineEdit('-')
+		self._min_text_box = QtWidgets.QLineEdit('-')
+		self._sec_text_box = QtWidgets.QLineEdit('-')
+
+		fixed_height = 20
 
 		self._mon_sp = QtWidgets.QLabel("-")
 		self._day_sp = QtWidgets.QLabel("-")
@@ -280,7 +315,7 @@ class ColourPicker(QtWidgets.QWidget):
 			for callback in self._callbacks:
 				callback(self.curr_rgb)
 		else:
-			print("No Colour Picker callbacks are set")
+			logger.warning("No Colour Picker callbacks are set")
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
@@ -290,7 +325,7 @@ class ColourPicker(QtWidgets.QWidget):
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['type'] != 'ColourPicker':
-			print(f"{self} state was serialised as a {state['type']}, is now a ColourPicker")
+			logger.error(f"{self} state was serialised as a {state['type']}, is now a ColourPicker")
 
 		self._text_box.blockSignals(True)
 		self.curr_rgb = state['value']
@@ -352,7 +387,7 @@ class ValueSpinner(QtWidgets.QWidget):
 			for callback in self._callbacks:
 				callback(self.curr_val)
 		else:
-			print("No Value Spinner callbacks are set")
+			logger.warning("No Value Spinner callbacks are set")
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
@@ -363,7 +398,7 @@ class ValueSpinner(QtWidgets.QWidget):
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['type'] != 'ValueSpinner':
-			print(f"{self} state was serialised as a {state['type']}, is now a ValueSpinner")
+			logger.error(f"{self} state was serialised as a {state['type']}, is now a ValueSpinner")
 
 		self._val_box.blockSignals(True)
 		self.curr_val = state['value']
@@ -372,6 +407,54 @@ class ValueSpinner(QtWidgets.QWidget):
 		else:
 			self._val_box.setValue(int(self.curr_val))
 		self._val_box.blockSignals(False)
+
+class Button(QtWidgets.QWidget):
+	def __init__(self, label, button_label, parent: QtWidgets.QWidget=None) -> None:
+		super().__init__(parent)
+		self._callbacks = []
+		vlayout = QtWidgets.QVBoxLayout()
+		hlayout1 = QtWidgets.QHBoxLayout()
+		hlayout2 = QtWidgets.QHBoxLayout()
+		vlayout.setSpacing(0)
+		hlayout1.setSpacing(0)
+		hlayout2.setSpacing(0)
+		hlayout1.setContentsMargins(0,1,0,1)
+		hlayout2.setContentsMargins(0,1,10,1)
+
+		if label is not None:
+			self._label = QtWidgets.QLabel(label)
+			hlayout1.addWidget(self._label)
+			hlayout1.addStretch()
+		else:
+			hlayout1.addStretch()
+
+		self._button = QtWidgets.QPushButton(button_label)
+		hlayout2.addWidget(self._button)
+		vlayout.addLayout(hlayout1)
+		vlayout.addLayout(hlayout2)
+		self.setLayout(vlayout)
+
+		self._button.clicked.connect(self._run_callbacks)
+
+	def add_connect(self, callback):
+		self._callbacks.append(callback)
+
+	def _run_callbacks(self):
+		if len(self._callbacks) > 0:
+			for callback in self._callbacks:
+				callback()
+		else:
+			logger.warning("No Button callbacks are set")
+
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['type'] = 'Button'
+		state['value'] = None
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		if state['type'] != 'Button':
+			logger.error(f"{self} state was serialised as a {state['type']}, is now a Button")
 
 class ToggleBox(QtWidgets.QWidget):
 	def __init__(self, label, dflt_state, parent: QtWidgets.QWidget=None, label_bold=False) -> None:
@@ -406,7 +489,7 @@ class ToggleBox(QtWidgets.QWidget):
 			for callback in self._callbacks:
 				callback(self._checkbox.isChecked())
 		else:
-			print("No Toggle Box callbacks are set")
+			logger.warning("No Toggle Box callbacks are set")
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
@@ -416,10 +499,9 @@ class ToggleBox(QtWidgets.QWidget):
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['type'] != 'ToggleBox':
-			print(f"{self} state was serialised as a {state['type']}, is now a ToggleBox")
+			logger.error(f"{self} state was serialised as a {state['type']}, is now a ToggleBox")
 		self._checkbox.blockSignals(True)
 		self._checkbox.setChecked(state['value'])
-		a = QtWidgets.QCheckBox()
 		self._checkbox.blockSignals(False)
 
 	def setState(self, state:bool) -> None:
@@ -452,14 +534,13 @@ class OptionBox(QtWidgets.QWidget):
 			self._label = QtWidgets.QLabel(label)
 			hlayout1.addWidget(self._label)
 			hlayout1.addStretch()
-			vlayout.addLayout(hlayout1)
+		else:
+			hlayout1.addStretch()
 
 		self._optionbox = NonScrollingComboBox()
 		for item in options_list:
 			self._optionbox.addItem(item)
 		self._optionbox.setFocusPolicy(QtCore.Qt.StrongFocus)
-		hlayout1.addWidget(self._label)
-		hlayout1.addStretch()
 		hlayout2.addWidget(self._optionbox)
 		vlayout.addLayout(hlayout1)
 		vlayout.addLayout(hlayout2)
@@ -469,7 +550,6 @@ class OptionBox(QtWidgets.QWidget):
 		self._optionbox.currentIndexChanged.connect(self.setCurrentIndex)
 
 	def setCurrentIndex(self, idx:int) -> None:
-		print(f'{idx}')
 		self._curr_index = idx
 
 	def getCurrentIndex(self) -> int|None:
@@ -486,9 +566,17 @@ class OptionBox(QtWidgets.QWidget):
 
 	def _run_callbacks(self, index):
 		self._curr_index = index
+		if self._curr_index == -1:
+			return
 		if len(self._callbacks) > 0:
 			for callback in self._callbacks:
 				callback(index)
+
+	def clear(self):
+		self._optionbox.clear()
+
+	def addItems(self, iterable):
+		self._optionbox.addItems(iterable)
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
@@ -498,18 +586,78 @@ class OptionBox(QtWidgets.QWidget):
 			state['value'] = None
 		else:
 			state['value'] = self._optionbox.getAllItems()[curr_idx]
-		print(f"{state['value']=}")
 		return state
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['type'] != 'OptionBox':
-			print(f"{self} state was serialised as a {state['type']}, is now an OptionBox")
+			logger.error(f"{self} state was serialised as a {state['type']}, is now an OptionBox")
 			return
 		if state['value'] is not None and state['value'] in self._optionbox.getAllItems():
-			print(f"{state['value']=}")
 			self._optionbox.setCurrentText(state['value'])
 		else:
-			print(f"{state['value']} is not a local valid option. Displaying data, but can't set options.", file=sys.stderr)
+			logger.error(f"{state['value']} is not a local valid option. Displaying data, but can't set options.")
+
+class BasicOptionBox(QtWidgets.QWidget):
+	def __init__(self, label, dflt_option=None, options_list=[], parent: QtWidgets.QWidget=None) -> None:
+		super().__init__(parent)
+		self._callbacks = []
+		self._curr_index = 0
+		layout = QtWidgets.QHBoxLayout()
+		layout.setContentsMargins(2,1,2,1)
+
+
+		self._label = QtWidgets.QLabel(label)
+
+		self._optionbox = NonScrollingComboBox()
+		for item in options_list:
+			self._optionbox.addItem(item)
+		self._optionbox.setFocusPolicy(QtCore.Qt.StrongFocus)
+
+		layout.addWidget(self._label)
+		layout.addWidget(self._optionbox)
+
+		self._optionbox.setCurrentIndex(options_list.index(dflt_option))
+		self._optionbox.currentIndexChanged.connect(self._run_callbacks)
+		self._optionbox.currentIndexChanged.connect(self.setCurrentIndex)
+
+		self.setLayout(layout)
+
+	def setCurrentIndex(self, idx:int) -> None:
+		self._curr_index = idx
+
+	def getCurrentIndex(self) -> int|None:
+		if self._curr_index > 0:
+			return self._curr_index-1
+		else:
+			return None
+
+	def add_connect(self, callback):
+		self._callbacks.append(callback)
+
+	def _run_callbacks(self, index):
+		self._curr_index = index
+		if len(self._callbacks) > 0:
+			for callback in self._callbacks:
+				callback(index)
+
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['type'] = 'BasicOptionBox'
+		curr_idx = self.getCurrentIndex()
+		if curr_idx is None:
+			state['value'] = None
+		else:
+			state['value'] = self._optionbox.getAllItems()[curr_idx]
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		if state['type'] != 'BasicOptionBox':
+			logger.error(f"{self} state was serialised as a {state['type']}, is now an OptionBox")
+			return
+		if state['value'] is not None and state['value'] in self._optionbox.getAllItems():
+			self._optionbox.setCurrentText(state['value'])
+		else:
+			logger.error(f"{state['value']} is not a local valid option. Displaying data, but can't set options.")
 
 class FilePicker(QtWidgets.QWidget):
 	def __init__(self, label,
@@ -521,45 +669,64 @@ class FilePicker(QtWidgets.QWidget):
 						width=None) -> None:
 		super().__init__(parent)
 		self._callbacks = []
-		self.path = f'{dflt_dir}{dflt_file}'
+		self._dflt_path = pathlib.Path(f'{dflt_dir}').joinpath(dflt_file)
+		self.path = pathlib.Path(f'{dflt_dir}').joinpath(dflt_file)
 		vlayout = QtWidgets.QVBoxLayout()
 		hlayout1 = QtWidgets.QHBoxLayout()
 		hlayout2 = QtWidgets.QHBoxLayout()
 		vlayout.setSpacing(0)
 		hlayout1.setSpacing(0)
-		hlayout2.setSpacing(0)
 		hlayout1.setContentsMargins(0,1,0,0)
+		hlayout2.setSpacing(0)
 		hlayout2.setContentsMargins(0,0,10,1)
 		vlayout.setContentsMargins(margins[0],margins[1],margins[2],margins[3])
 
 		if label is not None:
+			_label_font = QtGui.QFont()
+			_label_font.setWeight(QtGui.QFont.Medium)
 			self._label = QtWidgets.QLabel(label)
+			self._label.setFont(_label_font)
 			hlayout1.addWidget(self._label)
 			hlayout1.addStretch()
 			vlayout.addLayout(hlayout1)
 
-		self._file_text_box = QtWidgets.QLineEdit(self.path)
-		if width is not None:
-			self._file_text_box.setFixedWidth(width)
+		# Create widgets
+		path_to_show = self.path.relative_to(satplot_paths.data_dir)
+		self._file_text_box = QtWidgets.QLineEdit(f'{path_to_show}')
+		self._err_label = QtWidgets.QLabel('')
 		self._dialog_button = QtWidgets.QPushButton('...')
-		self.caption = f'Pick {label}'
-		self.dflt_dir = dflt_dir
-		self.dflt_filename = dflt_file
-		self.dialog_save = save
-		self._dialog_button.clicked.connect(self.openFilenameDialog)
-		self._file_text_box.textChanged.connect(self.setPath)
+		self._dialog_save_flag = save
+		self._dialog_caption = f'Pick {label}'
+		# Set styling
 		self._dialog_button.setFixedWidth(25)
-
+		err_font = QtGui.QFont()
+		err_font.setBold(True)
+		self._err_label.setFont(err_font)
+		self._err_label.setStyleSheet('''
+										QLabel {
+												color:#FF0000;
+												}
+									''');
 
 		hlayout2.addWidget(self._file_text_box)
 		hlayout2.addSpacing(5)
 		hlayout2.addWidget(self._dialog_button)
-
 		vlayout.addLayout(hlayout2)
+		vlayout.addWidget(self._err_label)
 		self.setLayout(vlayout)
 
-	def setPath(self):
-		self.path = self._file_text_box.text()
+		self._dialog_button.clicked.connect(self.openFilenameDialog)
+		self._file_text_box.textChanged.connect(self._setPath)
+		self._file_text_box.textChanged.connect(self._run_callbacks)
+
+	def _setPath(self):
+		self.path = pathlib.Path(self._file_text_box.text())
+
+	def setError(self, err_text:str) -> None:
+		self._err_label.setText(err_text)
+
+	def clearError(self) -> None:
+		self._err_label.setText('')
 
 	def getPath(self) -> pathlib.Path:
 		return pathlib.Path(self._file_text_box.text())
@@ -567,21 +734,26 @@ class FilePicker(QtWidgets.QWidget):
 	def openFilenameDialog(self):
 		options = QtWidgets.QFileDialog.Options()
 		options |= QtWidgets.QFileDialog.DontUseNativeDialog
-		if self.dialog_save:
+		if self._dialog_save_flag:
 			filename, _ = QtWidgets.QFileDialog.getSaveFileName(self,
-																self.caption,
-																f'{self.dflt_dir}{self.dflt_filename}',
+																self._dialog_caption,
+																str(self._dflt_path),
 																"All Files (*)",
 																options=options)
 		else:
 			filename, _ = QtWidgets.QFileDialog.getOpenFileName(self,
-																self.caption,
-																f'{self.dflt_dir}{self.dflt_filename}',
+																self._dialog_caption,
+																str(self._dflt_path),
 																"All Files (*)",
 																options=options)
-			print(filename)
-		self.path = filename
-		self._file_text_box.setText(self.path)
+		self.path = pathlib.Path(filename)
+		self._file_text_box.blockSignals(True)
+		try:
+			path_to_show = self.path.relative_to(satplot_paths.data_dir)
+		except ValueError:
+			path_to_show = self.path.resolve()
+		self._file_text_box.setText(f'{path_to_show}')
+		self._file_text_box.blockSignals(False)
 
 	def add_connect(self, callback):
 		self._callbacks.append(callback)
@@ -589,9 +761,9 @@ class FilePicker(QtWidgets.QWidget):
 	def _run_callbacks(self):
 		if len(self._callbacks) > 0:
 			for callback in self._callbacks:
-				callback(self._checkbox.isChecked())
+				callback(self.path)
 		else:
-			print("No FilePicker callbacks are set")
+			logger.warning("No FilePicker callbacks are set")
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
@@ -601,7 +773,7 @@ class FilePicker(QtWidgets.QWidget):
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['type'] != 'filePicker':
-			print(f"{self} state was serialised as a {state['type']}, is now a filePicker")
+			logger.error(f"{self} state was serialised as a {state['type']}, is now a filePicker")
 			return
 		self._file_text_box.setText(state['value'])
 
@@ -665,7 +837,7 @@ class PeriodBox(QtWidgets.QWidget):
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['type'] != 'period':
-			print(f"{self} state was serialised as a {state['type']}, is now a period")
+			logger.error(f"{self} state was serialised as a {state['type']}, is now a period")
 			return
 		self.val_box.setValue(state['value'])
 
@@ -673,7 +845,8 @@ class DatetimeEntry(QtWidgets.QWidget):
 	def __init__(self, label, dflt_datetime, parent: QtWidgets.QWidget=None) -> None:
 		super().__init__(parent)
 		self._callbacks = []
-		self.datetime = dflt_datetime
+		# datetime should always be in UTC
+		self.datetime = dflt_datetime.replace(tzinfo=dt.timezone.utc)
 		vlayout = QtWidgets.QVBoxLayout()
 		hlayout1 = QtWidgets.QHBoxLayout()
 		hlayout2 = QtWidgets.QHBoxLayout()
@@ -691,7 +864,7 @@ class DatetimeEntry(QtWidgets.QWidget):
 			self._label.setFont(self._label_font)
 			hlayout1.addWidget(self._label)
 
-		self._curr_dt = QtWidgets.QLabel(self.datetime.strftime("%Y-%m-%d   %H:%M:%S"))
+		self._curr_dt = QtWidgets.QLabel(self.datetime.strftime("%Y-%m-%d   %H:%M:%S UTC"))
 		self._mon_sp = QtWidgets.QLabel("-")
 		self._day_sp = QtWidgets.QLabel("-")
 		self._hr_sp = QtWidgets.QLabel("     ")
@@ -748,21 +921,21 @@ class DatetimeEntry(QtWidgets.QWidget):
 		f"{self._sec_text_box.text()}"
 		try:
 			self.datetime = dt.datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
+			self.datetime = self.datetime.replace(tzinfo=dt.timezone.utc)
 		except ValueError:
 			self.setDatetime(self.datetime)
 			return
-		self.datetime = dt.datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
-		self._curr_dt.setText(self.datetime.strftime("%Y-%m-%d   %H:%M:%S"))
+		self._curr_dt.setText(self.datetime.strftime("%Y-%m-%d   %H:%M:%S UTC"))
 
 	def setDatetime(self, datetime):
-		self.datetime = datetime
+		self.datetime = datetime.replace(tzinfo=dt.timezone.utc)
 		self._yr_text_box.setText(datetime.strftime("%Y"))
 		self._mon_text_box.setText(datetime.strftime("%m"))
 		self._day_text_box.setText(datetime.strftime("%d"))
 		self._hr_text_box.setText(datetime.strftime("%H"))
 		self._min_text_box.setText(datetime.strftime("%M"))
 		self._sec_text_box.setText(datetime.strftime("%S"))
-		self._curr_dt.setText(self.datetime.strftime("%Y-%m-%d   %H:%M:%S"))
+		self._curr_dt.setText(self.datetime.strftime("%Y-%m-%d   %H:%M:%S UTC"))
 
 	def addConnect(self, callback):
 		self._callbacks.append(callback)
@@ -773,7 +946,7 @@ class DatetimeEntry(QtWidgets.QWidget):
 				pass
 				# callback(self._checkbox.isChecked())
 		else:
-			print("No Toggle Box callbacks are set")
+			logger.warning("No Toggle Box callbacks are set")
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
@@ -783,7 +956,7 @@ class DatetimeEntry(QtWidgets.QWidget):
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['type'] != 'DatetimeEntry':
-			print(f"{self} state was serialised as a {state['type']}, is now a DatetimeEntry")
+			logger.error(f"{self} state was serialised as a {state['type']}, is now a DatetimeEntry")
 			return
 		self.setDatetime(state['value'])
 
@@ -862,8 +1035,8 @@ class ValueBox(QtWidgets.QWidget):
 		self.setValue(state['value'])
 
 class CollapsibleSection(QtWidgets.QWidget):
-# Ported to PyQT5 and modified, original widget by Caroline Beyne, github user: cbeyne
-# https://github.com/By0ute/pyqt-collapsible-widget/blob/master/code/FrameLayout.py
+	# Ported to PyQT5 and modified, original widget by Caroline Beyne, github user: cbeyne
+	# https://github.com/By0ute/pyqt-collapsible-widget/blob/master/code/FrameLayout.py
 	def __init__(self, parent=None, title=None):
 		QtWidgets.QFrame.__init__(self, parent=parent)
 
@@ -953,11 +1126,37 @@ class CollapsibleSection(QtWidgets.QWidget):
 			else:
 				self._button.setArrowType(QtCore.Qt.DownArrow)
 
-class Switch(QtWidgets.QPushButton):
+class LabelledSwitch(QtWidgets.QWidget):
 	toggle = QtCore.pyqtSignal(bool)
-	def __init__(self, parent = None):
+
+	def __init__(self, dflt_state:bool=True, labels:tuple[str,str]=('',''), *args, **kwargs):
+		super().__init__()
+		switch_hlayout = QtWidgets.QHBoxLayout()
+		switch_hlayout.setSpacing(10)
+		switch_hlayout.setContentsMargins(0,0,0,0)
+
+		_off_label = QtWidgets.QLabel(labels[0])
+		_on_label = QtWidgets.QLabel(labels[1])
+		self._switch = Switch(dflt_state=dflt_state)
+
+		switch_hlayout.addWidget(_off_label)
+		switch_hlayout.addWidget(self._switch)
+		switch_hlayout.addWidget(_on_label)
+		switch_hlayout.addStretch()
+
+		self.setLayout(switch_hlayout)
+
+		self._switch.toggled.connect(self.toggle.emit)
+
+	def isChecked(self) -> bool:
+		return self._switch.isChecked()
+
+class Switch(QtWidgets.QPushButton):
+
+	def __init__(self, dflt_state:bool=True, parent = None):
 		super().__init__(parent)
 		self.setCheckable(True)
+		self.setChecked(dflt_state)
 		self.setMinimumWidth(66)
 		self.setMinimumHeight(22)
 
@@ -1003,7 +1202,7 @@ class Switch(QtWidgets.QPushButton):
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['type'] != 'Switch':
-			print(f"{self} state was serialised as a {state['type']}, is now a Switch")
+			logger.error(f"{self} state was serialised as a {state['type']}, is now a Switch")
 			return
 		self.setChecked(state['value'])
 
@@ -1332,6 +1531,387 @@ class LabelledRangeSlider(QtWidgets.QWidget):
 
 	def getRange(self) -> tuple[int,int]:
 		return self._range_slider.getRange()
+
+class StretchTabWidget(QtWidgets.QTabWidget):
+	def __init__(self, parent=None):
+		super().__init__(parent)
+		self.bar = StretchTabBar()
+		self.setTabBar(self.bar)
+
+	def resizeEvent(self, event):
+		self.tabBar().setFixedWidth(self.width())
+		super().resizeEvent(event)
+
+class StretchTabBar(QtWidgets.QTabBar):
+	def __init__(self, parent=None):
+		super().__init__(parent)
+		self.setExpanding(True)
+
+	def tabSizeHint(self, index):
+		if self.count() > 0:
+			size = QtWidgets.QTabBar.tabSizeHint(self, index)
+			if self.parent().tabPosition() in [QtWidgets.QTabWidget.West or QtWidgets.QTabWidget.East]:
+				height = int(self.parent().size().height()/self.count())
+				return QtCore.QSize(size.width(), height)
+			elif self.parent().tabPosition() in [QtWidgets.QTabWidget.North or QtWidgets.QTabWidget.South]:
+				width = int(self.parent().size().width()/self.count())
+				return QtCore.QSize(width, size.height())
+		return super().tabSizeHint(index)
+
+class ColumnarStackedTabBar(QtWidgets.QTabBar):
+	def __init__(self, parent=None):
+		super().__init__(parent)
+
+	def tabSizeHint(self, index):
+		s = super().tabSizeHint(index)
+		s.transpose()
+		return s
+
+	def paintEvent(self, event):
+		painter = QtWidgets.QStylePainter(self)
+		opt = QtWidgets.QStyleOptionTab()
+
+		for i in range(self.count()):
+			self.initStyleOption(opt, i)
+			painter.drawControl(QtWidgets.QStyle.CE_TabBarTabShape, opt)
+			painter.save()
+
+			s = opt.rect.size()
+			s.transpose()
+			r = QtCore.QRect(QtCore.QPoint(), s)
+			r.moveCenter(opt.rect.center())
+			opt.rect = r
+
+			c = self.tabRect(i).center()
+			painter.translate(c)
+			painter.rotate(90)
+			painter.translate(-c)
+			painter.drawControl(QtWidgets.QStyle.CE_TabBarTabLabel, opt)
+			painter.restore()
+
+class ColumnarStackedTabWidget(QtWidgets.QTabWidget):
+	tab_changed = QtCore.pyqtSignal(int,int)
+
+	def __init__(self, *args, **kwargs):
+		QtWidgets.QTabWidget.__init__(self, *args, **kwargs)
+		self.setTabBar(ColumnarStackedTabBar())
+		self.setTabPosition(QtWidgets.QTabWidget.West)
+		self.curr_tab_idx = -1
+		self.currentChanged.connect(self._onTabChange)
+
+	def _onTabChange(self, new_idx):
+		self.tab_changed.emit(self.curr_tab_idx, new_idx)
+		self.curr_tab_idx = new_idx
+
+class PrimaryConfigDisplay(QtWidgets.QWidget):
+	def __init__(self, parent: QtWidgets.QWidget|None=None):
+		super().__init__(parent)
+
+		self.pane_layout = QtWidgets.QVBoxLayout()
+		# self.pane_layout = QtWidgets.QGridLayout()
+		self._cnfg_label = QtWidgets.QLabel('Configuration Preview')
+
+		self._cnfg_table = QtWidgets.QTableWidget(1,2)
+		self._cnfg_table.setRowCount(2)
+		self._cnfg_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+		self._cnfg_table.setItem(0,0,QtWidgets.QTableWidgetItem('Configuration File:'))
+		self._cnfg_table.setItem(1,0,QtWidgets.QTableWidgetItem('Configuration Name:'))
+
+		self._satellites_table = QtWidgets.QTableWidget(1,2)
+		self._satellites_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+		self._satellites_table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
+
+		self._entry_font = self._cnfg_table.item(0,0).font()
+		self._header_font = self._cnfg_table.item(0,0).font()
+		self._entry_font.setPointSize(9)
+		self._header_font.setPointSize(10)
+		self._header_font.setWeight(QtGui.QFont.Medium)
+		self._sensor_tables = []
+
+		self._setStyling()
+
+		self.pane_layout.addWidget(self._cnfg_label)
+		self.pane_layout.addWidget(self._cnfg_table)
+		self.pane_layout.addWidget(self._satellites_table)
+
+		self.setLayout(self.pane_layout)
+
+	def _setStyling(self):
+		# Config title
+		_label_font = QtGui.QFont()
+		_label_font.setWeight(QtGui.QFont.Medium)
+		self._cnfg_label.setFont(_label_font)
+		self._cnfg_table.setStyleSheet('''
+										QTableWidget {
+														background-color:#00000000;
+										}
+									''');
+		self._cnfg_table.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
+		self._cnfg_table.setFocusPolicy(QtCore.Qt.NoFocus)
+		self._cnfg_table.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
+		for row_num in range(self._cnfg_table.rowCount()):
+			self._cnfg_table.setRowHeight(row_num, 6)
+			for col_num in range(self._cnfg_table.columnCount()):
+				if self._cnfg_table.item(row_num,col_num) is not None:
+					if col_num == 0:
+						self._cnfg_table.item(row_num,col_num).setFont(self._header_font)
+					else:
+						self._cnfg_table.item(row_num,col_num).setFont(self._entry_font)
+
+		self._cnfg_table.verticalHeader().hide()
+		self._cnfg_table.horizontalHeader().hide()
+		self._cnfg_table.setShowGrid(False)
+		self._cnfg_table.setFixedSize(self._cnfg_table.sizeHint())
+
+		# Satelites table
+		self._satellites_table.setHorizontalHeaderLabels(['Sat Name', 'Satcat ID'])
+		self._satellites_table.horizontalHeader().setDefaultAlignment(QtCore.Qt.AlignLeft)
+		self._satellites_table.horizontalHeader().setFont(self._header_font)
+		self._satellites_table.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
+		self._satellites_table.setFocusPolicy(QtCore.Qt.NoFocus)
+		self._satellites_table.verticalHeader().hide()
+		for row_num in range(self._satellites_table.rowCount()):
+			self._satellites_table.setRowHeight(row_num, 6)
+			for col_num in range(self._satellites_table.columnCount()):
+				if self._satellites_table.item(row_num,col_num) is not None:
+					self._satellites_table.item(row_num,col_num).setFont(self._entry_font)
+
+		self._satellites_table.horizontalHeader().setStyleSheet('''
+														QHeaderView::section {
+																background-color: #00000000;
+    															border: 0px;
+														}
+														''')
+		self._satellites_table.setStyleSheet('''
+												QTableWidget {
+																background-color:#00000000;
+												}
+											''');
+		self._satellites_table.setShowGrid(False)
+		self._satellites_table.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
+		self._satellites_table.setFixedSize(self._satellites_table.sizeHint())
+
+	def _setSensorTableStyling(self, table:QtWidgets.QTableWidget):
+
+		table.setHorizontalHeaderLabels(['Sensor Suite', 'Sensor','',''])
+		table.horizontalHeader().setDefaultAlignment(QtCore.Qt.AlignLeft)
+		table.horizontalHeader().setFont(self._header_font)
+
+		table.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
+		table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+		table.setFocusPolicy(QtCore.Qt.NoFocus)
+		table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
+		table.verticalHeader().hide()
+		table.setStyleSheet('''
+								QTableWidget {
+											background-color:#00000000;
+											}
+							''');
+		table.horizontalHeader().setStyleSheet('''
+													QHeaderView::section {
+																		background-color: #00000000;
+    																	border: 0px;
+																		}
+												''')
+		table.setShowGrid(False)
+
+		# set row heights and fonts
+		table_height = 0
+		for row_num in range(table.rowCount()):
+			table.setRowHeight(row_num, 6)
+			table_height += table.rowHeight(row_num)
+			for col_num in range(table.columnCount()):
+				if table.item(row_num,col_num) is not None:
+					table.item(row_num,col_num).setFlags(QtCore.Qt.ItemIsEnabled)
+					table.item(row_num,col_num).setFont(self._entry_font)
+
+		table.resizeColumnsToContents()
+
+		# Turn off scrollbar
+		table.verticalScrollBar().setDisabled(True)
+		table.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff);
+		table.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
+		table.setMinimumHeight(table.sizeHint().height());
+
+	def updateConfig(self, config:satplot_data_types.PrimaryConfig):
+		self.config = config
+		self._cnfg_table.setItem(0,1,QtWidgets.QTableWidgetItem(f'{self.config.filestem}.json'))
+		self._cnfg_table.setItem(1,1,QtWidgets.QTableWidgetItem(f'{self.config.name}'))
+		self._cnfg_table.resizeColumnsToContents()
+		self._populateSatellites()
+		self._satellites_table.resizeColumnsToContents()
+		self._setStyling()
+
+	def clearConfig(self) -> None:
+		self._satellites_table.setRowCount(0)
+
+	def _populateSatellites(self):
+		# delete old widgets
+		for ii in range(len(self._sensor_tables)-1,-1,-1):
+			if isinstance(self._sensor_tables[ii],QtWidgets.QSpacerItem):
+				self.pane_layout.removeItem(self._sensor_tables[ii])
+			else:
+				self._sensor_tables[ii].deleteLater()
+			# if isinstance(self._sensor_tables[ii],CollapsibleSection):
+			# 	self.grid_row -= 1
+			self._sensor_tables.pop(ii)
+
+
+		num_sats = self.config.num_sats
+		self._satellites_table.setRowCount(num_sats)
+		# Populate list of satellites in primary config
+		for ii, (sat_id, sat_name) in enumerate(self.config.sats.items()):
+			self._satellites_table.setItem(ii, 0, QtWidgets.QTableWidgetItem(sat_name))
+			self._satellites_table.setItem(ii, 1, QtWidgets.QTableWidgetItem(str(sat_id)))
+
+		for sat_name, satellite in self.config.sat_configs.items():
+			# For each satellite create collapsible section
+			sat_cs = CollapsibleSection(title=sat_name)
+			# self.pane_layout.addWidget(sat_cs, self.grid_row,0)
+			self.pane_layout.addWidget(sat_cs)
+			# self.grid_row+=1
+			self._sensor_tables.append(sat_cs)
+
+			sat_cs.toggleCollapsed()
+
+			if satellite.getNumSuites()==0:
+				self.pane_layout.addWidget(QtWidgets.QLabel('No Sensors'))
+			else:
+				num_rows = 0
+				# calculate how many rows to contain all data about sensor suites
+				for suite_name, suite in satellite.sensor_suites.items():
+					for sens_name in suite.getSensorNames():
+						sens_config = suite.getSensorDisplayConfig(sens_name)
+						num_rows += len(sens_config.keys())
+
+				sat_table = QtWidgets.QTableWidget(num_rows,4)
+				row_num = 0
+				for suite_name, suite in satellite.sensor_suites.items():
+					sat_table.setItem(row_num,0,QtWidgets.QTableWidgetItem(suite_name))
+					for sens_name in suite.getSensorNames():
+						sens_config = suite.getSensorDisplayConfig(sens_name)
+						sat_table.setItem(row_num,1,QtWidgets.QTableWidgetItem(sens_name))
+						# row_num += 1
+						for field, val in sens_config.items():
+							sat_table.setItem(row_num,2,QtWidgets.QTableWidgetItem(f'{field}:'))
+							sat_table.setItem(row_num,3,QtWidgets.QTableWidgetItem(val))
+							row_num += 1
+						# add row between sensors
+						row_num += 1
+
+				self._setSensorTableStyling(sat_table)
+				sat_cs.addWidget(sat_table)
+				self._sensor_tables.append(sat_table)
+
+class ConstellationConfigDisplay(QtWidgets.QWidget):
+	def __init__(self, parent: QtWidgets.QWidget|None=None):
+		super().__init__(parent)
+
+		self.pane_layout = QtWidgets.QVBoxLayout()
+		# self.pane_layout = QtWidgets.QGridLayout()
+		self._cnfg_label = QtWidgets.QLabel('Configuration Preview')
+
+		self._cnfg_table = QtWidgets.QTableWidget(1,2)
+		self._cnfg_table.setRowCount(2)
+		self._cnfg_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+		self._cnfg_table.setItem(0,0,QtWidgets.QTableWidgetItem('Configuration File:'))
+		self._cnfg_table.setItem(1,0,QtWidgets.QTableWidgetItem('Configuration Name:'))
+		self._cnfg_table.setItem(2,0,QtWidgets.QTableWidgetItem('Configuration Beam Width:'))
+
+		self._satellites_table = QtWidgets.QTableWidget(1,2)
+		self._satellites_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+		self._satellites_table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
+
+		self._entry_font = self._cnfg_table.item(0,0).font()
+		self._header_font = self._cnfg_table.item(0,0).font()
+		self._entry_font.setPointSize(9)
+		self._header_font.setPointSize(10)
+		self._header_font.setWeight(QtGui.QFont.Medium)
+		self._sensor_tables = []
+
+		self._setStyling()
+
+		self.pane_layout.addWidget(self._cnfg_label)
+		self.pane_layout.addWidget(self._cnfg_table)
+		self.pane_layout.addWidget(self._satellites_table)
+
+		self.setLayout(self.pane_layout)
+
+	def _setStyling(self):
+		# Config title
+		_label_font = QtGui.QFont()
+		_label_font.setWeight(QtGui.QFont.Medium)
+		self._cnfg_label.setFont(_label_font)
+		self._cnfg_table.setStyleSheet('''
+										QTableWidget {
+														background-color:#00000000;
+										}
+									''');
+		self._cnfg_table.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
+		self._cnfg_table.setFocusPolicy(QtCore.Qt.NoFocus)
+		self._cnfg_table.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
+		for row_num in range(self._cnfg_table.rowCount()):
+			self._cnfg_table.setRowHeight(row_num, 6)
+			for col_num in range(self._cnfg_table.columnCount()):
+				if self._cnfg_table.item(row_num,col_num) is not None:
+					if col_num == 0:
+						self._cnfg_table.item(row_num,col_num).setFont(self._header_font)
+					else:
+						self._cnfg_table.item(row_num,col_num).setFont(self._entry_font)
+
+		self._cnfg_table.verticalHeader().hide()
+		self._cnfg_table.horizontalHeader().hide()
+		self._cnfg_table.setShowGrid(False)
+		self._cnfg_table.setFixedSize(self._cnfg_table.sizeHint())
+
+		# Satelites table
+		self._satellites_table.setHorizontalHeaderLabels(['Sat Name', 'Satcat ID'])
+		self._satellites_table.horizontalHeader().setDefaultAlignment(QtCore.Qt.AlignLeft)
+		self._satellites_table.horizontalHeader().setFont(self._header_font)
+		self._satellites_table.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
+		self._satellites_table.setFocusPolicy(QtCore.Qt.NoFocus)
+		self._satellites_table.verticalHeader().hide()
+		for row_num in range(self._satellites_table.rowCount()):
+			self._satellites_table.setRowHeight(row_num, 6)
+			for col_num in range(self._satellites_table.columnCount()):
+				if self._satellites_table.item(row_num,col_num) is not None:
+					self._satellites_table.item(row_num,col_num).setFont(self._entry_font)
+
+		self._satellites_table.horizontalHeader().setStyleSheet('''
+														QHeaderView::section {
+																background-color: #00000000;
+    															border: 0px;
+														}
+														''')
+		self._satellites_table.setStyleSheet('''
+												QTableWidget {
+																background-color:#00000000;
+												}
+											''');
+		self._satellites_table.setShowGrid(False)
+		self._satellites_table.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
+		self._satellites_table.setFixedSize(self._satellites_table.sizeHint())
+
+	def updateConfig(self, config:satplot_data_types.ConstellationConfig):
+		self.config = config
+		self._cnfg_table.setItem(0,1,QtWidgets.QTableWidgetItem(f'{self.config.filestem}.json'))
+		self._cnfg_table.setItem(1,1,QtWidgets.QTableWidgetItem(f'{self.config.name}'))
+		self._cnfg_table.setItem(2,1,QtWidgets.QTableWidgetItem(f'{self.config.beam_width}'))
+		self._cnfg_table.resizeColumnsToContents()
+		self._populateSatellites()
+		self._satellites_table.resizeColumnsToContents()
+		self._setStyling()
+
+	def clearConfig(self) -> None:
+		self._satellites_table.setRowCount(0)
+
+	def _populateSatellites(self):
+		num_sats = self.config.num_sats
+		self._satellites_table.setRowCount(num_sats)
+		# Populate list of satellites in primary config
+		for ii, (sat_id, sat_name) in enumerate(self.config.sats.items()):
+			self._satellites_table.setItem(ii, 0, QtWidgets.QTableWidgetItem(sat_name))
+			self._satellites_table.setItem(ii, 1, QtWidgets.QTableWidgetItem(str(sat_id)))
 
 def embedWidgetsInHBoxLayout(w_list, margin=5):
 	"""Embed a list of widgets into a layout to give it a frame"""

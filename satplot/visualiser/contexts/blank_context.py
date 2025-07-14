@@ -30,6 +30,12 @@ class BlankContext(BaseContext):
 	def _configureData(self) -> None:
 		pass
 
+	def getTimeSliderIndex(self) -> int|None:
+		return None
+
+	def setIndex(self, idx:int) -> None:
+		pass
+
 	def loadState(self) -> None:
 		pass
 
