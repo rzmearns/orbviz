@@ -16,7 +16,7 @@ class RestrictedPanZoomCamera(PanZoomCamera):
 		self._right_limit = limits[1]
 		self._bottom_limit = limits[2]
 		self._top_limit = limits[3]
-		super(RestrictedPanZoomCamera, self).__init__(*args, **kwargs)
+		super(RestrictedPanZoomCamera, self).__init__(*args, name='RestrictedPanZoom', **kwargs)
 
 	def zoom(self, factor, center=None):
 		"""
