@@ -74,8 +74,9 @@ class SpaceTrackCredentialsDialog():
 		self.window.exec_()
 
 	def submit(self):
-		credential_file = 'data/spacetrack/.credentials'
-		os.makedirs('data/spacetrack', exist_ok=True)
+		satplot_paths.credential_dir.mkdir(parents=True, exist_ok=True)
+		credential_file = satplot_paths.credential_dir.joinpath('.credentials')
+		# try:
 		self.window.close()
 		satplot.spacetrack_credentials['user'] = self.user.text()
 		satplot.spacetrack_credentials['passwd'] = self.passwd.text()
@@ -84,7 +85,7 @@ class SpaceTrackCredentialsDialog():
 				pickle.dump(satplot.spacetrack_credentials,fp)		
 		else:
 			try:
-				os.remove(credential_file)
+				credential_file.unlink()
 			except FileNotFoundError:
 				pass
 
