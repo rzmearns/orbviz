@@ -32,6 +32,7 @@ class HistoricalShell():
 		self.toolbars = toolbars
 		self.menubars = menubars
 		self.active = False
+		self.active_context = None
 
 		datapane_hsplitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
 		datapane_hsplitter.setObjectName('window_hsplitter')
@@ -73,14 +74,16 @@ class HistoricalShell():
 		self.contexts_dict['sensors-view-history'] = sensor_views_context.SensorViewsContext('sensors-view-history', self.window, history_data_model, earth_raycast_data_model)
 
 		# attach relevant toolbars, menubars, add context tabs
-		for context_key in self.contexts_dict.keys():
-			self.toolbars[context_key] = self.contexts_dict[context_key].controls.toolbar
-			self.menubars[context_key] = self.contexts_dict[context_key].controls.menubar
+		for context_key, context in self.contexts_dict.items():
+			self.toolbars[context_key] = context.controls.toolbar
+			self.menubars[context_key] = context.controls.menubar
 			# self.toolbars[context_key].setActiveState(False)
 			# self.menubars[context_key].setActiveState(False)
 			tab_label = ' '.join(context_key.split('-')[:-1]).title()
-			self.context_tab_stack.addTab(self.contexts_dict[context_key].widget, tab_label)
-
+			self.context_tab_stack.addTab(context.widget, tab_label)
+			if hasattr(context,'canvas_wrapper'):
+				if hasattr(context.canvas_wrapper, 'mouseOverText'):
+					context.canvas_wrapper.mouseOverText.notifier.text_updated.connect(self.datapane.setMouseText)
 
 		# check toolbar/menubar indices are the same
 		for ii, key in enumerate(self.toolbars.keys()):
@@ -126,6 +129,7 @@ class HistoricalShell():
 		if new_context_idx is None:
 			new_context_idx = self.context_tab_stack.currentIndex()
 		new_context_key = list(self.contexts_dict.keys())[new_context_idx]
+		self.active_context = self.contexts_dict[new_context_key]
 
 		# process deselects first in order to clear parent pointer to menubar, otherwise menubar gets deleted (workaround for pyqt5)
 		for context_key in self.contexts_dict.keys():
