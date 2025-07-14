@@ -1,4 +1,5 @@
 import logging
+import pathlib
 from PyQt5 import QtWidgets, QtCore, QtGui
 from typing import Any
 
@@ -121,6 +122,13 @@ class SensorViewsContext(BaseContext):
 	def saveState(self) -> None:
 		pass
 		
+	def setupGIFDialog(self):
+		pass
+
+	def saveGif(self, file: pathlib.Path, loop=True, *args, **kwargs):
+		pass
+
+
 class Controls(BaseControls):
 	def __init__(self, parent_context:BaseContext, canvas_wrapper: BaseCanvas|None) -> None:
 		self.context = parent_context

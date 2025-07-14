@@ -18,5 +18,25 @@
 	"callback": null,
 	"contexts": ["3D-planning"],
 	"toggleable": true
+   },
+"save-gif": {
+	"tooltip": "Capture GIF",
+	"menu_item": "Save GIF",
+	"containing_menu": "record",
+	"button_icon": "resources/icons/video-record.png",
+	"hotkey": "ctrl+o",
+	"callback": null,
+	"contexts": ["3d-planning"],
+	"toggleable": false
+   },
+"save-screenshot": {
+	"tooltip": "Capture Screenshot",
+	"menu_item": "Save Screenshot",
+	"containing_menu": "record",
+	"button_icon": "resources/icons/camera-record.png",
+	"hotkey": "ctrl+o",
+	"callback": null,
+	"contexts": ["3d-planning"],
+	"toggleable": false
    }
 }

@@ -1,6 +1,11 @@
+import imageio
 import logging
+import pathlib
 import sys
 from typing import Any
+
+from vispy.gloo.util import _screenshot
+import vispy.app as app
 
 from PyQt5 import QtWidgets, QtCore, QtGui
 
@@ -13,6 +18,7 @@ from satplot.visualiser.contexts.canvas_wrappers.cw_container import (CWContaine
 import satplot.visualiser.contexts.canvas_wrappers.history2d_cw as history2d_cw
 import satplot.visualiser.interface.console as console
 import satplot.visualiser.interface.controls as controls
+import satplot.visualiser.interface.dialogs as dialogs
 import satplot.visualiser.interface.widgets as widgets
 
 logger = logging.getLogger(__name__)
@@ -69,6 +75,8 @@ class History2DContext(base.BaseContext):
 		logger.info(f"Connecting controls of {self.config['name']}")
 		self.controls.time_slider.add_connect(self._updateDisplayedIndex)
 		self.controls.action_dict['center-earth']['callback'] = self._centerCameraEarth
+		self.controls.action_dict['save-gif']['callback'] = self.setupGIFDialog
+		self.controls.action_dict['save-screenshot']['callback'] = self.setupScreenshot
 		if self.data['history'] is None:
 			logger.warning(f'Context History3D: {self} does not have a data model.')
 			raise AttributeError(f'Context History3D: {self} does not have a data model.')
@@ -129,6 +137,56 @@ class History2DContext(base.BaseContext):
 	def _centerCameraEarth(self) -> None:
 		self.canvas_wrapper.centerCameraEarth()
 
+	def saveGif(self, file:pathlib.Path, loop=True, camera_adjustment_data=None, start_index=0, end_index=-1):
+		# TODO: need to lockout controls
+		console.send('Starting GIF saving, please do not touch the controls.')
+		max_num_steps = self.controls.time_slider.num_ticks
+		start_idx = max(0, min(start_index, max_num_steps))
+		if end_index == -1:
+			end_index = max_num_steps
+		end_idx = max(start_idx, min(end_index, max_num_steps))
+
+		num_steps = end_idx - start_idx
+
+		if loop:
+			num_loops = 0
+		else:
+			num_loops = 1
+
+		writer = imageio.get_writer(file, loop=num_loops)
+
+		# calculate viewport of just the canvas
+		geom = self.canvas_wrapper.canvas.native.geometry()
+		ratio = self.canvas_wrapper.canvas.native.devicePixelRatio()
+		geom = (geom.x(), geom.y(), geom.width(), geom.height())
+		new_pos = self.canvas_wrapper.canvas.native.mapTo(self.window, QtCore.QPoint(0, 0))
+		new_y = self.window.height() - (new_pos.y() + geom[3])
+		viewport = (new_pos.x() * ratio, new_y * ratio, geom[2] * ratio, geom[3] * ratio)
+
+		for ii in range(start_idx, end_idx):
+			self.controls.time_slider.setValue(ii)
+			app.process_events()
+
+			im = _screenshot(viewport=viewport)
+			writer.append_data(im)
+			# use this to print to console on last iteration, otherwise thread doesn't get serviced until after writer closes
+			if ii==end_idx-1:
+				console.send(f"Writing file. Please wait...")
+				app.process_events()
+
+		writer.close()
+		self.controls.time_slider.setValue(start_idx)
+		console.send(f"Saved {self.config['name']} GIF to {file}")
+
+	def setupGIFDialog(self):
+		dflt_camera_setup = {}
+		timespan_max_range = self.controls.time_slider.num_ticks
+		dialogs.GIFDialog(self.window,
+							self,
+							self.canvas_wrapper.view_box.camera.name,
+							dflt_camera_setup,
+							timespan_max_range)
+
 class Controls(base.BaseControls):
 	def __init__(self, parent_context:base.BaseContext, canvas_wrapper:BaseCanvas):
 		self.context = parent_context
@@ -169,6 +227,9 @@ class Controls(base.BaseControls):
 	def _updateCam(self):
 		if self.context.sccam_state and self.context.canvas_wrapper is not None:
 			self.context.canvas_wrapper.centerCameraSpacecraft(set_zoom=False)
+
+	def getCurrIndex(self):
+		return self.time_slider.getValue()
 
 	def prepSerialisation(self):
 		state = {}

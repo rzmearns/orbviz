@@ -604,6 +604,7 @@ class Toolbar(QtWidgets.QWidget):
 
 	def addButtons(self):
 		# Process 'all' actions first
+		old_containing = None
 		for key, action in self.action_dict.items():
 			action_context_list = [ac.lower() for ac in action['contexts']]
 			if 'all'.lower() in action_context_list and action['button_icon'] is not None:
@@ -612,10 +613,12 @@ class Toolbar(QtWidgets.QWidget):
 				self.button_dict[key].setCheckable(action['toggleable'])
 				if action['callback'] is not None:
 					self.button_dict[key].triggered.connect(action['callback'])
-
+				old_containing = action['containing_menu']
 				self.toolbar.addAction(self.button_dict[key])
 
 		self.toolbar.addSeparator()
+
+		old_containing = None
 
 		for key, action in self.action_dict.items():
 			action_context_list = [ac.lower() for ac in action['contexts']]
@@ -625,7 +628,7 @@ class Toolbar(QtWidgets.QWidget):
 				self.button_dict[key].setCheckable(action['toggleable'])
 				if action['callback'] is not None:
 					self.button_dict[key].triggered.connect(action['callback'])
-
+				old_containing = action['containing_menu']
 				self.toolbar.addAction(self.button_dict[key])
 
 	def addToWindow(self):
