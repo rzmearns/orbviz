@@ -1,5 +1,5 @@
 import logging
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore, QtGui
 from typing import Any
 
 import satplot.model.data_models.data_types as data_types
@@ -98,6 +98,7 @@ class SensorViewsContext(BaseContext):
 			logger.warning(f"model history data is not set for context {self.config['name']}:{self}")
 			ValueError(f"model history data is not set for context {self.config['name']}:{self}")
 		self.canvas_wrapper.updateIndex(index)
+		self.data['history'].updateIndex(index)
 		self.canvas_wrapper.recomputeRedraw()
 
 	def setViewActiveSensor(self, view_id:int, sc_id:int, suite_key:str, sens_key:str) -> None:
@@ -107,6 +108,12 @@ class SensorViewsContext(BaseContext):
 		logger.debug(f'Generating Full Res for view {view_id}: {sc_id} - {suite_key} - {sens_key}')
 		img_data, mo_data, moConverterFunction, img_metadata = self.canvas_wrapper.generateSensorFullRes(sc_id, suite_key, sens_key)
 		img_dialog = satplot_dialogs.fullResSensorImageDialog(img_data, mo_data, moConverterFunction, img_metadata)
+
+	def getIndex(self) -> int|None:
+		return self.controls.time_slider.getValue()
+
+	def setIndex(self, idx:int) -> None:
+		self.controls.time_slider.setValue(idx)
 
 	def loadState(self) -> None:
 		pass
@@ -133,6 +140,18 @@ class Controls(BaseControls):
 		# Prep toolbars
 		self.toolbar = controls.Toolbar(self.context.window, self.action_dict, context_name=self.context.config['name'])
 		self.menubar = controls.Menubar(self.context.window, self.action_dict, context_name=self.context.config['name'])
+
+		self.setHotkeys()
+
+	def setHotkeys(self):
+		self.shortcuts['PgDown'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgDown'), self.context.widget)
+		self.shortcuts['PgDown'].activated.connect(self.time_slider.incrementValue)
+		self.shortcuts['PgUp'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgUp'), self.context.widget)
+		self.shortcuts['PgUp'].activated.connect(self.time_slider.decrementValue)
+		self.shortcuts['Home'] = QtWidgets.QShortcut(QtGui.QKeySequence('Home'), self.context.widget)
+		self.shortcuts['Home'].activated.connect(self.time_slider.setBeginning)
+		self.shortcuts['End'] = QtWidgets.QShortcut(QtGui.QKeySequence('End'), self.context.widget)
+		self.shortcuts['End'].activated.connect(self.time_slider.setEnd)
 
 	def updateSensorViewLists(self):
 		sens_dict = self.context.data['history'].getPrimaryConfig().serialiseAllSensors()

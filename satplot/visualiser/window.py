@@ -5,9 +5,12 @@ from typing import Any
 from PyQt5 import QtWidgets, QtCore
 
 import satplot
-from satplot.model.data_models import (history_data, earth_raycast_data)
-from satplot.visualiser.contexts import (history3d_context, history2d_context, blank_context, sensor_views_context)
+from satplot.visualiser.shells import (historical_shell,
+										planning_shell)
+from satplot.model.data_models import (earth_raycast_data)
+import satplot.visualiser.interface.widgets as satplot_widgets
 import satplot.visualiser.interface.console as console
+import satplot.visualiser.interface.controls as controls
 
 logger = logging.getLogger(__name__)
 
@@ -32,62 +35,24 @@ class MainWindow(QtWidgets.QMainWindow):
 							}								  
 							''')
 
-		self.toolbars = {}
-		self.menubars = {}
-		self.contexts_dict = {}
-		self.context_tabs = QtWidgets.QTabWidget()
-		
-		# Build data models
-		history_data_model = history_data.HistoryData()
-		earth_raycast_data_model = earth_raycast_data.EarthRayCastData()
+		self.shell_dict: dict[str, Any] = {}
+		self.active_shell_idx = None
+		self.shell_tab_stack = satplot_widgets.StretchTabWidget()
+		self.shell_tab_stack.tabBar().setDrawBase(False)
 
-		# Build context panes
-		self.contexts_dict['3d-history'] = history3d_context.History3DContext('3d-history', self, history_data_model)
-		self.toolbars['3d-history'] = self.contexts_dict['3d-history'].controls.toolbar
-		self.menubars['3d-history'] = self.contexts_dict['3d-history'].controls.menubar
-		self.context_tabs.addTab(self.contexts_dict['3d-history'].widget, '3D History')
+		self.toolbars: dict[str, controls.Toolbar] = {}
+		self.menubars: dict[str, controls.Menubar] = {}
 
-		self.contexts_dict['2d-history'] = history2d_context.History2DContext('2d-history', self, history_data_model, earth_raycast_data_model)
-		self.toolbars['2d-history'] = self.contexts_dict['2d-history'].controls.toolbar
-		self.menubars['2d-history'] = self.contexts_dict['2d-history'].controls.menubar
-		self.context_tabs.addTab(self.contexts_dict['2d-history'].widget, '2D History')
+		global_earth_raycast_data = earth_raycast_data.EarthRayCastData()
 
-		# self.contexts_dict['blank'] = blank_context.BlankContext('blank', self)
-		# self.toolbars['blank'] = self.contexts_dict['blank'].controls.toolbar
-		# self.menubars['blank'] = self.contexts_dict['blank'].controls.menubar
-		# self.context_tabs.addTab(self.contexts_dict['blank'].widget, 'Blank')
-
-		self.contexts_dict['sensors-view'] = sensor_views_context.SensorViewsContext('sensors-view', self, history_data_model, earth_raycast_data_model)
-		self.toolbars['sensors-view'] = self.contexts_dict['sensors-view'].controls.toolbar
-		self.menubars['sensors-view'] = self.contexts_dict['sensors-view'].controls.menubar
-		self.context_tabs.addTab(self.contexts_dict['sensors-view'].widget, 'sensors-view')
-
-		# self.contexts_dict['sensor-view-3d'] = sensor_view_context.SensorView3DContext('sensor-view-3d', self)
-		# self.toolbars['sensor-view-3d'] = self.contexts_dict['sensor-view-3d'].controls.toolbar
-		# self.menubars['sensor-view-3d'] = self.contexts_dict['sensor-view-3d'].controls.menubar
-		# self.context_tabs.addTab(self.contexts_dict['sensor-view-3d'].widget, 'Sensor Views')
-
-		# self.contexts_dict['sensor-view-3d'].canvas_wrapper.setCanvas(self.contexts_dict['3d-history'].canvas_wrapper.canvas)
+		# Build shells
+		self.shell_dict['history'] = historical_shell.HistoricalShell(self, self.toolbars, self.menubars, global_earth_rdm=global_earth_raycast_data)
+		self.shell_tab_stack.addTab(self.shell_dict['history'].widget,'Historical')
+		self.shell_dict['planning'] = planning_shell.PlanningShell(self, self.toolbars, self.menubars, global_earth_rdm=global_earth_raycast_data)
+		self.shell_tab_stack.addTab(self.shell_dict['planning'].widget,'Planning')
 
 
-		# self.toolbars['blank'] = self.contexts_dict['blank'].controls.toolbar
-		# self.menubars['blank'] = self.contexts_dict['blank'].controls.menubar
-		# self.context_tabs.addTab(QtWidgets.QWidget(), 'Blank')
-
-		# check toolbar/menubar indices are the same
-		for ii, key in enumerate(self.toolbars.keys()):
-			if list(self.menubars.keys())[ii] != key:
-				logger.error(f'Context toolbars and menubar indices do not match for contexts')
-				logger.error(f'Toolbars: {self.toolbars.keys()}')
-				logger.error(f'Menubars: {self.menubars.keys()}')
-				raise ValueError('Toolbars and Menubars indices do not match')
-				sys.exit()
-
-		self.context_tabs.currentChanged.connect(self._changeToolbarsToContext)
-
-		
-
-		# Prep console area
+		# Prep console
 		self._console = console.Console()
 		console.consolefp = console.EmittingConsoleStream(textWritten=self._console.writeOutput)
 		if not satplot.debug:
@@ -96,14 +61,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
 		# Build main layout
 		'''
-		# | ###
-		- | ###
-		# | ###
+		#######
+		#######
+		#######
 		#######
 		-------
 		#######
 		'''
-		console_vsplitter.addWidget(self.context_tabs)
+		console_vsplitter.addWidget(self.shell_tab_stack)
 		console_vsplitter.addWidget(self._console)
 
 		main_layout.addWidget(console_vsplitter)
@@ -111,43 +76,20 @@ class MainWindow(QtWidgets.QMainWindow):
 		main_widget.setLayout(main_layout)
 		self.setCentralWidget(main_widget)
 
-
 		self.setWindowTitle(title)
-		self.context_tabs.setCurrentIndex(1)
-		self._changeToolbarsToContext(1)
+		self.shell_tab_stack.currentChanged.connect(self._changeToolbarsToShell)
+		self.shell_tab_stack.setCurrentIndex(0)
+		self._changeToolbarsToShell(0)
 
-	def _changeToolbarsToContext(self, new_context_index:int) -> None:
-		new_context_key = list(self.toolbars.keys())[new_context_index]
-		# process deselects first in order to clear parent pointer to menubar, otherwise menubar gets deleted (workaround for pyqt5)
-		for context_key in self.toolbars.keys():
-			if context_key != new_context_key:
-				self.toolbars[context_key].setActiveState(False)
-				self.menubars[context_key].setActiveState(False)
-		
-		for context_key in self.toolbars.keys():
-			if context_key == new_context_key:
-				self.toolbars[context_key].setActiveState(True)
-				self.menubars[context_key].setActiveState(True)
-
-	# def changeToMainContext(self):		
-	# 	self._changeToolbarsToContext(1)
-
-	# def changeTo3DHistoryContext(self):
-	# 	self._changeToolbarsToContext(0)
-
-	def printCol(self,val:Any) -> None:
-		print(val)
-
-	def serialiseContexts(self) -> dict[str,Any]:
-		state = {}
-		for context_key, context in self.contexts_dict.items():
-			state[context_key] = context.prepSerialisation()
-
-		return state
-
-	def deserialiseContexts(self, state:dict[str,Any]) -> None:
-		for context_key, context_dict in state.items():
-			self.contexts_dict[context_key].deSerialise(context_dict)
+	def _changeToolbarsToShell(self, new_shell_idx:int) -> None:
+		new_shell = list(self.shell_dict.values())[new_shell_idx]
+		logger.debug(f'Changing Shells to {new_shell.name}')
+		for shell in self.shell_dict.values():
+			if shell != new_shell:
+				shell.makeDormant()
+				shell.updateActiveContext(None, None)
+		new_shell.makeActive()
+		new_shell.updateActiveContext(None, None)
 
 	def __del__(self) -> None:
 		sys.stderr = sys.__stderr__

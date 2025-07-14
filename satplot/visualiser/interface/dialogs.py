@@ -12,9 +12,11 @@ from vispy import scene
 from vispy.app.canvas import MouseEvent
 
 import satplot
+from satplot.model.data_models import datapane as datapane_model
 import satplot.util.hashing as satplot_hashing
 import satplot.util.paths as satplot_paths
 import satplot.visualiser.cameras.RestrictedPanZoom as RestrictedPanZoom
+import satplot.visualiser.interface.datapane as datapane
 import satplot.visualiser.assets.widgets as widgets
 
 def createSpaceTrackCredentialsDialog():
@@ -127,13 +129,33 @@ class fullResSensorImageDialog():
 											border_colour=(186,186,186),
 											font_size=10)
 		self.mouseOverTimer = QtCore.QTimer()
-		self.mouseOverTimer.timeout.connect(self._setMouseOverVisible)
+		# TODO: mouseover box doesn't show text in this dialog, somekind of bug,
+		# Rely on datapane instead
+		# self.mouseOverTimer.timeout.connect(self._setMouseOverVisible)
 		self.mouseOverObject = None
+		self.datapane_model = datapane_model.DataPaneModel()
+		self.datapane = datapane.DataPaneWidget(self.datapane_model)
 
-		hlayout1.addStretch()
-		hlayout1.addWidget(self.canvas.native)
-		hlayout1.addStretch()
-		vlayout.addLayout(hlayout1)
+		datapane_hsplitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+		datapane_hsplitter.setObjectName('window_hsplitter')
+		datapane_hsplitter.setStyleSheet('''
+					QSplitter#window_hsplitter::handle {
+								background-color: #DCDCDC;
+								padding: 2px;
+							}
+					QSplitter#window_hsplitter::handle:horizontal {
+								height: 1px;
+								color: #ff0000;
+							}
+							''')
+
+		# hlayout1.addStretch()
+		# hlayout1.addWidget(self.canvas.native)
+		# hlayout1.addStretch()
+		datapane_hsplitter.addWidget(self.canvas.native)
+		datapane_hsplitter.addWidget(self.datapane)
+		vlayout.addWidget(datapane_hsplitter)
+		# vlayout.addLayout(hlayout1)
 
 		hlayout2 = QtWidgets.QHBoxLayout()
 		save_button = QtWidgets.QPushButton('Save')
@@ -148,6 +170,10 @@ class fullResSensorImageDialog():
 
 		save_button.clicked.connect(self.save)
 		cancel_button.clicked.connect(self.cancel)
+		self.mouseOverText.notifier.text_updated.connect(self.datapane.setMouseText)
+
+		# Build Data Pane
+		self._buildDataPane(img_metadata)
 
 		# Show the dialog as a modal dialog (blocks the main window)
 		self.window.setLayout(vlayout)
@@ -183,6 +209,25 @@ class fullResSensorImageDialog():
 	def _mapCanvasPosToFractionalPos(self, canvas_pos:list[int]):
 		vb_pos = (canvas_pos[0])/self.canvas.native.width(), canvas_pos[1]/self.canvas.native.height()
 		return vb_pos
+
+	def _buildDataPane(self, img_metadata):
+		print('Building Img datapane')
+		old_np_options = np.get_printoptions()
+		np.set_printoptions(precision=4)
+		for k,v in img_metadata.items():
+			if '[' in k:
+				param_str = k.split('[')[0]
+				unit_str = f"[{'['.join(k.split('[')[1:])}"
+			else:
+				param_str = k
+				unit_str = ''
+			item = {'parameter':param_str,
+					'value':v,
+					'unit':unit_str}
+			self.datapane_model.appendData(item)
+			# self.shell_dict['history'].history_data_model.data_ready
+		self.datapane_model.refresh()
+		np.set_printoptions(**old_np_options)
 
 	def onMouseMove(self, event:MouseEvent) -> None:
 		global last_mevnt_time
@@ -220,4 +265,3 @@ class fullResSensorImageDialog():
 															f'{dir}/{dflt_filename}',
 															options=options)
 		return pathlib.Path(filename)
-

@@ -11,6 +11,7 @@ from satplot.model.data_models.base_models import (BaseDataModel)
 import satplot.util.threading as threading
 import satplot.model.data_models.data_types as data_types
 import satplot.model.data_models.constellation_data as constellation_data
+import satplot.util.constants as satplot_constants
 import satplot.visualiser.interface.console as console
 import spherapy.timespan as timespan
 import spherapy.orbit as orbit
@@ -42,10 +43,11 @@ class HistoryData(BaseDataModel):
 		self.sun: nptyping.NDArray[np.float64] | None = None
 		self.moon: nptyping.NDArray[np.float64] | None = None
 		self.geo_locations: list[nptyping.NDArray[np.float64]] = []
-
+		self.curr_index:int|None = None
 		self._worker_threads: dict[str, threading.Worker | None] = {'primary': None,
 																	'constellation': None}
-
+		self.datapane_data = []
+		self._createDataPaneEntries()
 		logger.info("Finished initialising HistoryData")
 
 	def setPrimaryConfig(self, primary_config:data_types.PrimaryConfig) -> None:
@@ -226,6 +228,46 @@ class HistoryData(BaseDataModel):
 	def _storeOrbitData(self, orbits:dict[int,orbit.Orbit]) -> None:
 		self.orbits = orbits
 
+	def _createDataPaneEntries(self):
+		self.datapane_data.append({'parameter':'Altitude',
+						'value':lambda : np.linalg.norm(list(self.orbits.values())[0].pos[self.curr_index,:]) - satplot_constants.R_EARTH,
+						'unit':'km'})
+		self.datapane_data.append({'parameter':'Eccentricity',
+						'value':lambda : np.rad2deg(list(self.orbits.values())[0].ecc[self.curr_index,:]),
+						'unit':'km'})
+		self.datapane_data.append({'parameter':'Inclination',
+						'value':lambda : np.rad2deg(list(self.orbits.values())[0].inc[self.curr_index,:]),
+						'unit':'km'})
+		self.datapane_data.append({'parameter':'RAAN',
+						'value':lambda : np.rad2deg(list(self.orbits.values())[0].raan[self.curr_index,:]),
+						'unit':'km'})
+		self.datapane_data.append({'parameter':'Argument of Perigee',
+						'value':lambda : np.rad2deg(list(self.orbits.values())[0].argp[self.curr_index,:]),
+						'unit':'°'})
+		self.datapane_data.append({'parameter':'Period Perigee',
+						'value':lambda : min(np.linalg.norm(list(self.orbits.values())[0].pos,axis=1) - satplot_constants.R_EARTH),
+						'unit':'km'})
+		self.datapane_data.append({'parameter':'Period Apogee',
+						'value':lambda : max(np.linalg.norm(list(self.orbits.values())[0].pos,axis=1) - satplot_constants.R_EARTH),
+						'unit':'km'})
+		self.datapane_data.append({'parameter':'Position (ECI)',
+						'value':lambda : list(self.orbits.values())[0].pos[self.curr_index,:],
+						'unit':'km'})
+		self.datapane_data.append({'parameter':'Lat, Long',
+						'value':lambda : (list(self.orbits.values())[0].lat[self.curr_index],list(self.orbits.values())[0].lon[self.curr_index]),
+						'unit':'°'})
+		self.datapane_data.append({'parameter':'Position (ECEF)',
+						'value':lambda : list(self.orbits.values())[0].pos_ecef[self.curr_index,:],
+						'unit':'km'})
+		self.datapane_data.append({'parameter':'Velocity',
+						'value':lambda : np.linalg.norm(list(self.orbits.values())[0].vel[self.curr_index,:]),
+						'unit':'m/s'})
+		self.datapane_data.append({'parameter':'Velocity Vector (ECI)',
+						'value':lambda : list(self.orbits.values())[0].vel[self.curr_index,:],
+						'unit':'m/s'})
+		self.datapane_data.append({'parameter':'Quaternion',
+						'value':lambda : list(self.pointings.values())[0][self.curr_index,:],
+						'unit':'quat'})
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}

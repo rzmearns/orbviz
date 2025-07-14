@@ -25,10 +25,12 @@ class SensorTypes(Enum):
 		return value in cls._value2member_map_
 
 class ConstellationConfig():
-	def __init__(self, name:str, beam_width:float, satellites:dict[int, str]):
-		self.name = name
-		self.beam_width = beam_width
-		self.sats = satellites
+	def __init__(self, filestem:str, name:str, beam_width:float, satellites:dict[int, str]):
+		self.filestem:str = filestem
+		self.name:str = name
+		self.sats:dict[int,str] = satellites
+		self.num_sats:int = len(self.sats.keys())
+		self.beam_width:float = beam_width
 
 	@classmethod
 	def fromJSON(cls, path:str | pathlib.Path):
@@ -57,7 +59,7 @@ class ConstellationConfig():
 		for k,v in data['satellites'].items():
 			sats[v] = k
 
-		return cls(data['name'], data['beam_width'], sats)
+		return cls(p.stem, data['name'], data['beam_width'], sats)
 
 class SensorSuiteConfig():
 	def __init__(self, name:str, d:dict):
@@ -105,8 +107,26 @@ class SensorSuiteConfig():
 	def getSensorNames(self) -> list[str]:
 		return list(self.sensors.keys())
 
+	def getNumSensors(self) -> int:
+		return len(self.sensors.keys())
+
 	def getSensorConfig(self, sensor_name) -> dict[str, Any]:
 		return self.sensors[sensor_name]
+
+	def getSensorDisplayConfig(self, sensor_name) -> dict[str,str]:
+		sens_config = self.getSensorConfig(sensor_name)
+		type = sens_config['shape']
+		if type == SensorTypes.CONE:
+			return {'type':str(sens_config['shape']),
+					'fov':str(sens_config['fov']),
+					'range':str(sens_config['range'])}
+		elif type == SensorTypes.FPA:
+			return 	{'type':str(sens_config['shape']),
+					'fov':str(sens_config['fov']),
+					'resolution':str(sens_config['resolution']),
+					'range':str(sens_config['range'])}
+		else:
+			return {}
 
 	def __eq__(self, other) -> bool:
 		if self is None or other is None:
@@ -137,10 +157,10 @@ class SensorSuiteConfig():
 
 class SpacecraftConfig():
 	def __init__(self, filestem:str, name:str, sat_id:int, sensor_suites_dict:dict[str, dict]):
-		self.filestem = filestem
-		self.name = name
-		self.id = sat_id
-		self.sensor_suites = {}
+		self.filestem:str = filestem
+		self.name:str = name
+		self.id:int = sat_id
+		self.sensor_suites:dict[str,SensorSuiteConfig] = {}
 
 		for suite_name, suite in sensor_suites_dict.items():
 			self.sensor_suites[suite_name] = SensorSuiteConfig(suite_name, suite)
@@ -167,10 +187,11 @@ class SpacecraftConfig():
 
 class PrimaryConfig():
 	def __init__(self, filestem:str, name:str, satellites:dict[int, str], sat_configs:dict[str, SpacecraftConfig]):
-		self.filestem = filestem
-		self.name = name
-		self.sats = satellites
-		self.sat_configs = sat_configs
+		self.filestem:str = filestem
+		self.name:str = name
+		self.sats:dict[int,str] = satellites
+		self.num_sats:int = len(self.sats.keys())
+		self.sat_configs:dict[int,SpacecraftConfig] = sat_configs
 
 		logger.info(f'Created primary configuration with name:{self.name}, sats:{self.sats}, sat_configs:{self.sat_configs}')
 

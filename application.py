@@ -45,11 +45,12 @@ class Application():
 		self.pyqt_app.run()
 
 	def _connectControls(self) -> None:
-		for context in self.window.contexts_dict.values():
-			context.connectControls()
-			self._connectAllContextControls(context)
-			context.controls.toolbar.addButtons()
-			context.controls.menubar.addMenuItems()	
+		for shell in self.window.shell_dict.values():
+			for context in shell.contexts_dict.values():
+				context.connectControls()
+				self._connectAllContextControls(context)
+				context.controls.toolbar.addButtons()
+				context.controls.menubar.addMenuItems()
 
 	def _connectAllContextControls(self, context:BaseCanvas) -> None:
 		if context.controls is not None:

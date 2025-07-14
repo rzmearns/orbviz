@@ -15,8 +15,8 @@ class BaseContext(ABC):
 		self.widget = QtWidgets.QWidget()
 		self.layout = QtWidgets.QHBoxLayout(self.widget)
 		self.window = None
-		self.controls = None
-
+		self.controls:None|BaseControls = None
+		self.active:bool = False
 		# dict storing crucial configuration data for this context
 		self.config = {}
 		self.config['name'] = name
@@ -41,7 +41,11 @@ class BaseContext(ABC):
 		raise NotImplementedError()
 
 	@abstractmethod
-	def _configureData(self) -> None:
+	def getIndex(self) -> int|None:
+		raise NotImplementedError()
+
+	@abstractmethod
+	def setIndex(self, idx:int) -> None:
 		raise NotImplementedError()
 
 	def prepSerialisation(self) -> dict[str,Any]:
@@ -51,6 +55,18 @@ class BaseContext(ABC):
 
 	def deSerialise(self, state_dict):
 		pass
+
+	def makeActive(self) -> None:
+		self.active = True
+		if self.controls is not None and self.controls.shortcuts is not None:
+			for shortcut in self.controls.shortcuts.values():
+				shortcut.blockSignals(False)
+
+	def makeDormant(self) -> None:
+		self.active = False
+		if self.controls is not None and self.controls.shortcuts is not None:
+			for shortcut in self.controls.shortcuts.values():
+				shortcut.blockSignals(True)
 	
 class BaseControls:
 	@abstractmethod
@@ -59,6 +75,7 @@ class BaseControls:
 		# dict storing config state for this context
 		self.state = {}
 		self.action_dict = {}
+		self.shortcuts:dict[str,QtWidgets.QShortcut] = {}
 		self._buildActionDict()
 
 	def _buildActionDict(self) -> None:

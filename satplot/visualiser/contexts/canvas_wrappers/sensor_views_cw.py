@@ -41,8 +41,7 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 	def __init__(self, w:int=800, h:int=600, keys:str='interactive', bgcolor:str='white'):
 		self.canvas = scene.canvas.SceneCanvas(size=(w,h),
 										keys=keys,
-										bgcolor=bgcolor,
-										show=True)
+										bgcolor=bgcolor)
 		self.canvas.events.mouse_move.connect(self.onMouseMove)
 		self.canvas.events.mouse_wheel.connect(self.onMouseScroll)
 		self.canvas.events.key_press.connect(self.on_key_press)
@@ -99,9 +98,9 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 						'lens_model':sensor_asset.data['lens_model'].__name__,
 						'current time [yyyy-mm-dd hh:mm:ss]': sensor_asset.data['curr_datetime'],
 						'sensor body frame quaternion [x,y,z,w]': sensor_asset.data['bf_quat'],
-						'spacecraft quaternion [x,y,z,w]': sc_asset.data['curr_quat'].tolist(),
-						'spacecraft eci position [km]': sc_asset.data['curr_pos'].tolist(),
-						'sensor eci quaternion [x,y,z,w]': sensor_asset.data['curr_quat'].tolist(),
+						'spacecraft quaternion [x,y,z,w]': sc_asset.data['curr_quat'].reshape(4,).tolist(),
+						'spacecraft eci position [km]': sc_asset.data['curr_pos'].reshape(3,).tolist(),
+						'sensor eci quaternion [x,y,z,w]': sensor_asset.data['curr_quat'].reshape(4,).tolist(),
 						'image md5 hash': None
 						}
 

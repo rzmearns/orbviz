@@ -39,10 +39,7 @@ mouse_over_is_highlighting = False
 
 class History3DCanvasWrapper(BaseCanvas):
 	def __init__(self, w:int=800, h:int=600, keys:str='interactive', bgcolor:str='white'):
-		self.canvas = scene.canvas.SceneCanvas(size=(w,h),
-										keys=keys,
-										bgcolor=bgcolor,
-										show=True)
+		self.canvas = scene.canvas.SceneCanvas(size=(w,h), keys=keys, bgcolor=bgcolor)
 		self.canvas.events.mouse_move.connect(self.onMouseMove)
 		self.canvas.events.mouse_wheel.connect(self.onMouseScroll)
 		self.canvas.events.resize.connect(self.onResize)
@@ -100,7 +97,7 @@ class History3DCanvasWrapper(BaseCanvas):
 
 	def setModel(self, hist_data:HistoryData) -> None:
 		self.data_models['history'] = hist_data
-		self.modelUpdated()
+		# self.modelUpdated()
 
 	def modelUpdated(self) -> None:
 		# Update data source for earth asset

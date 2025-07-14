@@ -17,6 +17,7 @@ import satplot.visualiser.colours as colours
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.assets.gizmo as gizmo
 import satplot.visualiser.interface.console as console
+import satplot.visualiser.visuals.polygons as polygon_visuals
 import spherapy.orbit as orbit
 
 logger = logging.getLogger(__name__)
@@ -59,10 +60,10 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 		if args[1] is not None:
 
 			self.data['pointing_defined'] = True
-			logger.debug(f'spacecraft has pointing')
+			logger.debug(f'Spacecraft3DAsset has pointing')
 		else:
 			self.data['pointing_defined'] = False
-			logger.debug(f'spacecraft has NO pointing')
+			logger.debug(f'Spacecraft3DAsset has NO pointing')
 
 		sats_dict = args[0]
 		first_sat_orbit = list(sats_dict.values())[0]
@@ -342,16 +343,24 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 		self.data['sc_config'] = None
 		self.data['history_src'] = None
 		self.data['raycast_src'] = None
-		self.data['oth_edge1'] = np.zeros((364,2))
+		self.data['oth_edge1'] = -1*np.ones((364,2))
 		# need to create a valid polygon for instantiation (but before valid data exists)
 		self.data['oth_edge1'][:363,0] = np.arange(0,363)
-		self.data['oth_edge1'][-1,0] = -1
+		self.data['oth_edge1'][-1,1] = -1
+		self.data['oth_edge1'][-2,1] = -2
 		self.data['oth_edge2'] = self.data['oth_edge1'].copy()
+
+		self.data['old_config_filestem'] = None
+		self.data['old_suite_names'] = None
+		self.data['old_sc_config'] = None
+		self.data['old_pointing_defined'] = False
 
 	def setSource(self, *args, **kwargs) -> None:
 		# args[0] spacecraft configuration
 		# args[1] history data
 		# args[2] ray cast src data
+
+		# TODO: if historydata already gets updated, there's no need to call this again
 
 		if type(args[0]) is not data_types.SpacecraftConfig:
 			logger.error(f"setSource() of {self} requires a {data_types.SpacecraftConfig} as args[0], not: {type(args[0])}")
@@ -371,19 +380,6 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 			logger.error(f"setSource() of {self} requires a {earth_raycast_data.EarthRayCastData} as args[2], not: {type(args[2])}")
 			raise TypeError(f"setSource() of {self} requires a {earth_raycast_data.EarthRayCastData} as args[2], not: {type(args[2])}")
 			return
-
-		# store old sensor configs
-		old_sc_config = self.data['sc_config']
-		if old_sc_config:
-			old_config_filestem = old_sc_config.filestem
-			old_suite_names = list(old_sc_config.getSensorSuites().keys())
-		else:
-			old_config_filestem = None
-			old_suite_names = []
-		if self.data['history_src']:
-			old_pointing_defined = self.data['history_src'].getConfigValue('is_pointing_defined')
-		else:
-			old_pointing_defined = False
 
 		# assign data sources
 		self.data['sc_config'] = args[0]
@@ -411,21 +407,34 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 		else:
 			self.data['strings'] = ['']
 
-		if old_pointing_defined and self.data['sc_config'] == old_sc_config:
+		if self.data['old_pointing_defined'] and self.data['sc_config'] == self.data['old_sc_config']:
 			# config has not changed -> don't need to re-instantiate sensors
 			logger.debug('Spacecraft pointing related config has not changed')
 			config_changed = False
 			return
 
 		# remove old sensors if there were some
-		if old_pointing_defined and old_sc_config != self.data['sc_config']:
+		if self.data['old_pointing_defined'] and self.data['old_sc_config'] != self.data['sc_config']:
 			# If pointing had previously been defined -> old sensors, options need to be removed
 			# if no pointing, no point having sensors
-			self._removeSensorAssets(old_suite_names)
+			self._removeSensorAssets(self.data['old_suite_names'])
 
 		if self.data['history_src'].getConfigValue('is_pointing_defined'):
 			self._instantiateSensorAssets()
 			self._setSensorAssetSources()
+
+		# store values for next time source is set
+		self.data['old_sc_config'] = self.data['sc_config']
+		if self.data['old_sc_config']:
+			self.data['old_config_filestem'] = self.data['old_sc_config'].filestem
+			self.data['old_suite_names'] = list(self.data['old_sc_config'].getSensorSuites().keys())
+		else:
+			self.data['old_config_filestem'] = None
+			self.data['old_suite_names'] = []
+		if self.data['history_src']:
+			self.data['old_pointing_defined'] = self.data['history_src'].getConfigValue('is_pointing_defined')
+		else:
+			self.data['old_pointing_defined'] = False
 
 	def setScale(self, horizontal_size, vertical_size):
 		self.data['horiz_pixel_scale'] = horizontal_size/360
@@ -468,18 +477,18 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 										size=self.opts['spacecraft_marker_size']['value'],
 										symbol='o')
 		self.visuals['marker'].order = -20
-		self.visuals['oth_circle1'] = scene.visuals.Polygon(self.data['oth_edge1'],
+		self.visuals['oth_circle1'] = polygon_visuals.FastPolygon(self.data['oth_edge1'],
 															 color=colours.normaliseColour(self.opts['over_the_horizon_circle_colour']['value']),
 															 border_color=colours.normaliseColour(self.opts['over_the_horizon_circle_colour']['value']),
-															 border_width=1,
+															 border_width=2,
 															 parent=None)
 		self.visuals['oth_circle1'].opacity = self.opts['over_the_horizon_circle_alpha']['value']
 		self.visuals['oth_circle1'].order = 1
 		self.visuals['oth_circle1'].set_gl_state('translucent', depth_test=False)
-		self.visuals['oth_circle2'] = scene.visuals.Polygon(self.data['oth_edge2'],
+		self.visuals['oth_circle2'] = polygon_visuals.FastPolygon(self.data['oth_edge2'],
 															 color=colours.normaliseColour(self.opts['over_the_horizon_circle_colour']['value']),
 															 border_color=colours.normaliseColour(self.opts['over_the_horizon_circle_colour']['value']),
-															 border_width=1,
+															 border_width=2,
 															 parent=None)
 		self.visuals['oth_circle2'].opacity = self.opts['over_the_horizon_circle_alpha']['value']
 		self.visuals['oth_circle2'].order = 1
@@ -540,12 +549,13 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 
 			# Over the horizon circle asset
 			self.data['oth_edge1'], self.data['oth_edge2'], split = self.calcOTHCircle()
-			verts, faces = polygeom.polygonTriangulate(self.data['oth_edge1'])
-			self.visuals['oth_circle1']._mesh.set_data(vertices=verts, faces=faces)
-			# self.visuals['oth_circle1'].pos=self.data['oth_edge1']
-			verts, faces = polygeom.polygonTriangulate(self.data['oth_edge2'])
-			self.visuals['oth_circle2']._mesh.set_data(vertices=verts, faces=faces)
-			# self.visuals['oth_circle2'].pos=self.data['oth_edge2']
+			self.visuals['oth_circle1'].pos = self.data['oth_edge1']
+			# verts, faces = polygeom.polygonTriangulate(self.data['oth_edge1'])
+			# self.visuals['oth_circle1']._mesh.set_data(vertices=verts, faces=faces)
+
+			self.visuals['oth_circle2'].pos = self.data['oth_edge2']
+			# verts, faces = polygeom.polygonTriangulate(self.data['oth_edge2'])
+			# self.visuals['oth_circle2']._mesh.set_data(vertices=verts, faces=faces)
 
 			if split:
 				self.visuals['oth_circle1'].opacity = self.opts['over_the_horizon_circle_alpha']['value']

@@ -49,16 +49,14 @@ class History2DCanvasWrapper(BaseCanvas):
 	def __init__(self, w:int=1200, h:int=600, keys:str='interactive', bgcolor:str='white'):
 		self.canvas = scene.canvas.SceneCanvas(size=(w,h),
 										keys=keys,
-										bgcolor=bgcolor,
-										show=True)
+										bgcolor=bgcolor)
 		self.canvas.events.mouse_move.connect(self.onMouseMove)
 		self.canvas.events.mouse_wheel.connect(self.onMouseScroll)
 		self.canvas.events.resize.connect(self.onResize)
 		self.grid = self.canvas.central_widget.add_grid()
 
 		self.view_box = self.grid.add_view(0, 0, bgcolor='#008eaf')
-		# self.view_box.camera = RestrictedPanZoom.RestrictedPanZoomCamera(limits=(0, IMAGE_SHAPE[0], 0, IMAGE_SHAPE[1]))
-		self.view_box.camera = PanZoomCamera()
+		self.view_box.camera = RestrictedPanZoom.RestrictedPanZoomCamera(limits=(0, IMAGE_SHAPE[0], 0, IMAGE_SHAPE[1]))
 		self.view_box.camera.set_range(x=(0, IMAGE_SHAPE[0]), y=(0, IMAGE_SHAPE[1]), margin=0)
 		self.vb_aspect_ratio = self.view_box.camera.aspect
 		rect = self.view_box.camera.rect
@@ -153,6 +151,13 @@ class History2DCanvasWrapper(BaseCanvas):
 		for asset in self.assets.values():
 			asset.setFirstDrawFlagRecursive()
 
+	def centerCameraEarth(self) -> None:
+		if self.canvas is None:
+			logger.warning(f"Canvas has not been set for History2D Canvas Wrapper. No camera to center")
+			raise AttributeError(f"Canvas has not been set for History2D Canvas Wrapper. No camera to center")
+		self.view_box.camera.resetToExtents()
+		self.canvas.update()
+
 	def prepSerialisation(self) -> dict[str,Any]:
 		# state = {}
 		# state['cam-center'] = self.view_box.camera.center
@@ -232,7 +237,7 @@ class History2DCanvasWrapper(BaseCanvas):
 		event_world_x, event_world_y = self.mapScreenPosToWorld(pp)
 		event_lon = (event_world_x/self.horiz_pixel_scale - 180)
 		event_lat = (event_world_y/self.vert_pixel_scale - 90)
-		text = f'{event_lon:.2f}, {event_lat:.2f}'
+		text = self._formatLatLong(event_lat, event_lon)
 
 		for jj, mo_info in enumerate(mo_infos):
 			for ii, pos in enumerate(mo_info['screen_pos']):
@@ -253,6 +258,22 @@ class History2DCanvasWrapper(BaseCanvas):
 		self.mouseOverText.setVisible(False)
 		last_mevnt_time = time.monotonic()
 		pass
+
+	def _formatLatLong(self, event_lat:float, event_lon:float) -> str:
+		if event_lat < 0:
+			lat_hemisphere = 'S'
+		elif event_lat > 0:
+			lat_hemisphere = 'N'
+		else:
+			lat_hemisphere = ''
+		if event_lon < 0:
+			lon_hemisphere = 'W'
+		elif event_lon > 0:
+			lon_hemisphere = 'E'
+		else:
+			lon_hemisphere = ''
+		out_str = f'{abs(event_lat):.1f}{lat_hemisphere}, \x1D{abs(event_lon):.1f}{lon_hemisphere}'
+		return out_str
 
 	def onResize(self, event:ResizeEvent) -> None:
 		pass
