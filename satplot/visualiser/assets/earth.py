@@ -4,6 +4,7 @@ import numpy.typing as nptyping
 import pymap3d
 from skyfield.api import wgs84
 from typing import Tuple
+import os
 
 from vispy import scene, color
 from vispy.io import load_data_file, read_png
@@ -525,7 +526,8 @@ class Earth2DAsset(base_assets.AbstractAsset):
 
 	def _createVisuals(self) -> None:
 		# Earth Sphere
-		img_data = np.flip(read_png(f'{satplot_paths.data_dir}/earth2D/equirectangular.jpg'),0)
+		img_path = satplot_paths.data_dir.joinpath('earth2D').joinpath('equirectangular.jpg')
+		img_data = np.flip(read_png(img_path),0)
 		self.visuals['earth'] = scene.visuals.Image(
 			img_data,
 			interpolation = 'nearest',
