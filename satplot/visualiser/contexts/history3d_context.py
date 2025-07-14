@@ -98,6 +98,7 @@ class History3DContext(base.BaseContext):
 			logger.warning(f"model data is not set for context {self.config['name']}:{self}")
 			ValueError(f"model data is not set for context {self.config['name']}:{self}")
 		self.canvas_wrapper.updateIndex(index)
+		self.data['history'].updateIndex(index)
 		self.canvas_wrapper.recomputeRedraw()
 
 	def loadState(self) -> None:

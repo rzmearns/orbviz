@@ -98,6 +98,7 @@ class SensorViewsContext(BaseContext):
 			logger.warning(f"model history data is not set for context {self.config['name']}:{self}")
 			ValueError(f"model history data is not set for context {self.config['name']}:{self}")
 		self.canvas_wrapper.updateIndex(index)
+		self.data['history'].updateIndex(index)
 		self.canvas_wrapper.recomputeRedraw()
 
 	def setViewActiveSensor(self, view_id:int, sc_id:int, suite_key:str, sens_key:str) -> None:

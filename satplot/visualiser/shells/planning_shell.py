@@ -7,6 +7,7 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 import satplot
 from satplot.model.data_models import (history_data,
 										earth_raycast_data)
+from satplot.model.data_models import datapane as datapane_model
 from satplot.visualiser.contexts import (base_context,
 											blank_context,
 											history2d_context,
@@ -15,6 +16,7 @@ from satplot.visualiser.contexts import (base_context,
 											sensor_views_context)
 import satplot.visualiser.interface.console as console
 import satplot.visualiser.interface.controls as controls
+import satplot.visualiser.interface.datapane as datapane
 import satplot.visualiser.interface.widgets as satplot_widgets
 
 logger = logging.getLogger(__name__)
@@ -31,12 +33,28 @@ class PlanningShell():
 		self.menubars = menubars
 		self.active = False
 
+		datapane_hsplitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+		datapane_hsplitter.setObjectName('window_hsplitter')
+		datapane_hsplitter.setStyleSheet('''
+					QSplitter#window_hsplitter::handle {
+								background-color: #DCDCDC;
+								padding: 2px;
+							}
+					QSplitter#window_hsplitter::handle:horizontal {
+								height: 1px;
+								color: #ff0000;
+							}
+							''')
+
+
 		self.data: dict[str, Any] = {}
 		self.toolbars: dict[str, controls.Toolbar] = {}
 		self.menubars: dict[str, controls.Menubar] = {}
 		self.contexts_dict: dict[str, base_context.BaseContext] = {}
 		self.context_tab_stack = satplot_widgets.ColumnarStackedTabWidget()
 		self.context_tab_stack.setTabPosition(QtWidgets.QTabWidget.West)
+		self.datapane_model = datapane_model.DataPaneModel()
+		self.datapane = datapane.DataPaneWidget(self.datapane_model)
 
 		# Create empty data models
 		history_data_model = history_data.HistoryData()
@@ -44,6 +62,12 @@ class PlanningShell():
 			earth_raycast_data_model = earth_raycast_data.EarthRayCastData()
 		else:
 			earth_raycast_data_model = global_earth_rdm
+
+		# Build Data Pane
+		for item in history_data_model.datapane_data:
+			self.datapane_model.appendData(item)
+			# self.shell_dict['history'].history_data_model.data_ready
+			history_data_model.index_updated.connect(self.datapane_model.refresh)
 
 		# Build context panes
 		self.contexts_dict['configuration-history'] = history_configuration_context.HistoryConfigurationContext('configuration-history', self.window, history_data_model)
@@ -73,7 +97,10 @@ class PlanningShell():
 		self.context_tab_stack.tab_changed.connect(self.updateActiveContext)
 		self.context_tab_stack.tab_changed.connect(self._propagateTimeSlider)
 
-		self.layout.addWidget(self.context_tab_stack)
+		datapane_hsplitter.addWidget(self.context_tab_stack)
+		datapane_hsplitter.addWidget(self.datapane)
+
+		self.layout.addWidget(datapane_hsplitter)
 		self.layout.setContentsMargins(0, 0, 0, 0)
 		self.widget.setLayout(self.layout)
 

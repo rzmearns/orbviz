@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 class BaseDataModel(QtCore.QObject):
 	data_ready = QtCore.pyqtSignal()
 	data_err = QtCore.pyqtSignal()
+	index_updated = QtCore.pyqtSignal()
 
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
@@ -46,6 +47,10 @@ class BaseDataModel(QtCore.QObject):
 		logger.error(value)
 		console.send(value)
 		self.data_err.emit()
+
+	def updateIndex(self, index:int) -> None:
+		self.curr_index = index
+		self.index_updated.emit()
 
 	@abstractmethod
 	def prepSerialisation(self) -> dict[str, Any]:

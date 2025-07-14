@@ -21,7 +21,6 @@ class HistoryConfigurationContext(BaseContext):
 	def __init__(self, name:str, parent_window:QtWidgets.QMainWindow, history_data:HistoryData):
 		super().__init__(name)
 		self.window = parent_window
-
 		self.data: dict[str,Any] = {}
 		self.data['history'] = history_data
 
@@ -67,6 +66,7 @@ class HistoryConfigurationContext(BaseContext):
 			raise AttributeError(f'Context History3D: {self} does not have a data model.')
 		self.data['history'].data_ready.connect(self._updateDataSources)
 		self.data['history'].data_ready.connect(self._updateControls)
+		self.controls.time_slider.add_connect(self._updateDisplayedIndex)
 
 	def _configureData(self) -> None:
 		logger.info(f'Setting up data configuration for context: {self}')
@@ -138,6 +138,12 @@ class HistoryConfigurationContext(BaseContext):
 	def _updateDataSources(self) -> None:
 		pass
 
+	def _updateDisplayedIndex(self, index:int) -> None:
+		if self.data['history'] is None:
+			logger.warning(f"model history data is not set for context {self.config['name']}:{self}")
+			ValueError(f"model history data is not set for context {self.config['name']}:{self}")
+		self.data['history'].updateIndex(index)
+
 	def getIndex(self) -> int|None:
 		return self.controls.time_slider.getValue()
 
@@ -201,7 +207,7 @@ class Controls(BaseControls):
 		self.right_config_tabs.addTab(tp_selection_widget, 'Time Period Configuration')
 
 		# Prep time slider
-		self.time_slider = widgets.TimeSlider(allow_no_callbacks=True)
+		self.time_slider = widgets.TimeSlider()
 		self.time_slider.setFixedHeight(50)
 
 		# Prep toolbars
