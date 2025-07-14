@@ -147,7 +147,6 @@ class History3DContext(base.BaseContext):
 		return state
 
 
-
 	def _centerCameraEarth(self) -> None:
 		if self.sccam_state and self.controls.toolbar.button_dict['center-spacecraft'].isChecked():
 			# if center cam on sc is on, turn it off when selecting center cam on earth.
@@ -171,17 +170,7 @@ class History3DContext(base.BaseContext):
 																			'el_range':0},
 																			start_index=0, end_index=-1):
 		# TODO: need to lockout controls
-		print(f'Creating Gif')
-
-		# print(f'\t{file=}')
-		# print(f'\t{loop=}')
-		# print(f'\t{start_azimuth=}')
-		# print(f'\t{azimuth_total_range=}')
-		# print(f'\t{start_elevation=}')
-		# print(f'\t{elevation_total_range=}')
-		# print(f'\t{start_index=}')
-		# print(f'\t{end_index=}')
-
+		console.send('Starting GIF saving, please do not touch the controls.')
 		max_num_steps = self.controls.time_slider.num_ticks
 		start_idx = max(0, min(start_index, max_num_steps))
 		if end_index == -1:
@@ -200,14 +189,6 @@ class History3DContext(base.BaseContext):
 			num_loops = 0
 		else:
 			num_loops = 1
-
-		# print(f'\t{num_loops=}')
-		# print(f'\t{start_azimuth=}')
-		# print(f'\t{azimuth_step_angle=}')
-		# print(f'\t{start_elevation=}')
-		# print(f'\t{elevation_step_angle=}')
-		# print(f'\t{start_idx=}')
-		# print(f'\t{end_idx=}')
 
 		writer = imageio.get_writer(file, loop=num_loops)
 
@@ -234,11 +215,9 @@ class History3DContext(base.BaseContext):
 		self.canvas_wrapper.view_box.camera.azimuth = start_azimuth
 		self.canvas_wrapper.view_box.camera.elevation = start_elevation
 		self.controls.time_slider.setValue(start_idx)
-		print(f'Finished creating GIF')
+		console.send(f"Saved {self.config['name']} GIF to {file}")
 
 	def setupGIFDialog(self):
-		print(self.canvas_wrapper.view_box.camera)
-		print(self.canvas_wrapper.view_box.camera.name)
 		dflt_camera_setup = {'az_start':self.canvas_wrapper.view_box.camera.azimuth,
 							'el_start':self.canvas_wrapper.view_box.camera.elevation}
 		timespan_max_range = self.controls.time_slider.num_ticks

@@ -10,6 +10,7 @@ from PyQt5 import QtWidgets, QtCore
 from vispy.gloo.util import _screenshot
 
 import satplot.util.paths as paths
+import satplot.visualiser.interface.console as console
 
 class BaseContext(ABC):
 
@@ -74,6 +75,7 @@ class BaseContext(ABC):
 
 		im = _screenshot(viewport=viewport)
 		imageio.imsave(file, im, extension='.png')
+		console.send(f"Saved {self.config['name']} screenshot to {file}")
 
 	@abstractmethod
 	def saveGif(self, file:pathlib.Path, loop=True, *args, **kwargs):
