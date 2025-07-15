@@ -167,10 +167,6 @@ class HistoricalPointingConfig(QtWidgets.QWidget):
 		self.pointing_file_inv_toggle.deSerialise(state['frame_inv'])
 
 class ConstellationControls(QtWidgets.QWidget):
-	c_config_dir = 'data/constellation_configs/'
-	c_configs = os.listdir(c_config_dir)
-	constellation_options = [c.split('.')[0].replace('_',' ') for c in c_configs]
-
 	def __init__(self, *args, **kwargs):
 		super().__init__()
 		# Layout containers
@@ -205,7 +201,6 @@ class ConstellationControls(QtWidgets.QWidget):
 		self.setLayout(super_layout)
 
 		# Set up connections
-		self._loadTempConfig(dflt_config_file)
 		self.const_config_selector.add_connect(self._loadTempConfig)
 
 	def _loadTempConfig(self, cnfg_file:pathlib.Path):
@@ -214,10 +209,13 @@ class ConstellationControls(QtWidgets.QWidget):
 			self.const_config_display.updateConfig(self.tmp_const_config)
 			self.const_config_selector.clearError()
 		except KeyError as e:
-			self.tmp_prim_config = None
+			self.tmp_const_config = None
 			self.const_config_selector.setError('Not a valid configuration file')
 			self.const_config_display.clearConfig()
 		self.pane_groupbox.updateGeometry()
+
+	def refresh(self):
+		self._loadTempConfig(self.const_config_selector.getPath())
 
 	def getConfig(self) -> data_types.ConstellationConfig:
 		if self.tmp_const_config is None:
