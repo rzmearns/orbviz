@@ -22,8 +22,6 @@ import satplot.visualiser.interface.console as console
 
 logger = logging.getLogger(__name__)
 
-from line_profiler import profile
-
 class EarthRayCastData(BaseDataModel):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
