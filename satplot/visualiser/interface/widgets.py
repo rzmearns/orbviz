@@ -746,13 +746,27 @@ class FilePicker(QtWidgets.QWidget):
 																str(self._dflt_path),
 																"All Files (*)",
 																options=options)
-		self.path = pathlib.Path(filename)
 		self._file_text_box.blockSignals(True)
+		self.path = pathlib.Path(filename)
+		if not self.path.exists():
+			self.setError('File does not exist')
+			path_good = False
+		elif self.path.is_dir():
+			self.setError('Cannot load directory')
+			path_good = False
+		else:
+			self.clearError()
+			path_good = True
+
 		try:
 			path_to_show = self.path.relative_to(satplot_paths.data_dir)
 		except ValueError:
 			path_to_show = self.path.resolve()
 		self._file_text_box.setText(f'{path_to_show}')
+
+		if path_good:
+			self._run_callbacks()
+
 		self._file_text_box.blockSignals(False)
 
 	def add_connect(self, callback):
