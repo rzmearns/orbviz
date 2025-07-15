@@ -184,7 +184,9 @@ class Controls(BaseControls):
 		self.pnting_defines_period_switch.toggle.connect(self.toggleTimePeriodDefinitionMethod)
 		self.toggleTimePeriodDefinitionMethod(dflt_time_dfntn_state)
 		self.use_constellation_switch.toggle.connect(self.constellation_config.setEnabled)
+		self.use_constellation_switch.toggle.connect(self._reloadConstellation)
 		self.constellation_config.setEnabled(dflt_constellation_state)
+
 
 		tp_selection_widget = QtWidgets.QWidget()
 		tp_selection_vlayout = QtWidgets.QVBoxLayout()
@@ -238,6 +240,10 @@ class Controls(BaseControls):
 		self.shortcuts['Home'].activated.connect(self.time_slider.setBeginning)
 		self.shortcuts['End'] = QtWidgets.QShortcut(QtGui.QKeySequence('End'), self.context.widget)
 		self.shortcuts['End'].activated.connect(self.time_slider.setEnd)
+
+	def _reloadConstellation(self, use_constellation_state:bool):
+		if use_constellation_state:
+			self.constellation_config.refresh()
 
 	def prepSerialisation(self):
 		state = {}
