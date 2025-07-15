@@ -212,6 +212,14 @@ class ConstellationControls(QtWidgets.QWidget):
 			self.tmp_const_config = None
 			self.const_config_selector.setError('Not a valid configuration file')
 			self.const_config_display.clearConfig()
+		except FileNotFoundError as e:
+			self.tmp_const_config = None
+			self.const_config_selector.setError('File does not exist')
+			self.const_config_display.clearConfig()
+		except IsADirectoryError as e:
+			self.tmp_const_config = None
+			self.const_config_selector.setError('Cannot load a directory')
+			self.const_config_display.clearConfig()
 		self.pane_groupbox.updateGeometry()
 
 	def refresh(self):
