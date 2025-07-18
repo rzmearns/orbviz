@@ -1,0 +1,12 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.12.3  # Ruff version.
+    hooks:
+      - id: ruff-check # Run the linter.
+        args: [ --fix, --config=pyproject.toml]
+      - id: ruff-format  # Run the formatter.
+        args: [ --config=pyproject.toml]
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.24.2
+    hooks:
+      - id: gitleaks
