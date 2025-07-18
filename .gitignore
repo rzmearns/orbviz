@@ -1,10 +1,8 @@
 # Specific Project Directories #
 ################################
-qt_tests/
-vispy_tests
 resources/
 data/
-data/
+
 # Compiled source #
 ###################
 *.com
@@ -14,12 +12,6 @@ data/
 *.o
 *.so
 *.pyc
-*.aux 	#latex#
-*.bbl 	#latex#
-*.blg 	#latex#
-*.lof 	#latex#
-*.lot 	#latex#
-*.toc 	#latex#
 *.pdf
 *.vscode
 
@@ -82,6 +74,7 @@ Thumbs.db
 *.txt
 *.tle
 *.temptle
+*.lprof
 
 # Backup files #
 ######################
