@@ -1,0 +1,30 @@
+image: python:latest
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+cache:
+  paths:
+    - .cache/pip
+
+before_script:
+  - python --version
+  - pip --version
+  - pip install virtualenv
+  - virtualenv venv
+  - source venv/bin/activate
+
+
+lint:
+  type: test
+  script:
+    - pip install --editable .
+    - pip install --editable .[dev]
+    - ruff check
+
+test:
+  type: test
+  script:
+    - pip install --editable .
+    - pip install --editable .[dev]
+    - pytest
