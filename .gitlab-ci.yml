@@ -18,7 +18,6 @@ before_script:
 
 lint:
   script:
-    # - pip install --editable .
     - pip install --editable .[dev]
     - ruff check
 
