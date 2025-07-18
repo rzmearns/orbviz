@@ -16,14 +16,12 @@ before_script:
 
 
 lint:
-  type: test
   script:
     - pip install --editable .
     - pip install --editable .[dev]
     - ruff check
 
 test:
-  type: test
   script:
     - pip install --editable .
     - pip install --editable .[dev]
