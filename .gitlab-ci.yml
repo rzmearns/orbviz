@@ -15,9 +15,10 @@ before_script:
   - source venv/bin/activate
 
 
+
 lint:
   script:
-    - pip install --editable .
+    # - pip install --editable .
     - pip install --editable .[dev]
     - ruff check
 
