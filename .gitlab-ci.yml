@@ -1,5 +1,4 @@
-image: python:3.12
-
+image: $CI_REGISTRY/msl/tools/satplot:latest
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
@@ -7,13 +6,13 @@ cache:
   paths:
     - .cache/pip
 
-before_script:
-  - python --version
-  - pip --version
-  - pip install virtualenv
-  - virtualenv venv
-  - source venv/bin/activate
-  - pip install --editable .[dev]
+# before_script:
+#   - python --version
+#   - pip --version
+#   - pip install virtualenv
+#   - virtualenv venv
+#   - source venv/bin/activate
+#   - pip install --editable .[dev]
 
 
 lint:
