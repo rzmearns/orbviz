@@ -14,11 +14,13 @@ data/
 *.pyc
 *.pdf
 *.vscode
+*.egg-info
 
 # Environment #
 ############
 env/
 venv/
+.venv/
 
 # Packages #
 ############
@@ -32,6 +34,7 @@ venv/
 *.rar
 *.tar
 *.zip
+build/
 
 # Logs and databases #
 ######################
