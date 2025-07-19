@@ -6,15 +6,6 @@ cache:
   paths:
     - .cache/pip
 
-# before_script:
-#   - python --version
-#   - pip --version
-#   - pip install virtualenv
-#   - virtualenv venv
-#   - source venv/bin/activate
-#   - pip install --editable .[dev]
-
-
 lint:
   script:
     - ruff check
