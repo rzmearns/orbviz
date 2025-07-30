@@ -37,15 +37,15 @@ class DataPaneModel(QtCore.QAbstractTableModel):
 	def headerData(self,
 					section: int,
 					orientation: QtCore.Qt.Orientation,
-					role: int=QtCore.Qt.DisplayRole) -> str:
-		if orientation == QtCore.Qt.Horizontal:
-			if role == QtCore.Qt.DisplayRole and 0 <= section < len(self._headers):
+					role: int=QtCore.Qt.ItemDataRole.DisplayRole) -> str:
+		if orientation == QtCore.Qt.Orientation.Horizontal:
+			if role == QtCore.Qt.ItemDataRole.DisplayRole and 0 <= section < len(self._headers):
 				return self._headers[section]
 
-	def data(self, index: QtCore.QModelIndex, role:int=QtCore.Qt.DisplayRole) -> str:
+	def data(self, index: QtCore.QModelIndex, role:int=QtCore.Qt.ItemDataRole.DisplayRole) -> str:
 		row = index.row()
 		column = index.column()
-		if role == QtCore.Qt.DisplayRole:
+		if role == QtCore.Qt.ItemDataRole.DisplayRole:
 			val = list(self._items[row].values())[column]
 			if val == 'quat':
 				val = ''
@@ -103,7 +103,7 @@ class DataPaneModel(QtCore.QAbstractTableModel):
 			max_cols = self.columnCount()
 			for k,v in item_dict.items():
 				if col_num < max_cols:
-					self.setData(self.createIndex(new_row_idx, col_num), v, QtCore.Qt.DisplayRole);
+					self.setData(self.createIndex(new_row_idx, col_num), v, QtCore.Qt.ItemDataRole.DisplayRole);
 		self.dataChanged.emit(self.index(new_row_idx,0), self.index(new_row_idx,self.columnCount()))
 
 	def removeRows(self,row:int, count:int, parent=QtCore.QModelIndex()) -> bool:

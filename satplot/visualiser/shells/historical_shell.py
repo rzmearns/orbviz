@@ -34,7 +34,7 @@ class HistoricalShell():
 		self.active = False
 		self.active_context = None
 
-		datapane_hsplitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+		datapane_hsplitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)
 		datapane_hsplitter.setObjectName('window_hsplitter')
 		datapane_hsplitter.setStyleSheet('''
 					QSplitter#window_hsplitter::handle {

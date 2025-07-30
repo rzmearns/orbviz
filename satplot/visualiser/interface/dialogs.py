@@ -104,7 +104,7 @@ class GIFDialog():
 		self.name_str = ' '.join(self.opening_context.config['name'].split('_')).capitalize()
 		self.fname_str = self.opening_context.config['name']
 		self.window.setWindowTitle(f'Save {self.name_str} GIF')
-		self.window.setWindowModality(QtCore.Qt.NonModal)
+		self.window.setWindowModality(QtCore.Qt.WindowModality.NonModal)
 
 		self._loop_option = widgets.ToggleBox("Loop GIF?", True)
 		self._file_selector = widgets.FilePicker("Save GIF as:",
