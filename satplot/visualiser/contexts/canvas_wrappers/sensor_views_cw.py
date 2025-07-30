@@ -84,25 +84,24 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 	def _getCurrentDisplayedSensor(self, view:int) -> sensors.SensorImageAsset | None:
 		return self.displayed_sensors[view]
 
-	def generateSensorFullRes(self, sc_id: int, sens_suite_key: str, sens_key: str) -> tuple[np.ndarray, np.ndarray, object, dict]:
+	def generateSensorFullRes(self, sc_id: int, sens_suite_key: str, sens_key: str) -> tuple[np.ndarray, np.ndarray, object, SensorImgMetadata]:
 		# TOOD: use sc_id to select which spacecraft asset to generate
 		sc_asset = self.assets['spacecraft']
 		sensor_asset = self.assets['spacecraft'].getSensorSuiteByKey(sens_suite_key).getSensorByKey(sens_key)
 		img_data, mo_data, moConverterFunction = sensor_asset.generateFullRes()
-		img_metadata = {'spacecraft id':sc_id,
-						'spacecraft name': self.assets['spacecraft'].data['name'],
-						'sensor suite name': sens_suite_key,
-						'sensor name': sens_key,
-						'resolution':(img_data.shape[1], img_data.shape[0]),
-						'fov': sensor_asset.data['fov'],
-						'lens_model':sensor_asset.data['lens_model'].__name__,
-						'current time [yyyy-mm-dd hh:mm:ss]': sensor_asset.data['curr_datetime'],
-						'sensor body frame quaternion [x,y,z,w]': sensor_asset.data['bf_quat'],
-						'spacecraft quaternion [x,y,z,w]': sc_asset.data['curr_quat'].reshape(4,).tolist(),
-						'spacecraft eci position [km]': sc_asset.data['curr_pos'].reshape(3,).tolist(),
-						'sensor eci quaternion [x,y,z,w]': sensor_asset.data['curr_quat'].reshape(4,).tolist(),
-						'image md5 hash': None
-						}
+		img_metadata = SensorImgMetadata(spacecraft_id=sc_id,
+						spacecraft_name=self.assets['spacecraft'].data['name'],
+						sensor_suite_name=sens_suite_key,
+						sensor_name=sens_key,
+						resolution=(img_data.shape[1], img_data.shape[0]),
+						fov=sensor_asset.data['fov'],
+						lens_model=sensor_asset.data['lens_model'].__name__,
+						current_time=sensor_asset.data['curr_datetime'],
+						sensor_body_frame_quaternion = sensor_asset.data['bf_quat'],
+						spacecraft_quaaternion=sc_asset.data['curr_quat'].reshape(4,).tolist(),
+						spacecraft_eci_position=sc_asset.data['curr_pos'].reshape(3,).tolist(),
+						sensor_eci_quaternion=sensor_asset.data['curr_quat'].reshape(4,).tolist(),
+						image_md5_hash=None)
 
 		return img_data, mo_data, moConverterFunction, img_metadata
 
