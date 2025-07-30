@@ -189,7 +189,7 @@ class HistoryData(BaseDataModel):
 		# 		self.error.emit
 
 		tle_paths = updater.getTLEFilePaths(sat_ids)
-		console.send(f"Propagating orbit from {tle_paths[0].split('/')[-1]} ...")
+		console.send(f"Propagating orbit from {tle_paths[0].name} ...")
 		orbits = {}
 		for ii, sat_id in enumerate(sat_ids):
 			if not running:
