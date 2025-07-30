@@ -71,22 +71,10 @@ class PlanningShell():
 			history_data_model.index_updated.connect(self.datapane_model.refresh)
 
 		# Build context panes
-		self.contexts_dict['configuration-history'] = history_configuration_context.HistoryConfigurationContext('configuration-history', self.window, history_data_model)
-		self.contexts_dict['3D-planning'] = history3d_context.History3DContext('3D-planning', self.window, history_data_model)
-		self.contexts_dict['2D-planning'] = history2d_context.History2DContext('2D-planning', self.window, history_data_model, earth_raycast_data_model)
-		self.contexts_dict['sensors-view-planning'] = sensor_views_context.SensorViewsContext('sensors-view-planning', self.window, history_data_model, earth_raycast_data_model)
-
-		# attach relevant toolbars, menubars, add context tabs
-		for context_key, context in self.contexts_dict.items():
-			self.toolbars[context_key] = context.controls.toolbar
-			self.menubars[context_key] = context.controls.menubar
-			# self.toolbars[context_key].setActiveState(False)
-			# self.menubars[context_key].setActiveState(False)
-			tab_label = ' '.join(context_key.split('-')[:-1]).title()
-			self.context_tab_stack.addTab(self.contexts_dict[context_key].widget, tab_label)
-			if hasattr(context,'canvas_wrapper'):
-				if hasattr(context.canvas_wrapper, 'mouseOverText'):
-					context.canvas_wrapper.mouseOverText.notifier.text_updated.connect(self.datapane.setMouseText)
+		self._addContext('configuration-history', history_configuration_context.HistoryConfigurationContext('configuration-history', self.window, history_data_model))
+		self._addContext('3D-planning', history3d_context.History3DContext('3D-planning', self.window, history_data_model))
+		self._addContext('2D-planning', history2d_context.History2DContext('2D-planning', self.window, history_data_model, earth_raycast_data_model))
+		self._addContext('sensors-view',sensor_views_context.SensorViewsContext('sensors-view-planning', self.window, history_data_model, earth_raycast_data_model))
 
 		# check toolbar/menubar indices are the same
 		for ii, key in enumerate(self.toolbars.keys()):
@@ -116,6 +104,30 @@ class PlanningShell():
 		curr_slider_idx = curr_context.getIndex()
 		if curr_slider_idx is not None:
 			new_context.setIndex(curr_slider_idx)
+
+	def _addContext(self, context_name:str, context:base_context.BaseContext) -> None:
+		# TODO: add to abstracted shell
+		# Keep track of context reference
+		self.contexts_dict[context_name] = context
+
+		# Keep track of toolbar references
+		if context.controls is not None and context.controls.toolbar is not None:
+			self.toolbars[context_name] = context.controls.toolbar
+		else:
+			logger.warning('Context: %s:%s, does not have a toolbar', context_name, context)\
+
+		# Keep track of menubar references
+		if context.controls is not None and context.controls.menubar is not None:
+			self.menubars[context_name] = context.controls.menubar
+		else:
+			logger.warning('Context: %s:%s, does not have a menubar', context_name, context)
+
+		# add tab to shell context stack
+		tab_label = ' '.join(context_name.split('-')[:-1]).title()
+		self.context_tab_stack.addTab(context.widget, tab_label)
+		if hasattr(context,'canvas_wrapper') and context.canvas_wrapper is not None:
+			if hasattr(context.canvas_wrapper, 'mouseOverText') and context.canvas_wrapper.mouseOverText is not None:
+				context.canvas_wrapper.mouseOverText.notifier.text_updated.connect(self.datapane.setMouseText)
 
 	def updateActiveContext(self, curr_context_idx:int|None, new_context_idx:int|None) -> None:
 		logger.debug(f'Changing toolbar and menu for {self.name} shell')
