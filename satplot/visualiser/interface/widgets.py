@@ -60,7 +60,7 @@ class TimeSlider(QtWidgets.QWidget):
 
 	def setTimespan(self, timespan:TimeSpan):
 		self._timespan = timespan
-		self.setRange(self._timespan.start, self._timespan.end, self._timespan.num_steps)
+		self.setRange(self._timespan.start, self._timespan.end, len(self._timespan))
 
 	def setRange(self, start_dt, end_dt, num_ticks):
 		if start_dt > end_dt:
