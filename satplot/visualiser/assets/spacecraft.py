@@ -43,11 +43,14 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 		self.data['strings'] = ['']
 		self.data['curr_index'] = 2
 		self.data['pointing'] = None
-		self.data['old_pointing_defined'] = False
 		self.data['pointing_invert_transform'] = False
 		self.data['sc_config'] = None
-		self.data['old_sc_config'] = None
+		self.data['history_src'] = None
+
+		self.data['old_config_filestem'] = None
 		self.data['old_suite_names'] = []
+		self.data['old_sc_config'] = None
+		self.data['old_pointing_defined'] = False
 
 	def setSource(self, *args, **kwargs) -> None:
 		# args[0] spacecraft configuration
@@ -99,7 +102,7 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 			# if no pointing, no point having sensors
 			self._removeSensorAssets(self.data['old_suite_names'])
 
-		if self.data['history_src'].getConfigValue('is_pointing_defined'):
+		if pointing_defined:
 			self._instantiateSensorAssets()
 			self._setSensorAssetSources()
 
@@ -327,7 +330,7 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 		self.data['oth_edge2'] = self.data['oth_edge1'].copy()
 
 		self.data['old_config_filestem'] = None
-		self.data['old_suite_names'] = None
+		self.data['old_suite_names'] = []
 		self.data['old_sc_config'] = None
 		self.data['old_pointing_defined'] = False
 
@@ -379,19 +382,23 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 		else:
 			self.data['strings'] = ['']
 
-		if self.data['old_pointing_defined'] and self.data['sc_config'] == self.data['old_sc_config']:
+		config_changed = (self.data['sc_config'] != self.data['old_sc_config'])
+		pointing_active_changed = (self.data['history_src'].getConfigValue('is_pointing_defined') != self.data['old_pointing_defined'])
+		pointing_defined = self.data['history_src'].getConfigValue('is_pointing_defined')
+
+		if not pointing_active_changed and not config_changed:
 			# config has not changed -> don't need to re-instantiate sensors
 			logger.debug('Spacecraft pointing related config has not changed')
 			config_changed = False
 			return
 
 		# remove old sensors if there were some
-		if self.data['old_pointing_defined'] and self.data['old_sc_config'] != self.data['sc_config']:
+		if (not pointing_defined and pointing_active_changed) or (pointing_defined and config_changed):
 			# If pointing had previously been defined -> old sensors, options need to be removed
 			# if no pointing, no point having sensors
 			self._removeSensorAssets(self.data['old_suite_names'])
 
-		if self.data['history_src'].getConfigValue('is_pointing_defined'):
+		if pointing_defined:
 			self._instantiateSensorAssets()
 			self._setSensorAssetSources()
 
