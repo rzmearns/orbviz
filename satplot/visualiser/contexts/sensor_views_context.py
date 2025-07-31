@@ -162,7 +162,11 @@ class Controls(BaseControls):
 		self.shortcuts['End'].activated.connect(self.time_slider.setEnd)
 
 	def updateSensorViewLists(self):
-		sens_dict = self.context.data['history'].getPrimaryConfig().serialiseAllSensors()
+		if self.context.data['history'].getConfigValue('is_pointing_defined'):
+			sens_dict = self.context.data['history'].getPrimaryConfig().serialiseAllSensors()
+		else:
+			sens_dict = {}
+
 		self.sensor_view_selectors.setSelectorLists(sens_dict)
 
 	def rebuildOptions(self):
