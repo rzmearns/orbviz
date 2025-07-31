@@ -449,17 +449,19 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 			del(self.assets[f'sensor_suite_{suite_name}'])
 
 	def _instantiateSensorAssets(self) -> None:
-		for key, value in self.data['sc_config'].getSensorSuites().items():
-			logger.info(f'Creating sensor suite sensor_suite_{key}')
-			self.assets[f'sensor_suite_{key}'] = sensors.SensorSuite2DAsset(value,
-																	name=key,
+		for suite_name, suite_config in self.data['sc_config'].getSensorSuites().items():
+			logger.info(f'Creating sensor suite sensor_suite_{suite_name}')
+			self.assets[f'sensor_suite_{suite_name}'] = sensors.SensorSuite2DAsset(self.data['sc_config'].id,
+																	suite_config,
+																	name=suite_name,
 													 				v_parent=self.data['v_parent'])
 		self._addIndividualSensorSuitePlotOptions()
 
 	def _setSensorAssetSources(self) -> None:
 		for asset_name, asset in self.assets.items():
 			if 'sensor_suite_' in asset_name:
-				asset.setSource(self.data['raycast_src'])
+				asset.setSource(self.data['history_src'],
+								self.data['raycast_src'])
 
 	def _createVisuals(self) -> None:
 		self.visuals['marker'] = scene.visuals.Markers(parent=None,
@@ -502,45 +504,16 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 		if self.isStale():
 			self._updateMarkers()
 			if self.data['history_src'].getConfigValue('is_pointing_defined'):
-				pointing_data = self.data['history_src'].getSCAttitude(self.data['sc_config'].id).getAttitudeQuats()
-				orbit_data = self.data['history_src'].getOrbits()[self.data['sc_config'].id]
+				self.data['curr_pos'] = self.data['history_src'].getOrbits()[self.data['sc_config'].id].pos[self.data['curr_index']].reshape(1,3)
 				# set gizmo and sensor orientations
-				#TODO: This check for last/next good pointing could be done better
-				if np.any(np.isnan(pointing_data[self.data['curr_index'],:])):
-					non_nan_found = False
-					# look forwards
-					for ii in range(self.data['curr_index'], len(pointing_data)):
-						if np.all(np.isnan(pointing_data[ii,:])==False):
-							non_nan_found = True
-							quat = pointing_data[ii,:].reshape(-1,4)
-							rotation = Rotation.from_quat(quat).as_matrix()
-							break
-						else:
-							rotation = np.eye(3)
-					if not non_nan_found:
-						# look backwards
-						for ii in range(self.data['curr_index'], -1, -1):
-							if np.all(np.isnan(pointing_data[ii,:])==False):
-								quat = pointing_data[ii,:].reshape(-1,4)
-								rotation = Rotation.from_quat(quat).as_matrix()
-								break
-							else:
-								rotation = np.eye(3)
-				else:
-					quat = pointing_data[self.data['curr_index']].reshape(-1,4)
-					if self.data['history_src'].getConfigValue('pointing_invert_transform'):
-						# Quat = ECI->BF
-						rotation = Rotation.from_quat(quat).as_matrix()
-					else:
-						# Quat = BF->ECI
-						rotation = Rotation.from_quat(quat).inv().as_matrix()
+				rot_mat = self.data['history_src'].getSCAttitude(self.data['sc_config'].id).getAttitudeMatrix(self.data['curr_index'])
+				quat = self.data['history_src'].getSCAttitude(self.data['sc_config'].id).getAttitudeQuat(self.data['curr_index'])
 				for asset_name, asset in self.assets.items():
 					if 'sensor_suite_' in asset_name:
 						asset.setCurrentDatetime(self.data['history_src'].timespan[self.data['curr_index']])
 				# recomputeRedraw child assets
-				self.data['curr_pos'] = orbit_data.pos[self.data['curr_index']].reshape(1,3)
 				self.data['curr_quat'] = quat
-				self._recomputeRedrawChildren(pos=orbit_data.pos[self.data['curr_index']].reshape(1,3), rotation=rotation)
+				self._recomputeRedrawChildren(pos=self.data['curr_pos'].reshape(1,3), rotation=rot_mat)
 
 			# Over the horizon circle asset
 			self.data['oth_edge1'], self.data['oth_edge2'], split = self.calcOTHCircle()
@@ -828,7 +801,7 @@ class SpacecraftViewsAsset(base_assets.AbstractAsset):
 			self._clearFirstDrawFlag()
 		if self.isStale():
 			if self.data['history'].getConfigValue('is_pointing_defined'):
-				pointing_data = self.data['history'].getSCAttitude(self.data['sc_config'].id).getAttitudeQuats()
+				pointing_data = self.data['history'].getSCAttitude(self.data['sc_config'].id).getAttitudeQuat()
 				orbit_data = self.data['history'].getOrbits()[self.data['sc_config'].id]
 				# set gizmo and sensor orientations
 				#TODO: This check for last/next good pointing could be done better

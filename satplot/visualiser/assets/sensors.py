@@ -234,28 +234,30 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 		return cls(sensor_name, mesh_verts, mesh_faces, bf_quat, colour, sens_type='square_pyramid', v_parent=parent)
 
 class SensorSuite2DAsset(base_assets.AbstractCompoundAsset):
-	def __init__(self, sens_suite_dict:dict[str,Any], name:str|None=None, v_parent:ViewBox|None=None):
+	def __init__(self, sc_id:int, sens_suite_dict:dict[str,Any], name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 
 		self._setDefaultOptions()
-		self._initData(sens_suite_dict)
+		self._initData(sc_id, sens_suite_dict)
 		self._instantiateAssets()
 		self._createVisuals()
 
 		self._attachToParentView()
 
-	def _initData(self, sens_suite_dict:dict[str,Any]) -> None:
+	def _initData(self, sc_id:int, sens_suite_dict:dict[str,Any]) -> None:
 		if self.data['name'] is None:
 			self.data['name'] = 'SensorSuite'
+		self.data['sc_id'] = sc_id
 		self.data['sens_suite_config'] = sens_suite_dict
 		self.data['curr_datetime'] = None
 		self.data['horiz_pixel_scale'] = None
 		self.data['vert_pixel_scale'] = None
 
 	def setSource(self, *args, **kwargs) -> None:
-		# args[0] = raycast_src
+		# args[0] = history_src
+		# args[1] = raycast_src
 		for sensor_name, sensor in self.assets.items():
-			sensor.setSource(args[0])
+			sensor.setSource(args[0], args[1])
 
 	def setScale(self, horizontal_size, vertical_size):
 		self.data['horiz_pixel_scale'] = horizontal_size/360
@@ -270,7 +272,6 @@ class SensorSuite2DAsset(base_assets.AbstractCompoundAsset):
 
 	def _instantiateAssets(self) -> None:
 		sensor_names = self.data['sens_suite_config'].getSensorNames()
-		full_sensor_names = [f"{self.data['name']}: {sens_name}" for sens_name in sensor_names]
 		for ii, sensor_name in enumerate(sensor_names):
 			logger.info(f"Instantiating 2D sensor asset {self.data['name']}:{sensor_name}")
 			sens_dict = self.data['sens_suite_config'].getSensorConfig(sensor_name)
@@ -278,7 +279,11 @@ class SensorSuite2DAsset(base_assets.AbstractCompoundAsset):
 				# TOOD: some kind of exception
 				pass
 			elif sens_dict['shape'] == satplot_data_types.SensorTypes.FPA:
-				self.assets[sensor_name] = Sensor2DAsset(full_sensor_names[ii], sens_dict, v_parent=self.data['v_parent'])
+				self.assets[sensor_name] = Sensor2DAsset(self.data['sc_id'],
+															sensor_name,
+															self.data['name'],
+															sens_dict,
+															v_parent=self.data['v_parent'])
 		self._addIndividualSensorPlotOptions()
 
 	def _createVisuals(self) -> None:
@@ -334,19 +339,26 @@ class SensorSuite2DAsset(base_assets.AbstractCompoundAsset):
 			asset.removePlotOptions()
 
 class Sensor2DAsset(base_assets.AbstractSimpleAsset):
-	def __init__(self, name:str|None=None, config:dict={}, v_parent:ViewBox|None=None):
+	def __init__(self, sc_id:int, name:str|None=None, parent_suite_name:str|None=None, config:dict={}, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 		self.config = config
 		self._setDefaultOptions()
-		self._initData(config['bf_quat'], config['resolution'], config['fov'], config['colour'])
+		self._initData(sc_id,
+						parent_suite_name,
+						config['bf_quat'],
+						config['resolution'],
+						config['fov'],
+						config['colour'])
 		self._instantiateAssets()
 		self._createVisuals()
 		self.counter = 0
 		self._attachToParentView()
 
-	def _initData(self, bf_quat:tuple[float, float, float, float], resolution:tuple[int,int], fov:tuple[float,float], colour:tuple[int, int, int]) -> None:
+	def _initData(self, sc_id:int, parent_suite_name:str, bf_quat:tuple[float, float, float, float], resolution:tuple[int,int], fov:tuple[float,float], colour:tuple[int, int, int]) -> None:
 		if self.data['name'] is None:
 			self.data['name'] = 'Sensor'
+		self.data['sc_id'] = sc_id
+		self.data['parent_suite_name'] = parent_suite_name
 		self.data['bf_quat'] = bf_quat
 		self.data['res'] = resolution
 		self.data['lowres'] = self._calcLowRes(self.data['res'])
@@ -366,8 +378,10 @@ class Sensor2DAsset(base_assets.AbstractSimpleAsset):
 		self.opts['sensor_colour']['value'] = colour
 
 	def setSource(self, *args, **kwargs) -> None:
-		# args[0] = raycast_src
-		self.data['raycast_src'] = args[0]
+		# args[0] = history_src
+		# args[1] = raycast_src
+		self.data['history_src'] = args[0]
+		self.data['raycast_src'] = args[1]
 
 	def setScale(self, horizontal_size, vertical_size):
 		self.data['horiz_pixel_scale'] = horizontal_size/360
@@ -411,19 +425,13 @@ class Sensor2DAsset(base_assets.AbstractSimpleAsset):
 			self._clearFirstDrawFlag()
 		if self.isStale() and self.isActive():
 			T = np.eye(4)
-			if quat is not None:
-				rotation = Rotation.from_quat(quat) * Rotation.from_quat(self.data['bf_quat'])
-				rot_mat = rotation.as_matrix()
-				as_quat = rotation.as_quat()
-			elif rotation is not None:
-				# bf_quat -> bodyframe to cam quaternion
-				rotation = Rotation.from_matrix(rotation) * Rotation.from_quat(self.data['bf_quat'])
-				rot_mat = rotation.as_matrix()
-				as_quat = rotation.as_quat()
-			else:
-				rot_mat = np.eye(3)
-				as_quat = (1,0,0,0)
-			self.data['curr_quat'] = as_quat
+			rot_mat = self.data['history_src'].getSCAttitude(self.data['sc_id']).getSensorAttitudeMatrix(self.data['parent_suite_name'],
+																												self.data['name'],
+																												self.data['curr_index'])
+			pos = self.data['history_src'].getOrbits()[self.data['sc_id']].pos[self.data['curr_index']]
+			self.data['curr_quat'] = self.data['history_src'].getSCAttitude(self.data['sc_id']).getSensorAttitudeQuat(self.data['parent_suite_name'],
+																												self.data['name'],
+																												self.data['curr_index'])
 			T[0:3,0:3] = rot_mat
 			T[0:3,3] = np.asarray(pos).reshape(-1,3)
 
