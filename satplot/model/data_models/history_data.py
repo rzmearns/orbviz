@@ -1,10 +1,12 @@
 import datetime as dt
 import logging
+from urllib import request
 import numpy as np
 from numpy import typing as nptyping
 import pathlib
 from progressbar import progressbar
-from typing import Any
+from typing import Any, cast
+from scipy.spatial.transform import Rotation
 
 import satplot
 from satplot.model.data_models.base_models import (BaseDataModel)
@@ -305,13 +307,37 @@ def date_parser(d_bytes) -> dt.datetime:
 
 
 class HistoricalAttitude:
-	def __init__(self, p_file: pathlib.Path, sc_config:data_types.SpacecraftConfig):
-		self._timestamps, self._sc_quats = self._loadPointingFile(p_file)
+	def __init__(self, p_file: pathlib.Path, sc_config:data_types.SpacecraftConfig, quat_defn_direction:str='eci2bf'):
+		self._timestamps, self._sc_raw_quats = self._loadPointingFile(p_file)
+		num_samples = len(self._timestamps)
+		self._attitude_quats:np.ndarray[tuple[int,int],np.dtype[np.float64]] = np.zeros(self._sc_raw_quats.shape, dtype=np.float64)
+		self._sens_attitude_quats:dict[tuple[str,str],np.ndarray[tuple[int,int],np.dtype[np.float64]]] = {}
+
+		self._cached_sc_idx = np.full((num_samples),False)
+		self._attitude_matrix_cache:np.ndarray[tuple[int,int,int],np.dtype[np.float64]] = np.zeros((num_samples,3,3), dtype=np.float64)
+		self._cached_sens_idx:dict[tuple[str,str], np.ndarray[tuple[int],np.dtype[np.bool_]]] = {}
+		self._sens_attitude_matrix_cache:dict[tuple[str,str], np.ndarray[tuple[int,int],np.dtype[np.float64]]] = {}
+
+		# TODO: set standard transform direction as eci2bf
+		if quat_defn_direction == 'eci2bf':
+			self._invert_transform = True
+			self._attitude_quats = self._sc_raw_quats
+		elif quat_defn_direction == 'bf2eci':
+			self._invert_transform = False
+			self._attitude_quats = self._sc_raw_quats
+			self._attitude_quats[:,3] *= -1
+
+		for suite_name, suite_config in sc_config.getSensorSuites().items():
+			for sens_name in suite_config.getSensorNames():
+				sens_bf_quat = suite_config.getSensorBodyQuat(sens_name)
+				self._sens_attitude_quats[(suite_name, sens_name)] = self._quatArrMult(self._attitude_quats, np.tile(sens_bf_quat,(num_samples,1)))
+				self._cached_sens_idx[(suite_name, sens_name)] = np.full((num_samples),False)
+
 
 	def getPointingTimestamps(self) -> np.ndarray[tuple[int], np.dtype[np.datetime64]]:
 		return self._timestamps
 
-	def _loadPointingFile(self, p_file: pathlib.Path) -> tuple[nptyping.NDArray, nptyping.NDArray]:
+	def _loadPointingFile(self, p_file: pathlib.Path) -> tuple[np.ndarray[tuple[int], np.dtype[np.datetime64]], np.ndarray[tuple[int,int],np.dtype[np.float64]]]:
 		pointing_q = np.array(())
 		pointing_w = np.genfromtxt(p_file, delimiter=',', usecols=[1], skip_header=1).reshape(-1,1)
 		pointing_x = np.genfromtxt(p_file, delimiter=',', usecols=[2], skip_header=1).reshape(-1,1)
@@ -322,5 +348,78 @@ class HistoricalAttitude:
 
 		return pointing_dates, pointing_q
 
-	def getAttitudeQuats(self):
-		return self._sc_quats
+	def isAttitudeValid(self, idx:int) -> bool:
+		if np.any(np.isnan(self._attitude_quats[idx,:])):
+			return False
+		return True
+
+	def getAttitudeQuat(self, *args:int) -> np.ndarray[tuple[int],np.dtype[np.float64]]|np.ndarray[tuple[int,int],np.dtype[np.float64]]:
+		if len(args) > 0:
+			return self._attitude_quats[args[0],:]
+		return self._attitude_quats
+
+	def getAttitudeMatrix(self, idx:int) -> np.ndarray[tuple[int,int],np.dtype[np.float64]]:
+		cache_key = idx
+		if self._cached_sc_idx[cache_key]:
+			return self._attitude_matrix_cache[cache_key,:,:]
+		else:
+			if self.isAttitudeValid(idx):
+				rot_mat = Rotation.from_quat(self._attitude_quats[idx,:]).as_matrix()
+			else:
+				rot_mat = np.eye(3)
+			self._cached_sc_idx[cache_key] = True
+			self._attitude_matrix_cache[cache_key,:,:] = rot_mat
+			cast(np.ndarray[tuple[int,int], np.dtype[np.float64]],rot_mat)
+			return rot_mat
+
+	def getSensorAttitudeQuat(self, suite_name:str, sens_name:str, *args:int) -> np.ndarray[tuple[int],np.dtype[np.float64]]|np.ndarray[tuple[int,int],np.dtype[np.float64]]:
+		if len(args) > 0:
+			return self._sens_attitude_quats[(suite_name,sens_name)][args[0],:]
+		return self._sens_attitude_quats[(suite_name,sens_name)]
+
+	def getSensorAttitudeMatrix(self, suite_name:str, sens_name:str, idx:int) -> np.ndarray[tuple[int],np.dtype[np.float64]]|np.ndarray[tuple[int,int],np.dtype[np.float64]]:
+		sens_key = (suite_name, sens_name)
+		cache_key = idx
+		if self._cached_sens_idx[sens_key][cache_key]:
+			return self._sens_attitude_matrix_cache[sens_key][cache_key,:,:]
+		else:
+			sc_rot_mat = self.getAttitudeMatrix(idx)
+			sens_rot_mat = Rotation.from_quat(self._sens_attitude_quats[sens_key][idx,:]).as_matrix()
+			rot_mat = sc_rot_mat @ sens_rot_mat
+			self._cached_sens_idx[sens_key][idx] = True
+			self._sens_attitude_matrix_cache[sens_key][cache_key,:,:] = rot_mat
+			return rot_mat
+
+	def _quatMult(self, q1,q2):
+		"""Multiples two quaternions
+
+		Multiplies two quaternions, R and S
+		All quaternions need to be supplied in (x,y,z,w)
+
+		#T = R*S
+		#Tw = (Rw*Sw − Rx*Sx − Ry*Sy − Rz*Sz)
+		#Tx = (Rw*Sx + Rx*Sw − Ry*Sz + Rz*Sy)
+		#Ty = (Rw*Sy + Rx*Sz + Ry*Sw − Rz*Sx)
+		#Tz = (Rw*Sz − Rx*Sy + Ry*Sx + Rz*Sw)
+
+		Args:
+			q1 (ndarray(4,)):
+			q2 (ndarray(4,)):
+
+		Returns:
+			ndarray(4,): resulting quaternion
+		"""
+
+		w = q1[3]*q2[3]-q1[0]*q2[0]-q1[1]*q2[1]-q1[2]*q2[2]
+		x = q1[3]*q2[0]+q1[0]*q2[3]+q1[1]*q2[2]-q1[2]*q2[1]
+		y = q1[3]*q2[1]-q1[0]*q2[2]+q1[1]*q2[3]+q1[2]*q2[0]
+		z = q1[3]*q2[2]+q1[0]*q2[1]-q1[1]*q2[0]+q1[2]*q2[3]
+		return np.array((x,y,z,w))
+
+	def _quatArrMult(self, q1_arr, q2_arr):
+		res_q_arr = np.zeros((len(q1_arr),4))
+		res_q_arr[:,3] = q1_arr[:,3]*q2_arr[:,3]-q1_arr[:,0]*q2_arr[:,0]-q1_arr[:,1]*q2_arr[:,1]-q1_arr[:,2]*q2_arr[:,2]
+		res_q_arr[:,0] = q1_arr[:,3]*q2_arr[:,0]+q1_arr[:,0]*q2_arr[:,3]+q1_arr[:,1]*q2_arr[:,2]-q1_arr[:,2]*q2_arr[:,1]
+		res_q_arr[:,1] = q1_arr[:,3]*q2_arr[:,1]-q1_arr[:,0]*q2_arr[:,2]+q1_arr[:,1]*q2_arr[:,3]+q1_arr[:,2]*q2_arr[:,0]
+		res_q_arr[:,2] = q1_arr[:,3]*q2_arr[:,2]+q1_arr[:,0]*q2_arr[:,1]-q1_arr[:,1]*q2_arr[:,0]+q1_arr[:,2]*q2_arr[:,3]
+		return res_q_arr

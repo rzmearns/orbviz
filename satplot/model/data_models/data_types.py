@@ -112,8 +112,11 @@ class SensorSuiteConfig():
 	def getNumSensors(self) -> int:
 		return len(self.sensors.keys())
 
-	def getSensorConfig(self, sensor_name) -> dict[str, Any]:
+	def getSensorConfig(self, sensor_name:str) -> dict[str, Any]:
 		return self.sensors[sensor_name]
+
+	def getSensorBodyQuat(self, sensor_name:str) -> tuple[float]:
+		return self.sensors[sensor_name]['bf_quat']
 
 	def getSensorDisplayConfig(self, sensor_name) -> dict[str,str]:
 		sens_config = self.getSensorConfig(sensor_name)
@@ -170,7 +173,7 @@ class SpacecraftConfig():
 	def getNumSuites(self) -> int:
 		return len(self.sensor_suites)
 
-	def getSensorSuites(self):
+	def getSensorSuites(self) -> dict[str, SensorSuiteConfig]:
 		return self.sensor_suites
 
 	def __eq__(self, other) -> bool:
