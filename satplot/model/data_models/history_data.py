@@ -308,6 +308,7 @@ def date_parser(d_bytes) -> dt.datetime:
 
 class HistoricalAttitude:
 	def __init__(self, p_file: pathlib.Path, sc_config:data_types.SpacecraftConfig, quat_defn_direction:str='eci2bf'):
+		self.sc_config = sc_config
 		self._timestamps, self._sc_raw_quats = self._loadPointingFile(p_file)
 		num_samples = len(self._timestamps)
 		self._attitude_quats:np.ndarray[tuple[int,int],np.dtype[np.float64]] = np.zeros(self._sc_raw_quats.shape, dtype=np.float64)
@@ -330,8 +331,10 @@ class HistoricalAttitude:
 		for suite_name, suite_config in sc_config.getSensorSuites().items():
 			for sens_name in suite_config.getSensorNames():
 				sens_bf_quat = suite_config.getSensorBodyQuat(sens_name)
-				self._sens_attitude_quats[(suite_name, sens_name)] = self._quatArrMult(self._attitude_quats, np.tile(sens_bf_quat,(num_samples,1)))
-				self._cached_sens_idx[(suite_name, sens_name)] = np.full((num_samples),False)
+				sens_key = (suite_name, sens_name)
+				self._sens_attitude_quats[sens_key] = self._quatArrMult(self._attitude_quats, np.tile(sens_bf_quat,(num_samples,1)))
+				self._cached_sens_idx[sens_key] = np.full((num_samples),False)
+				self._sens_attitude_matrix_cache[sens_key] = np.zeros((num_samples,3,3), dtype=np.float64)
 
 
 	def getPointingTimestamps(self) -> np.ndarray[tuple[int], np.dtype[np.datetime64]]:
@@ -383,9 +386,7 @@ class HistoricalAttitude:
 		if self._cached_sens_idx[sens_key][cache_key]:
 			return self._sens_attitude_matrix_cache[sens_key][cache_key,:,:]
 		else:
-			sc_rot_mat = self.getAttitudeMatrix(idx)
-			sens_rot_mat = Rotation.from_quat(self._sens_attitude_quats[sens_key][idx,:]).as_matrix()
-			rot_mat = sc_rot_mat @ sens_rot_mat
+			rot_mat = Rotation.from_quat(self._sens_attitude_quats[sens_key][idx,:]).as_matrix()
 			self._cached_sens_idx[sens_key][idx] = True
 			self._sens_attitude_matrix_cache[sens_key][cache_key,:,:] = rot_mat
 			return rot_mat
