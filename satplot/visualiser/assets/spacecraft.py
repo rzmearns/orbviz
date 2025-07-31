@@ -60,16 +60,16 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 		if args[1] is not None:
 
 			self.data['pointing_defined'] = True
-			logger.debug(f'Spacecraft3DAsset has pointing')
+			logger.debug('Spacecraft3DAsset has pointing')
 		else:
 			self.data['pointing_defined'] = False
-			logger.debug(f'Spacecraft3DAsset has NO pointing')
+			logger.debug('Spacecraft3DAsset has NO pointing')
 
 		sats_dict = args[0]
 		first_sat_orbit = list(sats_dict.values())[0]
 
 		if type(first_sat_orbit) is not orbit.Orbit:
-			logger.error(f"setSource() of {self} requires an {orbit.Orbit} as value of dict from args[0], not: {type(first_sat_orbit)}")
+			logger.error("setSource() of %s requires an %s as value of dict from args[0], not: %s", self, orbit.Orbit, type(first_sat_orbit))
 			raise TypeError(f"setSource() of {self} requires an {orbit.Orbit} as value of dict from args[0], not: {type(first_sat_orbit)}")
 		self.data['coords'] = first_sat_orbit.pos
 		logger.debug(f'Setting source:coordinates for {self}')
@@ -84,7 +84,7 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 			first_sat_pointings = list(pointings_dict.values())[0]
 			invert_transform = args[2]
 			if type(first_sat_pointings) is not np.ndarray:
-				logger.error(f"setSource() of {self} requires an {np.ndarray} as value of dict from args[1], not: {type(first_sat_pointings)}")
+				logger.error("setSource() of %s requires an %s as value of dict from args[1], not: %s", self, np.ndarray, type(first_sat_pointings))
 				raise TypeError(f"setSource() of {self} requires an {np.ndarray} as value of dict from args[1], not: {type(first_sat_pointings)}")
 			self.data['pointing'] = first_sat_pointings
 			self.data['pointing_invert_transform'] = invert_transform
@@ -217,7 +217,7 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 		# return [(canvas_pos[0,0], canvas_pos[0,1])], ['SpIRIT']
 
 	def setAttitudeAssetsVisibility(self, state):
-		logger.debug(f'Setting attitude visibility')
+		logger.debug('Setting attitude visibility')
 		self.setBodyFrameVisibility(state)
 		self.setAllSensorSuitesStatefulVisibility(state)
 
@@ -295,7 +295,7 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 
 	#----- HELPER FUNCTIONS -----#
 	def _addIndividualSensorSuitePlotOptions(self) -> None:
-		logger.debug(f'Adding sensor suite options dictionary entries for:')
+		logger.debug('Adding sensor suite options dictionary entries for:')
 		for key, value in self.data['sc_config'].getSensorSuites().items():
 			visibilityCallback = self._makeVisibilityCallback(key)
 			self.opts[f'plot_sensor_suite_{key}'] = {'value': True,
@@ -363,23 +363,19 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 		# TODO: if historydata already gets updated, there's no need to call this again
 
 		if type(args[0]) is not data_types.SpacecraftConfig:
-			logger.error(f"setSource() of {self} requires a {data_types.SpacecraftConfig} as args[0], not: {type(args[0])}")
+			logger.error("setSource() of %s requires a %s as args[0], not: %s", self, data_types.SpacecraftConfig, type(args[0]))
 			raise TypeError(f"setSource() of {self} requires a {data_types.SpacecraftConfig} as args[0], not: {type(args[0])}")
-			return
 
 		if type(args[1]) is not history_data.HistoryData:
-			logger.error(f"setSource() of {self} requires a {history_data.HistoryData} as args[1], not: {type(args[1])}")
+			logger.error(f"setSource() of %s requires a %s as args[1], not: %s", self, history_data.HistoryData, type(args[1]))
 			raise TypeError(f"setSource() of {self} requires a {history_data.HistoryData} as args[1], not: {type(args[1])}")
-			return
 
 		if not args[1].hasOrbits():
 			logger.error(f"History Data Source for {self} contains no data yet.")
-			return
 
 		if type(args[2]) is not earth_raycast_data.EarthRayCastData:
-			logger.error(f"setSource() of {self} requires a {earth_raycast_data.EarthRayCastData} as args[2], not: {type(args[2])}")
+			logger.error("setSource() of %s requires a %s as args[2], not: %s", self, earth_raycast_data.EarthRayCastData, type(args[2]))
 			raise TypeError(f"setSource() of {self} requires a {earth_raycast_data.EarthRayCastData} as args[2], not: {type(args[2])}")
-			return
 
 		# assign data sources
 		self.data['sc_config'] = args[0]
@@ -399,7 +395,7 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 			logger.debug(f'Setting source:coordinates for {self}')
 		else:
 			console.sendErr('Orbit has no position data')
-			logger.warning(f'Orbit has no position data')
+			logger.warning('Orbit has no position data')
 			raise ValueError('Orbit has no position data')
 
 		if hasattr(first_sat_orbit,'name'):
@@ -747,23 +743,20 @@ class SpacecraftViewsAsset(base_assets.AbstractAsset):
 		# args[2] ray cast src data
 
 		if type(args[0]) is not data_types.SpacecraftConfig:
-			logger.error(f"setSource() of {self} requires a {data_types.SpacecraftConfig} as args[0], not: {type(args[0])}")
+			logger.error("setSource() of %s requires a %s as args[0], not: %s", self, data_types.SpacecraftConfig, type(args[0]))
 			raise TypeError(f"setSource() of {self} requires a {data_types.SpacecraftConfig} as args[0], not: {type(args[0])}")
-			return
 
 		if type(args[1]) is not history_data.HistoryData:
-			logger.error(f"setSource() of {self} requires a {history_data.HistoryData} as args[1], not: {type(args[1])}")
+			logger.error("setSource() of %s requires a %s as args[1], not: %s", self, history_data.HistoryData, type(args[1]))
 			raise TypeError(f"setSource() of {self} requires a {history_data.HistoryData} as args[1], not: {type(args[1])}")
-			return
 
 		if not args[1].hasOrbits():
-			logger.error(f"History Data Source for {self} contains no data yet.")
+			logger.error("History Data Source for %s contains no data yet.", self)
 			return
 
 		if type(args[2]) is not earth_raycast_data.EarthRayCastData:
-			logger.error(f"setSource() of {self} requires a {earth_raycast_data.EarthRayCastData} as args[2], not: {type(args[2])}")
+			logger.error("setSource() of %s requires a %s as args[2], not: %s", self, earth_raycast_data.EarthRayCastData, type(args[2]))
 			raise TypeError(f"setSource() of {self} requires a {earth_raycast_data.EarthRayCastData} as args[2], not: {type(args[2])}")
-			return
 
 		# store old sensor configs
 		old_sc_config = self.data['sc_config']
