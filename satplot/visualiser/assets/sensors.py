@@ -325,7 +325,7 @@ class SensorSuite2DAsset(base_assets.AbstractCompoundAsset):
 		self.opts = self._dflt_opts.copy()
 
 	def _addIndividualSensorPlotOptions(self) -> None:
-		logger.debug(f'Adding sensor options dictionary entries for:')
+		logger.debug('Adding sensor options dictionary entries for:')
 		for sens_key in self.assets.keys():
 			visibilityCallback = self._makeVisibilityCallback(sens_key)
 			self.opts[f'plot_{sens_key}'] = {'value': True,
@@ -385,6 +385,7 @@ class Sensor2DAsset(base_assets.AbstractSimpleAsset):
 		self.data['point_cloud'][:363,0] = np.arange(0,363)
 		self.data['point_cloud'][-1,0] = -1
 		self.data['last_transform'] = np.eye(4)
+		self.data['history_src'] = None
 		self.data['raycast_src'] = None
 		self.data['curr_datetime'] = None
 		self.data['vert_pixel_scale'] = None
@@ -514,28 +515,30 @@ class Sensor2DAsset(base_assets.AbstractSimpleAsset):
 				opt['widget_data']['mark_for_removal'] = True
 
 class SensorSuiteImageAsset(base_assets.AbstractCompoundAsset):
-	def __init__(self, sens_suite_dict:dict[str,Any], name:str|None=None, v_parent:ViewBox|None=None):
+	def __init__(self, sc_id:int, sens_suite_dict:dict[str,Any], name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 
 		self._setDefaultOptions()
-		self._initData(sens_suite_dict)
+		self._initData(sc_id, sens_suite_dict)
 		self._instantiateAssets()
 		self._createVisuals()
 
 		self._attachToParentView()
 
-	def _initData(self, sens_suite_dict:dict[str,Any]) -> None:
+	def _initData(self, sc_id:int, sens_suite_dict:dict[str,Any]) -> None:
 		if self.data['name'] is None:
 			self.data['name'] = 'SensorSuite'
+		self.data['sc_id'] = sc_id
 		self.data['sens_suite_config'] = sens_suite_dict
 		self.data['curr_datetime'] = None
 		self.data['curr_sun_eci'] = None
 		self.data['curr_moon_eci'] = None
 
 	def setSource(self, *args, **kwargs) -> None:
-		# args[0] = raycast_src
+		# args[0] = history_src
+		# args[1] = raycast_src
 		for sensor_name, sensor in self.assets.items():
-			sensor.setSource(args[0])
+			sensor.setSource(args[0], args[1])
 
 	def setCurrentDatetime(self, curr_dt:dt.datetime) -> None:
 		self.data['curr_datetime'] = curr_dt
@@ -554,15 +557,18 @@ class SensorSuiteImageAsset(base_assets.AbstractCompoundAsset):
 
 	def _instantiateAssets(self) -> None:
 		sensor_names = self.data['sens_suite_config'].getSensorNames()
-		full_sensor_names = [f"{self.data['name']}: {sens_name}" for sens_name in sensor_names]
-		for ii, sensor_name in enumerate(sensor_names):
+		for sensor_name in sensor_names:
 			logger.info(f"Instantiating sensor image asset {self.data['name']}:{sensor_name}")
 			sens_dict = self.data['sens_suite_config'].getSensorConfig(sensor_name)
 			if sens_dict['shape'] == satplot_data_types.SensorTypes.CONE:
 				# TOOD: some kind of exception
 				pass
 			elif sens_dict['shape'] == satplot_data_types.SensorTypes.FPA:
-				self.assets[sensor_name] = SensorImageAsset(full_sensor_names[ii], sens_dict, v_parent=None)
+				self.assets[sensor_name] = SensorImageAsset(self.data['sc_id'],
+															sensor_name,
+															self.data['name'],
+															sens_dict,
+															v_parent=None)
 
 	def _createVisuals(self) -> None:
 		pass
@@ -598,19 +604,25 @@ class SensorSuiteImageAsset(base_assets.AbstractCompoundAsset):
 			asset.removePlotOptions()
 
 class SensorImageAsset(base_assets.AbstractSimpleAsset):
-	def __init__(self, name:str|None=None, config:dict={}, v_parent:ViewBox|None=None):
+	def __init__(self, sc_id:int, name:str|None=None, parent_suite_name:str|None=None, config:dict={}, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 		self.config = config
 		self._setDefaultOptions()
-		self._initData(config['bf_quat'], config['resolution'], config['fov'])
+		self._initData(sc_id,
+						parent_suite_name,
+						config['bf_quat'],
+						config['resolution'],
+						 config['fov'])
 		self._instantiateAssets()
 		self._createVisuals()
 		self.counter = 0
 		self._attachToParentView()
 
-	def _initData(self, bf_quat:tuple[float, float, float, float], resolution:tuple[int,int], fov:tuple[float,float]) -> None:
+	def _initData(self, sc_id:int, parent_suite_name:str, bf_quat:tuple[float, float, float, float], resolution:tuple[int,int], fov:tuple[float,float]) -> None:
 		if self.data['name'] is None:
 			self.data['name'] = 'SensorImage'
+		self.data['sc_id'] = sc_id
+		self.data['parent_suite_name'] = parent_suite_name
 		self.data['bf_quat'] = bf_quat
 		self.data['res'] = resolution
 		self.data['lowres'] = self._calcLowRes(self.data['res'])
@@ -622,6 +634,7 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 		self.data['rays_sf'] = self.data['lens_model'].generatePixelRays(self.data['res'], self.data['fov'])
 		self.data['pix_per_rad'] = self.data['lens_model'].calcPixelAngularSize(self.data['res'], self.data['fov'])
 		self.data['last_transform'] = np.eye(4)
+		self.data['history_src'] = None
 		self.data['raycast_src'] = None
 		self.data['curr_datetime'] = None
 		self.data['curr_sun_eci'] = None
@@ -630,8 +643,10 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 		self.data['mo_data'] = None
 
 	def setSource(self, *args, **kwargs) -> None:
-		# args[0] = raycast_src
-		self.data['raycast_src'] = args[0]
+		# args[0] = history_src
+		# args[1] = raycast_src
+		self.data['history_src'] = args[0]
+		self.data['raycast_src'] = args[1]
 
 	def setCurrentDatetime(self, dt:dt.datetime) -> None:
 		self.data['curr_datetime'] = dt
@@ -682,19 +697,13 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 
 		if self.isStale() and self.isActive():
 			T = np.eye(4)
-			if quat is not None:
-				rotation = Rotation.from_quat(quat) * Rotation.from_quat(self.data['bf_quat'])
-				rot_mat = rotation.as_matrix()
-				as_quat = rotation.as_quat()
-			elif rotation is not None:
-				# bf_quat -> bodyframe to cam quaternion
-				rotation = Rotation.from_matrix(rotation) * Rotation.from_quat(self.data['bf_quat'])
-				rot_mat = rotation.as_matrix()
-				as_quat = rotation.as_quat()
-			else:
-				rot_mat = np.eye(3)
-				as_quat = (1,0,0,0)
-			self.data['curr_quat'] = as_quat
+			rot_mat = self.data['history_src'].getSCAttitude(self.data['sc_id']).getSensorAttitudeMatrix(self.data['parent_suite_name'],
+																												self.data['name'],
+																												self.data['curr_index'])
+			pos = self.data['history_src'].getOrbits()[self.data['sc_id']].pos[self.data['curr_index']]
+			self.data['curr_quat'] = self.data['history_src'].getSCAttitude(self.data['sc_id']).getSensorAttitudeQuat(self.data['parent_suite_name'],
+																												self.data['name'],
+																												self.data['curr_index'])
 			T[0:3,0:3] = rot_mat
 			T[0:3,3] = np.asarray(pos).reshape(-1,3)
 

@@ -93,7 +93,6 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 		if not pointing_active_changed and not config_changed:
 			# config has not changed -> don't need to re-instantiate sensors
 			logger.info('Spacecraft pointing related config has not changed')
-			config_changed = False
 			return
 
 		# remove old sensors if there were some, but aren't now
@@ -131,7 +130,6 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 			self._setSensorAssetSources()
 
 	def _removeSensorAssets(self, old_suite_names:list[str]) -> None:
-		print(f"Removing sensor assets for {self.data['name']}")
 		self._removeOldSensorSuitePlotOptions(old_suite_names)
 		for suite_name in old_suite_names:
 				self.assets[f'sensor_suite_{suite_name}'].removePlotOptions()
@@ -140,7 +138,7 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 
 	def _instantiateSensorAssets(self) -> None:
 		for suite_name, suite_config in self.data['sc_config'].getSensorSuites().items():
-			logger.debug(f'Creating sensor suite sensor_suite_{suite_name}')
+			logger.info(f'Creating sensor suite sensor_suite_{suite_name}')
 			self.assets[f'sensor_suite_{suite_name}'] = sensors.SensorSuite3DAsset(self.data['sc_config'].id,
 																	suite_config,
 																	name=suite_name,
@@ -389,7 +387,6 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 		if not pointing_active_changed and not config_changed:
 			# config has not changed -> don't need to re-instantiate sensors
 			logger.debug('Spacecraft pointing related config has not changed')
-			config_changed = False
 			return
 
 		# remove old sensors if there were some
@@ -690,8 +687,13 @@ class SpacecraftViewsAsset(base_assets.AbstractAsset):
 		self.data['sens_suites'] = {}
 		self.data['curr_index'] = 2
 		self.data['sc_config'] = None
-		self.data['history'] = None
+		self.data['history_src'] = None
 		self.data['raycast_src'] = None
+
+		self.data['old_config_filestem'] = None
+		self.data['old_suite_names'] = []
+		self.data['old_sc_config'] = None
+		self.data['old_pointing_defined'] = False
 
 	def setSource(self, *args, **kwargs) -> None:
 		# args[0] spacecraft configuration
@@ -714,41 +716,44 @@ class SpacecraftViewsAsset(base_assets.AbstractAsset):
 			logger.error("setSource() of %s requires a %s as args[2], not: %s", self, earth_raycast_data.EarthRayCastData, type(args[2]))
 			raise TypeError(f"setSource() of {self} requires a {earth_raycast_data.EarthRayCastData} as args[2], not: {type(args[2])}")
 
-		# store old sensor configs
-		old_sc_config = self.data['sc_config']
-		if old_sc_config:
-			old_config_filestem = old_sc_config.filestem
-			old_suite_names = list(old_sc_config.getSensorSuites().keys())
-		else:
-			old_config_filestem = None
-			old_suite_names = []
-		if self.data['history']:
-			old_pointing_defined = self.data['history'].getConfigValue('is_pointing_defined')
-		else:
-			old_pointing_defined = False
-
 		# assign data sources
 		self.data['sc_config'] = args[0]
 		self.data['name'] = self.data['sc_config'].name
-		self.data['history'] = args[1]
+		self.data['history_src'] = args[1]
 		self.data['raycast_src'] = args[2]
 		self.data['strings'] = [self.data['sc_config'].name]
 
-		if old_pointing_defined and self.data['sc_config'] == old_sc_config:
+		config_changed = (self.data['sc_config'] != self.data['old_sc_config'])
+		pointing_active_changed = (self.data['history_src'].getConfigValue('is_pointing_defined') != self.data['old_pointing_defined'])
+		pointing_defined = self.data['history_src'].getConfigValue('is_pointing_defined')
+
+		if not pointing_active_changed and not config_changed:
 			# config has not changed -> don't need to re-instantiate sensors
 			logger.debug('Spacecraft pointing related config has not changed')
-			config_changed = False
 			return
 
 		# remove old sensors if there were some
-		if old_pointing_defined and old_sc_config != self.data['sc_config']:
+		if (not pointing_defined and pointing_active_changed) or (pointing_defined and config_changed):
 			# If pointing had previously been defined -> old sensors, options need to be removed
 			# if no pointing, no point having sensors
-			self._removeSensorAssets(old_suite_names)
+			self._removeSensorAssets(self.data['old_suite_names'])
 
-		if self.data['history'].getConfigValue('is_pointing_defined'):
+		if pointing_defined:
 			self._instantiateSensorAssets()
 			self._setSensorAssetSources()
+
+		# store values for next time source is set
+		self.data['old_sc_config'] = self.data['sc_config']
+		if self.data['old_sc_config']:
+			self.data['old_config_filestem'] = self.data['old_sc_config'].filestem
+			self.data['old_suite_names'] = list(self.data['old_sc_config'].getSensorSuites().keys())
+		else:
+			self.data['old_config_filestem'] = None
+			self.data['old_suite_names'] = []
+		if self.data['history_src']:
+			self.data['old_pointing_defined'] = self.data['history_src'].getConfigValue('is_pointing_defined')
+		else:
+			self.data['old_pointing_defined'] = False
 
 	def _instantiateAssets(self) -> None:
 		if self.data['sc_config'] is not None:
@@ -761,15 +766,16 @@ class SpacecraftViewsAsset(base_assets.AbstractAsset):
 			del(self.assets[f'sensor_suite_{suite_name}'])
 
 	def _instantiateSensorAssets(self) -> None:
-		for key, value in self.data['sc_config'].getSensorSuites().items():
-			logger.info(f'Creating sensor suite sensor_suite_{key}')
-			self.assets[f'sensor_suite_{key}'] = sensors.SensorSuiteImageAsset(value,
-																	name=key,
-													 				v_parent=self.data['v_parent'])
+		for suite_name, suite_config in self.data['sc_config'].getSensorSuites().items():
+			logger.info(f'Creating sensor suite sensor_suite_{suite_name}')
+			self.assets[f'sensor_suite_{suite_name}'] = sensors.SensorSuiteImageAsset(self.data['sc_config'].id,
+																				suite_config,
+																				name=suite_name,
+													 							v_parent=self.data['v_parent'])
 	def _setSensorAssetSources(self) -> None:
 		for asset_name, asset in self.assets.items():
 			if 'sensor_suite_' in asset_name:
-				asset.setSource(self.data['raycast_src'])
+				asset.setSource(self.data['history_src'], self.data['raycast_src'])
 
 	def _createVisuals(self) -> None:
 		pass
@@ -784,48 +790,21 @@ class SpacecraftViewsAsset(base_assets.AbstractAsset):
 		if self.isFirstDraw():
 			self._clearFirstDrawFlag()
 		if self.isStale():
-			if self.data['history'].getConfigValue('is_pointing_defined'):
-				pointing_data = self.data['history'].getSCAttitude(self.data['sc_config'].id).getAttitudeQuat()
-				orbit_data = self.data['history'].getOrbits()[self.data['sc_config'].id]
+			if self.data['history_src'].getConfigValue('is_pointing_defined'):
+				orbit_data = self.data['history_src'].getOrbits()[self.data['sc_config'].id]
+				self.data['curr_pos'] = orbit_data.pos[self.data['curr_index']].reshape(1,3)
 				# set gizmo and sensor orientations
-				#TODO: This check for last/next good pointing could be done better
-				if np.any(np.isnan(pointing_data[self.data['curr_index'],:])):
-					non_nan_found = False
-					# look forwards
-					for ii in range(self.data['curr_index'], len(pointing_data)):
-						if np.all(np.isnan(pointing_data[ii,:])==False):
-							non_nan_found = True
-							quat = pointing_data[ii,:].reshape(-1,4)
-							rotation = Rotation.from_quat(quat).as_matrix()
-							break
-						else:
-							rotation = np.eye(3)
-					if not non_nan_found:
-						# look backwards
-						for ii in range(self.data['curr_index'], -1, -1):
-							if np.all(np.isnan(pointing_data[ii,:])==False):
-								quat = pointing_data[ii,:].reshape(-1,4)
-								rotation = Rotation.from_quat(quat).as_matrix()
-								break
-							else:
-								rotation = np.eye(3)
-				else:
-					quat = pointing_data[self.data['curr_index']].reshape(-1,4)
-					if self.data['history'].getConfigValue('pointing_invert_transform'):
-						# Quat = ECI->BF
-						rotation = Rotation.from_quat(quat).as_matrix()
-					else:
-						# Quat = BF->ECI
-						rotation = Rotation.from_quat(quat).inv().as_matrix()
+				rot_mat = self.data['history_src'].getSCAttitude(self.data['sc_config'].id).getAttitudeMatrix(self.data['curr_index'])
+				quat = self.data['history_src'].getSCAttitude(self.data['sc_config'].id).getAttitudeQuat(self.data['curr_index'])
+
 				for asset_name, asset in self.assets.items():
 					if 'sensor_suite_' in asset_name:
-						asset.setCurrentDatetime(self.data['history'].timespan[self.data['curr_index']])
+						asset.setCurrentDatetime(self.data['history_src'].timespan[self.data['curr_index']])
 						asset.setCurrentSunECI(orbit_data.sun_pos[self.data['curr_index']])
 						asset.setCurrentMoonECI(orbit_data.moon_pos[self.data['curr_index']])
 				# recomputeRedraw child assets
-				self.data['curr_pos'] = orbit_data.pos[self.data['curr_index']].reshape(1,3)
 				self.data['curr_quat'] = quat
-				self._recomputeRedrawChildren(pos=orbit_data.pos[self.data['curr_index']].reshape(1,3), rotation=rotation)
+				self._recomputeRedrawChildren(pos=orbit_data.pos[self.data['curr_index']].reshape(1,3), rotation=rot_mat)
 			self._clearStaleFlag()
 
 	def getScreenMouseOverInfo(self) -> dict[str, Any]:
