@@ -2,7 +2,7 @@ import json
 import logging
 import numpy as np
 import time
-from typing import Any
+from typing import Any, cast
 
 from PyQt5 import QtGui, QtCore
 
@@ -11,13 +11,13 @@ from vispy import scene
 import vispy
 from vispy.app.canvas import MouseEvent
 from vispy.scene.cameras import PanZoomCamera
-
+from vispy.scene.widgets import grid as vispy_grid
 
 
 from satplot.model.data_models.history_data import (HistoryData)
 from satplot.model.data_models.earth_raycast_data import (EarthRayCastData)
 import satplot.model.geometry.primgeom as pg
-from satplot.model.data_models.data_types import PrimaryConfig
+from satplot.model.data_models.data_types import PrimaryConfig, SensorImgMetadata
 from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 import satplot.util.constants as c
 import satplot.util.exceptions as exceptions
@@ -45,28 +45,29 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 		self.canvas.events.mouse_move.connect(self.onMouseMove)
 		self.canvas.events.mouse_wheel.connect(self.onMouseScroll)
 		self.canvas.events.key_press.connect(self.on_key_press)
-		self.grid = self.canvas.central_widget.add_grid(spacing=0)
+
 		vb1 = scene.widgets.ViewBox(border_color='black', parent=self.canvas.scene)
 		vb2 = scene.widgets.ViewBox(border_color='black', parent=self.canvas.scene)
 		vb3 = scene.widgets.ViewBox(border_color='black', parent=self.canvas.scene)
 		vb4 = scene.widgets.ViewBox(border_color='black', parent=self.canvas.scene)
-		scenes = vb1.scene, vb2.scene, vb3.scene, vb4.scene
 		self.view_boxes = [vb1, vb2, vb3, vb4]
-		self.displayed_sensors = [None, None, None, None]
 
+		self.displayed_sensors:list[None|sensors.SensorImageAsset] = [None, None, None, None]
+
+		self.grid = self.canvas.central_widget.add_grid(spacing=0)
 		self.grid.add_widget(self.view_boxes[0],0,0)
 		self.grid.add_widget(self.view_boxes[1],0,1)
 		self.grid.add_widget(self.view_boxes[2],1,0)
 		self.grid.add_widget(self.view_boxes[3],1,1)
 
-		for ii in range(len(scenes)):
+		for ii in range(len(self.view_boxes)):
 			self.view_boxes[ii].camera = static2d.Static2D(parent=self.view_boxes[ii].scene)
 			self.view_boxes[ii].camera.aspect = 1
 			self.view_boxes[ii].camera.flip = (0,1,0)
 
 
 		self.data_models: dict[str,Any] = {}
-		self.assets = {}
+		self.assets:dict[str, spacecraft.SpacecraftViewsAsset] = {}
 		self._buildAssets()
 		self.mouseOverText = widgets.PopUpTextBox(v_parent=self.canvas.scene,
 											padding=[3,3,3,3],
@@ -98,7 +99,7 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 						lens_model=sensor_asset.data['lens_model'].__name__,
 						current_time=sensor_asset.data['curr_datetime'],
 						sensor_body_frame_quaternion = sensor_asset.data['bf_quat'],
-						spacecraft_quaaternion=sc_asset.data['curr_quat'].reshape(4,).tolist(),
+						spacecraft_quaternion=sc_asset.data['curr_quat'].reshape(4,).tolist(),
 						spacecraft_eci_position=sc_asset.data['curr_pos'].reshape(3,).tolist(),
 						sensor_eci_quaternion=sensor_asset.data['curr_quat'].reshape(4,).tolist(),
 						image_md5_hash=None)

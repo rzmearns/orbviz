@@ -545,7 +545,7 @@ class SensorSuiteImageAsset(base_assets.AbstractCompoundAsset):
 	def _createVisuals(self) -> None:
 		pass
 
-	def getSensorByKey(self, sens_key:str) -> Sensor3DAsset:
+	def getSensorByKey(self, sens_key:str) -> "SensorImageAsset":
 		# key = self.data['sens_suite_config'].getSensorNames()[sens_id]
 		return self.assets[sens_key]
 
