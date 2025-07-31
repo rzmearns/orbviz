@@ -36,9 +36,9 @@ class HistoryData(BaseDataModel):
 		self._setConfig('pointing_file', None)
 		self._setConfig('pointing_invert_transform', False)
 
-		self.timespan: timespan.Timespan | None = None
+		self.timespan: timespan.TimeSpan | None = None
 		self.orbits: dict[int, orbit.Orbit] = {}
-		self.pointings: dict[int, nptyping.NDArray[np.float64]] = {}
+		self.pointings: dict[int, HistoricalAttitude] = {}
 		self.constellation: constellation_data.ConstellationData | None = None
 		self.sun: nptyping.NDArray[np.float64] | None = None
 		self.moon: nptyping.NDArray[np.float64] | None = None
@@ -93,20 +93,25 @@ class HistoryData(BaseDataModel):
 			raise ValueError(f'History data:{self} has no orbits yet')
 		return self.orbits
 
-	def getPointings(self) -> dict[int, nptyping.NDArray[np.float64]]:
+	def getPointings(self) -> dict[int, "HistoricalAttitude"]:
 		if len(self.pointings.values()) == 0:
 			logger.warning(f'History data:{self} has no pointings yet')
 			raise ValueError(f'History data:{self} has no pointings yet')
 		return self.pointings
 
+	def getSCAttitude(self, sc_id:int) -> "HistoricalAttitude":
+		return self.pointings[sc_id]
+
 	def process(self) -> None:
 		# Load pointing and create timespan
 		if self.getConfigValue('is_pointing_defined'):
-			pointing_dates, pointing = self._loadPointingFile(self.getConfigValue('pointing_file'))
-			self.pointings[self.getConfigValue('primary_satellite_ids')[0]] = pointing
+			for sc_id, sc_config in self.getConfigValue('primary_satellite_config').getAllSpacecraftConfigs().items():
+				print(f'{sc_id=}')
+				self.pointings[sc_id] = HistoricalAttitude(self.getConfigValue('pointing_file'), sc_config)
 			if self.getConfigValue('pointing_defines_timespan'):
-				console.send(f"Loading timespan from pointing file.")
-				self.timespan = timespan.TimeSpan.fromDatetime(pointing_dates)
+				console.send("Loading timespan from pointing file.")
+				_timearr = self.pointings[self.getConfigValue('primary_satellite_ids')[0]].getPointingTimestamps()
+				self.timespan = timespan.TimeSpan.fromDatetime(_timearr)
 				logger.info(f'Generating timespan from pointing file timestamps for: {self}')
 			else:
 				self.timespan = None
@@ -169,16 +174,6 @@ class HistoryData(BaseDataModel):
 					return
 		self.data_ready.emit()
 
-	def _loadPointingFile(self, p_file: pathlib.Path) -> tuple[nptyping.NDArray, nptyping.NDArray]:
-		pointing_q = np.array(())
-		pointing_w = np.genfromtxt(p_file, delimiter=',', usecols=[1], skip_header=1).reshape(-1,1)
-		pointing_x = np.genfromtxt(p_file, delimiter=',', usecols=[2], skip_header=1).reshape(-1,1)
-		pointing_y = np.genfromtxt(p_file, delimiter=',', usecols=[3], skip_header=1).reshape(-1,1)
-		pointing_z = np.genfromtxt(p_file, delimiter=',', usecols=[4], skip_header=1).reshape(-1,1)
-		pointing_q = np.hstack((pointing_x,pointing_y,pointing_z,pointing_w))
-		pointing_dates = np.genfromtxt(p_file, delimiter=',', usecols=[0],skip_header=1, converters={0:date_parser})
-
-		return pointing_dates, pointing_q
 
 	def _propagatePrimaryOrbits(self, timespan:timespan.TimeSpan, sat_ids:list[int], running:threading.Flag) -> dict[int, orbit.Orbit]:
 		updated_list = updater.updateTLEs(sat_ids)
@@ -307,3 +302,25 @@ def date_parser(d_bytes) -> dt.datetime:
 	d = dt.datetime.strptime(s,"%Y-%m-%d %H:%M:%S.%f")
 	d = d.replace(tzinfo=dt.timezone.utc)
 	return d.replace(microsecond=0)
+
+
+class HistoricalAttitude:
+	def __init__(self, p_file: pathlib.Path, sc_config:data_types.SpacecraftConfig):
+		self._timestamps, self._sc_quats = self._loadPointingFile(p_file)
+
+	def getPointingTimestamps(self) -> np.ndarray[tuple[int], np.dtype[np.datetime64]]:
+		return self._timestamps
+
+	def _loadPointingFile(self, p_file: pathlib.Path) -> tuple[nptyping.NDArray, nptyping.NDArray]:
+		pointing_q = np.array(())
+		pointing_w = np.genfromtxt(p_file, delimiter=',', usecols=[1], skip_header=1).reshape(-1,1)
+		pointing_x = np.genfromtxt(p_file, delimiter=',', usecols=[2], skip_header=1).reshape(-1,1)
+		pointing_y = np.genfromtxt(p_file, delimiter=',', usecols=[3], skip_header=1).reshape(-1,1)
+		pointing_z = np.genfromtxt(p_file, delimiter=',', usecols=[4], skip_header=1).reshape(-1,1)
+		pointing_q = np.hstack((pointing_x,pointing_y,pointing_z,pointing_w))
+		pointing_dates = np.genfromtxt(p_file, delimiter=',', usecols=[0],skip_header=1, converters={0:date_parser})
+
+		return pointing_dates, pointing_q
+
+	def getAttitudeQuats(self):
+		return self._sc_quats

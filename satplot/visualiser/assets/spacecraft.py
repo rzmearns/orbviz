@@ -80,8 +80,7 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 			self.data['strings'] = ['']
 
 		if self.data['pointing_defined']:
-			pointings_dict = args[1]
-			first_sat_pointings = list(pointings_dict.values())[0]
+			first_sat_pointings = args[1]
 			invert_transform = args[2]
 			if type(first_sat_pointings) is not np.ndarray:
 				logger.error("setSource() of %s requires an %s as value of dict from args[1], not: %s", self, np.ndarray, type(first_sat_pointings))
@@ -503,7 +502,7 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 		if self.isStale():
 			self._updateMarkers()
 			if self.data['history_src'].getConfigValue('is_pointing_defined'):
-				pointing_data = self.data['history_src'].getPointings()[self.data['sc_config'].id]
+				pointing_data = self.data['history_src'].getSCAttitude(self.data['sc_config'].id).getAttitudeQuats()
 				orbit_data = self.data['history_src'].getOrbits()[self.data['sc_config'].id]
 				# set gizmo and sensor orientations
 				#TODO: This check for last/next good pointing could be done better
@@ -829,7 +828,7 @@ class SpacecraftViewsAsset(base_assets.AbstractAsset):
 			self._clearFirstDrawFlag()
 		if self.isStale():
 			if self.data['history'].getConfigValue('is_pointing_defined'):
-				pointing_data = self.data['history'].getPointings()[self.data['sc_config'].id]
+				pointing_data = self.data['history'].getSCAttitude(self.data['sc_config'].id).getAttitudeQuats()
 				orbit_data = self.data['history'].getOrbits()[self.data['sc_config'].id]
 				# set gizmo and sensor orientations
 				#TODO: This check for last/next good pointing could be done better
