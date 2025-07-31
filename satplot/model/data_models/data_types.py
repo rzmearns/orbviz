@@ -188,7 +188,7 @@ class SpacecraftConfig():
 		return True
 
 class PrimaryConfig():
-	def __init__(self, filestem:str, name:str, satellites:dict[int, str], sat_configs:dict[str, SpacecraftConfig]):
+	def __init__(self, filestem:str, name:str, satellites:dict[int, str], sat_configs:dict[int, SpacecraftConfig]):
 		self.filestem:str = filestem
 		self.name:str = name
 		self.sats:dict[int,str] = satellites
@@ -223,11 +223,11 @@ class PrimaryConfig():
 		sat_configs = {}
 		for k,v in data['satellites'].items():
 			if 'sensor_suites' in v.keys():
-				sat_configs[k] = SpacecraftConfig(p.stem, k, v['id'], v['sensor_suites'])
+				sat_configs[v['id']] = SpacecraftConfig(p.stem, k, v['id'], v['sensor_suites'])
 			else:
-				logger.debug(f'Spacecraft definition has no sensor suites field.')
-				console.send(f'Spacecraft definition has no sensor suites field.')
-				sat_configs[k] = SpacecraftConfig(p.stem, k, v['id'], {})
+				logger.debug('Spacecraft definition has no sensor suites field.')
+				console.send('Spacecraft definition has no sensor suites field.')
+				sat_configs[v['id']] = SpacecraftConfig(p.stem, k, v['id'], {})
 
 		return cls(p.stem, data['name'], sats, sat_configs)
 
