@@ -122,22 +122,9 @@ class History3DCanvasWrapper(BaseCanvas):
 			self.assets['primary_orbit'].makeActive()
 
 		if self.data_models['history'].hasOrbits():
-			if self.data_models['history'].getConfigValue('is_pointing_defined'):
-				self.assets['spacecraft'].setSource(self.data_models['history'].getOrbits(),
-													list(self.data_models['history'].getPointings().values())[0].getAttitudeQuats(),
-													self.data_models['history'].getConfigValue('pointing_invert_transform'),
-													list(self.data_models['history'].getPrimaryConfig().getAllSpacecraftConfigs().values())[0])
-				self.assets['spacecraft'].makeActive()
-				self.assets['spacecraft'].setOrbitalMarkerVisibility(False)
-				self.assets['spacecraft'].setAttitudeAssetsVisibility(True)
-			else:
-				self.assets['spacecraft'].setSource(self.data_models['history'].getOrbits(),
-													None,
-													None,
-													list(self.data_models['history'].getPrimaryConfig().getAllSpacecraftConfigs().values())[0])
-				self.assets['spacecraft'].makeActive()
-				self.assets['spacecraft'].setOrbitalMarkerVisibility(True)
-				self.assets['spacecraft'].setAttitudeAssetsVisibility(False)
+			self.assets['spacecraft'].setSource(list(self.data_models['history'].getPrimaryConfig().getAllSpacecraftConfigs().values())[0],
+													self.data_models['history'])
+			self.assets['spacecraft'].makeActive()
 
 		if self.data_models['history'].getConfigValue('has_supplemental_constellation'):
 			self.assets['constellation'].setSource(self.data_models['history'].getConstellation().getOrbits(),
