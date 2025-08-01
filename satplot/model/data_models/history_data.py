@@ -374,7 +374,7 @@ class HistoricalAttitude:
 				rot_mat = np.eye(3)
 			self._cached_sc_idx[cache_key] = True
 			self._attitude_matrix_cache[cache_key,:,:] = rot_mat
-			cast(np.ndarray[tuple[int,int], np.dtype[np.float64]],rot_mat)
+			cast("np.ndarray[tuple[int,int], np.dtype[np.float64]]",rot_mat)
 			return rot_mat
 
 	def getSensorAttitudeQuat(self, suite_name:str, sens_name:str, *args:int) -> np.ndarray[tuple[int],np.dtype[np.float64]]|np.ndarray[tuple[int,int],np.dtype[np.float64]]:
