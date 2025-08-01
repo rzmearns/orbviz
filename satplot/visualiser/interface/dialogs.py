@@ -416,13 +416,13 @@ class fullResSensorImageDialog():
 	def onMouseScroll(self, event:QtGui.QMouseEvent) -> None:
 		pass
 
-	def _saveFileDialog(self, caption: str, dir:pathlib.Path, dflt_filename:str|None) -> pathlib.Path:
+	def _saveFileDialog(self, caption: str, dflt_dir:pathlib.Path, dflt_filename:str|None) -> pathlib.Path:
 		if dflt_filename is None:
 			dflt_filename = ''
 		options = QtWidgets.QFileDialog.Options()
 		options |= QtWidgets.QFileDialog.DontUseNativeDialog
 		filename, _ = QtWidgets.QFileDialog.getSaveFileName(None,
 															caption,
-															f'{dir}/{dflt_filename}',
+															f'{dflt_dir}/{dflt_filename}',
 															options=options)
 		return pathlib.Path(filename)
