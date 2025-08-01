@@ -97,8 +97,8 @@ class SensorSuiteConfig():
 			tuple[float]: self._decodeTupleFloat
 		}.get(x,self._decodeAny)
 
-	def _decodeAny(self, input):
-		return input
+	def _decodeAny(self, input_value):
+		return input_value
 
 	def _decodeTupleInt(self, input_str:str) -> tuple:
 		t = [int(x) for x in input_str.replace('(','').replace(')','').split(',')]
@@ -122,12 +122,12 @@ class SensorSuiteConfig():
 
 	def getSensorDisplayConfig(self, sensor_name) -> dict[str,str]:
 		sens_config = self.getSensorConfig(sensor_name)
-		type = sens_config['shape']
-		if type == SensorTypes.CONE:
+		sens_type = sens_config['shape']
+		if sens_type == SensorTypes.CONE:
 			return {'type':str(sens_config['shape']),
 					'fov':str(sens_config['fov']),
 					'range':str(sens_config['range'])}
-		elif type == SensorTypes.FPA:
+		elif sens_type == SensorTypes.FPA:
 			return 	{'type':str(sens_config['shape']),
 					'fov':str(sens_config['fov']),
 					'resolution':str(sens_config['resolution']),
@@ -147,13 +147,13 @@ class SensorSuiteConfig():
 		return True
 
 	@classmethod
-	def getSensorTypeConfigFields(cls, type:SensorTypes) -> dict[str,type]:
-		if type == SensorTypes.CONE:
+	def getSensorTypeConfigFields(cls, sens_type:SensorTypes) -> dict[str,type]:
+		if sens_type == SensorTypes.CONE:
 			return {'fov':int,
 					'range':int,
 					'colour':tuple[int],
 					'bf_quat':tuple[float]}
-		elif type == SensorTypes.FPA:
+		elif sens_type == SensorTypes.FPA:
 			return 	{'fov':tuple[float],
 					'resolution':tuple[int],
 					'range':int,
@@ -239,11 +239,11 @@ class PrimaryConfig():
 	def getSatIDs(self) -> list[int]:
 		return list(self.sats.keys())
 
-	def getSatName(self, id:int) -> str:
-		return self.sats[id]
+	def getSatName(self, idx:int) -> str:
+		return self.sats[idx]
 
-	def getSpacecraftConfig(self, id:int) -> SpacecraftConfig:
-		return self.sat_configs[self.getSatName(id)]
+	def getSpacecraftConfig(self, idx:int) -> SpacecraftConfig:
+		return self.sat_configs[self.getSatName(idx)]
 
 	def getAllSpacecraftConfigs(self):
 		return self.sat_configs
