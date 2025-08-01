@@ -242,7 +242,7 @@ def rotMat2xy(normal:nptyping.NDArray) -> nptyping.NDArray:
 
 	'''
 
-#TODO Need to look at this to see what it is really doing
+# TODO: Need to look at this to see what it is really doing
 
 	T_xz=np.eye(4)
 	u=normal[0]

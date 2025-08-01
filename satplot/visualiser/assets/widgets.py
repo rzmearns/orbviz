@@ -122,7 +122,7 @@ class PopUpTextBox():
 			text = text.decode('utf-8')
 		# Need to store the original viewport, because the font[char] will
 		# trigger SDF rendering, which changes our viewport
-		# todo: get rid of call to glGetParameter!
+		# TODO: get rid of call to glGetParameter!
 
 		# Also analyse chars with large ascender and descender, otherwise the
 		# vertical alignment can be very inconsistent
