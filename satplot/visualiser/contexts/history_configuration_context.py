@@ -67,6 +67,7 @@ class HistoryConfigurationContext(BaseContext):
 			raise AttributeError(f'Context History3D: {self} does not have a data model.')
 		self.data['history'].data_ready.connect(self._updateDataSources)
 		self.data['history'].data_ready.connect(self._updateControls)
+		self.data['history'].data_err.connect(self._resetControls)
 		self.controls.time_slider.add_connect(self._updateDisplayedIndex)
 
 	def _configureData(self) -> None:
@@ -135,6 +136,9 @@ class HistoryConfigurationContext(BaseContext):
 		self.controls.time_slider._curr_dt_picker.setDatetime(self.data['history'].getTimespan().start)
 		self.controls.submit_button.setEnabled(True)
 		self.controls.time_slider.setValue(int(self.controls.time_slider.num_ticks/2))
+
+	def _resetControls(self) -> None:
+		self.controls.submit_button.setEnabled(True)
 
 	def _updateDataSources(self) -> None:
 		pass
