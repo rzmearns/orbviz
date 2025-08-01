@@ -13,7 +13,7 @@ from PyQt5 import QtCore, QtWidgets
 
 from vispy.gloo.util import _screenshot
 
-import satplot.util.paths as paths
+import satplot.util.paths as satplot_paths
 import satplot.visualiser.interface.console as console
 
 
@@ -124,9 +124,9 @@ class BaseControls:
 
 
 	def _buildActionDict(self) -> None:
-		with open(f'resources/actions/all.json','r') as fp:
+		with satplot_paths.actions_dir.joinpath('all.json').open('r') as fp:
 			all_action_dict = json.load(fp)
-		with open(f'resources/actions/{self.context_name}.json','r') as fp:
+		with satplot_paths.actions_dir.joinpath(f'{self.context_name}.json').open('r') as fp:
 			context_action_dict = json.load(fp)
 		self.action_dict = {**all_action_dict, **context_action_dict}
 
