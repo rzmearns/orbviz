@@ -1,10 +1,12 @@
 import datetime as dt
 import logging
+from urllib import request
 import numpy as np
 from numpy import typing as nptyping
 import pathlib
 from progressbar import progressbar
-from typing import Any
+from typing import Any, cast
+from scipy.spatial.transform import Rotation
 
 import satplot
 from satplot.model.data_models.base_models import (BaseDataModel)
@@ -36,9 +38,9 @@ class HistoryData(BaseDataModel):
 		self._setConfig('pointing_file', None)
 		self._setConfig('pointing_invert_transform', False)
 
-		self.timespan: timespan.Timespan | None = None
+		self.timespan: timespan.TimeSpan | None = None
 		self.orbits: dict[int, orbit.Orbit] = {}
-		self.pointings: dict[int, nptyping.NDArray[np.float64]] = {}
+		self.pointings: dict[int, HistoricalAttitude] = {}
 		self.constellation: constellation_data.ConstellationData | None = None
 		self.sun: nptyping.NDArray[np.float64] | None = None
 		self.moon: nptyping.NDArray[np.float64] | None = None
@@ -93,20 +95,25 @@ class HistoryData(BaseDataModel):
 			raise ValueError(f'History data:{self} has no orbits yet')
 		return self.orbits
 
-	def getPointings(self) -> dict[int, nptyping.NDArray[np.float64]]:
+	def getPointings(self) -> dict[int, "HistoricalAttitude"]:
 		if len(self.pointings.values()) == 0:
 			logger.warning(f'History data:{self} has no pointings yet')
 			raise ValueError(f'History data:{self} has no pointings yet')
 		return self.pointings
 
+	def getSCAttitude(self, sc_id:int) -> "HistoricalAttitude":
+		return self.pointings[sc_id]
+
 	def process(self) -> None:
 		# Load pointing and create timespan
 		if self.getConfigValue('is_pointing_defined'):
-			pointing_dates, pointing = self._loadPointingFile(self.getConfigValue('pointing_file'))
-			self.pointings[self.getConfigValue('primary_satellite_ids')[0]] = pointing
+			for sc_id, sc_config in self.getConfigValue('primary_satellite_config').getAllSpacecraftConfigs().items():
+				print(f'{sc_id=}')
+				self.pointings[sc_id] = HistoricalAttitude(self.getConfigValue('pointing_file'), sc_config)
 			if self.getConfigValue('pointing_defines_timespan'):
-				console.send(f"Loading timespan from pointing file.")
-				self.timespan = timespan.TimeSpan.fromDatetime(pointing_dates)
+				console.send("Loading timespan from pointing file.")
+				_timearr = self.pointings[self.getConfigValue('primary_satellite_ids')[0]].getPointingTimestamps()
+				self.timespan = timespan.TimeSpan.fromDatetime(_timearr)
 				logger.info(f'Generating timespan from pointing file timestamps for: {self}')
 			else:
 				self.timespan = None
@@ -169,16 +176,6 @@ class HistoryData(BaseDataModel):
 					return
 		self.data_ready.emit()
 
-	def _loadPointingFile(self, p_file: pathlib.Path) -> tuple[nptyping.NDArray, nptyping.NDArray]:
-		pointing_q = np.array(())
-		pointing_w = np.genfromtxt(p_file, delimiter=',', usecols=[1], skip_header=1).reshape(-1,1)
-		pointing_x = np.genfromtxt(p_file, delimiter=',', usecols=[2], skip_header=1).reshape(-1,1)
-		pointing_y = np.genfromtxt(p_file, delimiter=',', usecols=[3], skip_header=1).reshape(-1,1)
-		pointing_z = np.genfromtxt(p_file, delimiter=',', usecols=[4], skip_header=1).reshape(-1,1)
-		pointing_q = np.hstack((pointing_x,pointing_y,pointing_z,pointing_w))
-		pointing_dates = np.genfromtxt(p_file, delimiter=',', usecols=[0],skip_header=1, converters={0:date_parser})
-
-		return pointing_dates, pointing_q
 
 	def _propagatePrimaryOrbits(self, timespan:timespan.TimeSpan, sat_ids:list[int], running:threading.Flag) -> dict[int, orbit.Orbit]:
 		updated_list = updater.updateTLEs(sat_ids)
@@ -307,3 +304,123 @@ def date_parser(d_bytes) -> dt.datetime:
 	d = dt.datetime.strptime(s,"%Y-%m-%d %H:%M:%S.%f")
 	d = d.replace(tzinfo=dt.timezone.utc)
 	return d.replace(microsecond=0)
+
+
+class HistoricalAttitude:
+	def __init__(self, p_file: pathlib.Path, sc_config:data_types.SpacecraftConfig, quat_defn_direction:str='eci2bf'):
+		self.sc_config = sc_config
+		self._timestamps, self._sc_raw_quats = self._loadPointingFile(p_file)
+		num_samples = len(self._timestamps)
+		self._attitude_quats:np.ndarray[tuple[int,int],np.dtype[np.float64]] = np.zeros(self._sc_raw_quats.shape, dtype=np.float64)
+		self._sens_attitude_quats:dict[tuple[str,str],np.ndarray[tuple[int,int],np.dtype[np.float64]]] = {}
+
+		self._cached_sc_idx = np.full((num_samples),False)
+		self._attitude_matrix_cache:np.ndarray[tuple[int,int,int],np.dtype[np.float64]] = np.zeros((num_samples,3,3), dtype=np.float64)
+		self._cached_sens_idx:dict[tuple[str,str], np.ndarray[tuple[int],np.dtype[np.bool_]]] = {}
+		self._sens_attitude_matrix_cache:dict[tuple[str,str], np.ndarray[tuple[int,int],np.dtype[np.float64]]] = {}
+
+		# TODO: set standard transform direction as eci2bf
+		if quat_defn_direction == 'eci2bf':
+			self._invert_transform = True
+			self._attitude_quats = self._sc_raw_quats
+		elif quat_defn_direction == 'bf2eci':
+			self._invert_transform = False
+			self._attitude_quats = self._sc_raw_quats
+			self._attitude_quats[:,3] *= -1
+
+		for suite_name, suite_config in sc_config.getSensorSuites().items():
+			for sens_name in suite_config.getSensorNames():
+				sens_bf_quat = suite_config.getSensorBodyQuat(sens_name)
+				sens_key = (suite_name, sens_name)
+				self._sens_attitude_quats[sens_key] = self._quatArrMult(self._attitude_quats, np.tile(sens_bf_quat,(num_samples,1)))
+				self._cached_sens_idx[sens_key] = np.full((num_samples),False)
+				self._sens_attitude_matrix_cache[sens_key] = np.zeros((num_samples,3,3), dtype=np.float64)
+
+
+	def getPointingTimestamps(self) -> np.ndarray[tuple[int], np.dtype[np.datetime64]]:
+		return self._timestamps
+
+	def _loadPointingFile(self, p_file: pathlib.Path) -> tuple[np.ndarray[tuple[int], np.dtype[np.datetime64]], np.ndarray[tuple[int,int],np.dtype[np.float64]]]:
+		pointing_q = np.array(())
+		pointing_w = np.genfromtxt(p_file, delimiter=',', usecols=[1], skip_header=1).reshape(-1,1)
+		pointing_x = np.genfromtxt(p_file, delimiter=',', usecols=[2], skip_header=1).reshape(-1,1)
+		pointing_y = np.genfromtxt(p_file, delimiter=',', usecols=[3], skip_header=1).reshape(-1,1)
+		pointing_z = np.genfromtxt(p_file, delimiter=',', usecols=[4], skip_header=1).reshape(-1,1)
+		pointing_q = np.hstack((pointing_x,pointing_y,pointing_z,pointing_w))
+		pointing_dates = np.genfromtxt(p_file, delimiter=',', usecols=[0],skip_header=1, converters={0:date_parser})
+
+		return pointing_dates, pointing_q
+
+	def isAttitudeValid(self, idx:int) -> bool:
+		if np.any(np.isnan(self._attitude_quats[idx,:])):
+			return False
+		return True
+
+	def getAttitudeQuat(self, *args:int) -> np.ndarray[tuple[int],np.dtype[np.float64]]|np.ndarray[tuple[int,int],np.dtype[np.float64]]:
+		if len(args) > 0:
+			return self._attitude_quats[args[0],:]
+		return self._attitude_quats
+
+	def getAttitudeMatrix(self, idx:int) -> np.ndarray[tuple[int,int],np.dtype[np.float64]]:
+		cache_key = idx
+		if self._cached_sc_idx[cache_key]:
+			return self._attitude_matrix_cache[cache_key,:,:]
+		else:
+			if self.isAttitudeValid(idx):
+				rot_mat = Rotation.from_quat(self._attitude_quats[idx,:]).as_matrix()
+			else:
+				rot_mat = np.eye(3)
+			self._cached_sc_idx[cache_key] = True
+			self._attitude_matrix_cache[cache_key,:,:] = rot_mat
+			cast(np.ndarray[tuple[int,int], np.dtype[np.float64]],rot_mat)
+			return rot_mat
+
+	def getSensorAttitudeQuat(self, suite_name:str, sens_name:str, *args:int) -> np.ndarray[tuple[int],np.dtype[np.float64]]|np.ndarray[tuple[int,int],np.dtype[np.float64]]:
+		if len(args) > 0:
+			return self._sens_attitude_quats[(suite_name,sens_name)][args[0],:]
+		return self._sens_attitude_quats[(suite_name,sens_name)]
+
+	def getSensorAttitudeMatrix(self, suite_name:str, sens_name:str, idx:int) -> np.ndarray[tuple[int],np.dtype[np.float64]]|np.ndarray[tuple[int,int],np.dtype[np.float64]]:
+		sens_key = (suite_name, sens_name)
+		cache_key = idx
+		if self._cached_sens_idx[sens_key][cache_key]:
+			return self._sens_attitude_matrix_cache[sens_key][cache_key,:,:]
+		else:
+			rot_mat = Rotation.from_quat(self._sens_attitude_quats[sens_key][idx,:]).as_matrix()
+			self._cached_sens_idx[sens_key][idx] = True
+			self._sens_attitude_matrix_cache[sens_key][cache_key,:,:] = rot_mat
+			return rot_mat
+
+	def _quatMult(self, q1,q2):
+		"""Multiples two quaternions
+
+		Multiplies two quaternions, R and S
+		All quaternions need to be supplied in (x,y,z,w)
+
+		#T = R*S
+		#Tw = (Rw*Sw − Rx*Sx − Ry*Sy − Rz*Sz)
+		#Tx = (Rw*Sx + Rx*Sw − Ry*Sz + Rz*Sy)
+		#Ty = (Rw*Sy + Rx*Sz + Ry*Sw − Rz*Sx)
+		#Tz = (Rw*Sz − Rx*Sy + Ry*Sx + Rz*Sw)
+
+		Args:
+			q1 (ndarray(4,)):
+			q2 (ndarray(4,)):
+
+		Returns:
+			ndarray(4,): resulting quaternion
+		"""
+
+		w = q1[3]*q2[3]-q1[0]*q2[0]-q1[1]*q2[1]-q1[2]*q2[2]
+		x = q1[3]*q2[0]+q1[0]*q2[3]+q1[1]*q2[2]-q1[2]*q2[1]
+		y = q1[3]*q2[1]-q1[0]*q2[2]+q1[1]*q2[3]+q1[2]*q2[0]
+		z = q1[3]*q2[2]+q1[0]*q2[1]-q1[1]*q2[0]+q1[2]*q2[3]
+		return np.array((x,y,z,w))
+
+	def _quatArrMult(self, q1_arr, q2_arr):
+		res_q_arr = np.zeros((len(q1_arr),4))
+		res_q_arr[:,3] = q1_arr[:,3]*q2_arr[:,3]-q1_arr[:,0]*q2_arr[:,0]-q1_arr[:,1]*q2_arr[:,1]-q1_arr[:,2]*q2_arr[:,2]
+		res_q_arr[:,0] = q1_arr[:,3]*q2_arr[:,0]+q1_arr[:,0]*q2_arr[:,3]+q1_arr[:,1]*q2_arr[:,2]-q1_arr[:,2]*q2_arr[:,1]
+		res_q_arr[:,1] = q1_arr[:,3]*q2_arr[:,1]-q1_arr[:,0]*q2_arr[:,2]+q1_arr[:,1]*q2_arr[:,3]+q1_arr[:,2]*q2_arr[:,0]
+		res_q_arr[:,2] = q1_arr[:,3]*q2_arr[:,2]+q1_arr[:,0]*q2_arr[:,1]-q1_arr[:,1]*q2_arr[:,0]+q1_arr[:,2]*q2_arr[:,3]
+		return res_q_arr

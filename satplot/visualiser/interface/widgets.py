@@ -1778,9 +1778,9 @@ class PrimaryConfigDisplay(QtWidgets.QWidget):
 			self._satellites_table.setItem(ii, 0, QtWidgets.QTableWidgetItem(sat_name))
 			self._satellites_table.setItem(ii, 1, QtWidgets.QTableWidgetItem(str(sat_id)))
 
-		for sat_name, satellite in self.config.sat_configs.items():
+		for sat_id, satellite in self.config.sat_configs.items():
 			# For each satellite create collapsible section
-			sat_cs = CollapsibleSection(title=sat_name)
+			sat_cs = CollapsibleSection(title=satellite.name)
 			# self.pane_layout.addWidget(sat_cs, self.grid_row,0)
 			self.pane_layout.addWidget(sat_cs)
 			# self.grid_row+=1

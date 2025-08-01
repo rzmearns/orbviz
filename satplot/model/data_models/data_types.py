@@ -112,8 +112,11 @@ class SensorSuiteConfig():
 	def getNumSensors(self) -> int:
 		return len(self.sensors.keys())
 
-	def getSensorConfig(self, sensor_name) -> dict[str, Any]:
+	def getSensorConfig(self, sensor_name:str) -> dict[str, Any]:
 		return self.sensors[sensor_name]
+
+	def getSensorBodyQuat(self, sensor_name:str) -> tuple[float]:
+		return self.sensors[sensor_name]['bf_quat']
 
 	def getSensorDisplayConfig(self, sensor_name) -> dict[str,str]:
 		sens_config = self.getSensorConfig(sensor_name)
@@ -170,7 +173,7 @@ class SpacecraftConfig():
 	def getNumSuites(self) -> int:
 		return len(self.sensor_suites)
 
-	def getSensorSuites(self):
+	def getSensorSuites(self) -> dict[str, SensorSuiteConfig]:
 		return self.sensor_suites
 
 	def __eq__(self, other) -> bool:
@@ -188,7 +191,7 @@ class SpacecraftConfig():
 		return True
 
 class PrimaryConfig():
-	def __init__(self, filestem:str, name:str, satellites:dict[int, str], sat_configs:dict[str, SpacecraftConfig]):
+	def __init__(self, filestem:str, name:str, satellites:dict[int, str], sat_configs:dict[int, SpacecraftConfig]):
 		self.filestem:str = filestem
 		self.name:str = name
 		self.sats:dict[int,str] = satellites
@@ -223,11 +226,11 @@ class PrimaryConfig():
 		sat_configs = {}
 		for k,v in data['satellites'].items():
 			if 'sensor_suites' in v.keys():
-				sat_configs[k] = SpacecraftConfig(p.stem, k, v['id'], v['sensor_suites'])
+				sat_configs[v['id']] = SpacecraftConfig(p.stem, k, v['id'], v['sensor_suites'])
 			else:
-				logger.debug(f'Spacecraft definition has no sensor suites field.')
-				console.send(f'Spacecraft definition has no sensor suites field.')
-				sat_configs[k] = SpacecraftConfig(p.stem, k, v['id'], {})
+				logger.debug('Spacecraft definition has no sensor suites field.')
+				console.send('Spacecraft definition has no sensor suites field.')
+				sat_configs[v['id']] = SpacecraftConfig(p.stem, k, v['id'], {})
 
 		return cls(p.stem, data['name'], sats, sat_configs)
 
@@ -243,16 +246,17 @@ class PrimaryConfig():
 	def getAllSpacecraftConfigs(self):
 		return self.sat_configs
 
-	def serialiseAllSensors(self) -> dict:
+	def serialiseAllSensors(self) -> dict[int, tuple[str, dict]]:
 		sens_dict = {}
-		for sat_name, sat_config in self.sat_configs.items():
+		for sat_id, sat_config in self.sat_configs.items():
+			sat_name = self.sats[sat_id]
 			sat_suites = {}
 			for suite_name, suite in sat_config.sensor_suites.items():
 				sat_suites[suite_name] = {}
 				for sens_name, sens_config in suite.sensors.items():
 					sat_suites[suite_name][sens_name] = sens_config
 
-			sens_dict[sat_config.id] = (sat_name, sat_suites)
+			sens_dict[sat_id] = (sat_name, sat_suites)
 
 		return sens_dict
 

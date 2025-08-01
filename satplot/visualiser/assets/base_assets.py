@@ -186,6 +186,15 @@ class AbstractSimpleAsset(ABC):
 				asset.setTransform()'''
 		raise NotImplementedError
 
+	def updateIndex(self, index:int) -> None:
+		'''Update the stored curr_index value
+			Should include the following iteration in the overriding method
+			for asset in self.assets.values():
+				asset.updateIndex()
+			self.is_stale = True'''
+		self.data['curr_index'] = index
+		self.setStaleFlagRecursive()
+
 	def _listVisuals(self) -> tuple[list, list]:
 		keys = [key for key in self.visuals.keys()]
 		values = [key for key in self.visuals.values()]
@@ -421,6 +430,20 @@ class AbstractCompoundAsset(ABC):
 			for asset in self.assets.values():
 				asset.setTransform()'''
 		raise NotImplementedError
+
+	def updateIndex(self, index:int) -> None:
+		'''Update the stored curr_index value
+			Should include the following iteration in the overriding method
+			for asset in self.assets.values():
+				asset.updateIndex()
+			self.is_stale = True'''
+		self.data['curr_index'] = index
+		self.setStaleFlagRecursive()
+		self._updateIndexChildren(index)
+
+	def _updateIndexChildren(self, index:int) -> None:
+		for asset in self.assets.values():
+			asset.updateIndex(index)
 
 	def getScreenMouseOverInfo(self) -> dict[str,list]:
 		mo_info = {'screen_pos':[], 'world_pos':[], 'strings':[], 'objects':[]}
@@ -716,8 +739,7 @@ class AbstractAsset(ABC):
 
 	def _updateIndexChildren(self, index:int) -> None:
 		for asset in self.assets.values():
-			if isinstance(asset, AbstractAsset):
-				asset.updateIndex(index)
+			asset.updateIndex(index)
 
 	def getScreenMouseOverInfo(self) -> dict[str,list]:
 		mo_info = {'screen_pos':[], 'world_pos':[], 'strings':[], 'objects':[]}
