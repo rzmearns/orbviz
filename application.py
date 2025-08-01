@@ -143,11 +143,6 @@ def setDefaultPackageOptions() -> None:
 	satplot.debug = False
 	satplot.high_precision = False
 	PIL.Image.MAX_IMAGE_PIXELS = None
-	try:
-		with open('data/spacetrack/.credentials', 'rb') as fp:
-			satplot.spacetrack_credentials = pickle.load(fp)
-	except Exception:
-		satplot.spacetrack_credentials = {'user':None, 'passwd':None}
 
 if __name__ == '__main__':
 	setDefaultPackageOptions()

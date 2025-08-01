@@ -4,4 +4,3 @@ debug = False
 gl_plus = True
 high_precision = False
 threadpool = None
-spacetrack_credentials = {'user': None, 'passwd': None}

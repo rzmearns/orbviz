@@ -147,8 +147,7 @@ The time slider will activate once the orbits have finished propagating.
 ## Fetching TLE Data
 In order to calculate the position of a satellite at any given time, Satplot requires [TLE information](https://en.wikipedia.org/wiki/Two-line_element_set) for each satellite which is accurate for the given time period.  
 TLE data can be obtained from either [Celestrak](https://celestrak.org/) or [Spacetrack](https://www.space-track.org/). Celestrak holds only the most recent TLE data for each satellite, while Spacetrack will provide historical TLE data. Satplot will fall back to using Celestrak if it cannot authenticate access to Spacetrack.  
-In order to use Spacetrack, you must provide your [Spacetrack credentials](https://www.space-track.org/auth/createAccount) to satplot. These can be entered from a dialog, using either the ![image](resources/icons/spacetrak-unlock.png) icon or through the `Spacetrack > Enter Credentials` menu option.  
-*If the 'Save Credentials Locally' option is checked, satplot will store your credentials locally, as a binary pickle file, data/spacetrack/.credentials, this is not cryptographically secure* 
+In order to use Spacetrack, you must provide your [Spacetrack credentials](https://www.space-track.org/auth/createAccount) to satplot. These can be entered from a dialog, using either the ![image](resources/icons/spacetrak-unlock.png) icon or through the `Spacetrack > Enter Credentials` menu option. Spacetrack credentials are stored in the local keyring via the propagation and TLE fetcher wrapper package [Spherapy](https://gitlab.unimelb.edu.au/msl/libraries/spherapy)
 
 
 ## Contributing
