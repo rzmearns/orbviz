@@ -127,7 +127,7 @@ class HistoryConfigurationContext(BaseContext):
 			logger.warning("Error in configuring data for history configuration: %s", e)
 			console.sendErr(f"Error in configuring data for history configuration: {e}")
 			self.controls.submit_button.setEnabled(True)
-			raise e
+			raise
 
 	def _updateControls(self, *args, **kwargs) -> None:
 		self.controls.time_slider.setTimespan(self.data['history'].getTimespan())
