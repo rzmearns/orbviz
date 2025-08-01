@@ -4,7 +4,7 @@ import pathlib
 
 import typing
 
-satplot_dir = pathlib.Path(f'{os.path.dirname(os.path.abspath(__file__))}').parent.parent.resolve()
+satplot_dir = pathlib.Path(__file__).parent.parent.parent.resolve()
 resources_dir = satplot_dir.joinpath('resources')
 actions_dir = resources_dir.joinpath('actions')
 icons_dir = resources_dir.joinpath('icons')
