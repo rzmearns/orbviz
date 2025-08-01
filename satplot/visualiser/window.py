@@ -22,7 +22,7 @@ class MainWindow(QtWidgets.QMainWindow):
 		super().__init__(*args, **kwargs)
 		main_widget = QtWidgets.QWidget()
 		main_layout = QtWidgets.QVBoxLayout()
-		console_vsplitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
+		console_vsplitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical)
 		console_vsplitter.setObjectName('window_vsplitter')
 		console_vsplitter.setStyleSheet('''
 					QSplitter#window_vsplitter::handle {

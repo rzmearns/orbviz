@@ -495,7 +495,7 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 		self.visuals['oth_circle2'].set_gl_state('translucent', depth_test=False)
 
 
-	def getSensorSuiteByKey(self, sens_suite_key:str) -> sensors.SensorSuiteImageAsset:
+	def getSensorSuiteByKey(self, sens_suite_key:str) -> sensors.SensorSuite2DAsset:
 		# key = self.data['sc_config'].values()[sens_suite_id]
 		return self.assets[f'sensor_suite_{sens_suite_key}']
 

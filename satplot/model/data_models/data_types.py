@@ -1,8 +1,10 @@
+from dataclasses import dataclass
+import datetime as dt
 from enum import Enum
 import json
 import logging
 import pathlib
-from typing import Any
+from typing import Any, TypedDict
 
 import satplot.visualiser.assets.sensors as sensor_asset
 import satplot.visualiser.interface.console as console
@@ -268,3 +270,89 @@ class PrimaryConfig():
 
 		return True
 
+@dataclass
+class MetadataField:
+	value: Any
+	field_repr:str
+	unit:str|None
+
+class SensorImgMetadata:
+	def __init__(self,
+		spacecraft_id: int,
+		spacecraft_name: str,
+		sensor_suite_name: str,
+		sensor_name: str,
+		resolution: tuple[int,int],
+		fov: tuple[float,float],
+		lens_model: str,
+		current_time: dt.datetime,
+		sensor_body_frame_quaternion: tuple[float, float, float, float],
+		spacecraft_quaternion: tuple[float, float, float, float],
+		spacecraft_eci_position: tuple[float, float, float],
+		sensor_eci_quaternion: tuple[float, float, float, float],
+		image_md5_hash:str|None):
+
+		self._dct = {
+		'spacecraft_id': MetadataField(spacecraft_id, 'spacecraft id', None),
+		'spacecraft_name': MetadataField(spacecraft_name, 'spacecraft name', None),
+		'sensor_suite_name': MetadataField(sensor_suite_name, 'sensor suite name', None),
+		'sensor_name': MetadataField(sensor_name, 'sensor name', None),
+		'resolution': MetadataField(resolution, 'resolution', None),
+		'fov': MetadataField(fov, 'fov', None),
+		'lens_model': MetadataField(lens_model, 'lens model', None),
+		'current_time': MetadataField(current_time, 'current time', '[yyyy-mm-dd hh:mm:ss]'),
+		'sensor_body_frame_quaternion': MetadataField(sensor_body_frame_quaternion, 'sensor body frame quaternion', '[x,y,z,w]'),
+		'spacecraft_quaternion': MetadataField(spacecraft_quaternion, 'spacecraft quaternion', None),
+		'spacecraft_eci_position': MetadataField(sensor_eci_quaternion, 'sensor eci quaternion', '[x,y,z,w]'),
+		'sensor_eci_quaternion': MetadataField(spacecraft_eci_position, 'spacecraft eci position', '[km]'),
+		'image_md5_hash': MetadataField(image_md5_hash, 'image md5 hash', None),
+		}
+
+
+	def getSCName(self) -> str:
+		return self._dct['spacecraft_name'].value
+
+	def getSCID(self) -> int:
+		return self._dct['spacecraft_id'].value
+
+	def getSensSuiteName(self) -> str:
+		return self._dct['sensor_suite_name'].value
+
+	def getSensName(self) -> str:
+		return self._dct['sensor_name'].value
+
+	def getWidth(self) -> int:
+		return self._dct['resolution'].value[0]
+
+	def getHeight(self) -> int:
+		return self._dct['resolution'].value[1]
+
+	def getFoV(self) -> tuple[float, float]:
+		return self._dct['fov'].value
+
+	def getTime(self) -> dt.datetime:
+		return self._dct['current_time'].value
+
+	def getTimeStr(self) -> str:
+		return self.getTime().strftime('%Y-%m-%d %H:%M:%S')
+
+	def getLensModel(self) -> str:
+		return self._dct['lens_model'].value
+
+	def setHash(self, hash_str) -> None:
+		self._dct['image_md5_hash'].value = hash_str
+
+	def writeSensorImgMetadataToFile(self, file:pathlib.Path):
+		with file.open('w') as fp:
+			fp.write('{\n')
+			for field in self._dct.values():
+					if field.unit is None:
+						fp.write(f'{field.field_repr}:{field.value},\n')
+					else:
+						fp.write(f'{field.field_repr} {field.unit}:{field.value},\n')
+			fp.write('}')
+
+	def getFields(self) -> list[MetadataField]:
+		return list(self._dct.values())
+
+	# def asDict(self):

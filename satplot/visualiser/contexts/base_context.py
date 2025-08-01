@@ -113,7 +113,10 @@ class BaseControls:
 		self.state = {}
 		self.action_dict = {}
 		self.shortcuts:dict[str,QtWidgets.QShortcut] = {}
+		self.toolbar = None
+		self.menubar = None
 		self._buildActionDict()
+
 
 	def _buildActionDict(self) -> None:
 		with open(f'resources/actions/all.json','r') as fp:

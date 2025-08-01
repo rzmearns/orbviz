@@ -16,7 +16,7 @@ from vispy import scene
 from vispy.app.canvas import MouseEvent
 
 import satplot
-from satplot.model.data_models import datapane as datapane_model
+from satplot.model.data_models import data_types, datapane as datapane_model
 import satplot.util.hashing as satplot_hashing
 import satplot.util.paths as satplot_paths
 import satplot.visualiser.assets.widgets as vispy_widgets
@@ -104,7 +104,7 @@ class GIFDialog():
 		self.name_str = ' '.join(self.opening_context.config['name'].split('_')).capitalize()
 		self.fname_str = self.opening_context.config['name']
 		self.window.setWindowTitle(f'Save {self.name_str} GIF')
-		self.window.setWindowModality(QtCore.Qt.NonModal)
+		self.window.setWindowModality(QtCore.Qt.WindowModality.NonModal)
 
 		self._loop_option = widgets.ToggleBox("Loop GIF?", True)
 		self._file_selector = widgets.FilePicker("Save GIF as:",
@@ -267,16 +267,15 @@ class fullResSensorImageDialog():
 	MOUSEOVER_DIST_THRESHOLD = 5
 	last_mevnt_time = time.monotonic()
 	mouse_over_is_highlighting = False
-	def __init__(self, img_data, mo_data, moConverterFunction, img_metadata):
-		sc_name = img_metadata['spacecraft name']
-		sens_suite_name = img_metadata['sensor suite name']
-		sens_name = img_metadata['sensor name']
-		width = img_metadata['resolution'][0]
-		height = img_metadata['resolution'][1]
-		datetime = img_metadata['current time [yyyy-mm-dd hh:mm:ss]']
-		img_metadata['current time [yyyy-mm-dd hh:mm:ss]'] = datetime.strftime('%Y-%m-%d %H:%M:%S')
+	def __init__(self, img_data, mo_data, moConverterFunction, img_metadata:data_types.SensorImgMetadata):
+		sc_name = img_metadata.getSCName()
+		sens_suite_name = img_metadata.getSensSuiteName()
+		sens_name = img_metadata.getSensName()
+		width = img_metadata.getWidth()
+		height = img_metadata.getHeight()
+		datetime_str = img_metadata.getTimeStr()
 
-		self.filename = f"{sc_name}-{sens_suite_name}-{sens_name}-{datetime.strftime('%Y%m%d-%H%M%S')}.bmp"
+		self.filename = f"{sc_name}-{sens_suite_name}-{sens_name}-{datetime_str}.bmp"
 		self.window = QtWidgets.QDialog()
 		self.window.setWindowTitle(f'Sensor Image - {sc_name}:{sens_suite_name} - {sens_name}')
 		vlayout = QtWidgets.QVBoxLayout()
@@ -366,10 +365,9 @@ class fullResSensorImageDialog():
 			im = Image.fromarray(int_img_data)
 			im.save(self.save_file)
 
-			self.img_metadata['image md5 hash'] = satplot_hashing.md5(self.save_file)
+			self.img_metadata.setHash(satplot_hashing.md5(self.save_file))
 			metadata_file = self.save_file.with_suffix('.md')
-			with open(metadata_file,'w') as fp:
-				json.dump(self.img_metadata,fp,indent=4)
+			self.img_metadata.writeSensorImgMetadataToFile(metadata_file)
 			console.send(f'Saved sensor image as {save_file}')
 			console.send(f'Saved sensor image metadata as {metadata_file}')
 
@@ -392,15 +390,13 @@ class fullResSensorImageDialog():
 	def _buildDataPane(self, img_metadata):
 		old_np_options = np.get_printoptions()
 		np.set_printoptions(precision=4)
-		for k,v in img_metadata.items():
-			if '[' in k:
-				param_str = k.split('[')[0]
-				unit_str = f"[{'['.join(k.split('[')[1:])}"
-			else:
-				param_str = k
+		for field in img_metadata.getFields():
+			if field.unit is None:
 				unit_str = ''
-			item = {'parameter':param_str,
-					'value':v,
+			else:
+				unit_str = field.unit
+			item = {'parameter':field.field_repr,
+					'value':field.value,
 					'unit':unit_str}
 			self.datapane_model.appendData(item)
 			# self.shell_dict['history'].history_data_model.data_ready

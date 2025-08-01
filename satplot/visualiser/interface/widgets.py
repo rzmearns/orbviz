@@ -36,7 +36,7 @@ class TimeSlider(QtWidgets.QWidget):
 		hlayout3 = QtWidgets.QHBoxLayout()
 		hlayout3.setSpacing(0)
 		hlayout3.setContentsMargins(2,1,2,1)
-		self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+		self.slider = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
 		self._start_dt_label = QtWidgets.QLabel('-')
 		self._end_dt_label = QtWidgets.QLabel('-')
 		self._curr_dt_picker = SmallDatetimeEntry(self.start_dt)
@@ -540,7 +540,7 @@ class OptionBox(QtWidgets.QWidget):
 		self._optionbox = NonScrollingComboBox()
 		for item in options_list:
 			self._optionbox.addItem(item)
-		self._optionbox.setFocusPolicy(QtCore.Qt.StrongFocus)
+		self._optionbox.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
 		hlayout2.addWidget(self._optionbox)
 		vlayout.addLayout(hlayout1)
 		vlayout.addLayout(hlayout2)
@@ -611,7 +611,7 @@ class BasicOptionBox(QtWidgets.QWidget):
 		self._optionbox = NonScrollingComboBox()
 		for item in options_list:
 			self._optionbox.addItem(item)
-		self._optionbox.setFocusPolicy(QtCore.Qt.StrongFocus)
+		self._optionbox.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
 
 		layout.addWidget(self._label)
 		layout.addWidget(self._optionbox)
@@ -1104,8 +1104,8 @@ class CollapsibleSection(QtWidgets.QWidget):
 		else:
 			self._is_collapsed = False
 			self._content.setVisible(True)
-			self._content_layout.setAlignment(QtCore.Qt.AlignLeft)
-			self.v_layout.setAlignment(QtCore.Qt.AlignLeft)
+			self._content_layout.setAlignment(QtCore.Qt.Alignment.AlignLeft)
+			self.v_layout.setAlignment(QtCore.Qt.Alignment.AlignLeft)
 
 	class TitleButton(QtWidgets.QWidget):
 		def __init__(self, parent=None, title="", collapsed=False):
@@ -1524,7 +1524,7 @@ class LabelledRangeSlider(QtWidgets.QWidget):
 		hlayout1.addStretch()
 		vlayout.addLayout(hlayout1)
 
-		self._range_slider = RangeSlider(QtCore.Qt.Horizontal)
+		self._range_slider = RangeSlider(QtCore.Qt.Orientation.Horizontal)
 		self._range_slider.setMaximum(self.values[1])
 		self._range_slider.setMinimum(self.values[0])
 		self._range_slider.setHigh(self.values[1])
@@ -1708,12 +1708,12 @@ class PrimaryConfigDisplay(QtWidgets.QWidget):
 	def _setSensorTableStyling(self, table:QtWidgets.QTableWidget):
 
 		table.setHorizontalHeaderLabels(['Sensor Suite', 'Sensor','',''])
-		table.horizontalHeader().setDefaultAlignment(QtCore.Qt.AlignLeft)
+		table.horizontalHeader().setDefaultAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
 		table.horizontalHeader().setFont(self._header_font)
 
 		table.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
 		table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
-		table.setFocusPolicy(QtCore.Qt.NoFocus)
+		table.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
 		table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
 		table.verticalHeader().hide()
 		table.setStyleSheet('''
@@ -1736,14 +1736,14 @@ class PrimaryConfigDisplay(QtWidgets.QWidget):
 			table_height += table.rowHeight(row_num)
 			for col_num in range(table.columnCount()):
 				if table.item(row_num,col_num) is not None:
-					table.item(row_num,col_num).setFlags(QtCore.Qt.ItemIsEnabled)
+					table.item(row_num,col_num).setFlags(QtCore.Qt.ItemFlag.ItemIsEnabled)
 					table.item(row_num,col_num).setFont(self._entry_font)
 
 		table.resizeColumnsToContents()
 
 		# Turn off scrollbar
 		table.verticalScrollBar().setDisabled(True)
-		table.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff);
+		table.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff);
 		table.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
 		table.setMinimumHeight(table.sizeHint().height());
 
