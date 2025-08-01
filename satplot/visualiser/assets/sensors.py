@@ -986,7 +986,7 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 
 def _generateRandomSensorData(shape, dtype=np.float32):
     rng = np.random.default_rng()
-    s = [val for val in shape]
+    s = list(shape)
     s.append(3)
     data = rng.random(s, dtype=dtype)
     return data

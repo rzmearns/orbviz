@@ -201,8 +201,8 @@ class AbstractSimpleAsset(ABC):
 		self.setStaleFlagRecursive()
 
 	def _listVisuals(self) -> tuple[list, list]:
-		keys = [key for key in self.visuals.keys()]
-		values = [key for key in self.visuals.values()]
+		keys = list(self.visuals.keys())
+		values = list(self.visuals.values())
 		return keys, values
 
 	def _printVisuals(self) -> None:
@@ -459,8 +459,8 @@ class AbstractCompoundAsset(ABC):
 		return
 
 	def _listVisuals(self) -> tuple[list, list]:
-		keys = [key for key in self.visuals.keys()]
-		values = [key for key in self.visuals.values()]
+		keys = list(self.visuals.keys())
+		values = list(self.visuals.values())
 		return keys, values
 
 	def _printVisuals(self) -> None:
@@ -475,8 +475,8 @@ class AbstractCompoundAsset(ABC):
 		print(f'\tfirst_draw:{self.isFirstDraw()}')
 
 	def _listAssets(self) -> tuple[list, list]:
-		keys = [key for key in self.assets.keys()]
-		values = [key for key in self.assets.values()]
+		keys = list(self.assets.keys())
+		values = list(self.assets.values())
 		return keys, values
 
 	def _printAssets(self) -> None:
@@ -759,8 +759,8 @@ class AbstractAsset(ABC):
 
 	##### helper functions
 	def _listVisuals(self) -> tuple[list, list]:
-		keys = [key for key in self.visuals.keys()]
-		values = [key for key in self.visuals.values()]
+		keys = list(self.visuals.keys())
+		values = list(self.visuals.values())
 		return keys, values
 
 	def _printVisuals(self) -> None:
@@ -775,8 +775,8 @@ class AbstractAsset(ABC):
 		print(f'\tfirst_draw:{self.isFirstDraw()}')
 
 	def _listAssets(self) -> tuple[list,list]:
-		keys = [key for key in self.assets.keys()]
-		values = [key for key in self.assets.values()]
+		keys = list(self.assets.keys())
+		values = list(self.assets.values())
 		return keys, values
 
 	def _printAssets(self) -> None:
