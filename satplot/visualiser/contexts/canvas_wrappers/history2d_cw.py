@@ -257,7 +257,7 @@ class History2DCanvasWrapper(BaseCanvas):
 
 		self.mouseOverText.setVisible(False)
 		last_mevnt_time = time.monotonic()
-		pass
+
 
 	def _formatLatLong(self, event_lat:float, event_lon:float) -> str:
 		if event_lat < 0:

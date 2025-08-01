@@ -26,7 +26,6 @@ class BodyGizmo(base_assets.AbstractSimpleAsset):
 	def _initData(self) -> None:
 		if self.data['name'] is None:
 			self.data['name'] = 'body_frame_gizmo'
-		pass
 		
 	def setSource(self, *args, **kwargs) -> None:
 		pass
@@ -160,7 +159,6 @@ class ViewBoxGizmo(base_assets.AbstractSimpleAsset):
 	def _initData(self) -> None:
 		if self.data['name'] is None:
 			self.data['name'] = 'viewbox_eci_gizmo'
-		pass
 
 	def setSource(self, *args, **kwargs) -> None:
 		pass

@@ -550,7 +550,6 @@ class Earth2DAsset(base_assets.AbstractAsset):
 			# recomputeRedraw child assets
 			self._recomputeRedrawChildren(rotation=None)
 			self._clearStaleFlag()
-		pass
 
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}

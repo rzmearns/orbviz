@@ -130,10 +130,10 @@ class Application():
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['metadata']['version'] != satplot.version:
 			logger.error("This satplot state was not created with this version of satplot: file %s, satplot %s",state['metadata']['version'], satplot.version)
-			pass
+
 		if state['metadata']['gl_plus'] != satplot.gl_plus:
 			logger.error("WARNING: this file was created with a different GL mode: GL+ = %s. It may not load correctly.", satplot.gl_plus)
-			pass
+
 
 		self.window.deserialiseContexts(state['window_contexts'])
 

@@ -408,7 +408,6 @@ class fullResSensorImageDialog():
 		self.mouseOverText.setVisible(False)
 
 		last_mevnt_time = time.monotonic()
-		pass
 
 	def onMouseScroll(self, event:QtGui.QMouseEvent) -> None:
 		pass

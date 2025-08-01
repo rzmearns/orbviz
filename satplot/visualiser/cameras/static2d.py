@@ -16,7 +16,7 @@ class Static2D(PanZoomCamera):
         This overwrites the behavior of the parent class
         to prevent the user from zooming
         """
-        pass
+        pass                                # noqa PIE790
     
     def viewbox_mouse_event(self, event):
         """
@@ -24,4 +24,4 @@ class Static2D(PanZoomCamera):
         to prevent the user from panning
         """
 
-        pass
+        pass                                # noqa PIE790

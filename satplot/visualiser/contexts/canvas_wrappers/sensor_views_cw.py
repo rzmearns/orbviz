@@ -79,7 +79,6 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 		self.mouseOverObject = None
 
 	def _buildAssets(self) -> None:
-		pass
 		self.assets['spacecraft'] = spacecraft.SpacecraftViewsAsset(v_parent=None)
 
 	def _getCurrentDisplayedSensor(self, view:int) -> sensors.SensorImageAsset | None:
@@ -246,7 +245,6 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 			self.mouseOverText.setVisible(False)
 
 		last_mevnt_time = time.monotonic()
-		pass
 
 	def onMouseScroll(self, event:QtGui.QMouseEvent) -> None:
 		pass		
