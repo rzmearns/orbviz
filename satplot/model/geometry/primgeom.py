@@ -58,7 +58,8 @@ def randUnitVector() -> nptyping.NDArray:
 	''' Returns a unit vector pointing in a random direction
 	Maths powered by: mathworld.wolfram.com/SpherePointPicking.html
 	'''
-	v = np.random.normal(size=3)
+	rng = np.random.default_rng()
+	v = rng.normal(0,1, size=3)
 	return v / np.linalg.norm(v)
 
 def generateONBasisFromPointNormal(point, normal):
