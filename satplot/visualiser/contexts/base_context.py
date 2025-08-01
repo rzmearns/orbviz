@@ -62,7 +62,7 @@ class BaseContext(ABC):
 
 	def setupScreenshot(self):
 		file = f"{dt.datetime.now().strftime('%Y-%m-%d_%H%M%S')}_{self.config['name']}.png"
-		self.saveScreenshot(pathlib.Path(f'{paths.data_dir}/screenshots/{file}'))
+		self.saveScreenshot(pathlib.Path(f'{satplot_paths.data_dir}/screenshots/{file}'))
 
 	def saveScreenshot(self, file:pathlib.Path):
 		if self.canvas_wrapper is None:

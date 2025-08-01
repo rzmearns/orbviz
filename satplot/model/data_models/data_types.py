@@ -43,7 +43,7 @@ class ConstellationConfig():
 		else:
 			p = path
 
-		with open(p,'r') as fp:
+		with p.open('r') as fp:
 			data = json.load(fp)
 
 		if 'name' not in data.keys():
@@ -209,7 +209,7 @@ class PrimaryConfig():
 		else:
 			p = path
 
-		with open(p,'r') as fp:
+		with p.open('r') as fp:
 			data = json.load(fp)
 
 		if 'name' not in data.keys():
