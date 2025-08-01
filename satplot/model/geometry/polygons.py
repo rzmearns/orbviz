@@ -9,11 +9,11 @@ def generateCircle(center:tuple[float,float,float] | nptyping.NDArray,
 					 normal:tuple[float,float,float] | nptyping.NDArray,
 					 sampling:int=180):
 	coords = np.zeros((sampling,3))
-	theta = np.linspace(0, 2*np.pi, 180)
+	theta = np.linspace(0, 2*np.pi, sampling)
 	center = np.asarray(center)
 	e1,e2,e3 = pg.generateONBasisFromPointNormal(center, normal)
 	for ii in range(3):
-		coords[:,ii] = radius*np.cos(theta)*e1[ii] + radius*np.sin(theta)*e2[ii] + np.zeros(180)*e3[ii]
+		coords[:,ii] = radius*np.cos(theta)*e1[ii] + radius*np.sin(theta)*e2[ii] + np.zeros(sampling)*e3[ii]
 
 	return coords + center
 
