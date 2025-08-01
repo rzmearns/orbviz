@@ -1,9 +1,14 @@
+import logging
+
+import typing
+
 import numpy as np
+
+from vispy.scene.cameras.arcball import ArcballCamera
+from vispy.scene.cameras.perspective import Base3DRotationCamera
 from vispy.util import transforms
 from vispy.util.quaternion import Quaternion
 
-from vispy.scene.cameras.perspective import Base3DRotationCamera
-from vispy.scene.cameras.arcball import ArcballCamera
 
 class FixedCamera(Base3DRotationCamera):
 	"""3D camera class that orbits around a center point while

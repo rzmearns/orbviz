@@ -1,14 +1,19 @@
-import numpy as np
+import logging
 import sys
+
+import typing
 from typing import Any
+
+import numpy as np
 
 from PyQt5 import QtCore
 
 from vispy import scene
-from vispy.scene.widgets.viewbox import ViewBox
 from vispy.scene.canvas import SceneCanvas
+from vispy.scene.widgets.viewbox import ViewBox
 
 import satplot.visualiser.colours as colours
+
 
 class PopUpTextBox():
 	def __init__(self, v_parent:ViewBox|None=None,

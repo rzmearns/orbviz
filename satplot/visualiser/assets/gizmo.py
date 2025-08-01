@@ -1,16 +1,19 @@
+import logging
+
+import typing
+
 import numpy as np
 import numpy.typing as nptyping
-import vispy.scene as scene
 
 from PyQt5 import QtGui
 
+import vispy.scene as scene
 from vispy.scene.widgets.viewbox import ViewBox
 import vispy.visuals.transforms as vTransforms
 
 import satplot.util.constants as c
-import satplot.visualiser.colours as colours
 import satplot.visualiser.assets.base_assets as base_assets
-
+import satplot.visualiser.colours as colours
 
 
 class BodyGizmo(base_assets.AbstractSimpleAsset):

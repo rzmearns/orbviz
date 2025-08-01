@@ -1,8 +1,12 @@
 from datetime import datetime
+import logging
+
+import typing
+
+import numpy as np
 import pymap3d
 import pymap3d.sidereal
 
-import numpy as np
 
 def eci2radec(eci:np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 	# TODO: check eci is (N,3)

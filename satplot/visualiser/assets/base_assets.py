@@ -1,10 +1,14 @@
 from abc import ABC, abstractmethod
 from inspect import Attribute
 import logging
-import numpy as np
-import numpy.typing as nptyping
+
+import typing
 from typing import Any
 from typing_extensions import Self
+
+import numpy as np
+import numpy.typing as nptyping
+
 from vispy.scene.widgets.viewbox import ViewBox
 
 logger = logging.getLogger(__name__)

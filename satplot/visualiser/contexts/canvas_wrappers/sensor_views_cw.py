@@ -1,24 +1,25 @@
 import json
 import logging
-import numpy as np
 import time
+
+import typing
 from typing import Any, cast
 
-from PyQt5 import QtGui, QtCore
-
+import numpy as np
 from numpy._typing import _array_like
-from vispy import scene
+
+from PyQt5 import QtCore, QtGui
+
 import vispy
+from vispy import scene
 from vispy.app.canvas import MouseEvent
 from vispy.scene.cameras import PanZoomCamera
 from vispy.scene.widgets import grid as vispy_grid
 
-
-from satplot.model.data_models.history_data import (HistoryData)
-from satplot.model.data_models.earth_raycast_data import (EarthRayCastData)
-import satplot.model.geometry.primgeom as pg
 from satplot.model.data_models.data_types import PrimaryConfig, SensorImgMetadata
-from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
+from satplot.model.data_models.earth_raycast_data import EarthRayCastData
+from satplot.model.data_models.history_data import HistoryData
+import satplot.model.geometry.primgeom as pg
 import satplot.util.constants as c
 import satplot.util.exceptions as exceptions
 import satplot.util.paths as satplot_paths
@@ -27,6 +28,7 @@ import satplot.visualiser.assets.sensors as sensors
 import satplot.visualiser.assets.spacecraft as spacecraft
 import satplot.visualiser.assets.widgets as widgets
 import satplot.visualiser.cameras.static2d as static2d
+from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 
 logger = logging.getLogger(__name__)
 

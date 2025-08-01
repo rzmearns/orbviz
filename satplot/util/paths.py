@@ -1,5 +1,8 @@
-import pathlib
+import logging
 import os
+import pathlib
+
+import typing
 
 satplot_dir = pathlib.Path(f'{os.path.dirname(os.path.abspath(__file__))}').parent.parent.resolve()
 data_dir = satplot_dir.joinpath('data')

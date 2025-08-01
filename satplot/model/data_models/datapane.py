@@ -1,8 +1,11 @@
 import logging
-import numpy as np
+
+import typing
 from typing import Any, Callable
 
-from PyQt5 import QtWidgets, QtCore, QtGui
+import numpy as np
+
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 '''
 data items of the DataPaneModel are stored as a tuple

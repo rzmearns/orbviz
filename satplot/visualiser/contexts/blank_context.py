@@ -1,9 +1,13 @@
+import logging
 import pathlib
-from PyQt5 import QtWidgets, QtCore
 
-from satplot.visualiser.contexts.base_context import (BaseContext, BaseControls)
+import typing
+
+from PyQt5 import QtCore, QtWidgets
+
+from satplot.visualiser.contexts.base_context import BaseContext, BaseControls
+from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 import satplot.visualiser.interface.controls as controls
-from satplot.visualiser.contexts.canvas_wrappers.base_cw import (BaseCanvas)
 
 
 class BlankContext(BaseContext):

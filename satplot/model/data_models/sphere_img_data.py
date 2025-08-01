@@ -1,13 +1,16 @@
 import logging
-import numpy as np
 import pathlib
-from PIL import Image
 import sys
+
+import typing
 from typing import Any
 
-import satplot.model.geometry.spherical as spherical_geom
-from satplot.model.data_models.base_models import (BaseDataModel)
+import numpy as np
+from PIL import Image
+
+from satplot.model.data_models.base_models import BaseDataModel
 import satplot.model.data_models.data_types as data_types
+import satplot.model.geometry.spherical as spherical_geom
 import satplot.util.paths as satplot_paths
 import satplot.util.threading as threading
 

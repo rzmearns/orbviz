@@ -1,23 +1,26 @@
 import datetime as dt
 import logging
+import pathlib
 from urllib import request
+
+import typing
+from typing import Any, cast
+
 import numpy as np
 from numpy import typing as nptyping
-import pathlib
 from progressbar import progressbar
-from typing import Any, cast
 from scipy.spatial.transform import Rotation
+import spherapy.orbit as orbit
+import spherapy.timespan as timespan
+import spherapy.updater as updater
 
 import satplot
-from satplot.model.data_models.base_models import (BaseDataModel)
-import satplot.util.threading as threading
-import satplot.model.data_models.data_types as data_types
+from satplot.model.data_models.base_models import BaseDataModel
 import satplot.model.data_models.constellation_data as constellation_data
+import satplot.model.data_models.data_types as data_types
 import satplot.util.constants as satplot_constants
+import satplot.util.threading as threading
 import satplot.visualiser.interface.console as console
-import spherapy.timespan as timespan
-import spherapy.orbit as orbit
-import spherapy.updater as updater
 
 logger = logging.getLogger(__name__)
 

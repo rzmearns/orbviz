@@ -1,10 +1,15 @@
 from __future__ import division
 
-import numpy as np
-from vispy.scene.cameras import BaseCamera
-from vispy.geometry import Rect
-from vispy.scene.cameras import PanZoomCamera
 from ctypes import ArgumentError
+import logging
+
+import typing
+
+import numpy as np
+
+from vispy.geometry import Rect
+from vispy.scene.cameras import BaseCamera, PanZoomCamera
+
 
 class RestrictedPanZoomCamera(PanZoomCamera):
 	# Subclass created by github user h21ak9, and published in vispy issue https://github.com/vispy/vispy/issues/2486

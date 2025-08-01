@@ -1,12 +1,13 @@
 import logging
+
+import typing
 from typing import Any
 
-from PyQt5 import QtWidgets, QtCore, QtGui
-
-import satplot.visualiser.interface.controls as controls
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 from satplot.model.data_models import datapane as datapane_model
 from satplot.visualiser.contexts import base_context
+import satplot.visualiser.interface.controls as controls
 import satplot.visualiser.interface.datapane as datapane
 import satplot.visualiser.interface.widgets as satplot_widgets
 

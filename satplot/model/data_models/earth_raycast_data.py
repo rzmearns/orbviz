@@ -1,23 +1,25 @@
 import datetime as dt
 import logging
+import pathlib
+import warnings
+
+import typing
+from typing import Any
+
+import matplotlib.pyplot as plt
 import numpy as np
 from numpy import typing as nptyping
-import pathlib
 from progressbar import progressbar
 import pymap3d
 from scipy import ndimage
-from typing import Any
-import warnings
-
-import matplotlib.pyplot as plt
 
 import satplot
-from satplot.model.data_models.base_models import (BaseDataModel)
+from satplot.model.data_models.base_models import BaseDataModel
+import satplot.model.data_models.data_types as data_types
+import satplot.model.data_models.sphere_img_data as sphere_img_data
 import satplot.util.constants as satplot_const
 import satplot.util.conversion as satplot_conversion
 import satplot.util.threading as threading
-import satplot.model.data_models.data_types as data_types
-import satplot.model.data_models.sphere_img_data as sphere_img_data
 import satplot.visualiser.interface.console as console
 
 logger = logging.getLogger(__name__)

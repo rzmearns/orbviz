@@ -1,6 +1,8 @@
 from abc import abstractmethod
 import logging
 import traceback
+
+import typing
 from typing import Any
 
 from PyQt5 import QtCore

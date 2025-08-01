@@ -1,6 +1,11 @@
 import logging
-import numpy as np
+
+import typing
 from typing import Any
+
+import numpy as np
+import spherapy.orbit as orbit
+
 from vispy import scene
 from vispy.scene.widgets.viewbox import ViewBox
 
@@ -8,7 +13,6 @@ import satplot.model.data_models.history_data as history_data
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.colours as colours
 import satplot.visualiser.interface.console as console
-import spherapy.orbit as orbit
 
 logger = logging.getLogger(__name__)
 

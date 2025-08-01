@@ -4,9 +4,12 @@ import logging
 import os
 import pathlib
 import string
+
+import typing
 from typing import Any
 
-from PyQt5 import QtWidgets, QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
+
 from vispy.scene.widgets import widget
 
 import satplot.model.data_models.data_types as data_types

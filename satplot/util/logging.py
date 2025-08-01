@@ -1,6 +1,10 @@
 import datetime as dt
 import logging
+
+import typing
+
 import satplot.util.paths as satplot_paths
+
 
 def setUpLogLevels():
 

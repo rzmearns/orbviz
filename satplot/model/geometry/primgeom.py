@@ -1,10 +1,15 @@
+import logging
+import math
+import warnings
+
+import typing
+
 import numpy as np
 import numpy.typing as nptyping
 import scipy.spatial
-import math
-import warnings
-import logging
+
 import satplot.util.exceptions as exceptions
+
 # warnings.filterwarnings('error',message='divide by zero')
 # warnings.filterwarnings('error',message='invalid value')
 

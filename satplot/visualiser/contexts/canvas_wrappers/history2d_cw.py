@@ -1,37 +1,39 @@
 import json
 import logging
-from PyQt5.QtCore import QTimer
-import numpy as np
 import time
+
+import typing
 from typing import Any
 
-from PyQt5 import QtCore
-from PyQt5 import QtGui
+import numpy as np
+
+from PyQt5 import QtCore, QtGui
+from PyQt5.QtCore import QTimer
 
 from vispy import scene
 from vispy.app.canvas import MouseEvent, ResizeEvent
 from vispy.scene.cameras import PanZoomCamera
+from vispy.visuals.transforms import STTransform
 
-from satplot.model.data_models.history_data import (HistoryData)
-from satplot.model.data_models.earth_raycast_data import (EarthRayCastData)
-import satplot.model.geometry.primgeom as pg
 from satplot.model.data_models.data_types import PrimaryConfig
-from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
+from satplot.model.data_models.earth_raycast_data import EarthRayCastData
+from satplot.model.data_models.history_data import HistoryData
+import satplot.model.geometry.primgeom as pg
 import satplot.util.constants as c
 import satplot.util.exceptions as exceptions
+
 # import satplot.visualiser.assets.axis_indicators as axis_indicators
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.assets.constellation as constellation
 import satplot.visualiser.assets.earth as earth
 import satplot.visualiser.assets.gizmo as gizmo
-import satplot.visualiser.assets.orbit as orbit
 import satplot.visualiser.assets.moon as moon
+import satplot.visualiser.assets.orbit as orbit
 import satplot.visualiser.assets.spacecraft as spacecraft
 import satplot.visualiser.assets.sun as sun
 import satplot.visualiser.assets.widgets as widgets
 import satplot.visualiser.cameras.RestrictedPanZoom as RestrictedPanZoom
-
-from vispy.visuals.transforms import STTransform
+from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 
 logger = logging.getLogger(__name__)
 

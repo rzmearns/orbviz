@@ -1,5 +1,11 @@
+import logging
+
+import typing
+
 import numpy as np
+
 import satplot.util.array_u as array_u
+
 
 def smallCircleRadius(center_lat: float, center_lon:float, radii_end_lat: float, radii_end_lon: float) -> float:
 	'''Calculates the great circle distance between center (lon,lat) and radii_end (lon,lat)

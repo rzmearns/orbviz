@@ -4,6 +4,8 @@ from enum import Enum
 import json
 import logging
 import pathlib
+
+import typing
 from typing import Any, TypedDict
 
 import satplot.visualiser.assets.sensors as sensor_asset

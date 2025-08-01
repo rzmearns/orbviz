@@ -1,10 +1,13 @@
 from functools import reduce
-import numpy as np
-import numpy.typing as nptyping
 import logging
 
-import satplot.util.exceptions as exceptions
+import typing
+
+import numpy as np
+import numpy.typing as nptyping
+
 import satplot.model.geometry.primgeom as pg
+import satplot.util.exceptions as exceptions
 
 '''
 Used Data Types

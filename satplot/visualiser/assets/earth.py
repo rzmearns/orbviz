@@ -1,12 +1,16 @@
 import logging
+import os
+
+import typing
+from typing import Tuple
+
 import numpy as np
 import numpy.typing as nptyping
 import pymap3d
 from skyfield.api import wgs84
-from typing import Tuple
-import os
+import spherapy.timespan as timespan
 
-from vispy import scene, color
+from vispy import color, scene
 from vispy.io import load_data_file, read_png
 from vispy.scene.widgets.viewbox import ViewBox
 from vispy.visuals import transforms as vTransforms
@@ -18,7 +22,6 @@ import satplot.util.constants as c
 import satplot.util.paths as satplot_paths
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.colours as colours
-import spherapy.timespan as timespan
 
 logger = logging.getLogger(__name__)
 

@@ -3,17 +3,21 @@ import datetime as dt
 import logging
 import pathlib
 import pickle
-import PIL
-from typing import Any
 import warnings
 
-from PyQt5 import QtWidgets, QtCore
+import typing
+from typing import Any
+
+import PIL
+
+from PyQt5 import QtCore, QtWidgets
+
 from vispy import app, use
 
 import satplot
 import satplot.util.logging as satplot_logging
 import satplot.util.threading as threading
-from satplot.visualiser.contexts.canvas_wrappers.base_cw import (BaseCanvas)
+from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 import satplot.visualiser.interface.console as console
 import satplot.visualiser.interface.dialogs as dialogs
 import satplot.visualiser.window as window

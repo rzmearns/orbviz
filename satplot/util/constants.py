@@ -1,4 +1,9 @@
+import logging
+
+import typing
+
 import astropy.constants as astroconst
+
 '''
 A list of useful constants!
 

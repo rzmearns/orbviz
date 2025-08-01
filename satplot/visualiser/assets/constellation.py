@@ -1,14 +1,18 @@
 import logging
-import numpy as np
-import numpy.typing as nptyping
-from scipy.spatial.transform import Rotation
+
+import typing
 from typing import Any
 from typing_extensions import Self
 
+import numpy as np
+import numpy.typing as nptyping
+from scipy.spatial.transform import Rotation
+import spherapy.orbit as orbit
+
 import vispy.color.color_array as vcolor_array
 import vispy.scene as scene
-from vispy.scene.widgets.viewbox import ViewBox
 import vispy.scene.visuals as vVisuals
+from vispy.scene.widgets.viewbox import ViewBox
 import vispy.visuals.filters as vFilters
 import vispy.visuals.transforms as vTransforms
 
@@ -19,7 +23,6 @@ import satplot.util.constants as c
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.colours as colours
 import satplot.visualiser.interface.console as console
-import spherapy.orbit as orbit
 
 logger = logging.getLogger(__name__)
 

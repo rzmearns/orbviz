@@ -1,7 +1,13 @@
+import logging
+
+import typing
+
 import numpy as np
 import numpy.typing as nptyping
-import satplot.model.geometry.primgeom as pg
 import scipy.spatial
+
+import satplot.model.geometry.primgeom as pg
+
 
 def calcConeMeshGrid(apex:tuple[float,float,float] | nptyping.NDArray,
 					 height:float,

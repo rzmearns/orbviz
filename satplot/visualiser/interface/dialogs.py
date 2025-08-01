@@ -1,24 +1,28 @@
 import datetime as dt
-import pickle
 import json
-import numpy as np
+import logging
 import os
 import pathlib
 import pickle
-from PIL import Image
 import time
 
+import typing
+
+import numpy as np
+from PIL import Image
+from spherapy.util import credentials
+
+from PyQt5 import QtCore, QtGui
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 import PyQt5.QtWidgets as QtWidgets
-from PyQt5 import QtCore, QtGui
+
 from vispy import scene
 from vispy.app.canvas import MouseEvent
 
-from spherapy.util import credentials
-
 import satplot
-from satplot.model.data_models import data_types, datapane as datapane_model
+from satplot.model.data_models import data_types
+from satplot.model.data_models import datapane as datapane_model
 import satplot.util.hashing as satplot_hashing
 import satplot.util.paths as satplot_paths
 import satplot.visualiser.assets.widgets as vispy_widgets

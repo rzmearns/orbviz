@@ -1,7 +1,10 @@
+import logging
 import string
 import sys
 
-from PyQt5 import QtWidgets, QtCore, QtGui
+import typing
+
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 consolefp = None
 consoleErrfp = None

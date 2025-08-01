@@ -1,6 +1,11 @@
+import logging
+
+import typing
+
 import numpy as np
 import numpy.typing as nptyping
 from scipy.interpolate import interp1d
+
 
 def uniqueRows(arr:nptyping.NDArray, to_decimal:int=8) -> nptyping.NDArray:
 	'''

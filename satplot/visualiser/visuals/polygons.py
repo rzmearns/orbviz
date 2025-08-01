@@ -1,13 +1,19 @@
+import logging
+
+import typing
+
 import numpy as np
-from vispy.visuals.visual import CompoundVisual
-from vispy.visuals.mesh import MeshVisual
-from vispy.visuals.line import LineVisual
+
 from vispy.color import Color
 from vispy.geometry import PolygonData
 from vispy.gloo import set_state
-from vispy.scene.visuals import (create_visual_node)
+from vispy.scene.visuals import create_visual_node
+from vispy.visuals.line import LineVisual
+from vispy.visuals.mesh import MeshVisual
+from vispy.visuals.visual import CompoundVisual
 
 import satplot.model.geometry.polygons as polygeom
+
 
 class FastPolygonVisual(CompoundVisual):
     """

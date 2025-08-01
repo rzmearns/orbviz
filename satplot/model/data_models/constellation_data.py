@@ -1,10 +1,13 @@
 import logging
+
+import typing
 from typing import Any
 
-from satplot.model.data_models.base_models import (BaseDataModel)
-import satplot.model.data_models.data_types as data_types
 import spherapy.orbit as orbit
 import spherapy.timespan as timespan
+
+from satplot.model.data_models.base_models import BaseDataModel
+import satplot.model.data_models.data_types as data_types
 
 # constellation_config
 # constellation_name

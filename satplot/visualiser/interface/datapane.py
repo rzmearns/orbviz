@@ -1,6 +1,11 @@
-from PyQt5 import QtWidgets, QtCore, QtGui
+import logging
+
+import typing
+
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 from satplot.model.data_models import datapane
+
 
 class DataPaneWidget(QtWidgets.QWidget):
 

@@ -1,15 +1,16 @@
 import logging
 import pathlib
 import sys
+
+import typing
 from typing import Any
-from PyQt5 import QtWidgets, QtCore, QtGui
+
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 import satplot.model.data_models.data_types as data_types
 from satplot.model.data_models.history_data import HistoryData
-from satplot.visualiser.contexts.base_context import (BaseContext, BaseControls)
-import satplot.visualiser.interface.controls as controls
-from satplot.visualiser.contexts.canvas_wrappers.base_cw import (BaseCanvas)
-
+from satplot.visualiser.contexts.base_context import BaseContext, BaseControls
+from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 import satplot.visualiser.interface.console as console
 import satplot.visualiser.interface.controls as controls
 import satplot.visualiser.interface.widgets as widgets

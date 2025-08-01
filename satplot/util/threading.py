@@ -2,6 +2,8 @@ import logging
 import sys
 import traceback
 
+import typing
+
 from PyQt5 import QtCore
 
 logger = logging.getLogger(__name__)

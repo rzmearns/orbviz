@@ -1,30 +1,30 @@
 import logging
+
+import typing
+from typing import Any
+
 import numpy as np
 import pymap3d
-from typing import Any
 from scipy.spatial import ConvexHull as ConvexHull
 from scipy.spatial.transform import Rotation
-
-
+import spherapy.orbit as orbit
 
 import vispy
 from vispy import scene
-from vispy.visuals import transforms as vTransforms
 from vispy.scene import visuals as vVisuals
 from vispy.visuals import filters as vFilters
+from vispy.visuals import transforms as vTransforms
 
 import satplot.model.data_models.history_data as history_data
-import satplot.model.geometry.primgeom as pg
 import satplot.model.geometry.polygons as polygeom
 import satplot.model.geometry.polyhedra as polyhedra
+import satplot.model.geometry.primgeom as pg
 import satplot.model.geometry.spherical as spherical_geom
 import satplot.util.array_u as array_u
 import satplot.util.constants as c
-
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.colours as colours
 import satplot.visualiser.visuals.polygons as polygon_visuals
-import spherapy.orbit as orbit
 
 logger = logging.getLogger(__name__)
 

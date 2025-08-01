@@ -2,15 +2,17 @@ import datetime as dt
 import logging
 import math
 import pathlib
+
+import typing
 from typing import Any
 
-from PyQt5 import QtWidgets, QtCore, QtGui
+from spherapy.timespan import TimeSpan
+
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 import satplot.model.data_models.data_types as satplot_data_types
 import satplot.util.paths as satplot_paths
 import satplot.visualiser.colours as colours
-
-from spherapy.timespan import TimeSpan
 
 logger = logging.getLogger(__name__)
 

@@ -1,16 +1,17 @@
 import logging
 import sys
+
+import typing
 from typing import Any
 
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtCore, QtWidgets
 
 import satplot
-from satplot.visualiser.shells import (historical_shell,
-										planning_shell)
-from satplot.model.data_models import (earth_raycast_data)
-import satplot.visualiser.interface.widgets as satplot_widgets
+from satplot.model.data_models import earth_raycast_data
 import satplot.visualiser.interface.console as console
 import satplot.visualiser.interface.controls as controls
+import satplot.visualiser.interface.widgets as satplot_widgets
+from satplot.visualiser.shells import historical_shell, planning_shell
 
 logger = logging.getLogger(__name__)
 

@@ -1,16 +1,21 @@
 from abc import ABC, abstractmethod
 import datetime as dt
-import imageio
 import json
+import logging
 import pathlib
+
+import typing
 from typing import Any
 
-from PyQt5 import QtWidgets, QtCore
+import imageio
+
+from PyQt5 import QtCore, QtWidgets
 
 from vispy.gloo.util import _screenshot
 
 import satplot.util.paths as paths
 import satplot.visualiser.interface.console as console
+
 
 class BaseContext(ABC):
 

@@ -1,20 +1,23 @@
-import imageio
 import logging
 import pathlib
 import sys
+
+import typing
 from typing import Any
 
-from vispy.gloo.util import _screenshot
-import vispy.app as app
+import imageio
 
-from PyQt5 import QtWidgets, QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
+
+import vispy.app as app
+from vispy.gloo.util import _screenshot
 
 import satplot.model.data_models.data_types as data_types
+from satplot.model.data_models.earth_raycast_data import EarthRayCastData
 from satplot.model.data_models.history_data import HistoryData
-from satplot.model.data_models.earth_raycast_data import (EarthRayCastData)
 import satplot.visualiser.contexts.base_context as base
-from satplot.visualiser.contexts.canvas_wrappers.base_cw import (BaseCanvas)
-from satplot.visualiser.contexts.canvas_wrappers.cw_container import (CWContainer)
+from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
+from satplot.visualiser.contexts.canvas_wrappers.cw_container import CWContainer
 import satplot.visualiser.contexts.canvas_wrappers.history2d_cw as history2d_cw
 import satplot.visualiser.interface.console as console
 import satplot.visualiser.interface.controls as controls

@@ -1,32 +1,35 @@
 import json
 import logging
-import numpy as np
 import time
+
+import typing
 from typing import Any
+
+import numpy as np
 
 from PyQt5 import QtGui
 
 from vispy import scene
 from vispy.app.canvas import MouseEvent, ResizeEvent
+from vispy.visuals.transforms import STTransform
 
-from satplot.model.data_models.history_data import (HistoryData)
-import satplot.model.geometry.primgeom as pg
 from satplot.model.data_models.data_types import PrimaryConfig
-from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
+from satplot.model.data_models.history_data import HistoryData
+import satplot.model.geometry.primgeom as pg
 import satplot.util.constants as c
 import satplot.util.exceptions as exceptions
+
 # import satplot.visualiser.assets.axis_indicators as axis_indicators
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.assets.constellation as constellation
 import satplot.visualiser.assets.earth as earth
 import satplot.visualiser.assets.gizmo as gizmo
-import satplot.visualiser.assets.orbit as orbit
 import satplot.visualiser.assets.moon as moon
+import satplot.visualiser.assets.orbit as orbit
 import satplot.visualiser.assets.spacecraft as spacecraft
 import satplot.visualiser.assets.sun as sun
 import satplot.visualiser.assets.widgets as widgets
-
-from vispy.visuals.transforms import STTransform
+from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 
 logger = logging.getLogger(__name__)
 
