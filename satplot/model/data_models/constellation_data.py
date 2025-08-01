@@ -25,9 +25,9 @@ class ConstellationData(BaseDataModel):
 		self._setConfig('satellite_ids', None) # keys of orbits, position dict
 		self._setConfig('beam_angle_deg', None)
 
-		self.updateConfig('constellation_name', config['name'])
-		self.updateConfig('beam_angle_deg', config['beam_width'])
-		self.updateConfig('satellite_ids', list(config['satellites'].values()))
+		self.updateConfig('constellation_name', config.name)
+		self.updateConfig('beam_angle_deg', config.beam_width)
+		self.updateConfig('satellite_ids', list(config.sats.keys()))
 
 		self.timespan: timespan.TimeSpan | None = None
 		self.orbits: dict[int, orbit.Orbit] = {}
