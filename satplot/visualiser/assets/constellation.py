@@ -337,7 +337,7 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 													self.data['beam_angle_deg'],
 													axis_sample=2,
 													theta_sample=60,
-													sorted=False)
+													sort_output=False)
 		self.data['generic_circle_points'] = generic_cone_points[(generic_cone_points != np.asarray((0,0,0))).all(axis=1),:]
 		self.data['generic_circle_points'] = np.vstack((self.data['generic_circle_points'],self.data['generic_circle_points'][0,:]))
 		circles = self._genBeamCircles(instance_transforms, instance_positions)
