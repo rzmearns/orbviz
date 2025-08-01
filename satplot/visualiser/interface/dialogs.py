@@ -15,6 +15,8 @@ from PyQt5 import QtCore, QtGui
 from vispy import scene
 from vispy.app.canvas import MouseEvent
 
+from spherapy.util import credentials
+
 import satplot
 from satplot.model.data_models import data_types, datapane as datapane_model
 import satplot.util.hashing as satplot_hashing
@@ -46,15 +48,6 @@ class SpaceTrackCredentialsDialog():
 		self.passwd.setEchoMode(QtWidgets.QLineEdit.Password)
 		layout.addWidget(self.passwd)
 
-		hlayout1 = QtWidgets.QHBoxLayout()
-		hlayout1.addStretch()
-		hlayout1.addWidget(QtWidgets.QLabel('Save Credentials Locally'))			
-		self.save_locally = QtWidgets.QCheckBox()
-		hlayout1.addWidget(self.save_locally)
-		layout.addLayout(hlayout1)
-		layout.addWidget(QtWidgets.QLabel('<i>If credentials are not saved locally,<br>they will have to be entered every<br>time<\i>'))
-
-
 		hlayout2 = QtWidgets.QHBoxLayout()
 		okbutton = QtWidgets.QPushButton('Submit')
 		cancelbutton = QtWidgets.QPushButton('Cancel')
@@ -74,20 +67,11 @@ class SpaceTrackCredentialsDialog():
 		self.window.exec_()
 
 	def submit(self):
-		satplot_paths.credential_dir.mkdir(parents=True, exist_ok=True)
-		credential_file = satplot_paths.credential_dir.joinpath('.credentials')
 		# try:
 		self.window.close()
-		satplot.spacetrack_credentials['user'] = self.user.text()
-		satplot.spacetrack_credentials['passwd'] = self.passwd.text()
-		if self.save_locally.isChecked():
-			with open(credential_file,'wb') as fp:
-				pickle.dump(satplot.spacetrack_credentials,fp)		
-		else:
-			try:
-				credential_file.unlink()
-			except FileNotFoundError:
-				pass
+		if not credentials.storeCredentials(user=self.user.text(), passwd=self.passwd.text()):
+			error_dialog = QtWidgets.QErrorMessage()
+			error_dialog.showMessage("Couldn't save your Spacetrack credentials, please try again.")
 
 	def cancel(self):
 		self.window.close()
