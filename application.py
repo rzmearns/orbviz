@@ -104,7 +104,7 @@ class Application():
 		self.deSerialise(state)
 
 
-	def _openFileDialog(self, caption: str, dir:pathlib.Path, dflt_filename:str|None, save=True) -> pathlib.Path:
+	def _openFileDialog(self, caption: str, dflt_dir:pathlib.Path, dflt_filename:str|None, save=True) -> pathlib.Path:
 		if dflt_filename is None:
 			dflt_filename = ''
 		options = QtWidgets.QFileDialog.Options()
@@ -112,13 +112,13 @@ class Application():
 		if save:
 			filename, _ = QtWidgets.QFileDialog.getSaveFileName(None, 
 																caption,
-																f'{dir}{dflt_filename}',
+																f'{dflt_dir}{dflt_filename}',
 																"pickles (*.pickle)",
 																options=options)
 		else:		
 			filename, _ = QtWidgets.QFileDialog.getOpenFileName(None, 
 																caption,
-																f'{dir}',
+																f'{dflt_dir}',
 																"pickles (*.pickle)",
 																options=options)			
 		return pathlib.Path(filename)
