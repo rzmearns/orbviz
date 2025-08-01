@@ -517,9 +517,7 @@ class Earth2DAsset(base_assets.AbstractAsset):
 			logger.error("setSource() of %s requires a %s as args[0], not: {type(args[0])}", self, timespan.Timespan)
 			raise TypeError
 		# TODO: add capability to produce array of skyfields)
-		times = []
-		for ii in range(len(args[0])):
-			times.append(args[0].asSkyfield(ii))
+		times = [args[0].asSkyfield(ii) for ii in range(len(args[0]))]
 		self.data['datetimes'] = np.asarray(times)
 		for asset in self.assets.values():
 			asset.setSource(self.data['datetimes'])

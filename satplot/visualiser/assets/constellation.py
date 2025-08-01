@@ -56,7 +56,7 @@ class Constellation(base_assets.AbstractAsset):
 		if type(sats_dict) is not dict:
 			logger.error('args[0] of Constellation.setSource() should be a dictionary of satellites ')
 			raise TypeError
-		for k, v in sats_dict.items():
+		for v in sats_dict.values():
 			if type(v) is not orbit.Orbit:
 				logger.error("setSource() of %s requires an %s as value of dict from args[0], not: %s", self, orbit.Orbit, type(first_sat_orbit))
 				raise TypeError

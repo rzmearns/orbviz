@@ -173,12 +173,12 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 
 
 	def updateIndex(self, index:int) -> None:
-		for asset_name,asset in self.assets.items():
+		for asset in self.assets.values():
 			if asset.isActive():
 				asset.updateIndex(index)
 
 	def recomputeRedraw(self) -> None:
-		for asset_name, asset in self.assets.items():
+		for asset in self.assets.values():
 			if asset.isActive():
 				asset.recomputeRedraw()
 
@@ -194,10 +194,7 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 		pass
 
 	def mapAssetPositionsToScreen(self) -> list:
-		mo_infos = []
-		for asset_name, asset in self.assets.items():
-			if asset.isActive():
-				mo_infos.append(asset.getScreenMouseOverInfo())
+		mo_infos = [asset.getScreenMouseOverInfo() for asset in self.assets.values() if asset.isActive()]
 		return mo_infos
 
 	def on_key_press(self, event):

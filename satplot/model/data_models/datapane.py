@@ -104,7 +104,7 @@ class DataPaneModel(QtCore.QAbstractTableModel):
 			self._items.append(item_dict)
 			col_num = 0
 			max_cols = self.columnCount()
-			for k,v in item_dict.items():
+			for v in item_dict.values():
 				if col_num < max_cols:
 					self.setData(self.createIndex(new_row_idx, col_num), v, QtCore.Qt.ItemDataRole.DisplayRole);
 		self.dataChanged.emit(self.index(new_row_idx,0), self.index(new_row_idx,self.columnCount()))

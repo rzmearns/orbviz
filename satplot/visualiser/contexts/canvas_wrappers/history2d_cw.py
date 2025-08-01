@@ -140,12 +140,12 @@ class History2DCanvasWrapper(BaseCanvas):
 		self.assets['earth'].makeActive()
 
 	def updateIndex(self, index:int) -> None:
-		for asset_name,asset in self.assets.items():
+		for asset in self.assets.values():
 			if asset.isActive():
 				asset.updateIndex(index)
 
 	def recomputeRedraw(self) -> None:
-		for asset_name, asset in self.assets.items():
+		for asset in self.assets.values():
 			if asset.isActive():
 				asset.recomputeRedraw()
 
@@ -187,7 +187,7 @@ class History2DCanvasWrapper(BaseCanvas):
 
 	def mapAssetPositionsToScreen(self) -> list:
 		mo_infos = []
-		for asset_name, asset in self.assets.items():
+		for asset in self.assets.values():
 			if asset.isActive():
 				mo_infos.append(asset.getScreenMouseOverInfo())
 				for ii, world_pos in enumerate(mo_infos[-1]['world_pos']):

@@ -132,7 +132,7 @@ class AbstractSimpleAsset(ABC):
 
 	def setVisibility(self, state:bool) -> None:
 		logger.debug('Setting visibility for %s to %s', self, state)
-		for visual_name, visual in self.visuals.items():
+		for visual in self.visuals.values():
 			if visual is None:
 				continue
 			visual.visible = state
@@ -143,7 +143,7 @@ class AbstractSimpleAsset(ABC):
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
-		for k,v in self.opts.items():
+		for k in self.opts.keys():
 			state[f'opt_{k}'] = serialiseOption(self.opts[k])
 		return state
 
@@ -159,7 +159,7 @@ class AbstractSimpleAsset(ABC):
 	def runOptionCallbacks(self):
 		if not self.isActive():
 			return
-		for opt_str, opt in self.opts.items():
+		for opt in self.opts.values():
 			if opt['callback'] is not None:
 				try:
 					opt['callback'](opt['value'])
@@ -366,7 +366,7 @@ class AbstractCompoundAsset(ABC):
 
 	def setVisibility(self, state:bool) -> None:
 		logger.debug('Setting visibility for %s to %s', self, state)
-		for visual_name, visual in self.visuals.items():
+		for visual in self.visuals.values():
 			if visual is None:
 				continue
 			visual.visible = state
@@ -381,7 +381,7 @@ class AbstractCompoundAsset(ABC):
 		state = {}
 		for asset_name, asset in self.assets.items():
 			state[f'asset_{asset_name}'] = asset.prepSerialisation()
-		for k,v in self.opts.items():
+		for k in self.opts.keys():
 			state[f'opt_{k}'] = serialiseOption(self.opts[k])
 		return state
 
@@ -399,7 +399,7 @@ class AbstractCompoundAsset(ABC):
 	def runOptionCallbacks(self):
 		if not self.isActive():
 			return
-		for opt_str, opt in self.opts.items():
+		for opt in self.opts.values():
 			if opt['callback'] is not None:
 				try:
 					opt['callback'](opt['value'])
@@ -646,7 +646,7 @@ class AbstractAsset(ABC):
 
 	def setVisibility(self, state:bool) -> None:
 		logger.debug('Setting visibility for %s to %s', self, state)
-		for visual_name, visual in self.visuals.items():
+		for visual in self.visuals.values():
 			if visual is None:
 				continue
 			visual.visible = state
@@ -662,7 +662,7 @@ class AbstractAsset(ABC):
 		state = {}
 		for asset_name, asset in self.assets.items():
 			state[f'asset_{asset_name}'] = asset.prepSerialisation()
-		for k,v in self.opts.items():
+		for k in self.opts.keys():
 			state[f'opt_{k}'] = serialiseOption(self.opts[k])
 		return state
 
@@ -681,7 +681,7 @@ class AbstractAsset(ABC):
 	def runOptionCallbacks(self):
 		if not self.isActive():
 			return
-		for opt_str, opt in self.opts.items():
+		for opt in self.opts.values():
 			if opt['callback'] is not None:
 				try:
 					opt['callback'](opt['value'])

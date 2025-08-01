@@ -143,12 +143,12 @@ class History3DCanvasWrapper(BaseCanvas):
 
 
 	def updateIndex(self, index:int) -> None:
-		for asset_name,asset in self.assets.items():
+		for asset in self.assets.values():
 			if asset.isActive():
 				asset.updateIndex(index)
 
 	def recomputeRedraw(self) -> None:
-		for asset_name, asset in self.assets.items():
+		for asset in self.assets.values():
 			# if asset_name == 'sun':
 			# 	continue
 			if asset.isActive():
@@ -209,11 +209,7 @@ class History3DCanvasWrapper(BaseCanvas):
 			asset.deSerialise(state['asset_states'][asset_name])
 
 	def mapAssetPositionsToScreen(self) -> list:
-		mo_infos = []
-		for asset_name, asset in self.assets.items():
-			if asset.isActive():
-				mo_infos.append(asset.getScreenMouseOverInfo())
-
+		mo_infos = [asset.getScreenMouseOverInfo() for asset in self.assets.values() if asset.isActive()]
 		return mo_infos
 
 	def onMouseMove(self, event:MouseEvent) -> None:

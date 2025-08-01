@@ -243,7 +243,7 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 		self._updateMarkers()
 
 	def setAllSensorSuitesVisibility(self, state:bool) -> None:
-		for key, asset in self.assets.items():
+		for asset in self.assets.values():
 			if isinstance(asset, sensors.SensorSuite3DAsset):
 				asset.setVisibilityRecursive(state)
 
@@ -277,7 +277,7 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 	#----- HELPER FUNCTIONS -----#
 	def _addIndividualSensorSuitePlotOptions(self) -> None:
 		logger.debug('Adding sensor suite options dictionary entries for:')
-		for key, value in self.data['sc_config'].getSensorSuites().items():
+		for key in self.data['sc_config'].getSensorSuites().keys():
 			visibilityCallback = self._makeVisibilityCallback(key)
 			self.opts[f'plot_sensor_suite_{key}'] = {'value': True,
 													'type': 'boolean',
@@ -598,7 +598,7 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 		self.visuals['oth_circle2'].visible = self.opts['plot_over_the_horizon_circle']['value']
 
 	def setAllSensorSuitesVisibility(self, state:bool) -> None:
-		for key, asset in self.assets.items():
+		for asset in self.assets.values():
 			if isinstance(asset, sensors.SensorSuite2DAsset):
 				asset.setVisibilityRecursive(state)
 
@@ -624,7 +624,7 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 	#----- HELPER FUNCTIONS -----#
 	def _addIndividualSensorSuitePlotOptions(self) -> None:
 		logger.debug('Adding sensor suite options dictionary entries for:')
-		for key, value in self.data['sc_config'].getSensorSuites().items():
+		for key in self.data['sc_config'].getSensorSuites().keys():
 			visibilityCallback = self._makeVisibilityCallback(key)
 			self.opts[f'plot_sensor_suite_{key}'] = {'value': True,
 													'type': 'boolean',

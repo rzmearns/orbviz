@@ -47,7 +47,7 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundAsset):
 
 	def setSource(self, *args, **kwargs) -> None:
 		# args[0] = history_src
-		for sensor_name, sensor in self.assets.items():
+		for sensor in self.assets.values():
 			sensor.setSource(args[0])
 
 	def _instantiateAssets(self) -> None:
@@ -218,7 +218,7 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 		raise NotImplementedError
 
 	def setSensorVisibility(self, state):
-		for visual_name, visual in self.visuals.items():
+		for visual in self.visuals.values():
 			visual.visible = state
 
 	def removePlotOptions(self) -> None:
@@ -273,7 +273,7 @@ class SensorSuite2DAsset(base_assets.AbstractCompoundAsset):
 	def setSource(self, *args, **kwargs) -> None:
 		# args[0] = history_src
 		# args[1] = raycast_src
-		for sensor_name, sensor in self.assets.items():
+		for sensor in self.assets.values():
 			sensor.setSource(args[0], args[1])
 
 	def setScale(self, horizontal_size, vertical_size):
@@ -504,7 +504,7 @@ class Sensor2DAsset(base_assets.AbstractSimpleAsset):
 		self._updateMarkers()
 
 	def setSensorVisibility(self, state):
-		for visual_name, visual in self.visuals.items():
+		for visual in self.visuals.values():
 			visual.visible = state
 		if state:
 			self._setActiveFlag()
@@ -540,7 +540,7 @@ class SensorSuiteImageAsset(base_assets.AbstractCompoundAsset):
 	def setSource(self, *args, **kwargs) -> None:
 		# args[0] = history_src
 		# args[1] = raycast_src
-		for sensor_name, sensor in self.assets.items():
+		for sensor in self.assets.values():
 			sensor.setSource(args[0], args[1])
 
 	def setCurrentDatetime(self, curr_dt:dt.datetime) -> None:

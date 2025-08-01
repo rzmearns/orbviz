@@ -110,9 +110,7 @@ class DataPaneWidget(QtWidgets.QWidget):
 				row_strs = []
 				for index in self.selectionModel().selectedRows():
 					row_num = index.row()
-					col_str = []
-					for col_num in range(self.model().columnCount()):
-						col_str.append(f'{self.model().index(row_num, col_num).data()}')
+					col_str = [f'{self.model().index(row_num, col_num).data()}' for col_num in range(self.model().columnCount())]
 					row_strs.append(','.join(col_str))
 				s = '\n'.join(row_strs)
 				clipboard.setText(s)

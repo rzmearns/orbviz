@@ -59,9 +59,9 @@ class ConstellationConfig():
 			raise AttributeError("Constellation json is ill-formatted: missing field 'satellites'")
 
 		# swap key and values of satellites dict
-		sats = {}
-		for k,v in data['satellites'].items():
-			sats[v] = k
+		sats = {v:k for k,v in data['satellites'].items()}
+		# for k,v in data['satellites'].items():
+		# 	sats[v] = k
 
 		return cls(p.stem, data['name'], data['beam_width'], sats)
 
