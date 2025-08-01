@@ -117,7 +117,7 @@ class TimeSlider(QtWidgets.QWidget):
 		elif datetime > self.end_dt:
 			prev_index = self.num_ticks
 		else:
-			prev_index = int(((datetime-self.start_dt)/self.tick_delta))
+			prev_index = int((datetime-self.start_dt)/self.tick_delta)
 		curr_datetime = self.start_dt + (prev_index*self.tick_delta)
 		self._curr_dt_picker.setDatetime(curr_datetime)
 		self.slider.setValue(prev_index)
@@ -478,7 +478,7 @@ class ToggleBox(QtWidgets.QWidget):
 		self._checkbox = QtWidgets.QCheckBox()
 		self._checkbox.setChecked(dflt_state)
 		layout.addWidget(self._checkbox)
-		self._checkbox.stateChanged.connect((self._run_callbacks))
+		self._checkbox.stateChanged.connect(self._run_callbacks)
 
 		self.setLayout(layout)
 
@@ -840,7 +840,7 @@ class PeriodBox(QtWidgets.QWidget):
 	def periodToHMS(self):
 		H = int(self.period/3600)
 		M = int((self.period-H*3600)/60)
-		S = int((self.period-H*3600-M*60))
+		S = int(self.period-H*3600-M*60)
 
 		return H,M,S
 
@@ -1218,7 +1218,7 @@ class Switch(QtWidgets.QPushButton):
 
 class NonScrollingComboBox(QtWidgets.QComboBox):
 	def __init__(self, scrollWidget=None, *args, **kwargs):
-		super(NonScrollingComboBox, self).__init__(*args, **kwargs)
+		super().__init__(*args, **kwargs)
 		self.scrollWidget=scrollWidget
 		self.setFocusPolicy(QtCore.Qt.StrongFocus)
 
@@ -1248,7 +1248,7 @@ class RangeSlider(QtWidgets.QSlider):
 		exception of valueChanged
 	"""
 	def __init__(self, *args):
-		super(RangeSlider, self).__init__(*args)
+		super().__init__(*args)
 
 		self._low = self.minimum()
 		self._high = self.maximum()

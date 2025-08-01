@@ -33,7 +33,7 @@ def shiftPolytope(poly:nptyping.NDArray, delta:tuple[float,float,float]|nptyping
 		Translated poly
 	'''
 	m, n = poly.shape
-	poly_out = np.zeros((poly.shape))
+	poly_out = np.zeros(poly.shape)
 	poly_out[:, 0] = poly[:, 0] + delta[0]
 	poly_out[:, 1] = poly[:, 1] + delta[1]
 	if n == 3:

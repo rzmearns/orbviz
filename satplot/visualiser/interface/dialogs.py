@@ -29,7 +29,7 @@ import satplot.visualiser.interface.widgets as widgets
 def createSpaceTrackCredentialsDialog():
 	SpaceTrackCredentialsDialog()
 
-class SpaceTrackCredentialsDialog():
+class SpaceTrackCredentialsDialog:
 	def __init__(self):
 		self.window = QtWidgets.QDialog()
 		self.window.setWindowTitle('SpaceTrack Credentials')
@@ -74,7 +74,7 @@ class SpaceTrackCredentialsDialog():
 	def cancel(self):
 		self.window.close()
 
-class GIFDialog():
+class GIFDialog:
 	def __init__(self, parent_window, opening_context, camera_type:str, dflt_camera_data:dict[str,float], num_ticks:int, three_dim=True):
 		if camera_type not in ['Turntable', 'RestrictedPanZoom']:
 			raise ValueError("GIF capture not supported for this context's camera type")
@@ -243,7 +243,7 @@ class GIFDialog():
 										start_index=slider_range[0],
 										end_index=slider_range[1])
 
-class fullResSensorImageDialog():
+class fullResSensorImageDialog:
 	create_time = time.monotonic()
 	MIN_MOVE_UPDATE_THRESHOLD = 1
 	MOUSEOVER_DIST_THRESHOLD = 5

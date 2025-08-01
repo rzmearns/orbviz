@@ -12,7 +12,7 @@ from vispy.scene.widgets.viewbox import ViewBox
 import satplot.visualiser.colours as colours
 
 
-class PopUpTextBox():
+class PopUpTextBox:
 	def __init__(self, v_parent:ViewBox|None=None,
 						padding:list[float]=[0,0,0,0],
 						text_colour:tuple[float,float,float]=(0,0,0),
@@ -77,7 +77,7 @@ class PopUpTextBox():
 
 	def updateCenter(self) -> None:
 		self.center = ((self.pos[0] + self.t_width/2+self.padding[0]),
-				 		((self.pos[1] - self.t_height/2-self.padding[3])))
+				 		(self.pos[1] - self.t_height/2-self.padding[3]))
 		if self.b_visual is not None:
 			self.b_visual.center = self.center
 

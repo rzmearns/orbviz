@@ -24,7 +24,7 @@ def juliandate(time: datetime) -> float:
     jd : float
         Julian date (days since Jan 1, 4713 BCE)
     """
-    if isinstance(time, (tuple, list)):
+    if isinstance(time, tuple|list):
         return list(map(juliandate, time))
 
     if time.month < 3:
@@ -59,7 +59,7 @@ def greenwichsrt(Jdate: float) -> float:
     tsr : float
         Sidereal time
     """
-    if isinstance(Jdate, (tuple, list)):
+    if isinstance(Jdate, tuple|list):
         return list(map(greenwichsrt, Jdate))
 
     # %% Vallado Eq. 3-42 p. 184, Seidelmann 3.311-1

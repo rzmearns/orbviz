@@ -27,7 +27,7 @@ class SensorTypes(Enum):
 	def hasValue(cls, value):
 		return value in cls._value2member_map_
 
-class ConstellationConfig():
+class ConstellationConfig:
 	def __init__(self, filestem:str, name:str, beam_width:float, satellites:dict[int, str]):
 		self.filestem:str = filestem
 		self.name:str = name
@@ -64,7 +64,7 @@ class ConstellationConfig():
 
 		return cls(p.stem, data['name'], data['beam_width'], sats)
 
-class SensorSuiteConfig():
+class SensorSuiteConfig:
 	def __init__(self, name:str, d:dict):
 		self.name = name
 		self.sensors = {}
@@ -161,7 +161,7 @@ class SensorSuiteConfig():
 		else:
 			return {}
 
-class SpacecraftConfig():
+class SpacecraftConfig:
 	def __init__(self, filestem:str, name:str, sat_id:int, sensor_suites_dict:dict[str, dict]):
 		self.filestem:str = filestem
 		self.name:str = name
@@ -191,7 +191,7 @@ class SpacecraftConfig():
 
 		return True
 
-class PrimaryConfig():
+class PrimaryConfig:
 	def __init__(self, filestem:str, name:str, satellites:dict[int, str], sat_configs:dict[int, SpacecraftConfig]):
 		self.filestem:str = filestem
 		self.name:str = name

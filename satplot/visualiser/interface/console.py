@@ -19,7 +19,7 @@ def sendErr(input_str):
 		print(input_str, file=consoleErrfp)
 
 def hex_escape(s):
-    return ''.join(c if c in printable else r'\x{0:02x}'.format(ord(c)) for c in s)
+    return ''.join(c if c in printable else r'\x{0:02x}'.format(ord(c)) for c in s) 		# noqa: UP030, UP032
 
 class EmittingConsoleStream(QtCore.QObject):
 	textWritten = QtCore.pyqtSignal(str)

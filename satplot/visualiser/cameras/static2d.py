@@ -1,5 +1,3 @@
-from __future__ import division
-
 import logging
 
 import typing
@@ -10,7 +8,7 @@ from vispy.scene.cameras import PanZoomCamera
 class Static2D(PanZoomCamera):
 
     def __init__(self, *args, **kwargs):
-        super(Static2D, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
     
     def zoom(self, factor, center=None):
         """

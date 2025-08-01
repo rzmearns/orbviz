@@ -28,7 +28,7 @@ warnings.filterwarnings("ignore", message="Optimal rotation is not uniquely or p
 satplot_logging.configureLogger()
 use(gl='gl+')
 
-class Application():
+class Application:
 	def __init__(self) -> None:
 		satplot.threadpool = threading.Threadpool()
 		logger.info("Creating threadpool with %s threads",satplot.threadpool.maxThreadCount())

@@ -45,7 +45,7 @@ class FixedCamera(Base3DRotationCamera):
 	_state_props = Base3DRotationCamera._state_props + ('_quaternion',)
 
 	def __init__(self, fov=45.0, distance=None, translate_speed=1.0, **kwargs):
-		super(FixedCamera, self).__init__(fov=fov, interactive=False, **kwargs)
+		super().__init__(fov=fov, interactive=False, **kwargs)
 
 		# Set camera attributes
 		self._quaternion = Quaternion()
@@ -129,7 +129,7 @@ class MovableFixedCamera(ArcballCamera):
 	_state_props = Base3DRotationCamera._state_props + ('_quaternion',)
 
 	def __init__(self, fov=45.0, distance=None, translate_speed=1.0, **kwargs):
-		super(MovableFixedCamera, self).__init__(fov=fov, **kwargs)
+		super().__init__(fov=fov, **kwargs)
 
 		# Set camera attributes
 		self._quaternion = Quaternion()

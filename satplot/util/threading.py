@@ -33,7 +33,7 @@ class WorkerSignals(QtCore.QObject):
 	progress = QtCore.pyqtSignal(int)
 	report_finished = QtCore.pyqtSignal(object)
 
-class Flag():
+class Flag:
 	def __init__(self, state:bool):
 		self.state:bool = state
 

@@ -10,7 +10,7 @@ import satplot.visualiser.assets.base_assets as base_assets
 
 logger = logging.getLogger(__name__)
 
-class BaseCanvas():
+class BaseCanvas:
 	def __init__(self, w:int=800, h:int=600, keys:str='interactive', bgcolor:str='white'):
 		pass
 

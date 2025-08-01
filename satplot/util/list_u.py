@@ -23,7 +23,7 @@ def flatten(nested_list:list[list|tuple]|tuple) -> list:
 	"""
 	out = []
 	for item in nested_list:
-		if isinstance(item, (list, tuple)):
+		if isinstance(item, list|tuple):
 			out.extend(flatten(item))
 		else:
 			out.append(item)

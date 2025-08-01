@@ -48,7 +48,7 @@ def unitVector(vector:nptyping.NDArray) -> nptyping.NDArray:
 		return vector / norms[:, None]
 	else:
 		logger.error("Vector must be either a vector or an array of vectors")
-		raise exceptions.InputError("Vectors of shape {} are not supported by unitVector.".format(vector.shape))
+		raise exceptions.InputError(f"Vectors of shape {vector.shape} are not supported by unitVector.")
 
 
 def randUnitVector() -> nptyping.NDArray:
@@ -93,7 +93,7 @@ def angleBetween(v1:nptyping.NDArray, v2:nptyping.NDArray, units:str="rad") -> f
 		return np.rad2deg(angle)
 	else: 
 		logger.error('Bad unit for angle between.')
-		raise NotImplementedError("{} is not a valid unit for the angle. units must be either 'rad' or 'deg'.".format(units))
+		raise NotImplementedError(f"{units} is not a valid unit for the angle. units must be either 'rad' or 'deg'.")
 
 
 def seqPointsSignedAngle(prev_pnt:nptyping.NDArray, curr_pnt:nptyping.NDArray, next_pnt:nptyping.NDArray, norm:nptyping.NDArray=Z) -> float:

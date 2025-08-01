@@ -1,7 +1,6 @@
 import logging
 
 import typing
-from typing import Tuple
 
 import numpy as np
 import numpy.typing as nptyping
@@ -539,7 +538,7 @@ class Earth2DAsset(base_assets.AbstractAsset):
 		self.data['width'] = w
 		self.data['height'] = h
 
-	def getDimensions(self) -> Tuple[int, int]:
+	def getDimensions(self) -> tuple[int, int]:
 		return self.data['width'], self.data['height']
 
 	def recomputeRedraw(self) -> None:
