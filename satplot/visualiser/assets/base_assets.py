@@ -207,25 +207,25 @@ class AbstractSimpleAsset(ABC):
 
 	def _printVisuals(self) -> None:
 		k,v = self._listVisuals()
-		print(f"{self.__name__} asset has visuals:")
+		print(f"{self.__name__} asset has visuals:") 		# noqa: T201
 		for ii, key in enumerate(k):
-			print(f"\t{key}-> ref:{v[ii]}")
+			print(f"\t{key}-> ref:{v[ii]}") 				# noqa: T201
 
 	def _printFlags(self) -> None:
-		print(f'\tactive:{self.isActive()}')
-		print(f'\tstale:{self.isStale()}')
-		print(f'\tfirst_draw:{self.isFirstDraw()}')
+		print(f'\tactive:{self.isActive()}') 				# noqa: T201
+		print(f'\tstale:{self.isStale()}') 					# noqa: T201
+		print(f'\tfirst_draw:{self.isFirstDraw()}') 		# noqa: T201
 
 	def _printParent(self,visual_key:str|None=None):
-		print(f"asset {self.data['name']} parent scene:{self.data['v_parent']}")
+		print(f"asset {self.data['name']} parent scene:{self.data['v_parent']}") 	# noqa: T201
 		if visual_key is not None:
-			print(f"\tvisual {visual_key} parent scene:{self.visuals[visual_key].parent}")
+			print(f"\tvisual {visual_key} parent scene:{self.visuals[visual_key].parent}") 	# noqa: T201
 
 	def _printOptions(self) -> None:
 		for k,v in self.opts.items():
-			print(f'{k}:')
+			print(f'{k}:') 				# noqa: T201
 			for k2,v2 in v.items():
-				print(f'\t{k2}:{v2}')
+				print(f'\t{k2}:{v2}') 	# noqa: T201
 
 
 class AbstractCompoundAsset(ABC):
@@ -465,14 +465,14 @@ class AbstractCompoundAsset(ABC):
 
 	def _printVisuals(self) -> None:
 		k,v = self._listVisuals()
-		print(f"{self.__name__} asset has visuals:")
+		print(f"{self.__name__} asset has visuals:") 			# noqa: T201
 		for ii, key in enumerate(k):
-			print(f"\t{key}-> ref:{v[ii]}")
+			print(f"\t{key}-> ref:{v[ii]}") 					# noqa: T201
 
 	def _printFlags(self) -> None:
-		print(f'\tactive:{self.isActive()}')
-		print(f'\tstale:{self.isStale()}')
-		print(f'\tfirst_draw:{self.isFirstDraw()}')
+		print(f'\tactive:{self.isActive()}') 					# noqa: T201
+		print(f'\tstale:{self.isStale()}') 						# noqa: T201
+		print(f'\tfirst_draw:{self.isFirstDraw()}') 			# noqa: T201
 
 	def _listAssets(self) -> tuple[list, list]:
 		keys = list(self.assets.keys())
@@ -481,20 +481,20 @@ class AbstractCompoundAsset(ABC):
 
 	def _printAssets(self) -> None:
 		k,v = self._listAssets()
-		print(f"{self.__name__} asset has child assets:")
+		print(f"{self.__name__} asset has child assets:") 		# noqa: T201
 		for ii, key in enumerate(k):
-			print(f"\t{key}-> ref:{v[ii]}")
+			print(f"\t{key}-> ref:{v[ii]}") 					# noqa: T201
 
 	def _printParent(self,visual_key:str|None=None) -> None:
-		print(f"asset {self.data['name']} parent scene:{self.data['v_parent']}")
+		print(f"asset {self.data['name']} parent scene:{self.data['v_parent']}") 		# noqa: T201
 		if visual_key is not None:
-			print(f"\tvisual {visual_key} parent scene:{self.visuals[visual_key].parent}")
+			print(f"\tvisual {visual_key} parent scene:{self.visuals[visual_key].parent}") 	# noqa: T201
 
 	def _printOptions(self) -> None:
 		for k,v in self.opts.items():
-			print(f'{k}:')
+			print(f'{k}:') 										# noqa: T201
 			for k2,v2 in v.items():
-				print(f'\t{k2}:{v2}')
+				print(f'\t{k2}:{v2}') 							# noqa: T201
 
 
 
@@ -765,14 +765,14 @@ class AbstractAsset(ABC):
 
 	def _printVisuals(self) -> None:
 		k,v = self._listVisuals()
-		print(f"{self.__name__} asset has visuals:")
+		print(f"{self.__name__} asset has visuals:") 			# noqa: T201
 		for ii, key in enumerate(k):
-			print(f"\t{key}-> ref:{v[ii]}")
+			print(f"\t{key}-> ref:{v[ii]}") 					# noqa: T201
 
 	def _printFlags(self) -> None:
-		print(f'\tactive:{self.isActive()}')
-		print(f'\tstale:{self.isStale()}')
-		print(f'\tfirst_draw:{self.isFirstDraw()}')
+		print(f'\tactive:{self.isActive()}') 					# noqa: T201
+		print(f'\tstale:{self.isStale()}') 						# noqa: T201
+		print(f'\tfirst_draw:{self.isFirstDraw()}') 			# noqa: T201
 
 	def _listAssets(self) -> tuple[list,list]:
 		keys = list(self.assets.keys())
@@ -781,22 +781,22 @@ class AbstractAsset(ABC):
 
 	def _printAssets(self) -> None:
 		k,v = self._listAssets()
-		print(f"{self.__name__} asset has child assets:")
+		print(f"{self.__name__} asset has child assets:") 		# noqa: T201
 		for ii, key in enumerate(k):
-			print(f"\t{key}-> ref:{v[ii]}")
+			print(f"\t{key}-> ref:{v[ii]}") 					# noqa: T201
 
 	def _printParent(self,visual_key:str|None=None, asset_key:str|None=None) -> None:
-		print(f"asset {self.data['name']} parent scene:{self.data['v_parent']}")
+		print(f"asset {self.data['name']} parent scene:{self.data['v_parent']}") 		# noqa: T201
 		if visual_key is not None:
-			print(f"\tvisual {visual_key} parent scene:{self.visuals[visual_key].parent}")
+			print(f"\tvisual {visual_key} parent scene:{self.visuals[visual_key].parent}") 		# noqa: T201
 		if asset_key is not None:
-			print(f"\tasset {asset_key} parent scene:{self.assets[asset_key].data['v_parent']}")
+			print(f"\tasset {asset_key} parent scene:{self.assets[asset_key].data['v_parent']}") 		# noqa: T201
 
 	def _printOptions(self) -> None:
 		for k,v in self.opts.items():
-			print(f'{k}:')
+			print(f'{k}:') 						# noqa: T201
 			for k2,v2 in v.items():
-				print(f'\t{k2}:{v2}')
+				print(f'\t{k2}:{v2}') 			# noqa: T201
 
 
 def serialiseOption(opt_dict:dict[str,Any]) -> dict[str,Any]:

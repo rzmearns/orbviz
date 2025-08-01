@@ -311,7 +311,6 @@ class ColourPicker(QtWidgets.QWidget):
 		self.curr_rgb = (int(rgb_str[0]), int(rgb_str[1]), int(rgb_str[2]))
 		self.curr_hex = colours.rgb2hex(self.curr_rgb)
 		self._colour_box.setStyleSheet(f"background-color: {self.curr_hex}")
-		print(self._colour_box.styleSheet())
 		# self._colour_box.setStyleSheet(f"onClicked: forceActiveFocus()")
 		if len(self._callbacks) > 0:
 			for callback in self._callbacks:
@@ -1013,12 +1012,7 @@ class ValueBox(QtWidgets.QWidget):
 
 
 	def getValue(self) -> float:
-		try:
-			ret_val = float(self.value)
-			return float(self.value)
-		except:
-			print(f"Can't return non float value")
-			return ''
+		return float(self.value)
 
 	def _updateValue(self):
 		self.value = self._val_text_box.text()
@@ -1036,7 +1030,7 @@ class ValueBox(QtWidgets.QWidget):
 				pass
 				# callback(self._checkbox.isChecked())
 		else:
-			print("No ValueBox callbacks are set")
+			logger.warning("No ValueBox callbacks are set")
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
@@ -1046,7 +1040,7 @@ class ValueBox(QtWidgets.QWidget):
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['type'] != 'ValueBox':
-			print(f"{self} state was serialised as a {state['type']}, is now a ValueBox")
+			logger.error("%s state was serialised as a %s, is now a ValueBox", self, state['type'])
 			return
 		self.setValue(state['value'])
 

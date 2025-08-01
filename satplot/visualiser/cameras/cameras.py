@@ -59,7 +59,6 @@ class FixedCamera(Base3DRotationCamera):
 	def _get_rotation_tr(self):
 		"""Return a rotation matrix based on camera parameters"""
 		rot, x, y, z = self._quaternion.get_axis_angle()
-		print(f'Inside _get_rotation_tr:{self._quaternion=}')
 		return transforms.rotate(180 * rot / np.pi, (x, y, z))
 
 	def _get_dim_vectors(self):
@@ -141,7 +140,6 @@ class MovableFixedCamera(ArcballCamera):
 	def _get_rotation_tr(self):
 		"""Return a rotation matrix based on camera parameters"""
 		rot, x, y, z = self._quaternion.get_axis_angle()
-		print(f'Inside _get_rotation_tr:{self._quaternion=}')
 		return transforms.rotate(180 * rot / np.pi, (x, y, z))
 
 	def _setQuat(self, quat:tuple[float,float,float,float], update=False):

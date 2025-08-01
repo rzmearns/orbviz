@@ -63,6 +63,6 @@ class BaseDataModel(QtCore.QObject):
 			self.updateConfig(k,v)
 
 	def printConfig(self) -> None:
-		print(f"Data Config for {self.getConfigValue('data_type')}")
+		print(f"Data Config for {self.getConfigValue('data_type')}")  # noqa: T201
 		for k,v in self.config.items():
-			print(f'\t{k}:{v}')
+			print(f'\t{k}:{v}') 		# noqa: T201

@@ -111,7 +111,6 @@ class HistoryData(BaseDataModel):
 		# Load pointing and create timespan
 		if self.getConfigValue('is_pointing_defined'):
 			for sc_id, sc_config in self.getConfigValue('primary_satellite_config').getAllSpacecraftConfigs().items():
-				print(f'{sc_id=}')
 				self.pointings[sc_id] = HistoricalAttitude(self.getConfigValue('pointing_file'), sc_config)
 			if self.getConfigValue('pointing_defines_timespan'):
 				console.send("Loading timespan from pointing file.")

@@ -703,8 +703,8 @@ class Menubar(QtWidgets.QWidget):
 
 def pretty(d, indent=0):
    for key, value in d.items():
-      print('\t' * indent + str(key))
+      print('\t' * indent + str(key)) 				# noqa: T201
       if isinstance(value, dict):
          pretty(value, indent+1)
       else:
-         print('\t' * (indent+1) + str(value))
+         print('\t' * (indent+1) + str(value)) 		# noqa: T201
