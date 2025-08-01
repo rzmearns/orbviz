@@ -64,7 +64,7 @@ class TimeSlider(QtWidgets.QWidget):
 
 	def setRange(self, start_dt, end_dt, num_ticks):
 		if start_dt > end_dt:
-			logger.warning(f"Period End {end_dt} must be after Period Start {start_dt} when setting timeslider range.")
+			logger.warning("Period End %s must be after Period Start %s when setting timeslider range.", end_dt, start_dt)
 			raise ValueError(f"Period End {end_dt} must be after Period Start {start_dt} when setting timeslider range.")
 		self.start_dt = start_dt.replace(tzinfo=None)
 		self.end_dt = end_dt.replace(tzinfo=None)
@@ -156,7 +156,7 @@ class TimeSlider(QtWidgets.QWidget):
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['type'] != 'timeSlider':
-			logger.error(f"{self} state was serialised as a {state['type']}, is now a timeSlider")
+			logger.error("%s state was serialised as a %s, is now a timeSlider", self, state['type'])
 			return
 		self.setRange(state['start_dt'], state['end_dt'], state['num_ticks'])
 		self.setValue(state['curr_index'])
@@ -325,7 +325,7 @@ class ColourPicker(QtWidgets.QWidget):
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['type'] != 'ColourPicker':
-			logger.error(f"{self} state was serialised as a {state['type']}, is now a ColourPicker")
+			logger.error("%s state was serialised as a %s, is now a ColourPicker", self, state['type'])
 
 		self._text_box.blockSignals(True)
 		self.curr_rgb = state['value']
@@ -398,7 +398,7 @@ class ValueSpinner(QtWidgets.QWidget):
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['type'] != 'ValueSpinner':
-			logger.error(f"{self} state was serialised as a {state['type']}, is now a ValueSpinner")
+			logger.error("%s state was serialised as a %s, is now a ValueSpinner", self, state['type'])
 
 		self._val_box.blockSignals(True)
 		self.curr_val = state['value']
@@ -454,7 +454,7 @@ class Button(QtWidgets.QWidget):
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['type'] != 'Button':
-			logger.error(f"{self} state was serialised as a {state['type']}, is now a Button")
+			logger.error("%s state was serialised as a , is now a Button", self, state['type'])
 
 class ToggleBox(QtWidgets.QWidget):
 	def __init__(self, label, dflt_state, parent: QtWidgets.QWidget=None, label_bold=False) -> None:
@@ -499,7 +499,7 @@ class ToggleBox(QtWidgets.QWidget):
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['type'] != 'ToggleBox':
-			logger.error(f"{self} state was serialised as a {state['type']}, is now a ToggleBox")
+			logger.error("%s state was serialised as a %s, is now a ToggleBox", self, state['type'])
 		self._checkbox.blockSignals(True)
 		self._checkbox.setChecked(state['value'])
 		self._checkbox.blockSignals(False)
@@ -590,12 +590,12 @@ class OptionBox(QtWidgets.QWidget):
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['type'] != 'OptionBox':
-			logger.error(f"{self} state was serialised as a {state['type']}, is now an OptionBox")
+			logger.error("%s state was serialised as a %s, is now an OptionBox", self, state['type'])
 			return
 		if state['value'] is not None and state['value'] in self._optionbox.getAllItems():
 			self._optionbox.setCurrentText(state['value'])
 		else:
-			logger.error(f"{state['value']} is not a local valid option. Displaying data, but can't set options.")
+			logger.error("%s is not a local valid option. Displaying data, but can't set options.", state['value'])
 
 class BasicOptionBox(QtWidgets.QWidget):
 	def __init__(self, label, dflt_option=None, options_list=[], parent: QtWidgets.QWidget=None) -> None:
@@ -652,12 +652,12 @@ class BasicOptionBox(QtWidgets.QWidget):
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['type'] != 'BasicOptionBox':
-			logger.error(f"{self} state was serialised as a {state['type']}, is now an OptionBox")
+			logger.error("%s state was serialised as a %s, is now an OptionBox", self, state['type'])
 			return
 		if state['value'] is not None and state['value'] in self._optionbox.getAllItems():
 			self._optionbox.setCurrentText(state['value'])
 		else:
-			logger.error(f"{state['value']} is not a local valid option. Displaying data, but can't set options.")
+			logger.error("%s is not a local valid option. Displaying data, but can't set options.", state['value'])
 
 class FilePicker(QtWidgets.QWidget):
 	def __init__(self, label,
@@ -787,7 +787,7 @@ class FilePicker(QtWidgets.QWidget):
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['type'] != 'filePicker':
-			logger.error(f"{self} state was serialised as a {state['type']}, is now a filePicker")
+			logger.error("%s state was serialised as a %s, is now a filePicker", self, state['type'])
 			return
 		self._file_text_box.setText(state['value'])
 
@@ -851,7 +851,7 @@ class PeriodBox(QtWidgets.QWidget):
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['type'] != 'period':
-			logger.error(f"{self} state was serialised as a {state['type']}, is now a period")
+			logger.error("%s state was serialised as a %s, is now a period", self, state['type'])
 			return
 		self.val_box.setValue(state['value'])
 
@@ -970,7 +970,7 @@ class DatetimeEntry(QtWidgets.QWidget):
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['type'] != 'DatetimeEntry':
-			logger.error(f"{self} state was serialised as a {state['type']}, is now a DatetimeEntry")
+			logger.error("%s state was serialised as a %s, is now a DatetimeEntry", self, state['type'])
 			return
 		self.setDatetime(state['value'])
 
@@ -1216,7 +1216,7 @@ class Switch(QtWidgets.QPushButton):
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['type'] != 'Switch':
-			logger.error(f"{self} state was serialised as a {state['type']}, is now a Switch")
+			logger.error("%s state was serialised as a %s, is now a Switch", self, state['type'])
 			return
 		self.setChecked(state['value'])
 

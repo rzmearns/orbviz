@@ -91,7 +91,7 @@ class EarthRayCastData(BaseDataModel):
 
 		for thread_name, thread in self._worker_threads.items():
 			if thread is not None:
-				logger.info(f'Starting thread {thread_name}:{thread}')
+				logger.info('Starting thread %s:%s', thread_name, thread)
 				satplot.threadpool.logStart(thread)
 
 	def _procComplete(self) -> None:
@@ -99,7 +99,7 @@ class EarthRayCastData(BaseDataModel):
 		for thread in self._worker_threads.values():
 			if thread is not None:
 				if thread.isRunning():
-					logger.info(f"{thread} is still running")
+					logger.info("%s is still running", thread)
 					return
 		self.data_ready.emit()
 		logger.info("Finished initialising Earth PlanetaryRayCastData")

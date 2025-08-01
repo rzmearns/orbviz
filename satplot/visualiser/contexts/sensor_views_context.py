@@ -96,7 +96,7 @@ class SensorViewsContext(BaseContext):
 
 	def _updateDisplayedIndex(self, index:int) -> None:
 		if self.data['history'] is None:
-			logger.warning(f"model history data is not set for context {self.config['name']}:{self}")
+			logger.warning("model history data is not set for context %s:%s", self.config['name'], self)
 			ValueError(f"model history data is not set for context {self.config['name']}:{self}")
 		self.canvas_wrapper.updateIndex(index)
 		self.data['history'].updateIndex(index)
@@ -106,7 +106,7 @@ class SensorViewsContext(BaseContext):
 		self.canvas_wrapper.selectSensor(view_id, sc_id, suite_key, sens_key)
 
 	def generateSensorFullRes(self, view_id:int, sc_id:int, suite_key:str, sens_key:str) -> None:
-		logger.debug(f'Generating Full Res for view {view_id}: {sc_id} - {suite_key} - {sens_key}')
+		logger.debug('Generating Full Res for view %s: %s - %s - %s', view_id, sc_id, suite_key, sens_key)
 		img_data, mo_data, moConverterFunction, img_metadata = self.canvas_wrapper.generateSensorFullRes(sc_id, suite_key, sens_key)
 		img_dialog = satplot_dialogs.fullResSensorImageDialog(img_data, mo_data, moConverterFunction, img_metadata)
 

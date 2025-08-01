@@ -83,7 +83,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
 	def _changeToolbarsToShell(self, new_shell_idx:int) -> None:
 		new_shell = list(self.shell_dict.values())[new_shell_idx]
-		logger.debug(f'Changing Shells to {new_shell.name}')
+		logger.debug('Changing Shells to %s', new_shell.name)
 		for shell in self.shell_dict.values():
 			if shell != new_shell:
 				shell.makeDormant()

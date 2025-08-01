@@ -51,8 +51,8 @@ class HistoricalShell(base_shell.BaseShell):
 		for ii, key in enumerate(self.toolbars.keys()):
 			if list(self.menubars.keys())[ii] != key:
 				logger.error('Context toolbars and menubar indices do not match for contexts')
-				logger.error(f'Toolbars: {self.toolbars.keys()}')
-				logger.error(f'Menubars: {self.menubars.keys()}')
+				logger.error('Toolbars: %s', self.toolbars.keys())
+				logger.error('Menubars: %s', self.menubars.keys())
 				raise ValueError('Toolbars and Menubars indices do not match')
 				sys.exit()
 

@@ -69,6 +69,7 @@ class AbstractSimpleAsset(ABC):
 
 	##### State methods
 	def makeActive(self) -> None:
+		logger.debug("%s being made active.", self.data['name'])
 		if not self.is_active:
 			self.setFirstDrawFlagRecursive()
 			self.attachToParentViewRecursive()
@@ -84,11 +85,11 @@ class AbstractSimpleAsset(ABC):
 
 	def _setActiveFlag(self) -> None:
 		self.is_active = True
-		logger.debug(f'Setting ACTIVE flag for {self}')
+		logger.debug('Setting ACTIVE flag for %s', self)
 
 	def _clearActiveFlag(self) -> None:
 		self.is_active = False
-		logger.debug(f'Clearing ACTIVE flag for {self}')
+		logger.debug('Clearing ACTIVE flag for %s', self)
 
 	def setActiveFlagRecursive(self) -> None:
 		self._setActiveFlag()
@@ -97,7 +98,7 @@ class AbstractSimpleAsset(ABC):
 		self._clearActiveFlag()
 
 	def _setStaleFlag(self) -> None:
-		logger.debug(f'Setting STALE flag for {self}')
+		logger.debug('Setting STALE flag for %s', self)
 		self.is_stale = True
 
 	def setStaleFlagRecursive(self) -> None:
@@ -105,14 +106,14 @@ class AbstractSimpleAsset(ABC):
 
 	def _clearStaleFlag(self) -> None:
 		self.is_stale = False
-		logger.debug(f'Clearing STALE flag for {self}')
+		logger.debug('Clearing STALE flag for %s', self)
 
 	def isStale(self) -> bool:
 		return self.is_stale
 
 	def _setFirstDrawFlag(self) -> None:
 		self.first_draw = True
-		logger.debug(f'Setting FIRSTDRAW flag for {self}')
+		logger.debug('Setting FIRSTDRAW flag for %s', self)
 
 	def setFirstDrawFlagRecursive(self) -> None:
 		self._setFirstDrawFlag()
@@ -120,13 +121,13 @@ class AbstractSimpleAsset(ABC):
 	# first_draw flag should only be cleared within its own recomputeRedraw
 	def _clearFirstDrawFlag(self) -> None:
 		self.first_draw = False
-		logger.debug(f'Clearing FIRSTDRAW flag for {self}')
+		logger.debug('Clearing FIRSTDRAW flag for %s', self)
 
 	def isFirstDraw(self) -> bool:
 		return self.first_draw
 
 	def setVisibility(self, state:bool) -> None:
-		logger.debug(f'Setting visibility for {self} to {state}')
+		logger.debug('Setting visibility for %s to %s', self, state)
 		for visual_name, visual in self.visuals.items():
 			if visual is None:
 				continue
@@ -143,10 +144,10 @@ class AbstractSimpleAsset(ABC):
 		return state
 
 	def deSerialise(self, state):
-		logger.debug(f"Deserialisation of asset {self}")
+		logger.debug("Deserialisation of asset %s", {self})
 		for k,v in state.items():
 			if 'opt_' in k:
-				logger.debug(f'\t{k}:{v}')
+				logger.debug('\t%s:%s', k, v)
 				deSerialiseOption(k.removeprefix('opt_'),v,self)
 
 		self.runOptionCallbacks()
@@ -290,6 +291,7 @@ class AbstractCompoundAsset(ABC):
 
 	##### State methods
 	def makeActive(self) -> None:
+		logger.debug("%s being made active.", self.data['name'])
 		if not self.is_active:
 			self.setFirstDrawFlagRecursive()
 			self.attachToParentViewRecursive()
@@ -305,11 +307,11 @@ class AbstractCompoundAsset(ABC):
 
 	def _setActiveFlag(self) -> None:
 		self.is_active = True
-		logger.debug(f'Setting ACTIVE flag for {self}')
+		logger.debug('Setting ACTIVE flag for %s', self)
 
 	def _clearActiveFlag(self) -> None:
 		self.is_active = False
-		logger.debug(f'Clearing ACTIVE flag for {self}')
+		logger.debug('Clearing ACTIVE flag for %s', self)
 
 	def setActiveFlagRecursive(self) -> None:
 		self._setActiveFlag()
@@ -325,7 +327,7 @@ class AbstractCompoundAsset(ABC):
 
 	def _setStaleFlag(self) -> None:
 		self.is_stale = True
-		logger.debug(f'Setting STALE flag for {self}')
+		logger.debug('Setting STALE flag for %s', self)
 
 	def setStaleFlagRecursive(self) -> None:
 		self._setStaleFlag()
@@ -335,14 +337,14 @@ class AbstractCompoundAsset(ABC):
 
 	def _clearStaleFlag(self) -> None:
 		self.is_stale = False
-		logger.debug(f'Clearing STALE flag for {self}')
+		logger.debug('Clearing STALE flag for %s', self)
 
 	def isStale(self) -> bool:
 		return self.is_stale
 
 	def _setFirstDrawFlag(self) -> None:
 		self.first_draw = True
-		logger.debug(f'Setting FIRSTDRAW flag for {self}')
+		logger.debug('Setting FIRSTDRAW flag for %s', self)
 
 	def setFirstDrawFlagRecursive(self) -> None:
 		self._setFirstDrawFlag()
@@ -353,13 +355,13 @@ class AbstractCompoundAsset(ABC):
 	# first_draw flag should only be cleared within its own recomputeRedraw
 	def _clearFirstDrawFlag(self) -> None:
 		self.first_draw = False
-		logger.debug(f'Clearing FIRSTDRAW flag for {self}')
+		logger.debug('Clearing FIRSTDRAW flag for %s', self)
 
 	def isFirstDraw(self) -> bool:
 		return self.first_draw
 
 	def setVisibility(self, state:bool) -> None:
-		logger.debug(f'Setting visibility for {self} to {state}')
+		logger.debug('Setting visibility for %s to %s', self, state)
 		for visual_name, visual in self.visuals.items():
 			if visual is None:
 				continue
@@ -380,13 +382,13 @@ class AbstractCompoundAsset(ABC):
 		return state
 
 	def deSerialise(self, state):
-		logger.debug(f"Deserialisation of asset {self}")
+		logger.debug("Deserialisation of asset %s", {self})
 		for k,v in state.items():
 			if 'asset_' in k:
 				self.assets[k.removeprefix('asset_')].deSerialise(v)
 				continue
 			elif 'opt_' in k:
-				logger.debug(f'\t{k}:{v}')
+				logger.debug('\t%s:%s', k, v)
 				deSerialiseOption(k.removeprefix('opt_'),v,self)
 		self.runOptionCallbacks()
 
@@ -527,10 +529,10 @@ class AbstractAsset(ABC):
 		'''Sets all vispy visuals to use the stored parent'''
 		for visual in self.visuals.values():
 			if visual is not None and not isinstance(visual, list):
-				logger.debug(f"Attaching visual of {self.data['name']} to parent")
+				logger.debug("Attaching visual of %s to parent", self.data['name'])
 				visual.parent = self.data['v_parent']
 			elif visual is not None:
-				logger.debug(f"Attaching visual of {self.data['name']} to parent")
+				logger.debug("Attaching visual of %s to parent", self.data['name'])
 				for el in visual:
 					el.parent = self.data['v_parent']
 
@@ -546,10 +548,10 @@ class AbstractAsset(ABC):
 		for visual in self.visuals.values():
 			if visual is not None and not isinstance(visual, list):
 				# single visual
-				logger.debug(f"Detaching visual of {self.data['name']} to parent")
+				logger.debug("Detaching visual of %s from parent", self.data['name'])
 				visual.parent = None
 			elif visual is not None:
-				logger.debug(f"Detaching visual of {self.data['name']} from parent")
+				logger.debug("Detaching visual of %s from parent", self.data['name'])
 				# list of visuals
 				for el in visual:
 					el.parent = None
@@ -569,7 +571,7 @@ class AbstractAsset(ABC):
 
 	##### State methods
 	def makeActive(self) -> None:
-		logger.debug(f"{self.data['name']} being made active.")
+		logger.debug("%s being made active.", self.data['name'])
 		if not self.is_active:
 			self.setFirstDrawFlagRecursive()
 			self.attachToParentViewRecursive()  # will attach all assets  recursively
@@ -582,11 +584,11 @@ class AbstractAsset(ABC):
 
 	def _setActiveFlag(self) -> None:
 		self.is_active = True
-		logger.debug(f'Setting ACTIVE flag for {self}')
+		logger.debug('Setting ACTIVE flag for %s', self)
 
 	def _clearActiveFlag(self) -> None:
 		self.is_active = False
-		logger.debug(f'Clearing ACTIVE flag for {self}')
+		logger.debug('Clearing ACTIVE flag for %s', self)
 
 	def setActiveFlagRecursive(self) -> None:
 		self._setActiveFlag()
@@ -605,7 +607,7 @@ class AbstractAsset(ABC):
 
 	def _setStaleFlag(self) -> None:
 		self.is_stale = True
-		logger.debug(f'Setting STALE flag for {self}')
+		logger.debug('Setting STALE flag for %s', self)
 
 	def setStaleFlagRecursive(self) -> None:
 		self._setStaleFlag()
@@ -614,14 +616,14 @@ class AbstractAsset(ABC):
 				asset.setStaleFlagRecursive()
 
 	def _clearStaleFlag(self) -> None:
-		logger.debug(f'Clearing STALE flag for {self}')
+		logger.debug('Clearing STALE flag for %s', self)
 		self.is_stale = False
 
 	def isStale(self) -> bool:
 		return self.is_stale
 
 	def _setFirstDrawFlag(self) -> None:
-		logger.debug(f'Setting FIRSTDRAW flag for {self}')
+		logger.debug('Setting FIRSTDRAW flag for %s', self)
 		self.first_draw = True
 
 	def setFirstDrawFlagRecursive(self) -> None:
@@ -632,14 +634,14 @@ class AbstractAsset(ABC):
 
 	# should only be called within its own recomputeRedraw
 	def _clearFirstDrawFlag(self) -> None:
-		logger.debug(f'Clearing FIRSTDRAW flag for {self}')
+		logger.debug('Clearing FIRSTDRAW flag for %s', self)
 		self.first_draw = False
 
 	def isFirstDraw(self) -> bool:
 		return self.first_draw
 
 	def setVisibility(self, state:bool) -> None:
-		logger.debug(f'Setting visibility for {self} to {state}')
+		logger.debug('Setting visibility for %s to %s', self, state)
 		for visual_name, visual in self.visuals.items():
 			if visual is None:
 				continue
@@ -661,13 +663,13 @@ class AbstractAsset(ABC):
 		return state
 
 	def deSerialise(self, state):
-		logger.debug(f"Deserialisation of asset {self}")
+		logger.debug("Deserialisation of asset %s", {self})
 		for k,v in state.items():
 			if 'asset_' in k:
 				self.assets[k.removeprefix('asset_')].deSerialise(v)
 				continue
 			elif 'opt_' in k:
-				logger.debug(f'\t{k}:{v}')
+				logger.debug('\t%s:%s', k, v)
 				deSerialiseOption(k.removeprefix('opt_'),v,self)
 
 		self.runOptionCallbacks()

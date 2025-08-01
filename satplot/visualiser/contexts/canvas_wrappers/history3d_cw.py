@@ -87,7 +87,7 @@ class History3DCanvasWrapper(BaseCanvas):
 							'magnify',
 							'perspective']
 		if mode not in allowed_cam_modes:
-			logger.error(f'specified camera mode is not a valid mode: {mode}')
+			logger.error('specified camera mode is not a valid mode: %s', mode)
 			raise NameError
 
 		self.view_box.camera = mode
@@ -102,7 +102,7 @@ class History3DCanvasWrapper(BaseCanvas):
 	def modelUpdated(self) -> None:
 		# Update data source for earth asset
 		if self.data_models['history'] is None:
-			logger.error(f'canvas wrapper: {self} does not have a history data model yet')
+			logger.error('canvas wrapper: %s does not have a history data model yet', self)
 			raise exceptions.InvalidDataError
 
 		if self.data_models['history'].timespan is not None:
@@ -158,8 +158,8 @@ class History3DCanvasWrapper(BaseCanvas):
 
 	def centerCameraSpacecraft(self, set_zoom:bool=True) -> None:
 		if self.canvas is None:
-			logger.warning(f"Canvas has not been set for History3D Canvas Wrapper. No camera to center")
-			raise AttributeError(f"Canvas has not been set for History3D Canvas Wrapper. No camera to center")
+			logger.warning("Canvas has not been set for History3D Canvas Wrapper. No camera to center")
+			raise AttributeError("Canvas has not been set for History3D Canvas Wrapper. No camera to center")
 		if self.assets['spacecraft'].isActive():
 			sc_pos = tuple(self.assets['spacecraft'].data['coords'][self.assets['spacecraft'].data['curr_index']])
 		else:
@@ -176,8 +176,8 @@ class History3DCanvasWrapper(BaseCanvas):
 
 	def centerCameraEarth(self) -> None:
 		if self.canvas is None:
-			logger.warning(f"Canvas has not been set for History3D Canvas Wrapper. No camera to center")
-			raise AttributeError(f"Canvas has not been set for History3D Canvas Wrapper. No camera to center")
+			logger.warning("Canvas has not been set for History3D Canvas Wrapper. No camera to center")
+			raise AttributeError("Canvas has not been set for History3D Canvas Wrapper. No camera to center")
 		self.view_box.camera.center = (0,0,0)
 		self.setCameraZoom(5*c.R_EARTH)
 		self.canvas.update()

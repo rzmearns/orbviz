@@ -109,7 +109,7 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 	def selectSensor(self, view:int, sc_id: int, sens_suite_key: str, sens_key: str) -> None:
 		# remove parent scene of old sensor
 		# make old sensor dormant
-		logger.debug(f'Clearing sensor: {self.displayed_sensors[view]} from view: {view}')
+		logger.debug('Clearing sensor: %s from view: %s', self.displayed_sensors[view], view)
 		if self.displayed_sensors[view] is not None:
 			self.displayed_sensors[view].makeDormant()
 			self.displayed_sensors[view] = None
@@ -128,7 +128,7 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 		sensor_asset._setActiveFlag()
 		sensor_asset._attachToParentView()
 		width, height = sensor_asset.getDimensions()
-		logger.debug(f'Setting view: {view} to SC: {sc_id}, Sensor Suite: {sens_suite_key}, sensor:{sens_key}')
+		logger.debug('Setting view: %s to SC: %s, Sensor Suite: %s, sensor:%s', view, sc_id, sens_suite_key, sens_key)
 		self.view_boxes[view].camera.set_range(x=(0,width), y=(0, height), margin=0)
 		self.displayed_sensors[view] = sensor_asset
 
@@ -152,14 +152,14 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 		self.data_models['raycast_src'] = earth_raycast_data
 
 	def modelUpdated(self) -> None:
-		logger.debug(f'updating model for {self}')
+		logger.debug('updating model for %s', self)
 		# Update data source for earth asset
 		if self.data_models['history'] is None:
-			logger.error(f'canvas wrapper: {self} does not have a history data model yet')
+			logger.error('canvas wrapper: %s does not have a history data model yet', self)
 			raise exceptions.InvalidDataError
 
 		if self.data_models['raycast_src'] is None:
-			logger.error(f'canvas wrapper: {self} does not have a raycast source data model yet')
+			logger.error('canvas wrapper: %s does not have a raycast source data model yet', self)
 			raise exceptions.InvalidDataError
 
 		if self.data_models['history'].hasOrbits():

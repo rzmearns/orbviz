@@ -26,7 +26,7 @@ class BaseDataModel(QtCore.QObject):
 
 	def updateConfig(self, param:str, val:Any) -> None:
 		if param not in self.config.keys():
-			logger.error(f"{param} not a valid configuration option for {self.config['data_type']}")
+			logger.error("%s not a valid configuration option for %s", param, self.config['data_type'])
 			raise ValueError(f"{param} not a valid configuration option for {self.config['data_type']}")
 		self._setConfig(param, val)
 

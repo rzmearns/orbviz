@@ -92,7 +92,7 @@ class Worker(QtCore.QRunnable):
 		return self.running.getState()
 
 	def terminate(self):
-		logger.info(f'SETTING FLAG {self}: FALSE')
+		logger.info('SETTING FLAG %s: FALSE', self)
 		self.running.setState(False)
 
 
@@ -110,9 +110,9 @@ class Threadpool(QtCore.QThreadPool):
 			return
 
 		for ii in range(len(self.running_threads)-1,-1,-1):
-			logger.info(f'Killing thread:{self.running_threads[ii]}')
+			logger.info('Killing thread:%s', self.running_threads[ii])
 			self.running_threads[ii].terminate()
-			logger.info(f'\tthread stopped')
+			logger.info('\tthread stopped')
 
 	def logStart(self, thread:Worker) -> None:
 		self.running_threads.append(thread)

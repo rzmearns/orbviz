@@ -71,14 +71,14 @@ class SensorSuiteConfig():
 		for sensor_name, sensor_config in d.items():
 			# Check sensor is a valid type
 			if not SensorTypes.hasValue(sensor_config['shape']):
-				logger.error(f"Sensor {sensor_name} of suite {self.name} has invalid shape: {sensor_config['shape']}. Should be one of {SensorTypes}")
+				logger.error("Sensor %s of suite %s has invalid shape: %s. Should be one of %s", sensor_name, self.name, sensor_config['shape'], SensorTypes)
 				raise ValueError(f"Sensor {sensor_name} of suite {self.name} has invalid shape: {sensor_config['shape']}. Should be one of {SensorTypes}")
 
 			sens_dict = {'shape':SensorTypes(sensor_config['shape'])}
 			required_keys_types =  self.getSensorTypeConfigFields(sens_dict['shape'])
 			for config_key, _type in required_keys_types.items():
 				if config_key not in sensor_config.keys():
-					logger.error(f"Sensor {sensor_name} of suite {self.name} has missing sensor config field: {config_key}")
+					logger.error("Sensor %s of suite %s has missing sensor config field: %s", sensor_name, self.name, config_key)
 					raise KeyError(f"Sensor {sensor_name} of suite {self.name} has missing sensor config field: {config_key}")
 				elif config_key == 'shape':
 					continue
@@ -198,7 +198,7 @@ class PrimaryConfig():
 		self.num_sats:int = len(self.sats.keys())
 		self.sat_configs:dict[int,SpacecraftConfig] = sat_configs
 
-		logger.info(f'Created primary configuration with name:{self.name}, sats:{self.sats}, sat_configs:{self.sat_configs}')
+		logger.info('Created primary configuration with name:%s, sats:%s, sat_configs:%s', self.name, self.sats, self.sat_configs)
 
 	@classmethod
 	def fromJSON(cls, path:str | pathlib.Path):

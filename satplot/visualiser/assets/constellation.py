@@ -51,18 +51,18 @@ class Constellation(base_assets.AbstractAsset):
 		beam_angle = args[1]
 
 		if type(sats_dict) is not dict:
-			logger.error(f'args[0] of Constellation.setSource() should be a dictionary of satellites ')
+			logger.error('args[0] of Constellation.setSource() should be a dictionary of satellites ')
 			raise TypeError
 		for k, v in sats_dict.items():
 			if type(v) is not orbit.Orbit:
-				logger.error(f"setSource() of {self} requires an {orbit.Orbit} as value of dict from args[0], not: {type(first_sat_orbit)}")
+				logger.error("setSource() of %s requires an %s as value of dict from args[0], not: %s", self, orbit.Orbit, type(first_sat_orbit))
 				raise TypeError
 
 		if hasattr(first_sat_orbit,'pos'):
 			pass
 		else:
 			console.sendErr('Orbit has no position data')
-			logger.warning(f'Constellation orbit has no position data')
+			logger.warning('Constellation orbit has no position data')
 			raise ValueError('Constellation orbits have no position data')
 
 
@@ -266,7 +266,7 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 		# args[4] = beam_angle_deg
 		
 		if type(args[0]) is not int:
-			logger.error(f"InstancedConstellationBeams.setSource() args[0]:num_sats is not an int -> {args[0]}")
+			logger.error("InstancedConstellationBeams.setSource() args[0]:num_sats is not an int -> %s", args[0])
 			raise TypeError(f"args[0]:num_sats is not an int -> {args[0]}")
 
 		if self.data['num_sats'] != args[0]:
@@ -276,22 +276,22 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 		self.data['num_sats'] = args[0]
 
 		if type(args[1]) is not np.ndarray:
-			logger.error(f"InstancedConstellationBeams.setSource() args[1]:coords is not an ndarray -> {args[1]}")
+			logger.error("InstancedConstellationBeams.setSource() args[1]:coords is not an ndarray -> %s", args[1])
 			raise TypeError(f"args[1]:coords is not an ndarray -> {args[1]}")
 		self.data['coords'] = args[1]
 
 		if type(args[2]) is not int:
-			logger.error(f"InstancedConstellationBeams.setSource() args[2]:curr_index is not an int -> {args[2]}")
+			logger.error("InstancedConstellationBeams.setSource() args[2]:curr_index is not an int -> %s", args[2])
 			raise TypeError(f"args[2]:curr_index is not an int -> {args[2]}")
 		self.data['curr_index'] = args[2]
 
 		if type(args[3]) is not float and type(args[3]) is not np.float64:
-			logger.error(f"InstancedConstellationBeams.setSource() args[3]:beam_height is not a float -> {args[3]}")
+			logger.error("InstancedConstellationBeams.setSource() args[3]:beam_height is not a float -> %s", args[3])
 			raise TypeError(f"args[3]:beam_height is not a float -> {args[3]}")
 		self.data['beam_height'] = args[3]
 
 		if args[4] >= 180 or args[4] <= 0:
-			logger.error(f"InstancedConstellationBeams.setSource() args[4]:beam_angle_deg must be be 0<angle<180 -> {args[4]}")
+			logger.error("InstancedConstellationBeams.setSource() args[4]:beam_angle_deg must be be 0<angle<180 -> %s", args[4])
 			raise TypeError(f'args[4]: beam_angle_deg must be be 0<angle<180 -> {args[4]}')
 
 		if type(args[4]) is not float and type(args[4]) is not np.float64:
@@ -432,7 +432,7 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 
 	#----- OPTIONS CALLBACKS -----#	
 	def setBeamsColour(self, new_colour:tuple[int,int,int]) -> None:
-		logger.debug(f"Changing instanced beams colour {self.opts['beams_colour']['value']} -> {new_colour}")
+		logger.debug("Changing instanced beams colour %s -> %s", self.opts['beams_colour']['value'], new_colour)
 		self.opts['beams_colour']['value'] = new_colour
 		if self.data['num_sats'] > 0:
 			new_cols_array = vcolor_array.ColorArray([colours.normaliseColour(self.opts['beams_colour']['value'])]*self.data['num_sats'])
@@ -440,7 +440,7 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 			self._updateLineVisualsOptions()
 
 	def setBeamsAlpha(self, alpha:float) -> None:
-		logger.debug(f"Changing instanced beams alpha {self.opts['beams_alpha']['value']} -> {alpha}")
+		logger.debug("Changing instanced beams alpha %s -> %s", self.opts['beams_alpha']['value'], alpha)
 		self.opts['beams_alpha']['value'] = alpha
 		self.data['beams_alpha_filter'].alpha = alpha
 	
@@ -504,23 +504,23 @@ class ConstellationBeams(base_assets.AbstractAsset):
 		# args[4] = beam_angle_deg
 		
 		if type(args[0]) is not int:
-			raise TypeError(f"args[0]:num_sats is not an int -> {args[0]}")
+			raise TypeError("args[0]:num_sats is not an int -> %s", args[0])
 		self.data['num_sats'] = args[0]
 
 		if type(args[1]) is not np.ndarray:
-			raise TypeError(f"args[1]:coords is not an ndarray -> {args[1]}")
+			raise TypeError("args[1]:coords is not an ndarray -> %s", args[1])
 		self.data['coords'] = args[1]
 
 		if type(args[2]) is not int:
-			raise TypeError(f"args[2]:curr_index is not an int -> {args[2]}")
+			raise TypeError("args[2]:curr_index is not an int -> %s", args[2])
 		self.data['curr_index'] = args[2]
 
 		if type(args[3]) is not float and type(args[3]) is not np.float64:
-			raise TypeError(f"args[3]:beam_height is not a float -> {args[3]}")
+			raise TypeError("args[3]:beam_height is not a float -> %s", args[3])
 		self.data['beam_height'] = args[3]
 
 		if type(args[4]) is not float and type(args[4]) is not np.float64:
-			raise TypeError(f"args[4]:beam_angle_deg is not a float -> {args[4]}")
+			raise TypeError("args[4]:beam_angle_deg is not a float -> %s", args[4])
 		self.data['beam_angle_deg'] = args[4]
 
 	def _instantiateAssets(self) -> None:
@@ -601,7 +601,7 @@ class ConstellationBeams(base_assets.AbstractAsset):
 
 	#----- OPTIONS CALLBACKS -----#	
 	def setBeamsColour(self, new_colour:tuple[float,float,float]) -> None:
-		logger.debug(f"Changing beams colour {self.opts['beams_colour']['value']} -> {new_colour}")
+		logger.debug("Changing beams colour %s -> %s", self.opts['beams_colour']['value'], new_colour)
 		self.opts['beams_colour']['value'] = new_colour
 		if self.data['num_sats'] > 0:
 			for ii in range(self.data['num_sats']):
@@ -613,6 +613,6 @@ class ConstellationBeams(base_assets.AbstractAsset):
 		# self.visuals['circles'].set_data(color=colours.normaliseColour(new_colour))
 
 	def setBeamsAlpha(self, alpha:float) -> None:
-		logger.debug(f"Changing beams alpha {self.opts['beams_alpha']['value']} -> {alpha}")
+		logger.debug("Changing beams alpha %s -> %s", self.opts['beams_alpha']['value'], alpha)
 		self.opts['beams_alpha']['value'] = alpha
 		self.data['beams_alpha_filter'].alpha = alpha

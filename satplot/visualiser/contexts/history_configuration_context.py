@@ -56,26 +56,26 @@ class HistoryConfigurationContext(BaseContext):
 
 	def _validateDataType(self) -> None:
 		if self.data is not None and self.data['history'].getType() != self.data_type:
-			console.sendErr(f"Error: history3D context has wrong data type: {self.data['history'].getType()}")
+			console.sendErr(f"Error: History configuration context has wrong data type: {self.data['history'].getType()}")
 			console.sendErr(f"\t should be: {self.data_type}")
 
 	def connectControls(self) -> None:
-		logger.info(f"Connecting controls of {self.config['name']}")
+		logger.info("Connecting controls of %s", self.config['name'])
 		self.controls.submit_button.clicked.connect(self._configureData)
 		if self.data is None:
-			logger.warning(f'Context History3D: {self} does not have a data model.')
-			raise AttributeError(f'Context History3D: {self} does not have a data model.')
+			logger.warning('Context HistoryConfiguration: %s does not have a data model.', self)
+			raise AttributeError(f'Context HistoryConfiguration: {self} does not have a data model.')
 		self.data['history'].data_ready.connect(self._updateDataSources)
 		self.data['history'].data_ready.connect(self._updateControls)
 		self.data['history'].data_err.connect(self._resetControls)
 		self.controls.time_slider.add_connect(self._updateDisplayedIndex)
 
 	def _configureData(self) -> None:
-		logger.info(f'Setting up data configuration for context: {self}')
+		logger.info('Setting up data configuration for context: %s', self)
 		console.send('Setting up data configuration')
 		# Timespan configuration
 		if self.data is None:
-			logger.warning(f"model data is not set for context {self.config['name']}:{self}")
+			logger.warning("model data is not set for context %s:%s", self.config['name'], self)
 			raise ValueError(f"model data is not set for context {self.config['name']}:{self}")
 
 		self.data['history'].updateConfig('timespan_period_start', self.controls.time_period_config.getPeriodStart())
@@ -103,7 +103,7 @@ class HistoryConfigurationContext(BaseContext):
 
 		# Historical pointing
 		if self.controls.pnting_defines_period_switch.isChecked():
-			logger.info(f'Pointing defined. Setting pointing configuration for {self}')
+			logger.info('Pointing defined. Setting pointing configuration for %s', self)
 			self.data['history'].updateConfig('is_pointing_defined', True)
 			pointing_file_path = self.controls.pointing_config.getPointingConfig()
 			if pointing_file_path is None or \
@@ -114,7 +114,7 @@ class HistoryConfigurationContext(BaseContext):
 			self.data['history'].updateConfig('pointing_file', pointing_file_path)
 			self.data['history'].updateConfig('pointing_invert_transform', self.controls.pointing_config.isPointingTransformInverse())
 		else:
-			logger.info(f'Pointing not defined. Clearing pointing configuration for {self}')
+			logger.info('Pointing not defined. Clearing pointing configuration for %s', self)
 			self.data['history'].updateConfig('is_pointing_defined', False)
 			self.data['history'].updateConfig('pointing_defines_timespan', False)
 			self.data['history'].updateConfig('pointing_file', None)
@@ -124,8 +124,8 @@ class HistoryConfigurationContext(BaseContext):
 			self.controls.submit_button.setEnabled(False)
 			self.data['history'].process()
 		except Exception as e:
-			logger.warning(f"Error in configuring data for history3D: {e}")
-			console.sendErr(f"Error in configuring data for history3D: {e}")
+			logger.warning("Error in configuring data for history configuration: %s", e)
+			console.sendErr(f"Error in configuring data for history configuration: {e}")
 			self.controls.submit_button.setEnabled(True)
 			raise e
 
@@ -145,7 +145,7 @@ class HistoryConfigurationContext(BaseContext):
 
 	def _updateDisplayedIndex(self, index:int) -> None:
 		if self.data['history'] is None:
-			logger.warning(f"model history data is not set for context {self.config['name']}:{self}")
+			logger.warning("model history data is not set for context %s:%s", self.config['name'], self)
 			ValueError(f"model history data is not set for context {self.config['name']}:{self}")
 		self.data['history'].updateIndex(index)
 

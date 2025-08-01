@@ -123,7 +123,7 @@ class Sun3DAsset(base_assets.AbstractAsset):
 		sats_dict = args[0]
 		first_sat_orbit = list(sats_dict.values())[0]
 		if type(first_sat_orbit) is not orbit.Orbit:
-			logger.error(f"data source for {self} is not an orbit.Orbit, can't extract sun location data")
+			logger.error("data source for %s is not an orbit.Orbit, can't extract sun location data", self)
 			raise TypeError
 
 		self.data['pos'] = first_sat_orbit.sun_pos
@@ -260,7 +260,7 @@ class Sun3DAsset(base_assets.AbstractAsset):
 	#----- OPTIONS CALLBACKS -----#
 	def _updateLineVisualsOptions(self):
 		new_colour = colours.normaliseColour(self.opts['sun_vector_colour']['value'])
-		logger.debug(f'Sun vector applied colour: {new_colour}')
+		logger.debug('Sun vector applied colour: %s', new_colour)
 		self.visuals['vector_body'].set_data(color=new_colour,
 												width=self.opts['sun_vector_width']['value'])
 
@@ -288,7 +288,7 @@ class Sun3DAsset(base_assets.AbstractAsset):
 		self.recomputeRedraw()
 
 	def setSunSphereColour(self, new_colour):
-		logger.debug(f"Changing sun sphere colour {self.opts['sun_sphere_colour']['value']} -> {new_colour}")
+		logger.debug("Changing sun sphere colour %s -> %s", self.opts['sun_sphere_colour']['value'], new_colour)
 		self.opts['sun_sphere_colour']['value'] = new_colour
 		n_faces = self.visuals['sun_sphere'].mesh._meshdata.n_faces
 		n_verts = self.visuals['sun_sphere'].mesh._meshdata.n_vertices
@@ -298,12 +298,12 @@ class Sun3DAsset(base_assets.AbstractAsset):
 
 	def setUmbraAlpha(self, alpha):
 		# Takes a little while to take effect.
-		logger.debug(f"Changing umbra alpha {self.opts['umbra_alpha']['value']} -> {alpha}")
+		logger.debug("Changing umbra alpha %s -> %s", self.opts['umbra_alpha']['value'], alpha)
 		self.opts['umbra_alpha']['value'] = alpha
 		self.data['umbra_alpha_filter'].alpha = alpha
 
 	def setUmbraColour(self, new_colour):
-		logger.debug(f"Changing umbra colour {self.opts['umbra_colour']['value']} -> {new_colour}")
+		logger.debug("Changing umbra colour %s -> %s", self.opts['umbra_colour']['value'], new_colour)
 		self.opts['umbra_colour']['value'] = new_colour
 		n_faces = self.visuals['umbra']._meshdata.n_faces
 		n_verts = self.visuals['umbra']._meshdata.n_vertices
@@ -312,7 +312,7 @@ class Sun3DAsset(base_assets.AbstractAsset):
 		self.visuals['umbra'].mesh_data_changed()
 
 	def setUmbraDistance(self, dist):
-		logger.debug(f"Changing umbra dist {self.opts['umbra_dist']['value']} -> {dist}")
+		logger.debug("Changing umbra dist %s -> %s", self.opts['umbra_dist']['value'], dist)
 		self.opts['umbra_dist']['value'] = dist
 		self._reInitUmbraData()
 		self.visuals['umbra']._meshdata.set_faces(self.data['umbra_faces'])
@@ -330,7 +330,7 @@ class Sun3DAsset(base_assets.AbstractAsset):
 
 
 	def setSunVectorColour(self, new_colour):
-		logger.debug(f"Changing sun vector colour {self.opts['sun_vector_colour']['value']} -> {new_colour}")
+		logger.debug("Changing sun vector colour %s -> %s", self.opts['sun_vector_colour']['value'], new_colour)
 		self.opts['sun_vector_colour']['value'] = new_colour
 		self._updateLineVisualsOptions()
 		n_faces = self.visuals['vector_head']._meshdata.n_faces
@@ -415,7 +415,7 @@ class Sun2DAsset(base_assets.AbstractAsset):
 	def setSource(self, *args, **kwargs):
 		# args[0] history data
 		if type(args[0]) is not history_data.HistoryData:
-			logger.error(f"setSource() of {self} requires a {history_data.HistoryData} as args[1], not: {type(args[1])}")
+			logger.error("setSource() of %s requires a %s as args[1], not: %s", self, history_data.HistoryData, type(args[1]))
 			raise TypeError(f"setSource() of {self} requires a {history_data.HistoryData} as args[1], not: {type(args[1])}")
 			return
 
@@ -423,7 +423,7 @@ class Sun2DAsset(base_assets.AbstractAsset):
 		first_sat_orbit = list(self.data['history_src'].getOrbits().values())[0]
 
 		if type(first_sat_orbit) is not orbit.Orbit:
-			logger.error(f"data source for {self} is not an orbit.Orbit, can't extract sun location data")
+			logger.error("data source for %s is not an orbit.Orbit, can't extract sun location data", self)
 			raise TypeError
 
 		lat, lon, alt = pymap3d.eci2geodetic(first_sat_orbit.sun_pos[:,0],
@@ -563,35 +563,35 @@ class Sun2DAsset(base_assets.AbstractAsset):
 		self.visuals['marker'].visible = self.opts['plot_sun_marker']['value']
 
 	def setSunMarkerColour(self, new_colour):
-		logger.debug(f"Changing sun marker colour {self.opts['sun_marker_colour']['value']} -> {new_colour}")
+		logger.debug("Changing sun marker colour %s -> %s", self.opts['sun_marker_colour']['value'], new_colour)
 		self.opts['sun_marker_colour']['value'] = new_colour
 		self._updateMarkers()
 
 	def setSunMarkerSize(self, size):
-		logger.debug(f"Changing sun marker size {self.opts['sun_marker_size']['value']} -> {size}")
+		logger.debug("Changing sun marker size %s -> %s", self.opts['sun_marker_size']['value'], size)
 		self.opts['sun_marker_size']['value'] = size
 		self._updateMarkers()
 
 	def setTerminatorAlpha(self, alpha):
 		# Takes a little while to take effect.
-		logger.debug(f"Changing terminator alpha {self.opts['terminator_alpha']['value']} -> {alpha}")
+		logger.debug("Changing terminator alpha %s -> %s", self.opts['terminator_alpha']['value'], alpha)
 		self.opts['terminator_alpha']['value'] = alpha
 		self.visuals['terminator'].opacity = self.opts['terminator_alpha']['value']
 
 	def setEclipseAlpha(self, alpha):
 		# Takes a little while to take effect.
-		logger.debug(f"Changing eclipse alpha {self.opts['eclipse_alpha']['value']} -> {alpha}")
+		logger.debug("Changing eclipse alpha %s -> %s", self.opts['eclipse_alpha']['value'], alpha)
 		self.opts['eclipse_alpha']['value'] = alpha
 		self.visuals['eclipse_patch1'].opacity = self.opts['eclipse_alpha']['value']
 		self.visuals['eclipse_patch2'].opacity = self.opts['eclipse_alpha']['value']
 
 	def setTerminatorColour(self, new_colour):
-		logger.debug(f"Changing terminator colour {self.opts['terminator_colour']['value']} -> {new_colour}")
+		logger.debug("Changing terminator colour %s -> %s", self.opts['terminator_colour']['value'], new_colour)
 		self.opts['terminator_colour']['value'] = new_colour
 		self.visuals['terminator'].color = self.opts['terminator_colour']['value']
 
 	def setEclipseColour(self, new_colour):
-		logger.debug(f"Changing eclipse colour {self.opts['eclipse_colour']['value']} -> {new_colour}")
+		logger.debug("Changing eclipse colour %s -> %s", self.opts['eclipse_colour']['value'], new_colour)
 		self.opts['eclipse_colour']['value'] = new_colour
 		self.visuals['eclipse_patch1'].color = self.opts['eclipse_colour']['value']
 		self.visuals['eclipse_patch2'].color = self.opts['eclipse_colour']['value']

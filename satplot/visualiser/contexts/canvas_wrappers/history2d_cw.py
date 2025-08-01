@@ -97,7 +97,7 @@ class History2DCanvasWrapper(BaseCanvas):
 
 	def modelUpdated(self) -> None:
 		if self.data_models['history'] is None:
-			logger.error(f'canvas wrapper: {self} does not have a history data model yet')
+			logger.error('canvas wrapper: %s does not have a history data model yet', self)
 			raise exceptions.InvalidDataError
 
 		if self.data_models['history'].timespan is not None:
@@ -153,8 +153,8 @@ class History2DCanvasWrapper(BaseCanvas):
 
 	def centerCameraEarth(self) -> None:
 		if self.canvas is None:
-			logger.warning(f"Canvas has not been set for History2D Canvas Wrapper. No camera to center")
-			raise AttributeError(f"Canvas has not been set for History2D Canvas Wrapper. No camera to center")
+			logger.warning("Canvas has not been set for History2D Canvas Wrapper. No camera to center")
+			raise AttributeError("Canvas has not been set for History2D Canvas Wrapper. No camera to center")
 		self.view_box.camera.resetToExtents()
 		self.canvas.update()
 

@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 from satplot.model.data_models.base_models import (BaseDataModel)
@@ -9,6 +10,7 @@ import spherapy.timespan as timespan
 # constellation_name
 # constellation_beam_angle
 
+logger = logging.getLogger(__name__)
 
 class ConstellationData(BaseDataModel):
 	def __init__(self, config, *args, **kwargs):
@@ -32,13 +34,13 @@ class ConstellationData(BaseDataModel):
 
 	def getTimespan(self) -> timespan.TimeSpan:
 		if self.timespan is None:
-			logger.error(f'Constellation data:{self} does not have a timespan yet')
+			logger.error('Constellation data:%s does not have a timespan yet', self)
 			raise ValueError(f'Constellation data:{self} does not have a timespan yet')
 		return self.timespan
 
 	def getOrbits(self) -> dict[int,orbit.Orbit]:
 		if len(self.orbits.values()) == 0:
-			logger.error(f'Constellation data:{self} has no orbits yet')
+			logger.error('Constellation data:%s has no orbits yet', {self})
 			raise ValueError(f'Constellation data:{self} has no orbits yet')
 		return self.orbits
 
