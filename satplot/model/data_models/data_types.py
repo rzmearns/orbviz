@@ -6,9 +6,8 @@ import logging
 import pathlib
 
 import typing
-from typing import Any, TypedDict
+from typing import Any
 
-import satplot.visualiser.assets.sensors as sensor_asset
 import satplot.visualiser.interface.console as console
 
 logger = logging.getLogger(__name__)

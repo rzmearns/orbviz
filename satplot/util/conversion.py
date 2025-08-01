@@ -11,7 +11,7 @@ import pymap3d.sidereal
 def eci2radec(eci:np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 	# TODO: check eci is (N,3)
 	hxy = np.hypot(eci[:,0], eci[:,1])
-	r = np.hypot(hxy, eci[:,2])
+	r = np.hypot(hxy, eci[:,2]) 		# noqa: F841
 	el = np.arctan2(eci[:,2], hxy)
 	az = np.arctan2(eci[:,1], eci[:,0])
 	az = az%2*np.pi

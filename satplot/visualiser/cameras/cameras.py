@@ -75,7 +75,7 @@ class FixedCamera(Base3DRotationCamera):
 			sf_quat = (quat[3],quat[0],quat[1],quat[2])
 		else:
 			sf_quat = quat
-		self._setQuat(quat,update=True)
+		self._setQuat(sf_quat,update=True)
 
 	def _setPos(self, pos:tuple[float,float,float], update=False):
 		self.center = pos
@@ -152,7 +152,7 @@ class MovableFixedCamera(ArcballCamera):
 			sf_quat = (quat[3],quat[0],quat[1],quat[2])
 		else:
 			sf_quat = quat
-		self._setQuat(quat,update=True)
+		self._setQuat(sf_quat,update=True)
 
 	def _setPos(self, pos:tuple[float,float,float], update=False):
 		self.center = pos

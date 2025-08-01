@@ -1,14 +1,10 @@
 from __future__ import division
 
-from ctypes import ArgumentError
 import logging
 
 import typing
 
-import numpy as np
-
-from vispy.geometry import Rect
-from vispy.scene.cameras import BaseCamera, PanZoomCamera
+from vispy.scene.cameras import PanZoomCamera
 
 
 class Static2D(PanZoomCamera):

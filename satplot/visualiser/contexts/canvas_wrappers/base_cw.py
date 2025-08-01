@@ -5,7 +5,6 @@ import typing
 from typing import Any
 
 from vispy import scene
-import vispy.scene.widgets.grid as vispy_grid
 
 import satplot.visualiser.assets.base_assets as base_assets
 

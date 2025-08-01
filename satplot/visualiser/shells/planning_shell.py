@@ -2,25 +2,17 @@ import logging
 import sys
 
 import typing
-from typing import Any
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtWidgets
 
-import satplot
-from satplot.model.data_models import datapane as datapane_model
 from satplot.model.data_models import earth_raycast_data, history_data
 from satplot.visualiser.contexts import (
-	base_context,
-	blank_context,
 	history2d_context,
 	history3d_context,
 	history_configuration_context,
 	sensor_views_context,
 )
-import satplot.visualiser.interface.console as console
 import satplot.visualiser.interface.controls as controls
-import satplot.visualiser.interface.datapane as datapane
-import satplot.visualiser.interface.widgets as satplot_widgets
 from satplot.visualiser.shells import base_shell
 
 logger = logging.getLogger(__name__)

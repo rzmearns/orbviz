@@ -1,7 +1,5 @@
 import datetime as dt
-import json
 import logging
-import os
 import pathlib
 import string
 
@@ -10,11 +8,8 @@ from typing import Any
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from vispy.scene.widgets import widget
-
 import satplot.model.data_models.data_types as data_types
 import satplot.util.paths as satplot_paths
-import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.interface.widgets as widgets
 
 logger = logging.getLogger(__name__)
@@ -63,7 +58,7 @@ class PrimaryConfig(QtWidgets.QWidget):
 			self.tmp_prim_config = data_types.PrimaryConfig.fromJSON(cnfg_file)
 			self.prim_config_display.updateConfig(self.tmp_prim_config)
 			self.prim_config_selector.clearError()
-		except KeyError as e:
+		except KeyError:
 			self.tmp_prim_config = None
 			self.prim_config_selector.setError('Not a valid configuration file')
 			self.prim_config_display.clearConfig()
@@ -211,15 +206,15 @@ class ConstellationControls(QtWidgets.QWidget):
 			self.tmp_const_config = data_types.ConstellationConfig.fromJSON(cnfg_file)
 			self.const_config_display.updateConfig(self.tmp_const_config)
 			self.const_config_selector.clearError()
-		except KeyError as e:
+		except KeyError:
 			self.tmp_const_config = None
 			self.const_config_selector.setError('Not a valid configuration file')
 			self.const_config_display.clearConfig()
-		except FileNotFoundError as e:
+		except FileNotFoundError:
 			self.tmp_const_config = None
 			self.const_config_selector.setError('File does not exist')
 			self.const_config_display.clearConfig()
-		except IsADirectoryError as e:
+		except IsADirectoryError:
 			self.tmp_const_config = None
 			self.const_config_selector.setError('Cannot load a directory')
 			self.const_config_display.clearConfig()
@@ -502,7 +497,7 @@ class SensorViewConfigs(QtWidgets.QWidget):
 																options_list=[]))
 			self.view_sensor_selectors.append(widgets.OptionBox(f'View {ii+1} Sensor:',
 																options_list=[]))
-			self.view_full_res_generator.append(widgets.Button(f'Full Resolution Image','Generate'))
+			self.view_full_res_generator.append(widgets.Button('Full Resolution Image','Generate'))
 			glayout.addWidget(self.view_spacecraft_selectors[-1],ii+1,0)
 			glayout.addWidget(self.view_sensor_selectors[-1],ii+1,1)
 			glayout.addWidget(self.view_full_res_generator[-1],ii+1,2)
@@ -613,7 +608,6 @@ class Toolbar(QtWidgets.QWidget):
 
 	def addButtons(self):
 		# Process 'all' actions first
-		old_containing = None
 		for key, action in self.action_dict.items():
 			action_context_list = [ac.lower() for ac in action['contexts']]
 			if 'all'.lower() in action_context_list and action['button_icon'] is not None:
@@ -622,12 +616,10 @@ class Toolbar(QtWidgets.QWidget):
 				self.button_dict[key].setCheckable(action['toggleable'])
 				if action['callback'] is not None:
 					self.button_dict[key].triggered.connect(action['callback'])
-				old_containing = action['containing_menu']
 				self.toolbar.addAction(self.button_dict[key])
 
 		self.toolbar.addSeparator()
 
-		old_containing = None
 
 		for key, action in self.action_dict.items():
 			action_context_list = [ac.lower() for ac in action['contexts']]
@@ -637,7 +629,6 @@ class Toolbar(QtWidgets.QWidget):
 				self.button_dict[key].setCheckable(action['toggleable'])
 				if action['callback'] is not None:
 					self.button_dict[key].triggered.connect(action['callback'])
-				old_containing = action['containing_menu']
 				self.toolbar.addAction(self.button_dict[key])
 
 	def addToWindow(self):

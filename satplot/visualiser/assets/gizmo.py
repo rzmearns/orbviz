@@ -11,7 +11,6 @@ import vispy.scene as scene
 from vispy.scene.widgets.viewbox import ViewBox
 import vispy.visuals.transforms as vTransforms
 
-import satplot.util.constants as c
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.colours as colours
 
@@ -167,12 +166,6 @@ class ViewBoxGizmo(base_assets.AbstractSimpleAsset):
 		pass
 
 	def _createVisuals(self) -> None:
-		axes_colour = np.array([[*colours.normaliseColour(self.opts['gizmo_X_axis_colour']['value']),1],
-					[*colours.normaliseColour(self.opts['gizmo_X_axis_colour']['value']),1],
-					[*colours.normaliseColour(self.opts['gizmo_Y_axis_colour']['value']),1],
-					[*colours.normaliseColour(self.opts['gizmo_Y_axis_colour']['value']),1],
-					[*colours.normaliseColour(self.opts['gizmo_Z_axis_colour']['value']),1],
-					[*colours.normaliseColour(self.opts['gizmo_Z_axis_colour']['value']),1]])
 
 		self.visuals['origin'] = scene.visuals.Markers(pos=np.array([[0,0,0]]).reshape(1,3),
 								  		edge_width=0,

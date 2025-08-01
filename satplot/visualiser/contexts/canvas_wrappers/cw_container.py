@@ -2,7 +2,7 @@ import logging
 
 import typing
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
 
 logger = logging.getLogger(__name__)
 

@@ -1,28 +1,20 @@
-import json
 import logging
 import time
 
 import typing
-from typing import Any, cast
+from typing import Any
 
 import numpy as np
-from numpy._typing import _array_like
 
 from PyQt5 import QtCore, QtGui
 
-import vispy
 from vispy import scene
 from vispy.app.canvas import MouseEvent
-from vispy.scene.cameras import PanZoomCamera
-from vispy.scene.widgets import grid as vispy_grid
 
-from satplot.model.data_models.data_types import PrimaryConfig, SensorImgMetadata
+from satplot.model.data_models.data_types import SensorImgMetadata
 from satplot.model.data_models.earth_raycast_data import EarthRayCastData
 from satplot.model.data_models.history_data import HistoryData
-import satplot.model.geometry.primgeom as pg
-import satplot.util.constants as c
 import satplot.util.exceptions as exceptions
-import satplot.util.paths as satplot_paths
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.assets.sensors as sensors
 import satplot.visualiser.assets.spacecraft as spacecraft

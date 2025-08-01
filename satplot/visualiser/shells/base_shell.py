@@ -3,7 +3,7 @@ import logging
 import typing
 from typing import Any
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
 
 from satplot.model.data_models import datapane as datapane_model
 from satplot.visualiser.contexts import base_context

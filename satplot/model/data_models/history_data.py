@@ -1,7 +1,6 @@
 import datetime as dt
 import logging
 import pathlib
-from urllib import request
 
 import typing
 from typing import Any, cast
@@ -180,8 +179,8 @@ class HistoryData(BaseDataModel):
 
 
 	def _propagatePrimaryOrbits(self, timespan:timespan.TimeSpan, sat_ids:list[int], running:threading.Flag) -> dict[int, orbit.Orbit]:
-		updated_list = updater.updateTLEs(sat_ids)
-		# TODO: check number of sats updated == number of sats requested
+		updated_list = updater.updateTLEs(sat_ids) 				# noqa: F841
+		# TODO: check number of sats updated == number of sats requested (remove above noqa)
 		# if collections.Counter(updated_list) == collections.Counter(self.sat_ids):
 		# 		self.finished.emit()
 		# 	else:
@@ -198,8 +197,8 @@ class HistoryData(BaseDataModel):
 		return orbits
 
 	def _propagateConstellationOrbits(self, timespan:timespan.TimeSpan, sat_ids:list[int], running:threading.Flag) -> dict[int, orbit.Orbit]:
-		updated_list = updater.updateTLEs(sat_ids)
-		# TODO: check number of sats updated == number of sats requested
+		updated_list = updater.updateTLEs(sat_ids) 				# noqa: F841
+		# TODO: check number of sats updated == number of sats requested (remove above noqa)
 		# if collections.Counter(updated_list) == collections.Counter(self.sat_ids):
 		# 		self.finished.emit()
 		# 	else:

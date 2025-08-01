@@ -25,8 +25,8 @@ class BlankContext(BaseContext):
 								background-color: #DCDCDC;
 							}
 							''')
-		content_widget = QtWidgets.QWidget()
-		content_vlayout = QtWidgets.QVBoxLayout()
+		content_widget = QtWidgets.QWidget() 			# noqa: F841
+		content_vlayout = QtWidgets.QVBoxLayout() 		# noqa: F841
 
 	def connectControls(self) -> None:
 		pass

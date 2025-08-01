@@ -1,5 +1,4 @@
 import logging
-import os
 
 import typing
 from typing import Tuple
@@ -10,8 +9,8 @@ import pymap3d
 from skyfield.api import wgs84
 import spherapy.timespan as timespan
 
-from vispy import color, scene
-from vispy.io import load_data_file, read_png
+from vispy import scene
+from vispy.io import read_png
 from vispy.scene.widgets.viewbox import ViewBox
 from vispy.visuals import transforms as vTransforms
 

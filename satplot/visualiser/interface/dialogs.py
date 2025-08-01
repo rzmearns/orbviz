@@ -1,9 +1,6 @@
 import datetime as dt
-import json
 import logging
-import os
 import pathlib
-import pickle
 import time
 
 import typing
@@ -13,14 +10,11 @@ from PIL import Image
 from spherapy.util import credentials
 
 from PyQt5 import QtCore, QtGui
-import PyQt5.QtCore as QtCore
-import PyQt5.QtGui as QtGui
 import PyQt5.QtWidgets as QtWidgets
 
 from vispy import scene
 from vispy.app.canvas import MouseEvent
 
-import satplot
 from satplot.model.data_models import data_types
 from satplot.model.data_models import datapane as datapane_model
 import satplot.util.hashing as satplot_hashing
@@ -267,7 +261,6 @@ class fullResSensorImageDialog():
 		self.window = QtWidgets.QDialog()
 		self.window.setWindowTitle(f'Sensor Image - {sc_name}:{sens_suite_name} - {sens_name}')
 		vlayout = QtWidgets.QVBoxLayout()
-		hlayout1 = QtWidgets.QHBoxLayout()
 		self.canvas = scene.canvas.SceneCanvas(size=(width/2,height/2),
 								keys='interactive',
 								bgcolor='white',

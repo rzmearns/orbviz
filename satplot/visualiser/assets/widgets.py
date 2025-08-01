@@ -2,9 +2,6 @@ import logging
 import sys
 
 import typing
-from typing import Any
-
-import numpy as np
 
 from PyQt5 import QtCore
 
@@ -160,11 +157,11 @@ class PopUpTextBox():
 		y_offset = 0
 
 		# When a line break occur, record the vertices index value
-		vi_marker = 0
+		vi_marker = 0 		# noqa: F841
 		ii_offset = 0  # Offset since certain characters won't be drawn
 
 		# The running tracker of characters vertex index
-		vi = 0
+		vi = 0 				# noqa: F841
 		max_width = 0
 		for ii, char in enumerate(text):
 			if ord(char) in esc_seq:

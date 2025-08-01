@@ -1,17 +1,11 @@
 import datetime as dt
 import logging
-import pathlib
 import warnings
 
 import typing
 from typing import Any
 
-import matplotlib.pyplot as plt
 import numpy as np
-from numpy import typing as nptyping
-from progressbar import progressbar
-import pymap3d
-from scipy import ndimage
 
 import satplot
 from satplot.model.data_models.base_models import BaseDataModel
@@ -20,7 +14,6 @@ import satplot.model.data_models.sphere_img_data as sphere_img_data
 import satplot.util.constants as satplot_const
 import satplot.util.conversion as satplot_conversion
 import satplot.util.threading as threading
-import satplot.visualiser.interface.console as console
 
 logger = logging.getLogger(__name__)
 
@@ -272,7 +265,6 @@ class EarthRayCastData(BaseDataModel):
 		pos_eci = sens_eci_transform[:3,3]
 
 		# convert eci frame to ecef
-		state = False
 		sens_rays_ecf = satplot_conversion.eci2ecef(sens_rays_eci, curr_dt, high_precision=satplot.high_precision)
 		# np.save(f"sens_rays_ecf_{state}_{curr_dt}.npy",sens_rays_ecf)
 		pos_ecf = satplot_conversion.eci2ecef(pos_eci, curr_dt, high_precision=satplot.high_precision)
@@ -405,13 +397,11 @@ class EarthRayCastData(BaseDataModel):
 		visited = np.zeros(arr.shape,dtype=bool)
 		idxs.append(start_idx)
 		visited[start_idx] = True
-		old_idx = start_idx
 		curr_idx = next_idx
 		while curr_idx != start_idx and curr_idx != (None, None):
 			idxs.append(curr_idx)
 			visited[curr_idx] = True
 			new_idx = self._findGoodNeighbour(curr_idx, visited, arr)
-			old_idx = curr_idx
 			curr_idx = new_idx
 
 		return [idx[0] for idx in idxs],[idx[1] for idx in idxs]

@@ -110,7 +110,7 @@ class SensorViewsContext(BaseContext):
 	def generateSensorFullRes(self, view_id:int, sc_id:int, suite_key:str, sens_key:str) -> None:
 		logger.debug('Generating Full Res for view %s: %s - %s - %s', view_id, sc_id, suite_key, sens_key)
 		img_data, mo_data, moConverterFunction, img_metadata = self.canvas_wrapper.generateSensorFullRes(sc_id, suite_key, sens_key)
-		img_dialog = satplot_dialogs.fullResSensorImageDialog(img_data, mo_data, moConverterFunction, img_metadata)
+		satplot_dialogs.fullResSensorImageDialog(img_data, mo_data, moConverterFunction, img_metadata)
 
 	def getIndex(self) -> int|None:
 		return self.controls.time_slider.getValue()

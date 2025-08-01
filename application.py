@@ -10,7 +10,7 @@ from typing import Any
 
 import PIL
 
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtWidgets
 
 from vispy import app, use
 

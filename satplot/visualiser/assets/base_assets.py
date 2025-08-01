@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from inspect import Attribute
 import logging
 
 import typing

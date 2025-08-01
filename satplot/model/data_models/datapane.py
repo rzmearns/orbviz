@@ -5,7 +5,7 @@ from typing import Any, Callable
 
 import numpy as np
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore
 
 '''
 data items of the DataPaneModel are stored as a tuple
@@ -56,7 +56,7 @@ class DataPaneModel(QtCore.QAbstractTableModel):
 			if isinstance(val, Callable):
 				try:
 					return_val = val()
-				except Exception as e:
+				except Exception:
 					# TODO: logger not respecting main handlers, prints to stdout as well as log file.
 					# logger.warning(e)
 					return_val = None

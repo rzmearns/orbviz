@@ -1,12 +1,9 @@
 import logging
-import time
 
 import typing
 from typing import Any
 
 import numpy as np
-from scipy.spatial.transform import Rotation
-import spherapy.orbit as orbit
 
 from vispy import scene
 from vispy.scene.widgets.viewbox import ViewBox
@@ -14,7 +11,6 @@ from vispy.scene.widgets.viewbox import ViewBox
 import satplot.model.data_models.data_types as data_types
 import satplot.model.data_models.earth_raycast_data as earth_raycast_data
 import satplot.model.data_models.history_data as history_data
-import satplot.model.geometry.polygons as polygeom
 import satplot.model.geometry.spherical as spherical_geom
 import satplot.util.constants as c
 import satplot.visualiser.assets.base_assets as base_assets

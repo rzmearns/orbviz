@@ -13,7 +13,6 @@ import vispy.visuals.transforms as vtransforms
 
 import satplot.model.data_models.history_data as history_data
 import satplot.model.geometry.primgeom as pg
-import satplot.util.constants as c
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.colours as colours
 

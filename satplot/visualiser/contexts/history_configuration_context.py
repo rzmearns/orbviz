@@ -1,6 +1,5 @@
 import logging
 import pathlib
-import sys
 
 import typing
 from typing import Any

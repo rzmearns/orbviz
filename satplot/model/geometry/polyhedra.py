@@ -30,7 +30,6 @@ def calcConeMeshGrid(apex:tuple[float,float,float] | nptyping.NDArray,
 
 	t = np.linspace(0,height,axis_sample)
 	theta = np.linspace(0, 2*np.pi, theta_sample)
-	rsample = np.linspace(0,R,r_sample)
 	t2, theta2 = np.meshgrid(t,theta)
 
 	# cone

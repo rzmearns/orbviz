@@ -5,7 +5,6 @@ import typing
 import numpy as np
 
 from vispy.color import Color
-from vispy.geometry import PolygonData
 from vispy.gloo import set_state
 from vispy.scene.visuals import create_visual_node
 from vispy.visuals.line import LineVisual

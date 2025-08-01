@@ -1,6 +1,5 @@
 from abc import abstractmethod
 import logging
-import traceback
 
 import typing
 from typing import Any
@@ -43,9 +42,9 @@ class BaseDataModel(QtCore.QObject):
 		return self.config[value]
 
 	def _displayError(self, err:tuple) -> None:
-		exctype = err[0]
+		exctype = err[0] 							# noqa: F841
 		value = err[1]
-		traceback = err[2]
+		traceback = err[2] 							# noqa: F841
 		logger.error(value)
 		console.send(value)
 		self.data_err.emit()

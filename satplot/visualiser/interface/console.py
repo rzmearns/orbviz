@@ -1,6 +1,5 @@
 import logging
 import string
-import sys
 
 import typing
 

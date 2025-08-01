@@ -1,6 +1,5 @@
 import logging
 import pathlib
-import sys
 
 import typing
 from typing import Any
@@ -148,8 +147,6 @@ class History2DContext(base.BaseContext):
 		if end_index == -1:
 			end_index = max_num_steps
 		end_idx = max(start_idx, min(end_index, max_num_steps))
-
-		num_steps = end_idx - start_idx
 
 		if loop:
 			num_loops = 0

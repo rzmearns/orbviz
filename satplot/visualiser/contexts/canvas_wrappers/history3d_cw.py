@@ -1,4 +1,3 @@
-import json
 import logging
 import time
 
@@ -11,9 +10,7 @@ from PyQt5 import QtGui
 
 from vispy import scene
 from vispy.app.canvas import MouseEvent, ResizeEvent
-from vispy.visuals.transforms import STTransform
 
-from satplot.model.data_models.data_types import PrimaryConfig
 from satplot.model.data_models.history_data import HistoryData
 import satplot.model.geometry.primgeom as pg
 import satplot.util.constants as c

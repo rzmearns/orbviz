@@ -9,18 +9,15 @@ from scipy.spatial import ConvexHull as ConvexHull
 from scipy.spatial.transform import Rotation
 import spherapy.orbit as orbit
 
-import vispy
 from vispy import scene
 from vispy.scene import visuals as vVisuals
 from vispy.visuals import filters as vFilters
 from vispy.visuals import transforms as vTransforms
 
 import satplot.model.data_models.history_data as history_data
-import satplot.model.geometry.polygons as polygeom
 import satplot.model.geometry.polyhedra as polyhedra
 import satplot.model.geometry.primgeom as pg
 import satplot.model.geometry.spherical as spherical_geom
-import satplot.util.array_u as array_u
 import satplot.util.constants as c
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.colours as colours
@@ -636,7 +633,6 @@ class Sun2DAsset(base_assets.AbstractAsset):
 		# half subtended angle = phi_h
 		eclipse_center_lat = -solar_lonlat[1]
 		eclipse_center_lon = np.rad2deg(spherical_geom.wrapToCircleRange(np.deg2rad(solar_lonlat[0] + 180)))
-		solar_lat = solar_lonlat[1]
 		phi_h = np.rad2deg(np.arcsin(c.R_EARTH/(c.R_EARTH+sat_altitude)))
 		lats, lons1, lons2 = spherical_geom.genSmallCircleCenterSubtendedAngle(phi_h*2, eclipse_center_lat, eclipse_center_lon)
 		circle1, circle2 = spherical_geom.splitSmallCirclePatch(eclipse_center_lon, eclipse_center_lat, lats, lons1, lons2)

@@ -1,27 +1,21 @@
 import datetime as dt
 import logging
-import time
 
 import typing
 from typing import Any
 
 import numpy as np
 import numpy.typing as nptyping
-from scipy.spatial import ConvexHull
 from scipy.spatial.transform import Rotation
 
 import vispy.scene.visuals as vVisuals
 from vispy.scene.widgets.viewbox import ViewBox
-from vispy.util.quaternion import Quaternion
 import vispy.visuals.filters as vFilters
 import vispy.visuals.transforms as vTransforms
 
 import satplot.model.data_models.data_types as satplot_data_types
-import satplot.model.geometry.polygons as polygeom
 import satplot.model.geometry.polyhedra as polyhedra
-import satplot.model.geometry.spherical as sphericalgeom
 import satplot.model.lens_models.pinhole as pinhole
-import satplot.util.constants as c
 import satplot.util.conversion as satplot_conversion
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.colours as colours
@@ -797,7 +791,7 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 			out_str = data[1]
 		elif data[0] == -1:
 			# dummy data
-			out_str = f'Dummy Data'
+			out_str = 'Dummy Data'
 		else:
 			out_str = ''
 

@@ -1,12 +1,9 @@
 import logging
-import math
-import warnings
 
 import typing
 
 import numpy as np
 import numpy.typing as nptyping
-import scipy.spatial
 
 import satplot.util.exceptions as exceptions
 
