@@ -72,6 +72,7 @@ class Worker(QtCore.QRunnable):
 		# print(f'{kwargs=}')
 		self.kwargs = kwargs
 		self.signals = WorkerSignals()
+		self.started = Flag(False)
 		self.running = Flag(False)
 		self.chainedWorkers = {}
 
@@ -83,6 +84,7 @@ class Worker(QtCore.QRunnable):
 		"""Initalise the runner function with passed args, kwargs
 		"""
 		try:
+			self.started.setState(True)
 			self.running.setState(True)
 			result = self.fn(*self.args, self.running, **self.kwargs)
 			self.running.setState(False)
@@ -104,6 +106,9 @@ class Worker(QtCore.QRunnable):
 
 	def isRunning(self) -> bool:
 		return self.running.getState()
+
+	def hasStarted(self) -> bool:
+		return self.started.getState()
 
 	def terminate(self):
 		logger.info('SETTING FLAG %s: FALSE', self)
