@@ -17,15 +17,7 @@ import satplot.util.constants as c
 import satplot.util.exceptions as exceptions
 
 # import satplot.visualiser.assets.axis_indicators as axis_indicators
-import satplot.visualiser.assets.base_assets as base_assets
-import satplot.visualiser.assets.constellation as constellation
-import satplot.visualiser.assets.earth as earth
-import satplot.visualiser.assets.gizmo as gizmo
-import satplot.visualiser.assets.moon as moon
-import satplot.visualiser.assets.orbit as orbit
-import satplot.visualiser.assets.spacecraft as spacecraft
-import satplot.visualiser.assets.sun as sun
-import satplot.visualiser.assets.widgets as widgets
+from satplot.visualiser.assets import base_assets, constellation, earth, events, gizmo, moon, orbit, spacecraft, sun, widgets
 from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 
 logger = logging.getLogger(__name__)
@@ -68,6 +60,7 @@ class History3DCanvasWrapper(BaseCanvas):
 
 		self.assets['constellation'] = constellation.Constellation(v_parent=self.view_box.scene)
 		self.assets['sun'] = sun.Sun3DAsset(v_parent=self.view_box.scene)
+		self.assets['events'] = events.Events3DAsset(v_parent=self.view_box.scene)
 
 		self.assets['ECI_gizmo'] = gizmo.ViewBoxGizmo(v_parent=self.view_box)
 		self.setCameraZoom(5*c.R_EARTH)
@@ -125,6 +118,13 @@ class History3DCanvasWrapper(BaseCanvas):
 			self.assets['spacecraft'].setSource(list(self.data_models['history'].getPrimaryConfig().getAllSpacecraftConfigs().values())[0],
 													self.data_models['history'])
 			self.assets['spacecraft'].makeActive()
+
+		# Update data source for events
+		if self.data_models['history'].getConfigValue('events_defined'):
+			self.assets['events'].setSource(list(self.data_models['history'].events.values())[0])
+			self.assets['events'].makeActive()
+		else:
+			self.assets['events'].makeDormant()
 
 		if self.data_models['history'].getConfigValue('has_supplemental_constellation'):
 			self.assets['constellation'].setSource(self.data_models['history'].getConstellation().getOrbits(),
@@ -232,7 +232,7 @@ class History3DCanvasWrapper(BaseCanvas):
 			for ii, pos in enumerate(mo_info['screen_pos']):
 				if ((abs(pos[0] - pp[0]) < MOUSEOVER_DIST_THRESHOLD) and \
 					(abs(pos[1] - pp[1]) < MOUSEOVER_DIST_THRESHOLD)):
-					dot = np.dot(pg.unitVector(mo_info['world_pos'][ii]),acamv[1,:])[0]
+					dot = np.dot(pg.unitVector(mo_info['world_pos'][ii].reshape(1,3)),acamv[1,:])[0]
 					if dot >=0:
 						last_mevnt_time = time.monotonic()
 						self.mouseOverText.setVisible(True)

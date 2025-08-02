@@ -23,6 +23,7 @@ class EventData(BaseDataModel):
 			if idx_within[ii]:
 				self._descriptions.append(self._raw_descriptions[ii])
 		self._eci_pos = self._interpPositions(self._timestamps, timespan, orbit.pos)
+		self._eci_pos = self._eci_pos.astype(np.float64)
 		self._latlon = self._interpPositions(self._timestamps, timespan, np.hstack((orbit.lat.reshape(-1,1),orbit.lon.reshape(-1,1))))
 
 	def _loadEventFile(self, e_file: pathlib.Path) -> tuple[np.ndarray[tuple[int], np.dtype[np.datetime64]], np.ndarray[tuple[int,int],np.dtype[np.float64]]]:

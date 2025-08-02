@@ -18,119 +18,148 @@ import satplot.visualiser.colours as colours
 
 logger = logging.getLogger(__name__)
 
-class Moon3DAsset(base_assets.AbstractAsset):
-	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
+class Events3DAsset(base_assets.AbstractAsset):
+	def __init__(self, name=None, v_parent=None):
 		super().__init__(name, v_parent)
 
 		self._setDefaultOptions()
 		self._initData()
 		self._instantiateAssets()
 		self._createVisuals()
-		
+
 		self._attachToParentView()
-	
-	def _initData(self) -> None:
+
+	def _initData(self):
 		if self.data['name'] is None:
-			self.data['name'] = 'Moon'		
-		self.data['curr_pos'] = None
-		self.data['pos'] = None
+			self.data['name'] = 'Moon'
+		self.data['coords'] = np.zeros((4,3))
+		self.data['curr_index'] = 0
 
-	def setSource(self, *args, **kwargs) -> None:
-		if type(args[0]) is not orbit.Orbit:
-			logger.error("setSource() of %s requires an %s as value of dict from args[0], not: {type(args[0])}", self, orbit.Orbit)
-			raise TypeError
-		self.data['pos'] = args[0].moon_pos
+		self.data['strings'] = []
 
-	def _instantiateAssets(self) -> None:
+	def _instantiateAssets(self):
 		pass
 
-	def _createVisuals(self) -> None:
-		self.visuals['moon'] = scene.visuals.Sphere(radius=self.opts['moon_sphere_radius_kms']['value'],
-												method='latitude',
-												color=colours.normaliseColour(self.opts['moon_sphere_colour']['value']),
-												parent=None)
+	def _createVisuals(self):
+		# Sun Sphere
+		self.visuals['marker'] = scene.visuals.Markers(parent=None,
+														scaling=True,
+														antialias=0)
+		self.visuals['marker'].set_data(pos=self.data['coords'],
+										edge_width=0,
+										face_color=colours.normaliseColour(self.opts['prior_events_marker_colour']['value']),
+										edge_color='white',
+										size=self.opts['events_marker_size']['value'],
+										symbol=self.opts['events_marker_style']['value'])
+		self.visuals['marker'].order = -1
+
+
+	def setSource(self, *args, **kwargs):
+		# args[0] history data
+		if type(args[0]) is not event_data.EventData:
+			logger.error("setSource() of %s requires a %s as args[1], not: {type(args[1])}", self, event_data.EventData)
+			raise TypeError(f"setSource() of {self} requires a {event_data.EventData} as args[1], not: {type(args[1])}")
+
+		self.data['events_src'] = args[0]
+		self.data['coords'] = self.data['events_src'].eci_pos
 
 	# Override AbstractAsset.updateIndex()
-	def updateIndex(self, index:int) -> None:
+	def updateIndex(self, index):
 		self.setStaleFlagRecursive()
 		self.data['curr_index'] = index
-		self.data['curr_pos'] = self.data['pos'][self.data['curr_index']]
 		self._updateIndexChildren(index)
 
-	def recomputeRedraw(self) -> None:
+	def recomputeRedraw(self):
 		if self.isFirstDraw():
+			self._detachFromParentView()
+			self._attachToParentView()
+
 			self._clearFirstDrawFlag()
 		if self.isStale():
-			moon_pos = self.opts['moon_distance_kms']['value'] * pg.unitVector(self.data['curr_pos'])
-			self.visuals['moon'].transform = vtransforms.STTransform(translate=moon_pos)
-
+			# move the moon
+			self._updateMarkers()
 			self._recomputeRedrawChildren()
 			self._clearStaleFlag()
 
-	
-	def _setDefaultOptions(self) -> None:
+	def getScreenMouseOverInfo(self) -> dict[str, Any]:
+		curr_world_pos = (self.data['coords'])
+		canvas_pos = self.visuals['marker'].get_transform('visual','canvas').map(curr_world_pos)
+		canvas_pos /= canvas_pos[:,3:]
+		mo_info = {'screen_pos':[], 'world_pos':[], 'strings':[], 'objects':[]}
+		mo_info['screen_pos'] = [(canvas_pos[ii,0], canvas_pos[ii,1]) for ii in range(len(self.data['coords']))]
+		mo_info['world_pos'] = [self.data['coords'][ii,:].reshape(3,) for ii in range(len(self.data['coords']))]
+		mo_info['strings'] = self.data['events_src'].descriptions
+		mo_info['objects'] = [self for ii in range(len(self.data['coords']))]
+		return mo_info
+
+	def _setDefaultOptions(self):
 		self._dflt_opts = {}
-		self._dflt_opts['plot_moon'] = {'value': True,
-										  		'type': 'boolean',
+		self._dflt_opts['plot_events'] = {'value': True,
+												'type': 'boolean',
 												'help': '',
 												'static': True,
-												'callback': self.setMoonSphereVisibility,
+												'callback': self.setVisibility,
 											'widget_data': None}
-		self._dflt_opts['moon_sphere_colour'] = {'value': (61,61,61),
+		self._dflt_opts['prior_events_marker_colour'] = {'value': (156,0,252),
 												'type': 'colour',
 												'help': '',
 												'static': True,
-												'callback': self.setMoonSphereColour,
+												'callback': self.setPriorEventsMarkerColour,
 											'widget_data': None}
-		self._dflt_opts['moon_distance_kms'] = {'value': 15000,
-										  		'type': 'number',
+		self._dflt_opts['post_events_marker_colour'] = {'value': (80,60,125),
+												'type': 'colour',
 												'help': '',
 												'static': True,
-												'callback': self.setMoonDistance,
+												'callback': self.setPostEventsMarkerColour,
 											'widget_data': None}
-		self._dflt_opts['moon_sphere_radius_kms'] = {'value': 786,
-										  		'type': 'number',
+		self._dflt_opts['events_marker_size'] = {'value': 200,
+												'type': 'number',
 												'help': '',
 												'static': True,
-												'callback': self.setMoonSphereRadius,
+												'callback': self.setEventsMarkerSize,
 											'widget_data': None}
-
-		# moon radius calculated using 6deg angular size
+		self._dflt_opts['events_marker_style'] = {'value': 'disc',
+												'type': 'option',
+												'options':['disc','arrow','ring','clobber','square','x','diamond','vbar','hbar','cross','tailed_arrow','triangle_up','triangle_down','star','cross_lines'],
+												'help': '',
+												'static': True,
+												'callback': self.setMarkerStyle,
+											'widget_data': None}
+		# sun radius calculated using 6deg angular size
 
 		self.opts = self._dflt_opts.copy()
-	
+
 	#----- OPTIONS CALLBACKS -----#
-	def setMoonSphereColour(self, new_colour:tuple[float,float,float]) -> None:
-		logger.debug("Changing moon sphere colour %s -> %s", self.opts['moon_sphere_colour']['value'], new_colour)
-		self.opts['moon_sphere_colour']['value'] = new_colour
-		n_faces = self.visuals['moon'].mesh._meshdata.n_faces
-		n_verts = self.visuals['moon'].mesh._meshdata.n_vertices
-		self.visuals['moon'].mesh._meshdata.set_face_colors(np.tile(colours.normaliseColour(new_colour),(n_faces,1)))
-		self.visuals['moon'].mesh._meshdata.set_vertex_colors(np.tile(colours.normaliseColour(new_colour),(n_verts,1)))
-		self.visuals['moon'].mesh.mesh_data_changed()
+	def _updateMarkers(self):
+		cols = np.tile(colours.normaliseColour(self.opts['prior_events_marker_colour']['value']),(len(self.data['coords']),1))
+		_, post_truth = self.data['events_src'].sliceByTimespanIdx(self.data['curr_index'])
+		cols[post_truth] = colours.normaliseColour(self.opts['post_events_marker_colour']['value'])
+		self.visuals['marker'].set_data(pos=self.data['coords'].reshape(-1,3),
+											size=self.opts['events_marker_size']['value'],
+											face_color=cols,
+											symbol=self.opts['events_marker_style']['value'])
 
-	def setAntialias(self, state:bool) -> None:
-		raise NotImplementedError
+	def setPriorEventsMarkerColour(self, new_colour):
+		logger.debug("Changing events prior marker colour %s -> %s", self.opts['prior_events_marker_colour']['value'], new_colour)
+		self.opts['prior_events_marker_colour']['value'] = new_colour
+		self._updateMarkers()
 
-	def setMoonDistance(self, distance:float) -> None:
-		self.opts['moon_distance_kms']['value'] = distance
-		# TODO: fix this to setStale then recomputeRedraw()
-		self.setStaleFlagRecursive()
-		self.recomputeRedraw()
+	def setPostEventsMarkerColour(self, new_colour):
+		logger.debug("Changing events post marker colour %s -> %s", self.opts['post_events_marker_colour']['value'], new_colour)
+		self.opts['post_events_marker_colour']['value'] = new_colour
+		self._updateMarkers()
 
-	def setMoonSphereRadius(self, radius:float) -> None:
-		self.opts['moon_sphere_radius_kms']['value'] = radius
-		self.visuals['moon'].parent = None
-		self._createVisuals()
-		self.visuals['moon'].parent = self.data['v_parent']
-		self.requires_recompute = True
-		# TODO: fix this to setStale then recomputeRedraw()
-		self.setStaleFlagRecursive()
-		self.recomputeRedraw()
+	def setEventsMarkerSize(self, size):
+		logger.debug("Changing events marker size %s -> %s", self.opts['events_marker_size']['value'], size)
+		self.opts['events_marker_size']['value'] = size
+		self._updateMarkers()
 
-	def setMoonSphereVisibility(self, state:bool) -> None:
-		self.opts['plot_moon']['value'] = state
-		self.visuals['moon'].visible = self.opts['plot_moon']['value']
+	def setMarkerStyle(self, option_idx):
+		new_style = self.opts['events_marker_style']['options'][option_idx]
+		logger.debug("Changing events marker style %s -> %s", self.opts['events_marker_style']['value'], new_style)
+		self.opts['events_marker_style']['value'] = new_style
+		self._updateMarkers()
+
 
 class Events2DAsset(base_assets.AbstractAsset):
 	def __init__(self, name=None, v_parent=None):
@@ -160,7 +189,7 @@ class Events2DAsset(base_assets.AbstractAsset):
 		self.visuals['marker'] = scene.visuals.Markers(parent=None,
 														scaling=True,
 														antialias=0)
-		self.visuals['marker'].set_data(pos=self.data['scaled_coords'][self.data['curr_index']].reshape(1,2),
+		self.visuals['marker'].set_data(pos=self.data['scaled_coords'],
 										edge_width=0,
 										face_color=colours.normaliseColour(self.opts['prior_events_marker_colour']['value']),
 										edge_color='white',
@@ -174,7 +203,6 @@ class Events2DAsset(base_assets.AbstractAsset):
 		if type(args[0]) is not event_data.EventData:
 			logger.error("setSource() of %s requires a %s as args[1], not: {type(args[1])}", self, event_data.EventData)
 			raise TypeError(f"setSource() of {self} requires a {event_data.EventData} as args[1], not: {type(args[1])}")
-			return
 
 		self.data['events_src'] = args[0]
 		self.data['coords'] = self.data['events_src'].latlon
