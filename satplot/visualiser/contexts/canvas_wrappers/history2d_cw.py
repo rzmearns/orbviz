@@ -14,13 +14,7 @@ from satplot.model.data_models.history_data import HistoryData
 import satplot.util.exceptions as exceptions
 
 # import satplot.visualiser.assets.axis_indicators as axis_indicators
-import satplot.visualiser.assets.base_assets as base_assets
-import satplot.visualiser.assets.earth as earth
-import satplot.visualiser.assets.moon as moon
-import satplot.visualiser.assets.orbit as orbit
-import satplot.visualiser.assets.spacecraft as spacecraft
-import satplot.visualiser.assets.sun as sun
-import satplot.visualiser.assets.widgets as widgets
+from satplot.visualiser.assets import base_assets, earth, events, moon, orbit, spacecraft, sun, widgets
 import satplot.visualiser.cameras.RestrictedPanZoom as RestrictedPanZoom
 from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 
@@ -74,6 +68,7 @@ class History2DCanvasWrapper(BaseCanvas):
 		self.assets['spacecraft'] = spacecraft.Spacecraft2DAsset(v_parent=self.view_box.scene)
 		self.assets['moon'] = moon.Moon2DAsset(v_parent=self.view_box.scene)
 		self.assets['sun'] = sun.Sun2DAsset(v_parent=self.view_box.scene)
+		self.assets['events'] = events.Events2DAsset(v_parent=self.view_box.scene)
 
 	def getActiveAssets(self) -> list[base_assets.AbstractAsset|base_assets.AbstractCompoundAsset|base_assets.AbstractSimpleAsset]:
 		active_assets = []
@@ -118,12 +113,22 @@ class History2DCanvasWrapper(BaseCanvas):
 			self.assets['spacecraft'].setScale(*self.assets['earth'].getDimensions())
 			self.assets['spacecraft'].makeActive()
 
+		# Update data source for events
+		if self.data_models['history'].getConfigValue('events_defined'):
+			self.assets['events'].setScale(*self.assets['earth'].getDimensions())
+			self.assets['events'].setSource(list(self.data_models['history'].events.values())[0])
+			self.assets['events'].makeActive()
+		else:
+			self.assets['events'].makeDormant()
+
 		# Update data source for sun asset
 		if len(self.data_models['history'].getConfigValue('primary_satellite_ids')) > 0:
 			self.assets['sun'].makeDormant()
 			self.assets['sun'].setScale(*self.assets['earth'].getDimensions())
 			self.assets['sun'].setSource(self.data_models['history'])
 			self.assets['sun'].makeActive()
+
+
 
 		self.assets['earth'].makeDormant()
 		self.assets['earth'].makeActive()

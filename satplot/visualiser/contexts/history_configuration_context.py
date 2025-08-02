@@ -121,9 +121,9 @@ class HistoryConfigurationContext(BaseContext):
 			self.data['history'].updateConfig('pointing_invert_transform', False)
 
 		# Events
+		self.data['history'].updateConfig('events_defined', self.controls.use_events_switch.isChecked())
 		if self.controls.use_events_switch.isChecked():
 			logger.info('Events defined. Setting events configuration for %s', self)
-			self.data['history'].updateConfig('events_defined', True)
 			self.data['history'].updateConfig('events_file', self.controls.events_config.getConfigPath())
 
 		try:

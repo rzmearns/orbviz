@@ -186,10 +186,14 @@ class HistoryData(BaseDataModel):
 
 	def _procComplete(self) -> None:
 		logger.info("Thread completion triggered processing of computed data")
-		for thread in self._worker_threads.values():
+		for thread_name, thread in self._worker_threads.items():
 			if thread is not None:
-				if thread.isRunning():
+				logger.debug('\t%s:%s', thread_name, thread.isRunning())
+				if thread.isRunning() or (not thread.hasStarted() and not thread.isRunning()):
+					# if any thread is running, or isn't running but hasn't started yet
 					return
+			else:
+				logger.debug('\t%s:None', thread_name)
 		self.data_ready.emit()
 
 
