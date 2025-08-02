@@ -15,9 +15,9 @@ import spherapy.updater as updater
 
 import satplot
 from satplot.model.data_models.base_models import BaseDataModel
-import satplot.model.data_models.constellation_data as constellation_data
-import satplot.model.data_models.data_types as data_types
+from satplot.model.data_models import constellation_data, data_types, event_data
 import satplot.util.constants as satplot_constants
+import satplot.util.conversion as satplot_conversions
 import satplot.util.threading as threading
 import satplot.visualiser.interface.console as console
 
@@ -39,11 +39,14 @@ class HistoryData(BaseDataModel):
 		self._setConfig('is_pointing_defined', False)
 		self._setConfig('pointing_file', None)
 		self._setConfig('pointing_invert_transform', False)
+		self._setConfig('events_defined', False)
+		self._setConfig('events_file', None)
 
 		self.timespan: timespan.TimeSpan | None = None
 		self.orbits: dict[int, orbit.Orbit] = {}
 		self.pointings: dict[int, HistoricalAttitude] = {}
 		self.constellation: constellation_data.ConstellationData | None = None
+		self.events: dict[int, event_data.EventData] | None = None
 		self.sun: nptyping.NDArray[np.float64] | None = None
 		self.moon: nptyping.NDArray[np.float64] | None = None
 		self.geo_locations: list[nptyping.NDArray[np.float64]] = []
@@ -164,13 +167,25 @@ class HistoryData(BaseDataModel):
 		else:
 			self._worker_threads['constellation'] = None
 
+		if self.getConfigValue('events_defined'):
+			# Set up event processing thread
+			self._worker_threads['events'] = threading.Worker(self._loadEvents,
+																self.getConfigValue('events_file'),
+																delay_start=True)
+			self._worker_threads['primary'].addChainedWorker('events', self._worker_threads['events'])
+			self._worker_threads['events'].signals.result.connect(self._storeEventData)
+			self._worker_threads['events'].signals.finished.connect(self._procComplete)
+			self._worker_threads['events'].signals.error.connect(self._displayError)
+		else:
+			self.events = None
+
 		for thread_name, thread in self._worker_threads.items():
 			if thread is not None and not thread.delayStart:
 				logger.info('Starting thread %s:%s',thread_name, thread)
 				satplot.threadpool.logStart(thread)
 
 	def _procComplete(self) -> None:
-		logger.info("Thread completion triggered processing of computed data ")
+		logger.info("Thread completion triggered processing of computed data")
 		for thread in self._worker_threads.values():
 			if thread is not None:
 				if thread.isRunning():
@@ -178,7 +193,9 @@ class HistoryData(BaseDataModel):
 		self.data_ready.emit()
 
 
-	def _propagatePrimaryOrbits(self, timespan:timespan.TimeSpan, sat_ids:list[int], running:threading.Flag) -> dict[int, orbit.Orbit]:
+	def _propagatePrimaryOrbits(self, timespan:timespan.TimeSpan,
+										sat_ids:list[int],
+										running:threading.Flag) -> dict[int, orbit.Orbit]:
 		updated_list = updater.updateTLEs(sat_ids) 				# noqa: F841
 		# TODO: check number of sats updated == number of sats requested (remove above noqa)
 		# if collections.Counter(updated_list) == collections.Counter(self.sat_ids):
@@ -196,7 +213,9 @@ class HistoryData(BaseDataModel):
 
 		return orbits
 
-	def _propagateConstellationOrbits(self, timespan:timespan.TimeSpan, sat_ids:list[int], running:threading.Flag) -> dict[int, orbit.Orbit]:
+	def _propagateConstellationOrbits(self, timespan:timespan.TimeSpan,
+											sat_ids:list[int],
+											running:threading.Flag) -> dict[int, orbit.Orbit]:
 		updated_list = updater.updateTLEs(sat_ids) 				# noqa: F841
 		# TODO: check number of sats updated == number of sats requested (remove above noqa)
 		# if collections.Counter(updated_list) == collections.Counter(self.sat_ids):
@@ -223,8 +242,19 @@ class HistoryData(BaseDataModel):
 
 		return orbits
 
+	def _loadEvents(self, event_file:pathlib.Path,
+							running:threading.Flag) -> dict[int, event_data.EventData]:
+		event_data_objs = {}
+		for sat_id, orbit_data in self.orbits.items():
+			if self.timespan is not None:
+				event_data_objs[sat_id] = event_data.EventData(event_file, self.timespan, orbit_data)
+		return event_data_objs
+
 	def _storeOrbitData(self, orbits:dict[int,orbit.Orbit]) -> None:
 		self.orbits = orbits
+
+	def _storeEventData(self, events:dict[int, event_data.EventData]):
+		self.events = events
 
 	def _createDataPaneEntries(self):
 		self.datapane_data.append({'parameter':'Altitude',
@@ -299,14 +329,6 @@ class HistoryData(BaseDataModel):
 		super().deSerialise(state)
 
 
-def date_parser(d_bytes) -> dt.datetime:
-	d_bytes = d_bytes[:d_bytes.index(b'.')+4]
-	s = d_bytes.decode('utf-8')
-	d = dt.datetime.strptime(s,"%Y-%m-%d %H:%M:%S.%f")
-	d = d.replace(tzinfo=dt.timezone.utc)
-	return d.replace(microsecond=0)
-
-
 class HistoricalAttitude:
 	def __init__(self, p_file: pathlib.Path, sc_config:data_types.SpacecraftConfig, quat_defn_direction:str='eci2bf'):
 		self.sc_config = sc_config
@@ -348,7 +370,7 @@ class HistoricalAttitude:
 		pointing_y = np.genfromtxt(p_file, delimiter=',', usecols=[3], skip_header=1).reshape(-1,1)
 		pointing_z = np.genfromtxt(p_file, delimiter=',', usecols=[4], skip_header=1).reshape(-1,1)
 		pointing_q = np.hstack((pointing_x,pointing_y,pointing_z,pointing_w))
-		pointing_dates = np.genfromtxt(p_file, delimiter=',', usecols=[0],skip_header=1, converters={0:date_parser})
+		pointing_dates = np.genfromtxt(p_file, delimiter=',', usecols=[0],skip_header=1, converters={0:satplot_conversions.date_parser})
 
 		return pointing_dates, pointing_q
 
