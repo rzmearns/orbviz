@@ -120,6 +120,12 @@ class HistoryConfigurationContext(BaseContext):
 			self.data['history'].updateConfig('pointing_file', None)
 			self.data['history'].updateConfig('pointing_invert_transform', False)
 
+		# Events
+		if self.controls.use_events_switch.isChecked():
+			logger.info('Events defined. Setting events configuration for %s', self)
+			self.data['history'].updateConfig('events_defined', True)
+			self.data['history'].updateConfig('events_file', self.controls.events_config.getConfigPath())
+
 		try:
 			self.controls.submit_button.setEnabled(False)
 			self.data['history'].process()
@@ -183,6 +189,9 @@ class Controls(BaseControls):
 		dflt_constellation_state = False
 		self.use_constellation_switch = widgets.LabelledSwitch(labels=('','Use Supplemental Constellation'),dflt_state=dflt_constellation_state)
 		self.submit_button = QtWidgets.QPushButton('Recalculate')
+		self.events_config = controls.HistoricalEventConfig()
+		dflt_use_events_state = False
+		self.use_events_switch = widgets.LabelledSwitch(labels=('','Plot Events'),dflt_state=dflt_use_events_state)
 
 		# add config interconnects
 		self.pnting_defines_period_switch.toggle.connect(self.toggleTimePeriodDefinitionMethod)
@@ -190,7 +199,8 @@ class Controls(BaseControls):
 		self.use_constellation_switch.toggle.connect(self.constellation_config.setEnabled)
 		self.use_constellation_switch.toggle.connect(self._reloadConstellation)
 		self.constellation_config.setEnabled(dflt_constellation_state)
-
+		self.use_events_switch.toggle.connect(self.events_config.setEnabled)
+		self.events_config.setEnabled(dflt_use_events_state)
 
 		tp_selection_widget = QtWidgets.QWidget()
 		tp_selection_vlayout = QtWidgets.QVBoxLayout()
@@ -207,6 +217,13 @@ class Controls(BaseControls):
 		const_selection_vlayout.addStretch()
 		const_selection_widget.setLayout(const_selection_vlayout)
 
+		events_selection_widget = QtWidgets.QWidget()
+		events_selection_vlayout = QtWidgets.QVBoxLayout()
+		events_selection_vlayout.addWidget(self.use_events_switch)
+		events_selection_vlayout.addWidget(self.events_config)
+		events_selection_vlayout.addStretch()
+		events_selection_widget.setLayout(events_selection_vlayout)
+
 		self.btn_hlayout = QtWidgets.QHBoxLayout()
 		self.btn_hlayout.addStretch()
 		self.btn_hlayout.addWidget(self.submit_button)
@@ -216,6 +233,7 @@ class Controls(BaseControls):
 		self.left_config_tabs = QtWidgets.QTabWidget()
 		self.left_config_tabs.addTab(self.prim_config, 'Primary Configuration')
 		self.left_config_tabs.addTab(const_selection_widget, 'Constellation Configuration')
+		self.left_config_tabs.addTab(events_selection_widget, 'Event Configuration')
 
 		self.right_config_tabs = QtWidgets.QTabWidget()
 		self.right_config_tabs.addTab(tp_selection_widget, 'Time Period Configuration')

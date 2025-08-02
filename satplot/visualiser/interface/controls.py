@@ -164,6 +164,50 @@ class HistoricalPointingConfig(QtWidgets.QWidget):
 		self._pointing_file_selector.deSerialise(state['pointing_file'])
 		self.pointing_file_inv_toggle.deSerialise(state['frame_inv'])
 
+class HistoricalEventConfig(QtWidgets.QWidget):
+	def __init__(self, *args, **kwargs):
+		super().__init__()
+		# Layout containers
+		super_layout = QtWidgets.QVBoxLayout()
+		pane_groupbox = QtWidgets.QGroupBox('Historical Events Configuration')
+		config_vlayout = QtWidgets.QVBoxLayout()
+		config_vlayout.setSpacing(10)
+
+		# Configuration Widgets
+		dflt_config_file = satplot_paths.events_dir.joinpath('example_events.csv')
+		self.events_config_selector = widgets.FilePicker('Events File',
+															dflt_file=dflt_config_file.name,
+															dflt_dir=dflt_config_file.parent,
+															save=False)
+
+		# Place configuration widgets
+		config_vlayout.addWidget(self.events_config_selector)
+		config_vlayout.addStretch()
+		pane_groupbox.setLayout(config_vlayout)
+
+		# Scrollable container
+		scroll_area = QtWidgets.QScrollArea()
+		scroll_area.setWidget(pane_groupbox)
+		scroll_area.setWidgetResizable(True)
+
+		super_layout.addWidget(scroll_area)
+		self.setLayout(super_layout)
+
+		# Set up connections
+
+	def getConfigPath(self) -> pathlib.Path:
+		return self.events_config_selector.getPath()
+
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		# state['constellation'] = self.suppl_constellation_selector.prepSerialisation()
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		# self.suppl_constellation_selector.deSerialise(state['constellation'])
+		# self._enable.setChecked(state['enabled']['value'])
+		pass
+
 class ConstellationControls(QtWidgets.QWidget):
 	def __init__(self, *args, **kwargs):
 		super().__init__()
