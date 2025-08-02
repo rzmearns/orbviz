@@ -165,7 +165,7 @@ class HistoryData(BaseDataModel):
 			self._worker_threads['constellation'] = None
 
 		for thread_name, thread in self._worker_threads.items():
-			if thread is not None:
+			if thread is not None and not thread.delayStart:
 				logger.info('Starting thread %s:%s',thread_name, thread)
 				satplot.threadpool.logStart(thread)
 

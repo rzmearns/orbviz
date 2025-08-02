@@ -5,6 +5,7 @@ import traceback
 import typing
 
 from PyQt5 import QtCore
+import satplot
 
 logger = logging.getLogger(__name__)
 
@@ -63,9 +64,16 @@ class Worker(QtCore.QRunnable):
 		# Store constructor arguments
 		self.fn = fn
 		self.args = args
+		if 'delay_start' in kwargs.keys():
+			self.delayStart = kwargs.pop('delay_start')
+		else:
+			self.delayStart = False
+		# print(f'{args=}')
+		# print(f'{kwargs=}')
 		self.kwargs = kwargs
 		self.signals = WorkerSignals()
 		self.running = Flag(False)
+		self.chainedWorkers = {}
 
 		# Add the callback to our kwargs
 		# self.kwargs['progress_callback'] = self.signals.progress
@@ -89,6 +97,10 @@ class Worker(QtCore.QRunnable):
 				self.running.setState(False)
 				self.signals.finished.emit()
 				self.signals.report_finished.emit(self)
+				for worker_name, worker in self.chainedWorkers.items():
+					if worker is not None:
+						logger.info('Starting thread %s:%s',worker_name, worker)
+						satplot.threadpool.logStart(worker)
 
 	def isRunning(self) -> bool:
 		return self.running.getState()
@@ -97,6 +109,8 @@ class Worker(QtCore.QRunnable):
 		logger.info('SETTING FLAG %s: FALSE', self)
 		self.running.setState(False)
 
+	def addChainedWorker(self, worker_name:str, worker:"Worker"):
+		self.chainedWorkers[worker_name] = worker
 
 class Threadpool(QtCore.QThreadPool):
 
