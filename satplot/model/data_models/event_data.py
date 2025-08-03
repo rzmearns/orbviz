@@ -44,8 +44,8 @@ class EventData(BaseDataModel):
 		return source_pos_array[int_idxs] \
 				+(source_pos_array[int_idxs+1] - source_pos_array[int_idxs])*fractional_part.reshape(-1,1)
 
-	def sliceByTimespanIdx(self, timespan_idx:int) -> tuple[np.ndarray[tuple[int],np.dtype[bool]],
-															np.ndarray[tuple[int],np.dtype[bool]]]:
+	def sliceByTimespanIdx(self, timespan_idx:int) -> tuple[np.ndarray[tuple[int],np.dtype[np.bool_]],
+															np.ndarray[tuple[int],np.dtype[np.bool_]]]:
 		pre_truth = self._timestamps <= self._source_timespan.asDatetime(timespan_idx)
 		post_truth = self._timestamps > self._source_timespan.asDatetime(timespan_idx)
 		return pre_truth, post_truth
