@@ -5,6 +5,7 @@ import traceback
 import typing
 
 from PyQt5 import QtCore
+
 import satplot
 
 logger = logging.getLogger(__name__)

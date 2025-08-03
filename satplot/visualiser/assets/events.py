@@ -4,15 +4,10 @@ import typing
 from typing import Any
 
 import numpy as np
-import pymap3d
-import spherapy.orbit as orbit
 
 import vispy.scene as scene
-from vispy.scene.widgets.viewbox import ViewBox
-import vispy.visuals.transforms as vtransforms
 
 from satplot.model.data_models import event_data
-import satplot.model.geometry.primgeom as pg
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.colours as colours
 

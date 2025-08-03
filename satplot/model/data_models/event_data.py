@@ -1,10 +1,11 @@
-import datetime as dt
 import logging
-import numpy as np
 import pathlib
 
-from spherapy.timespan import TimeSpan
+import typing
+
+import numpy as np
 from spherapy.orbit import Orbit
+from spherapy.timespan import TimeSpan
 
 from satplot.model.data_models.base_models import BaseDataModel
 import satplot.util.conversion as satplot_conversions

@@ -17,7 +17,18 @@ import satplot.util.constants as c
 import satplot.util.exceptions as exceptions
 
 # import satplot.visualiser.assets.axis_indicators as axis_indicators
-from satplot.visualiser.assets import base_assets, constellation, earth, events, gizmo, moon, orbit, spacecraft, sun, widgets
+from satplot.visualiser.assets import (
+	base_assets,
+	constellation,
+	earth,
+	events,
+	gizmo,
+	moon,
+	orbit,
+	spacecraft,
+	sun,
+	widgets,
+)
 from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 
 logger = logging.getLogger(__name__)

@@ -13,8 +13,16 @@ from satplot.model.data_models.earth_raycast_data import EarthRayCastData
 from satplot.model.data_models.history_data import HistoryData
 import satplot.util.exceptions as exceptions
 
-# import satplot.visualiser.assets.axis_indicators as axis_indicators
-from satplot.visualiser.assets import base_assets, earth, events, moon, orbit, spacecraft, sun, widgets
+from satplot.visualiser.assets import (
+	base_assets,
+	earth,
+	events,
+	moon,
+	orbit,
+	spacecraft,
+	sun,
+	widgets,
+)
 import satplot.visualiser.cameras.RestrictedPanZoom as RestrictedPanZoom
 from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 

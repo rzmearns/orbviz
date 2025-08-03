@@ -1,4 +1,3 @@
-import datetime as dt
 import logging
 import pathlib
 
@@ -14,8 +13,8 @@ import spherapy.timespan as timespan
 import spherapy.updater as updater
 
 import satplot
-from satplot.model.data_models.base_models import BaseDataModel
 from satplot.model.data_models import constellation_data, data_types, event_data
+from satplot.model.data_models.base_models import BaseDataModel
 import satplot.util.constants as satplot_constants
 import satplot.util.conversion as satplot_conversions
 import satplot.util.threading as threading
