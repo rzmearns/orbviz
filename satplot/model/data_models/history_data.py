@@ -148,7 +148,7 @@ class HistoryData(BaseDataModel):
 		# Set up workers for orbit propagation
 		self._worker_threads['primary'] = threading.Worker(self._propagatePrimaryOrbits, self.timespan, self.getConfigValue('primary_satellite_ids'))
 		self._worker_threads['primary'].signals.result.connect(self._storeOrbitData)
-		self._worker_threads['primary'].signals.finished.connect(self._procComplete)
+		self._worker_threads['primary'].signals.report_finished.connect(self._procComplete)
 		self._worker_threads['primary'].signals.error.connect(self._displayError)
 		self._worker_threads['primary'].setAutoDelete(True)
 
@@ -160,7 +160,7 @@ class HistoryData(BaseDataModel):
 			self.constellation.setTimespan(self.timespan)
 			self._worker_threads['constellation'] = threading.Worker(self._propagateConstellationOrbits, self.timespan, self.constellation.getConfigValue('satellite_ids'))
 			self._worker_threads['constellation'].signals.result.connect(self.constellation._storeOrbitData)
-			self._worker_threads['constellation'].signals.finished.connect(self._procComplete)
+			self._worker_threads['constellation'].signals.report_finished.connect(self._procComplete)
 			self._worker_threads['constellation'].signals.error.connect(self._displayError)
 			self._worker_threads['constellation'].setAutoDelete(True)
 		else:
@@ -173,7 +173,7 @@ class HistoryData(BaseDataModel):
 																delay_start=True)
 			self._worker_threads['primary'].addChainedWorker('events', self._worker_threads['events'])
 			self._worker_threads['events'].signals.result.connect(self._storeEventData)
-			self._worker_threads['events'].signals.finished.connect(self._procComplete)
+			self._worker_threads['events'].signals.report_finished.connect(self._procComplete)
 			self._worker_threads['events'].signals.error.connect(self._displayError)
 		else:
 			self.events = None
@@ -183,8 +183,8 @@ class HistoryData(BaseDataModel):
 				logger.info('Starting thread %s:%s',thread_name, thread)
 				satplot.threadpool.logStart(thread)
 
-	def _procComplete(self) -> None:
-		logger.info("Thread completion triggered processing of computed data")
+	def _procComplete(self, worker_object) -> None:
+		logger.info("%s completion triggered processing of computed data", worker_object)
 		for thread_name, thread in self._worker_threads.items():
 			if thread is not None:
 				logger.debug('\t%s:%s', thread_name, thread.isRunning())

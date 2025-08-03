@@ -80,6 +80,9 @@ class Worker(QtCore.QRunnable):
 		# Add the callback to our kwargs
 		# self.kwargs['progress_callback'] = self.signals.progress
 
+	def __repr__(self):
+		return f"{self.fn} worker object"
+
 	@QtCore.pyqtSlot()
 	def run(self) -> None:
 		"""Initalise the runner function with passed args, kwargs
