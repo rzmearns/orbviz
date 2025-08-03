@@ -12,7 +12,6 @@ from vispy.app.canvas import MouseEvent, ResizeEvent
 from satplot.model.data_models.earth_raycast_data import EarthRayCastData
 from satplot.model.data_models.history_data import HistoryData
 import satplot.util.exceptions as exceptions
-
 from satplot.visualiser.assets import (
 	base_assets,
 	earth,
