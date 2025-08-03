@@ -1,14 +1,19 @@
+import logging
+
+import typing
 from typing import Any
 
-from satplot.model.data_models.base_models import (BaseDataModel)
-import satplot.model.data_models.data_types as data_types
 import spherapy.orbit as orbit
 import spherapy.timespan as timespan
+
+from satplot.model.data_models.base_models import BaseDataModel
+import satplot.model.data_models.data_types as data_types
 
 # constellation_config
 # constellation_name
 # constellation_beam_angle
 
+logger = logging.getLogger(__name__)
 
 class ConstellationData(BaseDataModel):
 	def __init__(self, config, *args, **kwargs):
@@ -20,9 +25,9 @@ class ConstellationData(BaseDataModel):
 		self._setConfig('satellite_ids', None) # keys of orbits, position dict
 		self._setConfig('beam_angle_deg', None)
 
-		self.updateConfig('constellation_name', config['name'])
-		self.updateConfig('beam_angle_deg', config['beam_width'])
-		self.updateConfig('satellite_ids', list(config['satellites'].values()))
+		self.updateConfig('constellation_name', config.name)
+		self.updateConfig('beam_angle_deg', config.beam_width)
+		self.updateConfig('satellite_ids', list(config.sats.keys()))
 
 		self.timespan: timespan.TimeSpan | None = None
 		self.orbits: dict[int, orbit.Orbit] = {}
@@ -32,13 +37,13 @@ class ConstellationData(BaseDataModel):
 
 	def getTimespan(self) -> timespan.TimeSpan:
 		if self.timespan is None:
-			logger.error(f'Constellation data:{self} does not have a timespan yet')
+			logger.error('Constellation data:%s does not have a timespan yet', self)
 			raise ValueError(f'Constellation data:{self} does not have a timespan yet')
 		return self.timespan
 
 	def getOrbits(self) -> dict[int,orbit.Orbit]:
 		if len(self.orbits.values()) == 0:
-			logger.error(f'Constellation data:{self} has no orbits yet')
+			logger.error('Constellation data:%s has no orbits yet', {self})
 			raise ValueError(f'Constellation data:{self} has no orbits yet')
 		return self.orbits
 

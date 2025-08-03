@@ -1,27 +1,24 @@
 import datetime as dt
 import logging
+
+import typing
+from typing import Any
+
 import numpy as np
 import numpy.typing as nptyping
 from scipy.spatial.transform import Rotation
-from scipy.spatial import ConvexHull
-import time
-from typing import Any
 
 import vispy.scene.visuals as vVisuals
 from vispy.scene.widgets.viewbox import ViewBox
 import vispy.visuals.filters as vFilters
 import vispy.visuals.transforms as vTransforms
-from vispy.util.quaternion import Quaternion
 
-import satplot.model.geometry.polyhedra as polyhedra
-import satplot.model.geometry.polygons as polygeom
-import satplot.model.geometry.spherical as sphericalgeom
 import satplot.model.data_models.data_types as satplot_data_types
+import satplot.model.geometry.polyhedra as polyhedra
 import satplot.model.lens_models.pinhole as pinhole
-import satplot.util.constants as c
 import satplot.util.conversion as satplot_conversion
-import satplot.visualiser.colours as colours
 import satplot.visualiser.assets.base_assets as base_assets
+import satplot.visualiser.colours as colours
 
 logger = logging.getLogger(__name__)
 
@@ -44,13 +41,13 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundAsset):
 
 	def setSource(self, *args, **kwargs) -> None:
 		# args[0] = history_src
-		for sensor_name, sensor in self.assets.items():
+		for sensor in self.assets.values():
 			sensor.setSource(args[0])
 
 	def _instantiateAssets(self) -> None:
 		sensor_names = self.data['sens_suite_config'].getSensorNames()
 		for sensor in sensor_names:
-			logger.info(f"Instantiating 3D sensor asset {self.data['name']}:{sensor}")
+			logger.info("Instantiating 3D sensor asset %s:%s", self.data['name'],sensor)
 			sens_dict = self.data['sens_suite_config'].getSensorConfig(sensor)
 			if sens_dict['shape'] == satplot_data_types.SensorTypes.CONE:
 				self.assets[sensor] = Sensor3DAsset.cone(self.data['sc_id'],
@@ -73,11 +70,11 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundAsset):
 							 rotation:nptyping.NDArray|None=None, quat:nptyping.NDArray|None=None) -> None:
 		if self.isStale():
 			if rotation is None and quat is None:
-				logger.warning(f"Rotation and quaternion passed to sensor suite: {self.data['name']} cannot both be None")
+				logger.warning("Rotation and quaternion passed to sensor suite: %s cannot both be None", self.data['name'])
 				raise ValueError(f"Rotation and quaternion passed sensor suite: {self.data['name']} cannot both be None")
 			if rotation is not None and quat is not None:
-				logger.warning(f"Both rotation and quaternion passed to sensor suite: {self.data['name']}, don't know which one to use")
-				raise ValueError(f"Both rotation and quaternion passed to sensor suite: {self.data['name']}, don't know which one to use")
+				logger.warning("Both rotation and quaternion passed to sensor suite: %s, don't know which one to use", self.data['name'])
+				raise ValueError("Both rotation and quaternion passed to sensor suite: %s, don't know which one to use", self.data['name'])
 
 			for asset in self.assets.values():
 				asset.setTransform(pos=pos, rotation=rotation, quat=quat)
@@ -110,7 +107,7 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundAsset):
 	def removePlotOptions(self) -> None:
 		for opt_key, opt in self.opts.items():
 			if opt['widget_data'] is not None:
-				logger.debug(f"marking {opt_key} for removal")
+				logger.debug("marking %s for removal", opt_key)
 				opt['widget_data']['mark_for_removal'] = True
 		for asset in self.assets.values():
 			asset.removePlotOptions()
@@ -122,7 +119,7 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 
 		self._setDefaultOptions()
 		if sens_type is None or not satplot_data_types.SensorTypes.hasValue(sens_type):
-			logger.error(f"Sensor {sensor_name} has an ill-defined sensor type: {sens_type}")
+			logger.error("Sensor %s has an ill-defined sensor type: %s", sensor_name, sens_type)
 			return ValueError(f"Sensor {sensor_name} has an ill-defined sensor type: {sens_type}")
 
 		self._initData(sc_id,
@@ -215,13 +212,13 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 		raise NotImplementedError
 
 	def setSensorVisibility(self, state):
-		for visual_name, visual in self.visuals.items():
+		for visual in self.visuals.values():
 			visual.visible = state
 
 	def removePlotOptions(self) -> None:
 		for opt_key, opt in self.opts.items():
 			if opt['widget_data'] is not None:
-				logger.debug(f"marking {opt_key} for removal")
+				logger.debug("marking %s for removal", opt_key)
 				opt['widget_data']['mark_for_removal'] = True
 
 	@classmethod
@@ -270,7 +267,7 @@ class SensorSuite2DAsset(base_assets.AbstractCompoundAsset):
 	def setSource(self, *args, **kwargs) -> None:
 		# args[0] = history_src
 		# args[1] = raycast_src
-		for sensor_name, sensor in self.assets.items():
+		for sensor in self.assets.values():
 			sensor.setSource(args[0], args[1])
 
 	def setScale(self, horizontal_size, vertical_size):
@@ -287,7 +284,7 @@ class SensorSuite2DAsset(base_assets.AbstractCompoundAsset):
 	def _instantiateAssets(self) -> None:
 		sensor_names = self.data['sens_suite_config'].getSensorNames()
 		for sensor_name in sensor_names:
-			logger.info(f"Instantiating 2D sensor asset {self.data['name']}:{sensor_name}")
+			logger.info("Instantiating 2D sensor asset %s:%s", self.data['name'], sensor_name)
 			sens_dict = self.data['sens_suite_config'].getSensorConfig(sensor_name)
 			if sens_dict['shape'] == satplot_data_types.SensorTypes.CONE:
 				# TOOD: some kind of exception
@@ -310,11 +307,11 @@ class SensorSuite2DAsset(base_assets.AbstractCompoundAsset):
 							 rotation:nptyping.NDArray|None=None, quat:nptyping.NDArray|None=None) -> None:
 		if self.isStale():
 			if rotation is None and quat is None:
-				logger.warning(f"Rotation and quaternion passed to sensor suite: {self.data['name']} cannot both be None")
+				logger.warning("Rotation and quaternion passed to sensor suite: %s cannot both be None", self.data['name'])
 				raise ValueError(f"Rotation and quaternion passed sensor suite: {self.data['name']} cannot both be None")
 			if rotation is not None and quat is not None:
-				logger.warning(f"Both rotation and quaternion passed to sensor suite: {self.data['name']}, don't know which one to use")
-				raise ValueError(f"Both rotation and quaternion passed to sensor suite: {self.data['name']}, don't know which one to use")
+				logger.warning("Both rotation and quaternion passed to sensor suite: %s, don't know which one to use", self.data['name'])
+				raise ValueError("Both rotation and quaternion passed to sensor suite: %s, don't know which one to use", self.data['name'])
 
 			for asset in self.assets.values():
 				asset.setTransform(pos=pos, rotation=rotation, quat=quat)
@@ -347,7 +344,7 @@ class SensorSuite2DAsset(base_assets.AbstractCompoundAsset):
 	def removePlotOptions(self) -> None:
 		for opt_key, opt in self.opts.items():
 			if opt['widget_data'] is not None:
-				logger.debug(f"marking {opt_key} for removal")
+				logger.debug("marking %s for removal", opt_key)
 				opt['widget_data']['mark_for_removal'] = True
 		for asset in self.assets.values():
 			asset.removePlotOptions()
@@ -501,7 +498,7 @@ class Sensor2DAsset(base_assets.AbstractSimpleAsset):
 		self._updateMarkers()
 
 	def setSensorVisibility(self, state):
-		for visual_name, visual in self.visuals.items():
+		for visual in self.visuals.values():
 			visual.visible = state
 		if state:
 			self._setActiveFlag()
@@ -511,7 +508,7 @@ class Sensor2DAsset(base_assets.AbstractSimpleAsset):
 	def removePlotOptions(self) -> None:
 		for opt_key, opt in self.opts.items():
 			if opt['widget_data'] is not None:
-				logger.debug(f"marking {opt_key} for removal")
+				logger.debug("marking %s for removal", opt_key)
 				opt['widget_data']['mark_for_removal'] = True
 
 class SensorSuiteImageAsset(base_assets.AbstractCompoundAsset):
@@ -537,7 +534,7 @@ class SensorSuiteImageAsset(base_assets.AbstractCompoundAsset):
 	def setSource(self, *args, **kwargs) -> None:
 		# args[0] = history_src
 		# args[1] = raycast_src
-		for sensor_name, sensor in self.assets.items():
+		for sensor in self.assets.values():
 			sensor.setSource(args[0], args[1])
 
 	def setCurrentDatetime(self, curr_dt:dt.datetime) -> None:
@@ -558,7 +555,7 @@ class SensorSuiteImageAsset(base_assets.AbstractCompoundAsset):
 	def _instantiateAssets(self) -> None:
 		sensor_names = self.data['sens_suite_config'].getSensorNames()
 		for sensor_name in sensor_names:
-			logger.info(f"Instantiating sensor image asset {self.data['name']}:{sensor_name}")
+			logger.info("Instantiating sensor image asset %s:%s", self.data['name'], sensor_name)
 			sens_dict = self.data['sens_suite_config'].getSensorConfig(sensor_name)
 			if sens_dict['shape'] == satplot_data_types.SensorTypes.CONE:
 				# TOOD: some kind of exception
@@ -581,11 +578,11 @@ class SensorSuiteImageAsset(base_assets.AbstractCompoundAsset):
 							 rotation:nptyping.NDArray|None=None, quat:nptyping.NDArray|None=None) -> None:
 		if self.isStale():
 			if rotation is None and quat is None:
-				logger.warning(f"Rotation and quaternion passed to sensor suite: {self.data['name']} cannot both be None")
+				logger.warning("Rotation and quaternion passed to sensor suite: %s cannot both be None", self.data['name'])
 				raise ValueError(f"Rotation and quaternion passed sensor suite: {self.data['name']} cannot both be None")
 			if rotation is not None and quat is not None:
-				logger.warning(f"Both rotation and quaternion passed to sensor suite: {self.data['name']}, don't know which one to use")
-				raise ValueError(f"Both rotation and quaternion passed to sensor suite: {self.data['name']}, don't know which one to use")
+				logger.warning("Both rotation and quaternion passed to sensor suite: %s, don't know which one to use", self.data['name'])
+				raise ValueError("Both rotation and quaternion passed to sensor suite: %s, don't know which one to use", self.data['name'])
 
 			for asset in self.assets.values():
 				asset.setTransform(pos=pos, rotation=rotation, quat=quat)
@@ -598,7 +595,7 @@ class SensorSuiteImageAsset(base_assets.AbstractCompoundAsset):
 	def removePlotOptions(self) -> None:
 		for opt_key, opt in self.opts.items():
 			if opt['widget_data'] is not None:
-				logger.debug(f"marking {opt_key} for removal")
+				logger.debug("marking %s for removal", opt_key)
 				opt['widget_data']['mark_for_removal'] = True
 		for asset in self.assets.values():
 			asset.removePlotOptions()
@@ -735,7 +732,7 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 			self._clearStaleFlag()
 
 	def generateFullRes(self) -> tuple[np.ndarray, np.ndarray, object]:
-		logger.debug(f"\tGenerating full resolution image for {self.data['name']}")
+		logger.debug("\tGenerating full resolution image for %s", self.data['name'])
 		img_data, mo_data = self.data['raycast_src'].rayCastFromSensor(self.data['res'],
 															self.data['pix_per_rad'],
 															self.data['last_transform'],
@@ -794,7 +791,7 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 			out_str = data[1]
 		elif data[0] == -1:
 			# dummy data
-			out_str = f'Dummy Data'
+			out_str = 'Dummy Data'
 		else:
 			out_str = ''
 
@@ -978,12 +975,12 @@ class SensorImageAsset(base_assets.AbstractSimpleAsset):
 	def removePlotOptions(self) -> None:
 		for opt_key, opt in self.opts.items():
 			if opt['widget_data'] is not None:
-				logger.debug(f"marking {opt_key} for removal")
+				logger.debug("marking %s for removal", opt_key)
 				opt['widget_data']['mark_for_removal'] = True
 
 def _generateRandomSensorData(shape, dtype=np.float32):
     rng = np.random.default_rng()
-    s = [val for val in shape]
+    s = list(shape)
     s.append(3)
     data = rng.random(s, dtype=dtype)
     return data

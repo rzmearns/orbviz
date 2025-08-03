@@ -1,24 +1,19 @@
 import logging
 import sys
-from typing import Any
 
-from PyQt5 import QtWidgets, QtCore, QtGui
+import typing
 
-import satplot
-from satplot.model.data_models import (history_data,
-										earth_raycast_data)
-from satplot.model.data_models import datapane as datapane_model
-from satplot.visualiser.shells import base_shell
-from satplot.visualiser.contexts import (base_context,
-											blank_context,
-											history2d_context,
-											history3d_context,
-											history_configuration_context,
-											sensor_views_context)
-import satplot.visualiser.interface.console as console
+from PyQt5 import QtWidgets
+
+from satplot.model.data_models import earth_raycast_data, history_data
+from satplot.visualiser.contexts import (
+	history2d_context,
+	history3d_context,
+	history_configuration_context,
+	sensor_views_context,
+)
 import satplot.visualiser.interface.controls as controls
-import satplot.visualiser.interface.datapane as datapane
-import satplot.visualiser.interface.widgets as satplot_widgets
+from satplot.visualiser.shells import base_shell
 
 logger = logging.getLogger(__name__)
 
@@ -49,9 +44,9 @@ class PlanningShell(base_shell.BaseShell):
 		# check toolbar/menubar indices are the same
 		for ii, key in enumerate(self.toolbars.keys()):
 			if list(self.menubars.keys())[ii] != key:
-				logger.error(f'Context toolbars and menubar indices do not match for contexts')
-				logger.error(f'Toolbars: {self.toolbars.keys()}')
-				logger.error(f'Menubars: {self.menubars.keys()}')
+				logger.error('Context toolbars and menubar indices do not match for contexts')
+				logger.error('Toolbars: %s', self.toolbars.keys())
+				logger.error('Menubars: %s', self.menubars.keys())
 				raise ValueError('Toolbars and Menubars indices do not match')
 				sys.exit()
 

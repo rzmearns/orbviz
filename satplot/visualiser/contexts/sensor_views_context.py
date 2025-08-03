@@ -1,19 +1,21 @@
 import logging
 import pathlib
-from PyQt5 import QtWidgets, QtCore, QtGui
+
+import typing
 from typing import Any
 
+from PyQt5 import QtCore, QtGui, QtWidgets
+
 import satplot.model.data_models.data_types as data_types
+from satplot.model.data_models.earth_raycast_data import EarthRayCastData
 from satplot.model.data_models.history_data import HistoryData
-from satplot.model.data_models.earth_raycast_data import (EarthRayCastData)
-from satplot.visualiser.contexts.base_context import (BaseContext, BaseControls)
-from satplot.visualiser.contexts.canvas_wrappers.base_cw import (BaseCanvas)
+from satplot.visualiser.contexts.base_context import BaseContext, BaseControls
+from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 import satplot.visualiser.contexts.canvas_wrappers.sensor_views_cw as sensor_views_cw
 import satplot.visualiser.interface.console as console
 import satplot.visualiser.interface.controls as controls
 import satplot.visualiser.interface.dialogs as satplot_dialogs
 import satplot.visualiser.interface.widgets as widgets
-
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +98,7 @@ class SensorViewsContext(BaseContext):
 
 	def _updateDisplayedIndex(self, index:int) -> None:
 		if self.data['history'] is None:
-			logger.warning(f"model history data is not set for context {self.config['name']}:{self}")
+			logger.warning("model history data is not set for context %s:%s", self.config['name'], self)
 			ValueError(f"model history data is not set for context {self.config['name']}:{self}")
 		self.canvas_wrapper.updateIndex(index)
 		self.data['history'].updateIndex(index)
@@ -106,9 +108,9 @@ class SensorViewsContext(BaseContext):
 		self.canvas_wrapper.selectSensor(view_id, sc_id, suite_key, sens_key)
 
 	def generateSensorFullRes(self, view_id:int, sc_id:int, suite_key:str, sens_key:str) -> None:
-		logger.debug(f'Generating Full Res for view {view_id}: {sc_id} - {suite_key} - {sens_key}')
+		logger.debug('Generating Full Res for view %s: %s - %s - %s', view_id, sc_id, suite_key, sens_key)
 		img_data, mo_data, moConverterFunction, img_metadata = self.canvas_wrapper.generateSensorFullRes(sc_id, suite_key, sens_key)
-		img_dialog = satplot_dialogs.fullResSensorImageDialog(img_data, mo_data, moConverterFunction, img_metadata)
+		satplot_dialogs.fullResSensorImageDialog(img_data, mo_data, moConverterFunction, img_metadata)
 
 	def getIndex(self) -> int|None:
 		return self.controls.time_slider.getValue()

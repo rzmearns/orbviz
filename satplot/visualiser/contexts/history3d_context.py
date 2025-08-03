@@ -1,20 +1,20 @@
-import datetime as dt
-import imageio
-import pathlib
 import logging
-import sys
+import pathlib
+
+import typing
 from typing import Any
 
-from vispy.gloo.util import _screenshot
-import vispy.app as app
+import imageio
 
-from PyQt5 import QtWidgets, QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
+
+import vispy.app as app
+from vispy.gloo.util import _screenshot
 
 import satplot.model.data_models.data_types as data_types
 from satplot.model.data_models.history_data import HistoryData
-import satplot.util.paths as paths
 import satplot.visualiser.contexts.base_context as base
-from satplot.visualiser.contexts.canvas_wrappers.base_cw import (BaseCanvas)
+from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 import satplot.visualiser.contexts.canvas_wrappers.history3d_cw as history3d_cw
 import satplot.visualiser.interface.console as console
 import satplot.visualiser.interface.controls as controls
@@ -72,7 +72,7 @@ class History3DContext(base.BaseContext):
 		self.layout.addWidget(self.content_widget)
 
 	def connectControls(self) -> None:
-		logger.info(f"Connecting controls of {self.config['name']}")
+		logger.info("Connecting controls of %s", self.config['name'])
 		self.controls.time_slider.add_connect(self._updateDisplayedIndex)
 		self.controls.action_dict['center-earth']['callback'] = self._centerCameraEarth
 		self.controls.action_dict['center-spacecraft']['callback'] = self._toggleCameraSpacecraft
@@ -80,7 +80,7 @@ class History3DContext(base.BaseContext):
 		self.controls.action_dict['save-screenshot']['callback'] = self.setupScreenshot
 		self.sccam_state = False
 		if self.data is None:
-			logger.warning(f'Context History3D: {self} does not have a data model.')
+			logger.warning('Context History3D: %s does not have a data model.', self)
 			raise AttributeError(f'Context History3D: {self} does not have a data model.')
 		self.data['history'].data_ready.connect(self._updateDataSources)
 		self.data['history'].data_ready.connect(self._updateControls)
@@ -103,7 +103,7 @@ class History3DContext(base.BaseContext):
 
 	def _updateDisplayedIndex(self, index:int) -> None:
 		if self.data is None:
-			logger.warning(f"model data is not set for context {self.config['name']}:{self}")
+			logger.warning("model data is not set for context %s:%s", self.config['name'], self)
 			ValueError(f"model data is not set for context {self.config['name']}:{self}")
 		self.canvas_wrapper.updateIndex(index)
 		self.data['history'].updateIndex(index)
@@ -211,7 +211,7 @@ class History3DContext(base.BaseContext):
 			writer.append_data(im)
 			# use this to print to console on last iteration, otherwise thread doesn't get serviced until after writer closes
 			if ii==end_idx-1:
-				console.send(f"Writing file. Please wait...")
+				console.send("Writing file. Please wait...")
 				app.process_events()
 
 		writer.close()

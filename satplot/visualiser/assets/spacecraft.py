@@ -1,24 +1,24 @@
 import logging
-import numpy as np
-from scipy.spatial.transform import Rotation
-import time
+
+import typing
 from typing import Any
+
+import numpy as np
+
 from vispy import scene
 from vispy.scene.widgets.viewbox import ViewBox
 
 import satplot.model.data_models.data_types as data_types
-import satplot.model.data_models.history_data as history_data
 import satplot.model.data_models.earth_raycast_data as earth_raycast_data
-import satplot.model.geometry.polygons as polygeom
+import satplot.model.data_models.history_data as history_data
 import satplot.model.geometry.spherical as spherical_geom
 import satplot.util.constants as c
-import satplot.visualiser.assets.sensors as sensors
-import satplot.visualiser.colours as colours
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.assets.gizmo as gizmo
+import satplot.visualiser.assets.sensors as sensors
+import satplot.visualiser.colours as colours
 import satplot.visualiser.interface.console as console
 import satplot.visualiser.visuals.polygons as polygon_visuals
-import spherapy.orbit as orbit
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +65,7 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 			raise TypeError(f"setSource() of {self} requires a {history_data.HistoryData} as args[1], not: {type(args[1])}")
 
 		if not args[1].hasOrbits():
-			logger.error(f"History Data Source for {self} contains no data yet.")
+			logger.error("History Data Source for %s contains no data yet.", self)
 
 		self.data['sc_config'] = args[0]
 		self.data['name'] = self.data['sc_config'].name
@@ -138,7 +138,7 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 
 	def _instantiateSensorAssets(self) -> None:
 		for suite_name, suite_config in self.data['sc_config'].getSensorSuites().items():
-			logger.info(f'Creating sensor suite sensor_suite_{suite_name}')
+			logger.info('Creating sensor suite sensor_suite_%s', suite_name)
 			self.assets[f'sensor_suite_{suite_name}'] = sensors.SensorSuite3DAsset(self.data['sc_config'].id,
 																	suite_config,
 																	name=suite_name,
@@ -239,7 +239,7 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 		self._updateMarkers()
 
 	def setAllSensorSuitesVisibility(self, state:bool) -> None:
-		for key, asset in self.assets.items():
+		for asset in self.assets.values():
 			if isinstance(asset, sensors.SensorSuite3DAsset):
 				asset.setVisibilityRecursive(state)
 
@@ -273,7 +273,7 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 	#----- HELPER FUNCTIONS -----#
 	def _addIndividualSensorSuitePlotOptions(self) -> None:
 		logger.debug('Adding sensor suite options dictionary entries for:')
-		for key, value in self.data['sc_config'].getSensorSuites().items():
+		for key in self.data['sc_config'].getSensorSuites().keys():
 			visibilityCallback = self._makeVisibilityCallback(key)
 			self.opts[f'plot_sensor_suite_{key}'] = {'value': True,
 													'type': 'boolean',
@@ -348,7 +348,7 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 			raise TypeError(f"setSource() of {self} requires a {history_data.HistoryData} as args[1], not: {type(args[1])}")
 
 		if not args[1].hasOrbits():
-			logger.error(f"History Data Source for {self} contains no data yet.")
+			logger.error("History Data Source for %s contains no data yet.", self)
 
 		if type(args[2]) is not earth_raycast_data.EarthRayCastData:
 			logger.error("setSource() of %s requires a %s as args[2], not: %s", self, earth_raycast_data.EarthRayCastData, type(args[2]))
@@ -369,7 +369,7 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 			lon = ((first_sat_orbit.lon + 180) * self.data['horiz_pixel_scale']).reshape(-1,1)
 			self.data['scaled_coords'] = np.hstack((lon,lat))
 			self.data['eci_coords'] = first_sat_orbit.pos
-			logger.debug(f'Setting source:coordinates for {self}')
+			logger.debug('Setting source:coordinates for %s', self)
 		else:
 			console.sendErr('Orbit has no position data')
 			logger.warning('Orbit has no position data')
@@ -431,7 +431,7 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 
 	def _instantiateSensorAssets(self) -> None:
 		for suite_name, suite_config in self.data['sc_config'].getSensorSuites().items():
-			logger.info(f'Creating sensor suite sensor_suite_{suite_name}')
+			logger.info('Creating sensor suite sensor_suite_%s', suite_name)
 			self.assets[f'sensor_suite_{suite_name}'] = sensors.SensorSuite2DAsset(self.data['sc_config'].id,
 																	suite_config,
 																	name=suite_name,
@@ -577,13 +577,13 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 
 	def setOTHCircleAlpha(self, alpha):
 		# Takes a little while to take effect.
-		logger.debug(f"Changing terminator alpha {self.opts['over_the_horizon_circle_alpha']['value']} -> {alpha}")
+		logger.debug("Changing terminator alpha %s -> %s",  self.opts['over_the_horizon_circle_alpha']['value'], alpha)
 		self.opts['over_the_horizon_circle_alpha']['value'] = alpha
 		self.visuals['oth_circle1'].opacity = self.opts['over_the_horizon_circle_alpha']['value']
 		self.visuals['oth_circle2'].opacity = self.opts['over_the_horizon_circle_alpha']['value']
 
 	def setOTHCircleColour(self, new_colour):
-		logger.debug(f"Changing terminator colour {self.opts['over_the_horizon_circle_colour']['value']} -> {new_colour}")
+		logger.debug("Changing terminator colour %s -> %s", self.opts['over_the_horizon_circle_colour']['value'], new_colour)
 		self.opts['over_the_horizon_circle_colour']['value'] = new_colour
 		self.visuals['oth_circle1'].color = self.opts['over_the_horizon_circle_colour']['value']
 		self.visuals['oth_circle2'].color = self.opts['over_the_horizon_circle_colour']['value']
@@ -594,7 +594,7 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 		self.visuals['oth_circle2'].visible = self.opts['plot_over_the_horizon_circle']['value']
 
 	def setAllSensorSuitesVisibility(self, state:bool) -> None:
-		for key, asset in self.assets.items():
+		for asset in self.assets.values():
 			if isinstance(asset, sensors.SensorSuite2DAsset):
 				asset.setVisibilityRecursive(state)
 
@@ -619,8 +619,8 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 
 	#----- HELPER FUNCTIONS -----#
 	def _addIndividualSensorSuitePlotOptions(self) -> None:
-		logger.debug(f'Adding sensor suite options dictionary entries for:')
-		for key, value in self.data['sc_config'].getSensorSuites().items():
+		logger.debug('Adding sensor suite options dictionary entries for:')
+		for key in self.data['sc_config'].getSensorSuites().keys():
 			visibilityCallback = self._makeVisibilityCallback(key)
 			self.opts[f'plot_sensor_suite_{key}'] = {'value': True,
 													'type': 'boolean',
@@ -767,7 +767,7 @@ class SpacecraftViewsAsset(base_assets.AbstractAsset):
 
 	def _instantiateSensorAssets(self) -> None:
 		for suite_name, suite_config in self.data['sc_config'].getSensorSuites().items():
-			logger.info(f'Creating sensor suite sensor_suite_{suite_name}')
+			logger.info('Creating sensor suite sensor_suite_%s', suite_name)
 			self.assets[f'sensor_suite_{suite_name}'] = sensors.SensorSuiteImageAsset(self.data['sc_config'].id,
 																				suite_config,
 																				name=suite_name,

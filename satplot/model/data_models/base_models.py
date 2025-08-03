@@ -1,6 +1,7 @@
 from abc import abstractmethod
 import logging
-import traceback
+
+import typing
 from typing import Any
 
 from PyQt5 import QtCore
@@ -26,7 +27,7 @@ class BaseDataModel(QtCore.QObject):
 
 	def updateConfig(self, param:str, val:Any) -> None:
 		if param not in self.config.keys():
-			logger.error(f"{param} not a valid configuration option for {self.config['data_type']}")
+			logger.error("%s not a valid configuration option for %s", param, self.config['data_type'])
 			raise ValueError(f"{param} not a valid configuration option for {self.config['data_type']}")
 		self._setConfig(param, val)
 
@@ -41,9 +42,9 @@ class BaseDataModel(QtCore.QObject):
 		return self.config[value]
 
 	def _displayError(self, err:tuple) -> None:
-		exctype = err[0]
+		exctype = err[0] 							# noqa: F841
 		value = err[1]
-		traceback = err[2]
+		traceback = err[2] 							# noqa: F841
 		logger.error(value)
 		console.send(value)
 		self.data_err.emit()
@@ -61,6 +62,6 @@ class BaseDataModel(QtCore.QObject):
 			self.updateConfig(k,v)
 
 	def printConfig(self) -> None:
-		print(f"Data Config for {self.getConfigValue('data_type')}")
+		print(f"Data Config for {self.getConfigValue('data_type')}")  # noqa: T201
 		for k,v in self.config.items():
-			print(f'\t{k}:{v}')
+			print(f'\t{k}:{v}') 		# noqa: T201

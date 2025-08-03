@@ -4,9 +4,10 @@ from enum import Enum
 import json
 import logging
 import pathlib
-from typing import Any, TypedDict
 
-import satplot.visualiser.assets.sensors as sensor_asset
+import typing
+from typing import Any
+
 import satplot.visualiser.interface.console as console
 
 logger = logging.getLogger(__name__)
@@ -26,7 +27,7 @@ class SensorTypes(Enum):
 	def hasValue(cls, value):
 		return value in cls._value2member_map_
 
-class ConstellationConfig():
+class ConstellationConfig:
 	def __init__(self, filestem:str, name:str, beam_width:float, satellites:dict[int, str]):
 		self.filestem:str = filestem
 		self.name:str = name
@@ -41,7 +42,7 @@ class ConstellationConfig():
 		else:
 			p = path
 
-		with open(p,'r') as fp:
+		with p.open('r') as fp:
 			data = json.load(fp)
 
 		if 'name' not in data.keys():
@@ -57,13 +58,13 @@ class ConstellationConfig():
 			raise AttributeError("Constellation json is ill-formatted: missing field 'satellites'")
 
 		# swap key and values of satellites dict
-		sats = {}
-		for k,v in data['satellites'].items():
-			sats[v] = k
+		sats = {v:k for k,v in data['satellites'].items()}
+		# for k,v in data['satellites'].items():
+		# 	sats[v] = k
 
 		return cls(p.stem, data['name'], data['beam_width'], sats)
 
-class SensorSuiteConfig():
+class SensorSuiteConfig:
 	def __init__(self, name:str, d:dict):
 		self.name = name
 		self.sensors = {}
@@ -71,14 +72,14 @@ class SensorSuiteConfig():
 		for sensor_name, sensor_config in d.items():
 			# Check sensor is a valid type
 			if not SensorTypes.hasValue(sensor_config['shape']):
-				logger.error(f"Sensor {sensor_name} of suite {self.name} has invalid shape: {sensor_config['shape']}. Should be one of {SensorTypes}")
+				logger.error("Sensor %s of suite %s has invalid shape: %s. Should be one of %s", sensor_name, self.name, sensor_config['shape'], SensorTypes)
 				raise ValueError(f"Sensor {sensor_name} of suite {self.name} has invalid shape: {sensor_config['shape']}. Should be one of {SensorTypes}")
 
 			sens_dict = {'shape':SensorTypes(sensor_config['shape'])}
 			required_keys_types =  self.getSensorTypeConfigFields(sens_dict['shape'])
 			for config_key, _type in required_keys_types.items():
 				if config_key not in sensor_config.keys():
-					logger.error(f"Sensor {sensor_name} of suite {self.name} has missing sensor config field: {config_key}")
+					logger.error("Sensor %s of suite %s has missing sensor config field: %s", sensor_name, self.name, config_key)
 					raise KeyError(f"Sensor {sensor_name} of suite {self.name} has missing sensor config field: {config_key}")
 				elif config_key == 'shape':
 					continue
@@ -95,8 +96,8 @@ class SensorSuiteConfig():
 			tuple[float]: self._decodeTupleFloat
 		}.get(x,self._decodeAny)
 
-	def _decodeAny(self, input):
-		return input
+	def _decodeAny(self, input_value):
+		return input_value
 
 	def _decodeTupleInt(self, input_str:str) -> tuple:
 		t = [int(x) for x in input_str.replace('(','').replace(')','').split(',')]
@@ -120,12 +121,12 @@ class SensorSuiteConfig():
 
 	def getSensorDisplayConfig(self, sensor_name) -> dict[str,str]:
 		sens_config = self.getSensorConfig(sensor_name)
-		type = sens_config['shape']
-		if type == SensorTypes.CONE:
+		sens_type = sens_config['shape']
+		if sens_type == SensorTypes.CONE:
 			return {'type':str(sens_config['shape']),
 					'fov':str(sens_config['fov']),
 					'range':str(sens_config['range'])}
-		elif type == SensorTypes.FPA:
+		elif sens_type == SensorTypes.FPA:
 			return 	{'type':str(sens_config['shape']),
 					'fov':str(sens_config['fov']),
 					'resolution':str(sens_config['resolution']),
@@ -145,13 +146,13 @@ class SensorSuiteConfig():
 		return True
 
 	@classmethod
-	def getSensorTypeConfigFields(cls, type:SensorTypes) -> dict[str,type]:
-		if type == SensorTypes.CONE:
+	def getSensorTypeConfigFields(cls, sens_type:SensorTypes) -> dict[str,type]:
+		if sens_type == SensorTypes.CONE:
 			return {'fov':int,
 					'range':int,
 					'colour':tuple[int],
 					'bf_quat':tuple[float]}
-		elif type == SensorTypes.FPA:
+		elif sens_type == SensorTypes.FPA:
 			return 	{'fov':tuple[float],
 					'resolution':tuple[int],
 					'range':int,
@@ -160,7 +161,7 @@ class SensorSuiteConfig():
 		else:
 			return {}
 
-class SpacecraftConfig():
+class SpacecraftConfig:
 	def __init__(self, filestem:str, name:str, sat_id:int, sensor_suites_dict:dict[str, dict]):
 		self.filestem:str = filestem
 		self.name:str = name
@@ -190,7 +191,7 @@ class SpacecraftConfig():
 
 		return True
 
-class PrimaryConfig():
+class PrimaryConfig:
 	def __init__(self, filestem:str, name:str, satellites:dict[int, str], sat_configs:dict[int, SpacecraftConfig]):
 		self.filestem:str = filestem
 		self.name:str = name
@@ -198,7 +199,7 @@ class PrimaryConfig():
 		self.num_sats:int = len(self.sats.keys())
 		self.sat_configs:dict[int,SpacecraftConfig] = sat_configs
 
-		logger.info(f'Created primary configuration with name:{self.name}, sats:{self.sats}, sat_configs:{self.sat_configs}')
+		logger.info('Created primary configuration with name:%s, sats:%s, sat_configs:%s', self.name, self.sats, self.sat_configs)
 
 	@classmethod
 	def fromJSON(cls, path:str | pathlib.Path):
@@ -207,7 +208,7 @@ class PrimaryConfig():
 		else:
 			p = path
 
-		with open(p,'r') as fp:
+		with p.open('r') as fp:
 			data = json.load(fp)
 
 		if 'name' not in data.keys():
@@ -237,11 +238,11 @@ class PrimaryConfig():
 	def getSatIDs(self) -> list[int]:
 		return list(self.sats.keys())
 
-	def getSatName(self, id:int) -> str:
-		return self.sats[id]
+	def getSatName(self, idx:int) -> str:
+		return self.sats[idx]
 
-	def getSpacecraftConfig(self, id:int) -> SpacecraftConfig:
-		return self.sat_configs[self.getSatName(id)]
+	def getSpacecraftConfig(self, idx:int) -> SpacecraftConfig:
+		return self.sat_configs[self.getSatName(idx)]
 
 	def getAllSpacecraftConfigs(self):
 		return self.sat_configs

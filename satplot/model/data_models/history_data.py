@@ -1,23 +1,24 @@
-import datetime as dt
 import logging
-from urllib import request
+import pathlib
+
+import typing
+from typing import Any, cast
+
 import numpy as np
 from numpy import typing as nptyping
-import pathlib
 from progressbar import progressbar
-from typing import Any, cast
 from scipy.spatial.transform import Rotation
+import spherapy.orbit as orbit
+import spherapy.timespan as timespan
+import spherapy.updater as updater
 
 import satplot
-from satplot.model.data_models.base_models import (BaseDataModel)
-import satplot.util.threading as threading
-import satplot.model.data_models.data_types as data_types
-import satplot.model.data_models.constellation_data as constellation_data
+from satplot.model.data_models import constellation_data, data_types, event_data
+from satplot.model.data_models.base_models import BaseDataModel
 import satplot.util.constants as satplot_constants
+import satplot.util.conversion as satplot_conversions
+import satplot.util.threading as threading
 import satplot.visualiser.interface.console as console
-import spherapy.timespan as timespan
-import spherapy.orbit as orbit
-import spherapy.updater as updater
 
 logger = logging.getLogger(__name__)
 
@@ -37,11 +38,14 @@ class HistoryData(BaseDataModel):
 		self._setConfig('is_pointing_defined', False)
 		self._setConfig('pointing_file', None)
 		self._setConfig('pointing_invert_transform', False)
+		self._setConfig('events_defined', False)
+		self._setConfig('events_file', None)
 
 		self.timespan: timespan.TimeSpan | None = None
 		self.orbits: dict[int, orbit.Orbit] = {}
 		self.pointings: dict[int, HistoricalAttitude] = {}
 		self.constellation: constellation_data.ConstellationData | None = None
+		self.events: dict[int, event_data.EventData] | None = None
 		self.sun: nptyping.NDArray[np.float64] | None = None
 		self.moon: nptyping.NDArray[np.float64] | None = None
 		self.geo_locations: list[nptyping.NDArray[np.float64]] = []
@@ -66,7 +70,7 @@ class HistoryData(BaseDataModel):
 
 	def getTimespan(self) -> timespan.TimeSpan:
 		if self.timespan is None:
-			logger.warning(f'History data:{self} does not have a timespan yet')
+			logger.warning('History data:%s does not have a timespan yet', self)
 			raise ValueError(f'History data:{self} does not have a timespan yet')
 		return self.timespan
 
@@ -78,7 +82,7 @@ class HistoryData(BaseDataModel):
 
 	def getConstellation(self) -> constellation_data.ConstellationData:
 		if self.constellation is None:
-			logger.warning(f'History data:{self} does not have a constellation yet')
+			logger.warning('History data:%s does not have a constellation yet', self)
 			raise ValueError(f'History data:{self} does not have a constellation yet')
 		else:
 			return self.constellation
@@ -91,13 +95,13 @@ class HistoryData(BaseDataModel):
 
 	def getOrbits(self) -> dict[int,orbit.Orbit]:
 		if len(self.orbits.values()) == 0:
-			logger.warning(f'History data:{self} has no orbits yet')
+			logger.warning('History data:%s has no orbits yet', self)
 			raise ValueError(f'History data:{self} has no orbits yet')
 		return self.orbits
 
 	def getPointings(self) -> dict[int, "HistoricalAttitude"]:
 		if len(self.pointings.values()) == 0:
-			logger.warning(f'History data:{self} has no pointings yet')
+			logger.warning('History data:%s has no pointings yet', self)
 			raise ValueError(f'History data:{self} has no pointings yet')
 		return self.pointings
 
@@ -108,18 +112,17 @@ class HistoryData(BaseDataModel):
 		# Load pointing and create timespan
 		if self.getConfigValue('is_pointing_defined'):
 			for sc_id, sc_config in self.getConfigValue('primary_satellite_config').getAllSpacecraftConfigs().items():
-				print(f'{sc_id=}')
 				self.pointings[sc_id] = HistoricalAttitude(self.getConfigValue('pointing_file'), sc_config)
 			if self.getConfigValue('pointing_defines_timespan'):
 				console.send("Loading timespan from pointing file.")
 				_timearr = self.pointings[self.getConfigValue('primary_satellite_ids')[0]].getPointingTimestamps()
 				self.timespan = timespan.TimeSpan.fromDatetime(_timearr)
-				logger.info(f'Generating timespan from pointing file timestamps for: {self}')
+				logger.info('Generating timespan from pointing file timestamps for: %s', self)
 			else:
 				self.timespan = None
 
 		if self.timespan is None or not self.getConfigValue('is_pointing_defined'):
-			logger.info(f'Generating timespan from configuration for: {self}')
+			logger.info('Generating timespan from configuration for: %s', self)
 			period_start = self.getConfigValue('timespan_period_start').replace(microsecond=0)
 			period_end = self.getConfigValue('timespan_period_end').replace(microsecond=0)
 			console.send(f"Creating Timespan from {period_start} -> {period_end} ...")
@@ -127,7 +130,7 @@ class HistoryData(BaseDataModel):
 			self.updateConfig('timespan_period_end', period_end)
 			duration = int((self.getConfigValue('timespan_period_end') - self.getConfigValue('timespan_period_start')).total_seconds())
 			timestep = self.getConfigValue('sampling_period')
-			logger.debug(f'Timespan has duration:{duration}s, timestep:{timestep}s, from {period_start}')
+			logger.debug('Timespan has duration:%ss, timestep:%ss, from %s', duration, timestep, period_start)
 			# TODO: need field checking here for end before start, etc.
 			self.timespan = timespan.TimeSpan(period_start,
 								timestep=f'{timestep}S',
@@ -135,7 +138,7 @@ class HistoryData(BaseDataModel):
 
 
 		if self.timespan is None:
-			logger.warning(f"History data:{self}, timespan has not been configured")
+			logger.warning("History data:%s, timespan has not been configured", self)
 			raise AttributeError(f"History data:{self}, Timespan has not been configured")
 
 		console.send(f"\tDuration: {self.timespan.time_period}")
@@ -151,7 +154,7 @@ class HistoryData(BaseDataModel):
 
 		if self.getConfigValue('has_supplemental_constellation'):
 			if self.constellation is None:
-				logger.warning(f"History data:{self}, constellation has not been configured")
+				logger.warning("History data:%s, constellation has not been configured", self)
 				raise AttributeError(f"History data:{self},onstellation has not been configured")
 
 			self.constellation.setTimespan(self.timespan)
@@ -163,23 +166,41 @@ class HistoryData(BaseDataModel):
 		else:
 			self._worker_threads['constellation'] = None
 
+		if self.getConfigValue('events_defined'):
+			# Set up event processing thread
+			self._worker_threads['events'] = threading.Worker(self._loadEvents,
+																self.getConfigValue('events_file'),
+																delay_start=True)
+			self._worker_threads['primary'].addChainedWorker('events', self._worker_threads['events'])
+			self._worker_threads['events'].signals.result.connect(self._storeEventData)
+			self._worker_threads['events'].signals.finished.connect(self._procComplete)
+			self._worker_threads['events'].signals.error.connect(self._displayError)
+		else:
+			self.events = None
+
 		for thread_name, thread in self._worker_threads.items():
-			if thread is not None:
-				logger.info(f'Starting thread {thread_name}:{thread}')
+			if thread is not None and not thread.delayStart:
+				logger.info('Starting thread %s:%s',thread_name, thread)
 				satplot.threadpool.logStart(thread)
 
 	def _procComplete(self) -> None:
-		logger.info("Thread completion triggered processing of computed data ")
-		for thread in self._worker_threads.values():
+		logger.info("Thread completion triggered processing of computed data")
+		for thread_name, thread in self._worker_threads.items():
 			if thread is not None:
-				if thread.isRunning():
+				logger.debug('\t%s:%s', thread_name, thread.isRunning())
+				if thread.isRunning() or (not thread.hasStarted() and not thread.isRunning()):
+					# if any thread is running, or isn't running but hasn't started yet
 					return
+			else:
+				logger.debug('\t%s:None', thread_name)
 		self.data_ready.emit()
 
 
-	def _propagatePrimaryOrbits(self, timespan:timespan.TimeSpan, sat_ids:list[int], running:threading.Flag) -> dict[int, orbit.Orbit]:
-		updated_list = updater.updateTLEs(sat_ids)
-		# TODO: check number of sats updated == number of sats requested
+	def _propagatePrimaryOrbits(self, timespan:timespan.TimeSpan,
+										sat_ids:list[int],
+										running:threading.Flag) -> dict[int, orbit.Orbit]:
+		updated_list = updater.updateTLEs(sat_ids) 				# noqa: F841
+		# TODO: check number of sats updated == number of sats requested (remove above noqa)
 		# if collections.Counter(updated_list) == collections.Counter(self.sat_ids):
 		# 		self.finished.emit()
 		# 	else:
@@ -195,9 +216,11 @@ class HistoryData(BaseDataModel):
 
 		return orbits
 
-	def _propagateConstellationOrbits(self, timespan:timespan.TimeSpan, sat_ids:list[int], running:threading.Flag) -> dict[int, orbit.Orbit]:
-		updated_list = updater.updateTLEs(sat_ids)
-		# TODO: check number of sats updated == number of sats requested
+	def _propagateConstellationOrbits(self, timespan:timespan.TimeSpan,
+											sat_ids:list[int],
+											running:threading.Flag) -> dict[int, orbit.Orbit]:
+		updated_list = updater.updateTLEs(sat_ids) 				# noqa: F841
+		# TODO: check number of sats updated == number of sats requested (remove above noqa)
 		# if collections.Counter(updated_list) == collections.Counter(self.sat_ids):
 		# 		self.finished.emit()
 		# 	else:
@@ -207,7 +230,7 @@ class HistoryData(BaseDataModel):
 		num_sats = len(sat_ids)
 		ii = 0
 		for sat_id in progressbar(sat_ids):
-			logger.debug(f'Checking constellation data processing thread flag {running}: {running.getState()}')
+			logger.debug('Checking constellation data processing thread flag %s:%s', running, running.getState())
 			if not running:
 
 				return orbits
@@ -217,13 +240,24 @@ class HistoryData(BaseDataModel):
 			console.send(f'Loading {pc:.2f}% ({ii} of {num_sats}) |{bar_str}{space_str}|\r')
 			orbits[sat_id] = orbit.Orbit.fromTLE(timespan, tle_paths[ii])
 			ii+=1
-		logger.info(f"\tLoaded {len(sat_ids)} satellites .")
+		logger.info("\tLoaded %s satellites .", len(sat_ids))
 		console.send(f"\tLoaded {len(sat_ids)} satellites .")
 
 		return orbits
 
+	def _loadEvents(self, event_file:pathlib.Path,
+							running:threading.Flag) -> dict[int, event_data.EventData]:
+		event_data_objs = {}
+		for sat_id, orbit_data in self.orbits.items():
+			if self.timespan is not None:
+				event_data_objs[sat_id] = event_data.EventData(event_file, self.timespan, orbit_data)
+		return event_data_objs
+
 	def _storeOrbitData(self, orbits:dict[int,orbit.Orbit]) -> None:
 		self.orbits = orbits
+
+	def _storeEventData(self, events:dict[int, event_data.EventData]):
+		self.events = events
 
 	def _createDataPaneEntries(self):
 		self.datapane_data.append({'parameter':'Altitude',
@@ -298,14 +332,6 @@ class HistoryData(BaseDataModel):
 		super().deSerialise(state)
 
 
-def date_parser(d_bytes) -> dt.datetime:
-	d_bytes = d_bytes[:d_bytes.index(b'.')+4]
-	s = d_bytes.decode('utf-8')
-	d = dt.datetime.strptime(s,"%Y-%m-%d %H:%M:%S.%f")
-	d = d.replace(tzinfo=dt.timezone.utc)
-	return d.replace(microsecond=0)
-
-
 class HistoricalAttitude:
 	def __init__(self, p_file: pathlib.Path, sc_config:data_types.SpacecraftConfig, quat_defn_direction:str='eci2bf'):
 		self.sc_config = sc_config
@@ -347,7 +373,7 @@ class HistoricalAttitude:
 		pointing_y = np.genfromtxt(p_file, delimiter=',', usecols=[3], skip_header=1).reshape(-1,1)
 		pointing_z = np.genfromtxt(p_file, delimiter=',', usecols=[4], skip_header=1).reshape(-1,1)
 		pointing_q = np.hstack((pointing_x,pointing_y,pointing_z,pointing_w))
-		pointing_dates = np.genfromtxt(p_file, delimiter=',', usecols=[0],skip_header=1, converters={0:date_parser})
+		pointing_dates = np.genfromtxt(p_file, delimiter=',', usecols=[0],skip_header=1, converters={0:satplot_conversions.date_parser})
 
 		return pointing_dates, pointing_q
 
@@ -372,7 +398,7 @@ class HistoricalAttitude:
 				rot_mat = np.eye(3)
 			self._cached_sc_idx[cache_key] = True
 			self._attitude_matrix_cache[cache_key,:,:] = rot_mat
-			cast(np.ndarray[tuple[int,int], np.dtype[np.float64]],rot_mat)
+			cast("np.ndarray[tuple[int,int], np.dtype[np.float64]]",rot_mat)
 			return rot_mat
 
 	def getSensorAttitudeQuat(self, suite_name:str, sens_name:str, *args:int) -> np.ndarray[tuple[int],np.dtype[np.float64]]|np.ndarray[tuple[int,int],np.dtype[np.float64]]:

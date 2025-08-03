@@ -1,32 +1,26 @@
-import json
 import logging
-import numpy as np
 import time
-from typing import Any, cast
 
-from PyQt5 import QtGui, QtCore
+import typing
+from typing import Any
 
-from numpy._typing import _array_like
+import numpy as np
+
+from PyQt5 import QtCore, QtGui
+
 from vispy import scene
-import vispy
 from vispy.app.canvas import MouseEvent
-from vispy.scene.cameras import PanZoomCamera
-from vispy.scene.widgets import grid as vispy_grid
 
-
-from satplot.model.data_models.history_data import (HistoryData)
-from satplot.model.data_models.earth_raycast_data import (EarthRayCastData)
-import satplot.model.geometry.primgeom as pg
-from satplot.model.data_models.data_types import PrimaryConfig, SensorImgMetadata
-from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
-import satplot.util.constants as c
+from satplot.model.data_models.data_types import SensorImgMetadata
+from satplot.model.data_models.earth_raycast_data import EarthRayCastData
+from satplot.model.data_models.history_data import HistoryData
 import satplot.util.exceptions as exceptions
-import satplot.util.paths as satplot_paths
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.assets.sensors as sensors
 import satplot.visualiser.assets.spacecraft as spacecraft
 import satplot.visualiser.assets.widgets as widgets
 import satplot.visualiser.cameras.static2d as static2d
+from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +73,6 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 		self.mouseOverObject = None
 
 	def _buildAssets(self) -> None:
-		pass
 		self.assets['spacecraft'] = spacecraft.SpacecraftViewsAsset(v_parent=None)
 
 	def _getCurrentDisplayedSensor(self, view:int) -> sensors.SensorImageAsset | None:
@@ -109,7 +102,7 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 	def selectSensor(self, view:int, sc_id: int, sens_suite_key: str, sens_key: str) -> None:
 		# remove parent scene of old sensor
 		# make old sensor dormant
-		logger.debug(f'Clearing sensor: {self.displayed_sensors[view]} from view: {view}')
+		logger.debug('Clearing sensor: %s from view: %s', self.displayed_sensors[view], view)
 		if self.displayed_sensors[view] is not None:
 			self.displayed_sensors[view].makeDormant()
 			self.displayed_sensors[view] = None
@@ -128,7 +121,7 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 		sensor_asset._setActiveFlag()
 		sensor_asset._attachToParentView()
 		width, height = sensor_asset.getDimensions()
-		logger.debug(f'Setting view: {view} to SC: {sc_id}, Sensor Suite: {sens_suite_key}, sensor:{sens_key}')
+		logger.debug('Setting view: %s to SC: %s, Sensor Suite: %s, sensor:%s', view, sc_id, sens_suite_key, sens_key)
 		self.view_boxes[view].camera.set_range(x=(0,width), y=(0, height), margin=0)
 		self.displayed_sensors[view] = sensor_asset
 
@@ -152,14 +145,14 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 		self.data_models['raycast_src'] = earth_raycast_data
 
 	def modelUpdated(self) -> None:
-		logger.debug(f'updating model for {self}')
+		logger.debug('updating model for %s', self)
 		# Update data source for earth asset
 		if self.data_models['history'] is None:
-			logger.error(f'canvas wrapper: {self} does not have a history data model yet')
+			logger.error('canvas wrapper: %s does not have a history data model yet', self)
 			raise exceptions.InvalidDataError
 
 		if self.data_models['raycast_src'] is None:
-			logger.error(f'canvas wrapper: {self} does not have a raycast source data model yet')
+			logger.error('canvas wrapper: %s does not have a raycast source data model yet', self)
 			raise exceptions.InvalidDataError
 
 		if self.data_models['history'].hasOrbits():
@@ -172,12 +165,12 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 
 
 	def updateIndex(self, index:int) -> None:
-		for asset_name,asset in self.assets.items():
+		for asset in self.assets.values():
 			if asset.isActive():
 				asset.updateIndex(index)
 
 	def recomputeRedraw(self) -> None:
-		for asset_name, asset in self.assets.items():
+		for asset in self.assets.values():
 			if asset.isActive():
 				asset.recomputeRedraw()
 
@@ -193,10 +186,7 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 		pass
 
 	def mapAssetPositionsToScreen(self) -> list:
-		mo_infos = []
-		for asset_name, asset in self.assets.items():
-			if asset.isActive():
-				mo_infos.append(asset.getScreenMouseOverInfo())
+		mo_infos = [asset.getScreenMouseOverInfo() for asset in self.assets.values() if asset.isActive()]
 		return mo_infos
 
 	def on_key_press(self, event):
@@ -246,7 +236,6 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 			self.mouseOverText.setVisible(False)
 
 		last_mevnt_time = time.monotonic()
-		pass
 
 	def onMouseScroll(self, event:QtGui.QMouseEvent) -> None:
 		pass		

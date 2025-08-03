@@ -1,23 +1,25 @@
+import logging
 import string
-import sys
 
-from PyQt5 import QtWidgets, QtCore, QtGui
+import typing
+
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 consolefp = None
 consoleErrfp = None
 printable = string.ascii_letters + string.digits + string.punctuation + ' '
 
 
-def send(str):
+def send(input_str):
 	if consolefp is not None:
-		print(str, file=consolefp)
+		print(input_str, file=consolefp)
 
-def sendErr(str):
+def sendErr(input_str):
 	if consolefp is not None:
-		print(str, file=consoleErrfp)
+		print(input_str, file=consoleErrfp)
 
 def hex_escape(s):
-    return ''.join(c if c in printable else r'\x{0:02x}'.format(ord(c)) for c in s)
+    return ''.join(c if c in printable else r'\x{0:02x}'.format(ord(c)) for c in s) 		# noqa: UP030, UP032
 
 class EmittingConsoleStream(QtCore.QObject):
 	textWritten = QtCore.pyqtSignal(str)

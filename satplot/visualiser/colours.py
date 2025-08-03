@@ -1,3 +1,7 @@
+import logging
+
+import typing
+
 import numpy as np
 import numpy.typing as nptyping
 
@@ -16,11 +20,11 @@ def rgb2hex(rgb_tuple:tuple[int,int,int]) -> str:
 
 	return hex_str
 
-def getNumberedColour(num:int, type:str='bright') -> nptyping.NDArray | None:
+def getNumberedColour(num:int, pallette_type:str='bright') -> nptyping.NDArray | None:
 	return{
 		'bright': _brightColDict(num),
 		'paper': _paperColDict(num),
-	}.get(type, None)
+	}.get(pallette_type, None)
 
 
 def _brightColDict(num:int) -> nptyping.NDArray:

@@ -1,13 +1,15 @@
 import logging
-import numpy as np
 import pathlib
-from PIL import Image
-import sys
+
+import typing
 from typing import Any
 
-import satplot.model.geometry.spherical as spherical_geom
-from satplot.model.data_models.base_models import (BaseDataModel)
+import numpy as np
+from PIL import Image
+
+from satplot.model.data_models.base_models import BaseDataModel
 import satplot.model.data_models.data_types as data_types
+import satplot.model.geometry.spherical as spherical_geom
 import satplot.util.paths as satplot_paths
 import satplot.util.threading as threading
 
@@ -31,18 +33,24 @@ class SphereImageData(BaseDataModel):
 		self.updateConfig('img_path', source)
 		self.updateConfig('externally_lit', externally_lit)
 
-		logger.info(f"Finished initialising SphereImageData:{self} for {self.getConfigValue('body_name')}:" \
-					f"{self.getConfigValue('wavelength')[0]}nm -> {self.getConfigValue('wavelength')[1]}, "\
-					f"externally lit: {self.getConfigValue('externally_lit')}")
+		logger.info("Finished initialising SphereImageData:%s for %s: %snm -> %snm, externally lit: %s",
+					self,
+					self.getConfigValue('body_name'),
+					self.getConfigValue('wavelength')[0],
+					self.getConfigValue('wavelength')[1],
+					self.getConfigValue('externally_lit'))
 
 	def loadSource(self, running:threading.Flag):
 		im = Image.open(pathlib.Path(self.config['img_path']))
 		return np.array(im)
 
 	def storeArray(self, arr:np.ndarray) -> None:
-		logger.info(f"Finished loading image array data for {self.getConfigValue('body_name')}:" \
-					f"{self.getConfigValue('wavelength')[0]}nm -> {self.getConfigValue('wavelength')[1]}, "\
-					f"externally lit: {self.getConfigValue('externally_lit')}")
+		logger.info("Finished loading image array data for %s for %s: %snm -> %snm, externally lit: %s",
+					self,
+					self.getConfigValue('body_name'),
+					self.getConfigValue('wavelength')[0],
+					self.getConfigValue('wavelength')[1],
+					self.getConfigValue('externally_lit'))
 		self.arr = arr
 		res = (arr.shape[1],arr.shape[0])
 		self.updateConfig('resolution', res)
@@ -55,7 +63,7 @@ class SphereImageData(BaseDataModel):
 
 	def getPixelDataOnSphere(self, lat:float|np.ndarray, lon:float|np.ndarray) -> np.ndarray:
 		if self.arr is None:
-			logger.error(f"{self.getConfigValue('body_name')}: SphereImage Data not loaded yet")
+			logger.error("%s: SphereImage Data not loaded yet", self.getConfigValue('body_name'))
 			raise ValueError(f"{self.getConfigValue('body_name')}: SphereImage Data not loaded yet")
 		if lat.shape[0] == 0:
 			return np.ndarray((0,0,3))

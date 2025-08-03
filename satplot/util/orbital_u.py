@@ -1,6 +1,10 @@
+import logging
+
+import typing
+
+from astropy import SkyCoord
 import numpy as np
 import numpy.typing as nptyping
-from astropy import SkyCoord
 
 import satplot.util.constants as consts
 

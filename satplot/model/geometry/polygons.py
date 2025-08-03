@@ -1,8 +1,14 @@
+import logging
+
+import typing
+
 import numpy as np
 import numpy.typing as nptyping
 import triangle as tr
+
 import satplot.model.geometry.primgeom as pg
 import satplot.util.array_u as array_u
+
 
 def generateCircle(center:tuple[float,float,float] | nptyping.NDArray,
 					 radius:float,

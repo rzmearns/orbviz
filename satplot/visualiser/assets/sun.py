@@ -1,30 +1,27 @@
 import logging
+
+import typing
+from typing import Any
+
 import numpy as np
 import pymap3d
-from typing import Any
 from scipy.spatial import ConvexHull as ConvexHull
 from scipy.spatial.transform import Rotation
+import spherapy.orbit as orbit
 
-
-
-import vispy
 from vispy import scene
-from vispy.visuals import transforms as vTransforms
 from vispy.scene import visuals as vVisuals
 from vispy.visuals import filters as vFilters
+from vispy.visuals import transforms as vTransforms
 
 import satplot.model.data_models.history_data as history_data
-import satplot.model.geometry.primgeom as pg
-import satplot.model.geometry.polygons as polygeom
 import satplot.model.geometry.polyhedra as polyhedra
+import satplot.model.geometry.primgeom as pg
 import satplot.model.geometry.spherical as spherical_geom
-import satplot.util.array_u as array_u
 import satplot.util.constants as c
-
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.colours as colours
 import satplot.visualiser.visuals.polygons as polygon_visuals
-import spherapy.orbit as orbit
 
 logger = logging.getLogger(__name__)
 
@@ -123,7 +120,7 @@ class Sun3DAsset(base_assets.AbstractAsset):
 		sats_dict = args[0]
 		first_sat_orbit = list(sats_dict.values())[0]
 		if type(first_sat_orbit) is not orbit.Orbit:
-			logger.error(f"data source for {self} is not an orbit.Orbit, can't extract sun location data")
+			logger.error("data source for %s is not an orbit.Orbit, can't extract sun location data", self)
 			raise TypeError
 
 		self.data['pos'] = first_sat_orbit.sun_pos
@@ -260,7 +257,7 @@ class Sun3DAsset(base_assets.AbstractAsset):
 	#----- OPTIONS CALLBACKS -----#
 	def _updateLineVisualsOptions(self):
 		new_colour = colours.normaliseColour(self.opts['sun_vector_colour']['value'])
-		logger.debug(f'Sun vector applied colour: {new_colour}')
+		logger.debug('Sun vector applied colour: %s', new_colour)
 		self.visuals['vector_body'].set_data(color=new_colour,
 												width=self.opts['sun_vector_width']['value'])
 
@@ -288,7 +285,7 @@ class Sun3DAsset(base_assets.AbstractAsset):
 		self.recomputeRedraw()
 
 	def setSunSphereColour(self, new_colour):
-		logger.debug(f"Changing sun sphere colour {self.opts['sun_sphere_colour']['value']} -> {new_colour}")
+		logger.debug("Changing sun sphere colour %s -> %s", self.opts['sun_sphere_colour']['value'], new_colour)
 		self.opts['sun_sphere_colour']['value'] = new_colour
 		n_faces = self.visuals['sun_sphere'].mesh._meshdata.n_faces
 		n_verts = self.visuals['sun_sphere'].mesh._meshdata.n_vertices
@@ -298,12 +295,12 @@ class Sun3DAsset(base_assets.AbstractAsset):
 
 	def setUmbraAlpha(self, alpha):
 		# Takes a little while to take effect.
-		logger.debug(f"Changing umbra alpha {self.opts['umbra_alpha']['value']} -> {alpha}")
+		logger.debug("Changing umbra alpha %s -> %s", self.opts['umbra_alpha']['value'], alpha)
 		self.opts['umbra_alpha']['value'] = alpha
 		self.data['umbra_alpha_filter'].alpha = alpha
 
 	def setUmbraColour(self, new_colour):
-		logger.debug(f"Changing umbra colour {self.opts['umbra_colour']['value']} -> {new_colour}")
+		logger.debug("Changing umbra colour %s -> %s", self.opts['umbra_colour']['value'], new_colour)
 		self.opts['umbra_colour']['value'] = new_colour
 		n_faces = self.visuals['umbra']._meshdata.n_faces
 		n_verts = self.visuals['umbra']._meshdata.n_vertices
@@ -312,7 +309,7 @@ class Sun3DAsset(base_assets.AbstractAsset):
 		self.visuals['umbra'].mesh_data_changed()
 
 	def setUmbraDistance(self, dist):
-		logger.debug(f"Changing umbra dist {self.opts['umbra_dist']['value']} -> {dist}")
+		logger.debug("Changing umbra dist %s -> %s", self.opts['umbra_dist']['value'], dist)
 		self.opts['umbra_dist']['value'] = dist
 		self._reInitUmbraData()
 		self.visuals['umbra']._meshdata.set_faces(self.data['umbra_faces'])
@@ -330,7 +327,7 @@ class Sun3DAsset(base_assets.AbstractAsset):
 
 
 	def setSunVectorColour(self, new_colour):
-		logger.debug(f"Changing sun vector colour {self.opts['sun_vector_colour']['value']} -> {new_colour}")
+		logger.debug("Changing sun vector colour %s -> %s", self.opts['sun_vector_colour']['value'], new_colour)
 		self.opts['sun_vector_colour']['value'] = new_colour
 		self._updateLineVisualsOptions()
 		n_faces = self.visuals['vector_head']._meshdata.n_faces
@@ -415,7 +412,7 @@ class Sun2DAsset(base_assets.AbstractAsset):
 	def setSource(self, *args, **kwargs):
 		# args[0] history data
 		if type(args[0]) is not history_data.HistoryData:
-			logger.error(f"setSource() of {self} requires a {history_data.HistoryData} as args[1], not: {type(args[1])}")
+			logger.error("setSource() of %s requires a %s as args[1], not: %s", self, history_data.HistoryData, type(args[1]))
 			raise TypeError(f"setSource() of {self} requires a {history_data.HistoryData} as args[1], not: {type(args[1])}")
 			return
 
@@ -423,7 +420,7 @@ class Sun2DAsset(base_assets.AbstractAsset):
 		first_sat_orbit = list(self.data['history_src'].getOrbits().values())[0]
 
 		if type(first_sat_orbit) is not orbit.Orbit:
-			logger.error(f"data source for {self} is not an orbit.Orbit, can't extract sun location data")
+			logger.error("data source for %s is not an orbit.Orbit, can't extract sun location data", self)
 			raise TypeError
 
 		lat, lon, alt = pymap3d.eci2geodetic(first_sat_orbit.sun_pos[:,0],
@@ -563,35 +560,35 @@ class Sun2DAsset(base_assets.AbstractAsset):
 		self.visuals['marker'].visible = self.opts['plot_sun_marker']['value']
 
 	def setSunMarkerColour(self, new_colour):
-		logger.debug(f"Changing sun marker colour {self.opts['sun_marker_colour']['value']} -> {new_colour}")
+		logger.debug("Changing sun marker colour %s -> %s", self.opts['sun_marker_colour']['value'], new_colour)
 		self.opts['sun_marker_colour']['value'] = new_colour
 		self._updateMarkers()
 
 	def setSunMarkerSize(self, size):
-		logger.debug(f"Changing sun marker size {self.opts['sun_marker_size']['value']} -> {size}")
+		logger.debug("Changing sun marker size %s -> %s", self.opts['sun_marker_size']['value'], size)
 		self.opts['sun_marker_size']['value'] = size
 		self._updateMarkers()
 
 	def setTerminatorAlpha(self, alpha):
 		# Takes a little while to take effect.
-		logger.debug(f"Changing terminator alpha {self.opts['terminator_alpha']['value']} -> {alpha}")
+		logger.debug("Changing terminator alpha %s -> %s", self.opts['terminator_alpha']['value'], alpha)
 		self.opts['terminator_alpha']['value'] = alpha
 		self.visuals['terminator'].opacity = self.opts['terminator_alpha']['value']
 
 	def setEclipseAlpha(self, alpha):
 		# Takes a little while to take effect.
-		logger.debug(f"Changing eclipse alpha {self.opts['eclipse_alpha']['value']} -> {alpha}")
+		logger.debug("Changing eclipse alpha %s -> %s", self.opts['eclipse_alpha']['value'], alpha)
 		self.opts['eclipse_alpha']['value'] = alpha
 		self.visuals['eclipse_patch1'].opacity = self.opts['eclipse_alpha']['value']
 		self.visuals['eclipse_patch2'].opacity = self.opts['eclipse_alpha']['value']
 
 	def setTerminatorColour(self, new_colour):
-		logger.debug(f"Changing terminator colour {self.opts['terminator_colour']['value']} -> {new_colour}")
+		logger.debug("Changing terminator colour %s -> %s", self.opts['terminator_colour']['value'], new_colour)
 		self.opts['terminator_colour']['value'] = new_colour
 		self.visuals['terminator'].color = self.opts['terminator_colour']['value']
 
 	def setEclipseColour(self, new_colour):
-		logger.debug(f"Changing eclipse colour {self.opts['eclipse_colour']['value']} -> {new_colour}")
+		logger.debug("Changing eclipse colour %s -> %s", self.opts['eclipse_colour']['value'], new_colour)
 		self.opts['eclipse_colour']['value'] = new_colour
 		self.visuals['eclipse_patch1'].color = self.opts['eclipse_colour']['value']
 		self.visuals['eclipse_patch2'].color = self.opts['eclipse_colour']['value']
@@ -636,7 +633,6 @@ class Sun2DAsset(base_assets.AbstractAsset):
 		# half subtended angle = phi_h
 		eclipse_center_lat = -solar_lonlat[1]
 		eclipse_center_lon = np.rad2deg(spherical_geom.wrapToCircleRange(np.deg2rad(solar_lonlat[0] + 180)))
-		solar_lat = solar_lonlat[1]
 		phi_h = np.rad2deg(np.arcsin(c.R_EARTH/(c.R_EARTH+sat_altitude)))
 		lats, lons1, lons2 = spherical_geom.genSmallCircleCenterSubtendedAngle(phi_h*2, eclipse_center_lat, eclipse_center_lon)
 		circle1, circle2 = spherical_geom.splitSmallCirclePatch(eclipse_center_lon, eclipse_center_lat, lats, lons1, lons2)

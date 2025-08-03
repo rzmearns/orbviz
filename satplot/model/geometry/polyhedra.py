@@ -1,7 +1,13 @@
+import logging
+
+import typing
+
 import numpy as np
 import numpy.typing as nptyping
-import satplot.model.geometry.primgeom as pg
 import scipy.spatial
+
+import satplot.model.geometry.primgeom as pg
+
 
 def calcConeMeshGrid(apex:tuple[float,float,float] | nptyping.NDArray,
 					 height:float,
@@ -24,7 +30,6 @@ def calcConeMeshGrid(apex:tuple[float,float,float] | nptyping.NDArray,
 
 	t = np.linspace(0,height,axis_sample)
 	theta = np.linspace(0, 2*np.pi, theta_sample)
-	rsample = np.linspace(0,R,r_sample)
 	t2, theta2 = np.meshgrid(t,theta)
 
 	# cone
@@ -40,7 +45,7 @@ def calcConePoints(apex:tuple[float,float,float] | nptyping.NDArray,
 					apex_angle_deg:float,
 					axis_sample:int=3,
 					theta_sample:int=30,
-					sorted:bool=True) -> nptyping.NDArray:
+					sort_output:bool=True) -> nptyping.NDArray:
 
 	phi = np.deg2rad(apex_angle_deg/2)
 	
@@ -63,7 +68,7 @@ def calcConePoints(apex:tuple[float,float,float] | nptyping.NDArray,
 		R = t[ii]*np.tan(phi)
 		new_coords = R*np.outer(np.cos(theta),e1) + R*np.outer(np.sin(theta),e2)
 		coords = np.vstack((coords,(t[ii]*e3)+new_coords))
-	if sorted:
+	if sort_output:
 		return np.unique(coords+apex,axis=0)
 	else:
 		return coords[np.sort(np.unique(coords,axis=0, return_index=True)[1])]+apex

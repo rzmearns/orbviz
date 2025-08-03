@@ -1,16 +1,18 @@
+import logging
+
+import typing
+
 import numpy as np
 import numpy.typing as nptyping
-import vispy.scene as scene
 
 from PyQt5 import QtGui
 
+import vispy.scene as scene
 from vispy.scene.widgets.viewbox import ViewBox
 import vispy.visuals.transforms as vTransforms
 
-import satplot.util.constants as c
-import satplot.visualiser.colours as colours
 import satplot.visualiser.assets.base_assets as base_assets
-
+import satplot.visualiser.colours as colours
 
 
 class BodyGizmo(base_assets.AbstractSimpleAsset):
@@ -26,7 +28,6 @@ class BodyGizmo(base_assets.AbstractSimpleAsset):
 	def _initData(self) -> None:
 		if self.data['name'] is None:
 			self.data['name'] = 'body_frame_gizmo'
-		pass
 		
 	def setSource(self, *args, **kwargs) -> None:
 		pass
@@ -160,18 +161,11 @@ class ViewBoxGizmo(base_assets.AbstractSimpleAsset):
 	def _initData(self) -> None:
 		if self.data['name'] is None:
 			self.data['name'] = 'viewbox_eci_gizmo'
-		pass
 
 	def setSource(self, *args, **kwargs) -> None:
 		pass
 
 	def _createVisuals(self) -> None:
-		axes_colour = np.array([[*colours.normaliseColour(self.opts['gizmo_X_axis_colour']['value']),1],
-					[*colours.normaliseColour(self.opts['gizmo_X_axis_colour']['value']),1],
-					[*colours.normaliseColour(self.opts['gizmo_Y_axis_colour']['value']),1],
-					[*colours.normaliseColour(self.opts['gizmo_Y_axis_colour']['value']),1],
-					[*colours.normaliseColour(self.opts['gizmo_Z_axis_colour']['value']),1],
-					[*colours.normaliseColour(self.opts['gizmo_Z_axis_colour']['value']),1]])
 
 		self.visuals['origin'] = scene.visuals.Markers(pos=np.array([[0,0,0]]).reshape(1,3),
 								  		edge_width=0,

@@ -1,5 +1,9 @@
+import logging
+
+import typing
+
 import numpy as np
-import satplot.util.array_u as array_u
+
 
 def smallCircleRadius(center_lat: float, center_lon:float, radii_end_lat: float, radii_end_lon: float) -> float:
 	'''Calculates the great circle distance between center (lon,lat) and radii_end (lon,lat)
@@ -155,9 +159,6 @@ def splitSmallCirclePatch(center_lon, center_lat, lats, lons1, lons2):
 	hemisphere_sign = np.sign(center_lat)
 	hemisphere_boundary = hemisphere_sign * 90
 	if np.all(lons1>-180) and np.all(lons1<180) and np.all(lons2>-180) and np.all(lons2<180):
-		split = False
-
-
 		if not (abs(lons1[0] - lons1[-1]) < 90) or  not (abs(lons2[0] - lons2[-1]) < 90):
 			# gaussian shape which isn't split by map edges
 			lons1 = np.hstack((180,180,lons1))
@@ -173,7 +174,6 @@ def splitSmallCirclePatch(center_lon, center_lat, lats, lons1, lons2):
 
 		return circle, circle
 	else:
-		split = True
 		if (lons1>180).all():
 			# all points of right side are to right of edge of map
 			num_side1_crossings = 1

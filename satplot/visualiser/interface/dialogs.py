@@ -1,24 +1,22 @@
 import datetime as dt
-import pickle
-import json
-import numpy as np
-import os
+import logging
 import pathlib
-import pickle
-from PIL import Image
 import time
 
-import PyQt5.QtCore as QtCore
-import PyQt5.QtGui as QtGui
-import PyQt5.QtWidgets as QtWidgets
+import typing
+
+import numpy as np
+from PIL import Image
+from spherapy.util import credentials
+
 from PyQt5 import QtCore, QtGui
+import PyQt5.QtWidgets as QtWidgets
+
 from vispy import scene
 from vispy.app.canvas import MouseEvent
 
-from spherapy.util import credentials
-
-import satplot
-from satplot.model.data_models import data_types, datapane as datapane_model
+from satplot.model.data_models import data_types
+from satplot.model.data_models import datapane as datapane_model
 import satplot.util.hashing as satplot_hashing
 import satplot.util.paths as satplot_paths
 import satplot.visualiser.assets.widgets as vispy_widgets
@@ -31,7 +29,7 @@ import satplot.visualiser.interface.widgets as widgets
 def createSpaceTrackCredentialsDialog():
 	SpaceTrackCredentialsDialog()
 
-class SpaceTrackCredentialsDialog():
+class SpaceTrackCredentialsDialog:
 	def __init__(self):
 		self.window = QtWidgets.QDialog()
 		self.window.setWindowTitle('SpaceTrack Credentials')
@@ -76,7 +74,7 @@ class SpaceTrackCredentialsDialog():
 	def cancel(self):
 		self.window.close()
 
-class GIFDialog():
+class GIFDialog:
 	def __init__(self, parent_window, opening_context, camera_type:str, dflt_camera_data:dict[str,float], num_ticks:int, three_dim=True):
 		if camera_type not in ['Turntable', 'RestrictedPanZoom']:
 			raise ValueError("GIF capture not supported for this context's camera type")
@@ -245,7 +243,7 @@ class GIFDialog():
 										start_index=slider_range[0],
 										end_index=slider_range[1])
 
-class fullResSensorImageDialog():
+class fullResSensorImageDialog:
 	create_time = time.monotonic()
 	MIN_MOVE_UPDATE_THRESHOLD = 1
 	MOUSEOVER_DIST_THRESHOLD = 5
@@ -263,7 +261,6 @@ class fullResSensorImageDialog():
 		self.window = QtWidgets.QDialog()
 		self.window.setWindowTitle(f'Sensor Image - {sc_name}:{sens_suite_name} - {sens_name}')
 		vlayout = QtWidgets.QVBoxLayout()
-		hlayout1 = QtWidgets.QHBoxLayout()
 		self.canvas = scene.canvas.SceneCanvas(size=(width/2,height/2),
 								keys='interactive',
 								bgcolor='white',
@@ -408,18 +405,17 @@ class fullResSensorImageDialog():
 		self.mouseOverText.setVisible(False)
 
 		last_mevnt_time = time.monotonic()
-		pass
 
 	def onMouseScroll(self, event:QtGui.QMouseEvent) -> None:
 		pass
 
-	def _saveFileDialog(self, caption: str, dir:pathlib.Path, dflt_filename:str|None) -> pathlib.Path:
+	def _saveFileDialog(self, caption: str, dflt_dir:pathlib.Path, dflt_filename:str|None) -> pathlib.Path:
 		if dflt_filename is None:
 			dflt_filename = ''
 		options = QtWidgets.QFileDialog.Options()
 		options |= QtWidgets.QFileDialog.DontUseNativeDialog
 		filename, _ = QtWidgets.QFileDialog.getSaveFileName(None,
 															caption,
-															f'{dir}/{dflt_filename}',
+															f'{dflt_dir}/{dflt_filename}',
 															options=options)
 		return pathlib.Path(filename)

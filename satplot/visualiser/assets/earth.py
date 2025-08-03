@@ -1,13 +1,15 @@
 import logging
+
+import typing
+
 import numpy as np
 import numpy.typing as nptyping
 import pymap3d
 from skyfield.api import wgs84
-from typing import Tuple
-import os
+import spherapy.timespan as timespan
 
-from vispy import scene, color
-from vispy.io import load_data_file, read_png
+from vispy import scene
+from vispy.io import read_png
 from vispy.scene.widgets.viewbox import ViewBox
 from vispy.visuals import transforms as vTransforms
 
@@ -18,7 +20,6 @@ import satplot.util.constants as c
 import satplot.util.paths as satplot_paths
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.colours as colours
-import spherapy.timespan as timespan
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +59,7 @@ class Earth3DAsset(base_assets.AbstractAsset):
 	def setSource(self, *args, **kwargs) -> None:
 		if type(args[0]) is not timespan.TimeSpan:
 			# args[0] assumed to be timespan
-			logger.error(f"setSource() of {self} requires a {timespan.Timespan} as args[0], not: {type(args[0])}")
+			logger.error("setSource() of %s requires a %s as args[0], not: {type(args[0])}", self, timespan.Timespan)
 			raise TypeError
 		self.data['datetimes'] = args[0].asDatetime()
 		for asset in self.assets.values():
@@ -171,7 +172,7 @@ class Earth3DAsset(base_assets.AbstractAsset):
 
 	#----- OPTIONS CALLBACKS -----#
 	def setEarthSphereColour(self, new_colour:tuple[float,float,float]) -> None:
-		logger.debug(f"Changing earth sphere colour {self.opts['earth_sphere_colour']['value']} -> {new_colour}")
+		logger.debug("Changing earth sphere colour %s -> %s", self.opts['earth_sphere_colour']['value'], new_colour)
 		self.opts['earth_sphere_colour']['value'] = new_colour
 		n_faces = self.visuals['earth_sphere'].mesh._meshdata.n_faces
 		n_verts = self.visuals['earth_sphere'].mesh._meshdata.n_vertices
@@ -469,7 +470,7 @@ class MeridiansGrid3DAsset(base_assets.AbstractSimpleAsset):
 
 	def _updateLineVisualsOptions(self) -> None:
 		new_colour = colours.normaliseColour(self.opts['meridian_colour']['value'])
-		logger.debug(f'Meridians applied colour: {new_colour}')
+		logger.debug('Meridians applied colour: %s', new_colour)
 		self.visuals['meridians'].set_data(pos=self.data['init_m_coords'],
 						 					color=new_colour,
 											connect=self.data['m_conn'],
@@ -511,12 +512,10 @@ class Earth2DAsset(base_assets.AbstractAsset):
 	def setSource(self, *args, **kwargs) -> None:
 		if type(args[0]) is not timespan.TimeSpan:
 			# args[0] assumed to be timespan
-			logger.error(f"setSource() of {self} requires a {timespan.Timespan} as args[0], not: {type(args[0])}")
+			logger.error("setSource() of %s requires a %s as args[0], not: {type(args[0])}", self, timespan.Timespan)
 			raise TypeError
 		# TODO: add capability to produce array of skyfields)
-		times = []
-		for ii in range(len(args[0])):
-			times.append(args[0].asSkyfield(ii))
+		times = [args[0].asSkyfield(ii) for ii in range(len(args[0]))]
 		self.data['datetimes'] = np.asarray(times)
 		for asset in self.assets.values():
 			asset.setSource(self.data['datetimes'])
@@ -539,7 +538,7 @@ class Earth2DAsset(base_assets.AbstractAsset):
 		self.data['width'] = w
 		self.data['height'] = h
 
-	def getDimensions(self) -> Tuple[int, int]:
+	def getDimensions(self) -> tuple[int, int]:
 		return self.data['width'], self.data['height']
 
 	def recomputeRedraw(self) -> None:
@@ -550,7 +549,6 @@ class Earth2DAsset(base_assets.AbstractAsset):
 			# recomputeRedraw child assets
 			self._recomputeRedrawChildren(rotation=None)
 			self._clearStaleFlag()
-		pass
 
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
@@ -619,7 +617,7 @@ class Earth2DAsset(base_assets.AbstractAsset):
 
 	#----- OPTIONS CALLBACKS -----#
 	def setEarthSphereColour(self, new_colour:tuple[float,float,float]) -> None:
-		logger.debug(f"Changing earth sphere colour {self.opts['earth_sphere_colour']['value']} -> {new_colour}")
+		logger.debug("Changing earth sphere colour %s -> %s", self.opts['earth_sphere_colour']['value'], new_colour)
 		self.opts['earth_sphere_colour']['value'] = new_colour
 		n_faces = self.visuals['earth_sphere'].mesh._meshdata.n_faces
 		n_verts = self.visuals['earth_sphere'].mesh._meshdata.n_vertices

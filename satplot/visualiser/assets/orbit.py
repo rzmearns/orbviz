@@ -1,6 +1,11 @@
 import logging
-import numpy as np
+
+import typing
 from typing import Any
+
+import numpy as np
+import spherapy.orbit as orbit
+
 from vispy import scene
 from vispy.scene.widgets.viewbox import ViewBox
 
@@ -8,7 +13,6 @@ import satplot.model.data_models.history_data as history_data
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.colours as colours
 import satplot.visualiser.interface.console as console
-import spherapy.orbit as orbit
 
 logger = logging.getLogger(__name__)
 
@@ -39,14 +43,14 @@ class Orbit3DAsset(base_assets.AbstractAsset):
 		sats_dict = args[0]
 		first_sat_orbit = list(sats_dict.values())[0]
 		if type(first_sat_orbit) is not orbit.Orbit:
-			logger.error(f"setSource() of {self} requires an {orbit.Orbit} as value of dict from args[0], not: {first_sat_orbit}")
+			logger.error("setSource() of %s requires an %s as value of dict from args[0], not: %s", self, orbit.Orbit, first_sat_orbit)
 			raise TypeError
 		if hasattr(first_sat_orbit,'pos'):
 			self.data['coords'] = first_sat_orbit.pos
-			logger.debug(f'Setting source:coordinates for {self}')
+			logger.debug('Setting source:coordinates for %s', self)
 		else:
 			console.sendErr('Orbit has no position data')
-			logger.warning(f'Orbit has no position data')
+			logger.warning('Orbit has no position data')
 			raise ValueError('Orbit has no position data')
 
 	def _instantiateAssets(self) -> None:
@@ -208,9 +212,8 @@ class Orbit2DAsset(base_assets.AbstractAsset):
 	def setSource(self, *args, **kwargs) -> None:
 		# args[0] history data
 		if type(args[0]) is not history_data.HistoryData:
-			logger.error(f"setSource() of {self} requires a {history_data.HistoryData} as args[1], not: {type(args[1])}")
+			logger.error("setSource() of %s requires a %s as args[1], not: %s", self, history_data.HistoryData, type(args[1]))
 			raise TypeError(f"setSource() of {self} requires a {history_data.HistoryData} as args[1], not: {type(args[1])}")
-			return
 
 		self.data['history_src'] = args[0]
 		first_sat_orbit = list(self.data['history_src'].getOrbits().values())[0]
@@ -221,10 +224,10 @@ class Orbit2DAsset(base_assets.AbstractAsset):
 			lon = ((first_sat_orbit.lon + 180) * self.data['horiz_pixel_scale']).reshape(-1,1)
 			self.data['scaled_coords'] = np.hstack((lon,lat))
 			self._findLongitudinalTransitions()
-			logger.debug(f'Setting source:coordinates for {self}')
+			logger.debug('Setting source:coordinates for %s', self)
 		else:
 			console.sendErr('Orbit has no position data')
-			logger.warning(f'Orbit has no position data')
+			logger.warning('Orbit has no position data')
 			raise ValueError('Orbit has no position data')
 
 		if hasattr(first_sat_orbit,'name'):

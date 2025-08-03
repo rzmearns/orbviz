@@ -1,9 +1,11 @@
 from functools import reduce
-import numpy as np
-import numpy.typing as nptyping
 import logging
 
-import satplot.util.exceptions as exceptions
+import typing
+
+import numpy as np
+import numpy.typing as nptyping
+
 import satplot.model.geometry.primgeom as pg
 
 '''
@@ -31,7 +33,7 @@ def shiftPolytope(poly:nptyping.NDArray, delta:tuple[float,float,float]|nptyping
 		Translated poly
 	'''
 	m, n = poly.shape
-	poly_out = np.zeros((poly.shape))
+	poly_out = np.zeros(poly.shape)
 	poly_out[:, 0] = poly[:, 0] + delta[0]
 	poly_out[:, 1] = poly[:, 1] + delta[1]
 	if n == 3:
@@ -184,13 +186,7 @@ def rotMat(theta:float, rot_base:nptyping.NDArray, rot_axis:nptyping.NDArray) ->
 	'''		  
 
 	T_P1=np.array([[1,0,0,-rot_base[0]],[0,1,0,-rot_base[1]],[0,0,1,-rot_base[2]],[0,0,0,1]])
-	try:
-		np.linalg.inv(T_P1)
-	except np.linalg.LinAlgError:
-		print("T_P1")
-		print(T_P1)
-		print("T_P1 is singular")
-
+	np.linalg.inv(T_P1)
 
 	T_xz=np.eye(4)
 	u=rot_axis[0]
@@ -202,13 +198,7 @@ def rotMat(theta:float, rot_base:nptyping.NDArray, rot_axis:nptyping.NDArray) ->
 	off_diag=v/np.sqrt(u**2+v**2)
 	T_xz[0,1]=off_diag
 	T_xz[1,0]=-off_diag		   
-	try:
-		np.linalg.inv(T_xz)
-	except np.linalg.LinAlgError:
-		print("T_xz")
-		print(T_xz)
-		print("T_xz is singular")
-
+	np.linalg.inv(T_xz)
 
 	T_z=np.eye(4)
 	diag=w/np.sqrt(u**2+v**2+w**2)
@@ -217,12 +207,7 @@ def rotMat(theta:float, rot_base:nptyping.NDArray, rot_axis:nptyping.NDArray) ->
 	off_diag=np.sqrt(u**2+v**2)/np.sqrt(u**2+v**2+w**2)
 	T_z[0,2]=-off_diag
 	T_z[2,0]=off_diag		 
-	try:
-		np.linalg.inv(T_z)
-	except np.linalg.LinAlgError:
-		print("T_z")
-		print(T_z)
-		print("T_z is singular")
+	np.linalg.inv(T_z)
 
 	R_z=np.eye(4)
 	diag=np.cos(theta)
@@ -242,7 +227,7 @@ def rotMat2xy(normal:nptyping.NDArray) -> nptyping.NDArray:
 
 	'''
 
-#TODO Need to look at this to see what it is really doing
+# TODO: Need to look at this to see what it is really doing
 
 	T_xz=np.eye(4)
 	u=normal[0]
@@ -254,13 +239,7 @@ def rotMat2xy(normal:nptyping.NDArray) -> nptyping.NDArray:
 	off_diag=v/np.sqrt(u**2+v**2)
 	T_xz[0,1]=off_diag
 	T_xz[1,0]=-off_diag		   
-	try:
-		np.linalg.inv(T_xz)
-	except np.linalg.LinAlgError:
-		print("T_xz")
-		print(T_xz)
-		print("T_xz is singular")
-
+	np.linalg.inv(T_xz)
 
 	T_z=np.eye(4)
 	diag=w/np.sqrt(u**2+v**2+w**2)
@@ -269,12 +248,7 @@ def rotMat2xy(normal:nptyping.NDArray) -> nptyping.NDArray:
 	off_diag=np.sqrt(u**2+v**2)/np.sqrt(u**2+v**2+w**2)
 	T_z[0,2]=-off_diag
 	T_z[2,0]=off_diag		 
-	try:
-		np.linalg.inv(T_z)
-	except np.linalg.LinAlgError:
-		print("T_z")
-		print(T_z)
-		print("T_z is singular")
+	np.linalg.inv(T_z)
 
 	if np.array_equal(np.abs(normal),np.array([0,0,1])):
 		return np.eye(4)

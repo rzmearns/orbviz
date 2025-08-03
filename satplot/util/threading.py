@@ -2,7 +2,11 @@ import logging
 import sys
 import traceback
 
+import typing
+
 from PyQt5 import QtCore
+
+import satplot
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +35,7 @@ class WorkerSignals(QtCore.QObject):
 	progress = QtCore.pyqtSignal(int)
 	report_finished = QtCore.pyqtSignal(object)
 
-class Flag():
+class Flag:
 	def __init__(self, state:bool):
 		self.state:bool = state
 
@@ -61,9 +65,17 @@ class Worker(QtCore.QRunnable):
 		# Store constructor arguments
 		self.fn = fn
 		self.args = args
+		if 'delay_start' in kwargs.keys():
+			self.delayStart = kwargs.pop('delay_start')
+		else:
+			self.delayStart = False
+		# print(f'{args=}')
+		# print(f'{kwargs=}')
 		self.kwargs = kwargs
 		self.signals = WorkerSignals()
+		self.started = Flag(False)
 		self.running = Flag(False)
+		self.chainedWorkers = {}
 
 		# Add the callback to our kwargs
 		# self.kwargs['progress_callback'] = self.signals.progress
@@ -73,6 +85,7 @@ class Worker(QtCore.QRunnable):
 		"""Initalise the runner function with passed args, kwargs
 		"""
 		try:
+			self.started.setState(True)
 			self.running.setState(True)
 			result = self.fn(*self.args, self.running, **self.kwargs)
 			self.running.setState(False)
@@ -87,14 +100,23 @@ class Worker(QtCore.QRunnable):
 				self.running.setState(False)
 				self.signals.finished.emit()
 				self.signals.report_finished.emit(self)
+				for worker_name, worker in self.chainedWorkers.items():
+					if worker is not None:
+						logger.info('Starting thread %s:%s',worker_name, worker)
+						satplot.threadpool.logStart(worker)
 
 	def isRunning(self) -> bool:
 		return self.running.getState()
 
+	def hasStarted(self) -> bool:
+		return self.started.getState()
+
 	def terminate(self):
-		logger.info(f'SETTING FLAG {self}: FALSE')
+		logger.info('SETTING FLAG %s: FALSE', self)
 		self.running.setState(False)
 
+	def addChainedWorker(self, worker_name:str, worker:"Worker"):
+		self.chainedWorkers[worker_name] = worker
 
 class Threadpool(QtCore.QThreadPool):
 
@@ -110,9 +132,9 @@ class Threadpool(QtCore.QThreadPool):
 			return
 
 		for ii in range(len(self.running_threads)-1,-1,-1):
-			logger.info(f'Killing thread:{self.running_threads[ii]}')
+			logger.info('Killing thread:%s', self.running_threads[ii])
 			self.running_threads[ii].terminate()
-			logger.info(f'\tthread stopped')
+			logger.info('\tthread stopped')
 
 	def logStart(self, thread:Worker) -> None:
 		self.running_threads.append(thread)

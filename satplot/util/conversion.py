@@ -1,13 +1,17 @@
-from datetime import datetime
+import datetime as dt
+import logging
+
+import typing
+
+import numpy as np
 import pymap3d
 import pymap3d.sidereal
 
-import numpy as np
 
 def eci2radec(eci:np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 	# TODO: check eci is (N,3)
 	hxy = np.hypot(eci[:,0], eci[:,1])
-	r = np.hypot(hxy, eci[:,2])
+	r = np.hypot(hxy, eci[:,2]) 		# noqa: F841
 	el = np.arctan2(eci[:,2], hxy)
 	az = np.arctan2(eci[:,1], eci[:,0])
 	az = az%2*np.pi
@@ -27,7 +31,7 @@ def decimal2degmmss(decimal_arr:np.ndarray) -> tuple[np.ndarray, np.ndarray, np.
 
 	return deg, MM, SS
 
-def eci2ecef(eci:np.ndarray, time: datetime, high_precision=True) -> tuple:
+def eci2ecef(eci:np.ndarray, time: dt.datetime, high_precision=True) -> tuple:
 	"""
 	Observer => Point  ECI  =>  ECEF
 
@@ -64,3 +68,11 @@ def eci2ecef(eci:np.ndarray, time: datetime, high_precision=True) -> tuple:
 def R3(x: float):
 	"""Rotation matrix for ECI"""
 	return np.array([[np.cos(x), np.sin(x), 0], [-np.sin(x), np.cos(x), 0], [0, 0, 1]])
+
+
+def date_parser(d_bytes) -> dt.datetime:
+	d_bytes = d_bytes[:d_bytes.index(b'.')+4]
+	s = d_bytes.decode('utf-8')
+	d = dt.datetime.strptime(s,"%Y-%m-%d %H:%M:%S.%f")
+	d = d.replace(tzinfo=dt.timezone.utc)
+	return d.replace(microsecond=0)

@@ -1,5 +1,8 @@
-from PyQt5 import QtWidgets, QtCore, QtGui
 import logging
+
+import typing
+
+from PyQt5 import QtCore, QtWidgets
 
 logger = logging.getLogger(__name__)
 

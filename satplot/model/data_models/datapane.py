@@ -1,8 +1,12 @@
 import logging
-import numpy as np
-from typing import Any, Callable
 
-from PyQt5 import QtWidgets, QtCore, QtGui
+from collections.abc import Callable
+import typing
+from typing import Any
+
+import numpy as np
+
+from PyQt5 import QtCore
 
 '''
 data items of the DataPaneModel are stored as a tuple
@@ -53,7 +57,7 @@ class DataPaneModel(QtCore.QAbstractTableModel):
 			if isinstance(val, Callable):
 				try:
 					return_val = val()
-				except Exception as e:
+				except Exception:
 					# TODO: logger not respecting main handlers, prints to stdout as well as log file.
 					# logger.warning(e)
 					return_val = None
@@ -101,7 +105,7 @@ class DataPaneModel(QtCore.QAbstractTableModel):
 			self._items.append(item_dict)
 			col_num = 0
 			max_cols = self.columnCount()
-			for k,v in item_dict.items():
+			for v in item_dict.values():
 				if col_num < max_cols:
 					self.setData(self.createIndex(new_row_idx, col_num), v, QtCore.Qt.ItemDataRole.DisplayRole);
 		self.dataChanged.emit(self.index(new_row_idx,0), self.index(new_row_idx,self.columnCount()))

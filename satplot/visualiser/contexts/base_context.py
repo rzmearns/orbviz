@@ -1,16 +1,21 @@
 from abc import ABC, abstractmethod
 import datetime as dt
-import imageio
 import json
+import logging
 import pathlib
+
+import typing
 from typing import Any
 
-from PyQt5 import QtWidgets, QtCore
+import imageio
+
+from PyQt5 import QtCore, QtWidgets
 
 from vispy.gloo.util import _screenshot
 
-import satplot.util.paths as paths
+import satplot.util.paths as satplot_paths
 import satplot.visualiser.interface.console as console
+
 
 class BaseContext(ABC):
 
@@ -57,7 +62,7 @@ class BaseContext(ABC):
 
 	def setupScreenshot(self):
 		file = f"{dt.datetime.now().strftime('%Y-%m-%d_%H%M%S')}_{self.config['name']}.png"
-		self.saveScreenshot(pathlib.Path(f'{paths.data_dir}/screenshots/{file}'))
+		self.saveScreenshot(pathlib.Path(f'{satplot_paths.data_dir}/screenshots/{file}'))
 
 	def saveScreenshot(self, file:pathlib.Path):
 		if self.canvas_wrapper is None:
@@ -119,9 +124,9 @@ class BaseControls:
 
 
 	def _buildActionDict(self) -> None:
-		with open(f'resources/actions/all.json','r') as fp:
+		with satplot_paths.actions_dir.joinpath('all.json').open('r') as fp:
 			all_action_dict = json.load(fp)
-		with open(f'resources/actions/{self.context_name}.json','r') as fp:
+		with satplot_paths.actions_dir.joinpath(f'{self.context_name}.json').open('r') as fp:
 			context_action_dict = json.load(fp)
 		self.action_dict = {**all_action_dict, **context_action_dict}
 

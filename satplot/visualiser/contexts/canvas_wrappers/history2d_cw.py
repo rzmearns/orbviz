@@ -1,37 +1,29 @@
-import json
 import logging
-from PyQt5.QtCore import QTimer
-import numpy as np
 import time
+
+import typing
 from typing import Any
 
-from PyQt5 import QtCore
-from PyQt5 import QtGui
+from PyQt5 import QtCore, QtGui
 
 from vispy import scene
 from vispy.app.canvas import MouseEvent, ResizeEvent
-from vispy.scene.cameras import PanZoomCamera
 
-from satplot.model.data_models.history_data import (HistoryData)
-from satplot.model.data_models.earth_raycast_data import (EarthRayCastData)
-import satplot.model.geometry.primgeom as pg
-from satplot.model.data_models.data_types import PrimaryConfig
-from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
-import satplot.util.constants as c
+from satplot.model.data_models.earth_raycast_data import EarthRayCastData
+from satplot.model.data_models.history_data import HistoryData
 import satplot.util.exceptions as exceptions
-# import satplot.visualiser.assets.axis_indicators as axis_indicators
-import satplot.visualiser.assets.base_assets as base_assets
-import satplot.visualiser.assets.constellation as constellation
-import satplot.visualiser.assets.earth as earth
-import satplot.visualiser.assets.gizmo as gizmo
-import satplot.visualiser.assets.orbit as orbit
-import satplot.visualiser.assets.moon as moon
-import satplot.visualiser.assets.spacecraft as spacecraft
-import satplot.visualiser.assets.sun as sun
-import satplot.visualiser.assets.widgets as widgets
+from satplot.visualiser.assets import (
+	base_assets,
+	earth,
+	events,
+	moon,
+	orbit,
+	spacecraft,
+	sun,
+	widgets,
+)
 import satplot.visualiser.cameras.RestrictedPanZoom as RestrictedPanZoom
-
-from vispy.visuals.transforms import STTransform
+from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +75,7 @@ class History2DCanvasWrapper(BaseCanvas):
 		self.assets['spacecraft'] = spacecraft.Spacecraft2DAsset(v_parent=self.view_box.scene)
 		self.assets['moon'] = moon.Moon2DAsset(v_parent=self.view_box.scene)
 		self.assets['sun'] = sun.Sun2DAsset(v_parent=self.view_box.scene)
+		self.assets['events'] = events.Events2DAsset(v_parent=self.view_box.scene)
 
 	def getActiveAssets(self) -> list[base_assets.AbstractAsset|base_assets.AbstractCompoundAsset|base_assets.AbstractSimpleAsset]:
 		active_assets = []
@@ -97,7 +90,7 @@ class History2DCanvasWrapper(BaseCanvas):
 
 	def modelUpdated(self) -> None:
 		if self.data_models['history'] is None:
-			logger.error(f'canvas wrapper: {self} does not have a history data model yet')
+			logger.error('canvas wrapper: %s does not have a history data model yet', self)
 			raise exceptions.InvalidDataError
 
 		if self.data_models['history'].timespan is not None:
@@ -127,6 +120,14 @@ class History2DCanvasWrapper(BaseCanvas):
 			self.assets['spacecraft'].setScale(*self.assets['earth'].getDimensions())
 			self.assets['spacecraft'].makeActive()
 
+		# Update data source for events
+		if self.data_models['history'].getConfigValue('events_defined'):
+			self.assets['events'].setScale(*self.assets['earth'].getDimensions())
+			self.assets['events'].setSource(list(self.data_models['history'].events.values())[0])
+			self.assets['events'].makeActive()
+		else:
+			self.assets['events'].makeDormant()
+
 		# Update data source for sun asset
 		if len(self.data_models['history'].getConfigValue('primary_satellite_ids')) > 0:
 			self.assets['sun'].makeDormant()
@@ -134,16 +135,18 @@ class History2DCanvasWrapper(BaseCanvas):
 			self.assets['sun'].setSource(self.data_models['history'])
 			self.assets['sun'].makeActive()
 
+
+
 		self.assets['earth'].makeDormant()
 		self.assets['earth'].makeActive()
 
 	def updateIndex(self, index:int) -> None:
-		for asset_name,asset in self.assets.items():
+		for asset in self.assets.values():
 			if asset.isActive():
 				asset.updateIndex(index)
 
 	def recomputeRedraw(self) -> None:
-		for asset_name, asset in self.assets.items():
+		for asset in self.assets.values():
 			if asset.isActive():
 				asset.recomputeRedraw()
 
@@ -153,8 +156,8 @@ class History2DCanvasWrapper(BaseCanvas):
 
 	def centerCameraEarth(self) -> None:
 		if self.canvas is None:
-			logger.warning(f"Canvas has not been set for History2D Canvas Wrapper. No camera to center")
-			raise AttributeError(f"Canvas has not been set for History2D Canvas Wrapper. No camera to center")
+			logger.warning("Canvas has not been set for History2D Canvas Wrapper. No camera to center")
+			raise AttributeError("Canvas has not been set for History2D Canvas Wrapper. No camera to center")
 		self.view_box.camera.resetToExtents()
 		self.canvas.update()
 
@@ -185,7 +188,7 @@ class History2DCanvasWrapper(BaseCanvas):
 
 	def mapAssetPositionsToScreen(self) -> list:
 		mo_infos = []
-		for asset_name, asset in self.assets.items():
+		for asset in self.assets.values():
 			if asset.isActive():
 				mo_infos.append(asset.getScreenMouseOverInfo())
 				for ii, world_pos in enumerate(mo_infos[-1]['world_pos']):
@@ -257,7 +260,7 @@ class History2DCanvasWrapper(BaseCanvas):
 
 		self.mouseOverText.setVisible(False)
 		last_mevnt_time = time.monotonic()
-		pass
+
 
 	def _formatLatLong(self, event_lat:float, event_lon:float) -> str:
 		if event_lat < 0:

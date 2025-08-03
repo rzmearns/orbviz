@@ -3,17 +3,21 @@ import datetime as dt
 import logging
 import pathlib
 import pickle
-import PIL
-from typing import Any
 import warnings
 
-from PyQt5 import QtWidgets, QtCore
+import typing
+from typing import Any
+
+import PIL
+
+from PyQt5 import QtWidgets
+
 from vispy import app, use
 
 import satplot
 import satplot.util.logging as satplot_logging
 import satplot.util.threading as threading
-from satplot.visualiser.contexts.canvas_wrappers.base_cw import (BaseCanvas)
+from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 import satplot.visualiser.interface.console as console
 import satplot.visualiser.interface.dialogs as dialogs
 import satplot.visualiser.window as window
@@ -24,10 +28,10 @@ warnings.filterwarnings("ignore", message="Optimal rotation is not uniquely or p
 satplot_logging.configureLogger()
 use(gl='gl+')
 
-class Application():
+class Application:
 	def __init__(self) -> None:
 		satplot.threadpool = threading.Threadpool()
-		logger.info(f"Creating threadpool with {satplot.threadpool.maxThreadCount()} threads")
+		logger.info("Creating threadpool with %s threads",satplot.threadpool.maxThreadCount())
 		self.pyqt_app = app.use_app("pyqt5")
 		self.pyqt_app.create()
 		self.window = window.MainWindow(title="Sat Plot")
@@ -59,7 +63,7 @@ class Application():
 			context.controls.action_dict['load']['callback'] = self.load
 			context.controls.action_dict['spacetrak-credentials']['callback'] = dialogs.SpaceTrackCredentialsDialog
 		else:
-			logger.error(f'context: {context} does not have an associated action dictionary from a resources/actions/<context>.json file.')
+			logger.error('context: %s does not have an associated action dictionary from a resources/actions/<context>.json file.',context)
 			raise ValueError()
 
 
@@ -77,11 +81,11 @@ class Application():
 			self._saveState()
 
 	def _saveState(self) -> None:
-		logger.info(f'Saving State to {self.save_file}')
+		logger.info('Saving State to %s', self.save_file)
 		console.send(f'Saving State to {self.save_file}')
 		state = self.prepSerialisation()
 		if self.save_file is not None:
-			with open(self.save_file, 'wb') as picklefp:
+			with self.save_file.open('wb') as picklefp:
 				pickle.dump(state, picklefp)
 		else:
 			# TODO: DO SOMETHING
@@ -93,14 +97,14 @@ class Application():
 			self._loadState(load_file)
 
 	def _loadState(self, load_file:pathlib.Path) -> None:
-		logger.info(f'Loading State from {load_file}')
+		logger.info('Loading State from %s', load_file)
 		console.send(f'Loading State from {load_file}')
-		with open(load_file, 'rb') as picklefp:
+		with load_file.open('rb') as picklefp:
 			state = pickle.load(picklefp)
 		self.deSerialise(state)
 
 
-	def _openFileDialog(self, caption: str, dir:pathlib.Path, dflt_filename:str|None, save=True) -> pathlib.Path:
+	def _openFileDialog(self, caption: str, dflt_dir:pathlib.Path, dflt_filename:str|None, save=True) -> pathlib.Path:
 		if dflt_filename is None:
 			dflt_filename = ''
 		options = QtWidgets.QFileDialog.Options()
@@ -108,13 +112,13 @@ class Application():
 		if save:
 			filename, _ = QtWidgets.QFileDialog.getSaveFileName(None, 
 																caption,
-																f'{dir}{dflt_filename}',
+																f'{dflt_dir}{dflt_filename}',
 																"pickles (*.pickle)",
 																options=options)
 		else:		
 			filename, _ = QtWidgets.QFileDialog.getOpenFileName(None, 
 																caption,
-																f'{dir}',
+																f'{dflt_dir}',
 																"pickles (*.pickle)",
 																options=options)			
 		return pathlib.Path(filename)
@@ -129,11 +133,11 @@ class Application():
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		if state['metadata']['version'] != satplot.version:
-			logger.error(f"This satplot state was not created with this version of satplot: file {state['metadata']['version']}, satplot {satplot.version}")
-			pass
+			logger.error("This satplot state was not created with this version of satplot: file %s, satplot %s",state['metadata']['version'], satplot.version)
+
 		if state['metadata']['gl_plus'] != satplot.gl_plus:
-			logger.error(f"WARNING: this file was created with a different GL mode: GL+ = {satplot.gl_plus}. It may not load correctly.")
-			pass
+			logger.error("WARNING: this file was created with a different GL mode: GL+ = %s. It may not load correctly.", satplot.gl_plus)
+
 
 		self.window.deserialiseContexts(state['window_contexts'])
 
@@ -159,8 +163,8 @@ if __name__ == '__main__':
 		satplot.high_precision = True
 	if args.debug:
 		satplot.debug = True
-	logger.info(f"Satplot:")
-	logger.info(f"\tVersion:{satplot.version}")
+	logger.info("Satplot:")
+	logger.info("\tVersion: %s", satplot.version)
 	application = Application()
 	application.run()
 

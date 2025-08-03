@@ -1,17 +1,15 @@
 import datetime as dt
-import json
 import logging
-import os
 import pathlib
 import string
+
+import typing
 from typing import Any
 
-from PyQt5 import QtWidgets, QtCore, QtGui
-from vispy.scene.widgets import widget
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 import satplot.model.data_models.data_types as data_types
 import satplot.util.paths as satplot_paths
-import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.interface.widgets as widgets
 
 logger = logging.getLogger(__name__)
@@ -60,7 +58,7 @@ class PrimaryConfig(QtWidgets.QWidget):
 			self.tmp_prim_config = data_types.PrimaryConfig.fromJSON(cnfg_file)
 			self.prim_config_display.updateConfig(self.tmp_prim_config)
 			self.prim_config_selector.clearError()
-		except KeyError as e:
+		except KeyError:
 			self.tmp_prim_config = None
 			self.prim_config_selector.setError('Not a valid configuration file')
 			self.prim_config_display.clearConfig()
@@ -166,6 +164,50 @@ class HistoricalPointingConfig(QtWidgets.QWidget):
 		self._pointing_file_selector.deSerialise(state['pointing_file'])
 		self.pointing_file_inv_toggle.deSerialise(state['frame_inv'])
 
+class HistoricalEventConfig(QtWidgets.QWidget):
+	def __init__(self, *args, **kwargs):
+		super().__init__()
+		# Layout containers
+		super_layout = QtWidgets.QVBoxLayout()
+		pane_groupbox = QtWidgets.QGroupBox('Historical Events Configuration')
+		config_vlayout = QtWidgets.QVBoxLayout()
+		config_vlayout.setSpacing(10)
+
+		# Configuration Widgets
+		dflt_config_file = satplot_paths.events_dir.joinpath('example_events.csv')
+		self.events_config_selector = widgets.FilePicker('Events File',
+															dflt_file=dflt_config_file.name,
+															dflt_dir=dflt_config_file.parent,
+															save=False)
+
+		# Place configuration widgets
+		config_vlayout.addWidget(self.events_config_selector)
+		config_vlayout.addStretch()
+		pane_groupbox.setLayout(config_vlayout)
+
+		# Scrollable container
+		scroll_area = QtWidgets.QScrollArea()
+		scroll_area.setWidget(pane_groupbox)
+		scroll_area.setWidgetResizable(True)
+
+		super_layout.addWidget(scroll_area)
+		self.setLayout(super_layout)
+
+		# Set up connections
+
+	def getConfigPath(self) -> pathlib.Path:
+		return self.events_config_selector.getPath()
+
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		# state['constellation'] = self.suppl_constellation_selector.prepSerialisation()
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		# self.suppl_constellation_selector.deSerialise(state['constellation'])
+		# self._enable.setChecked(state['enabled']['value'])
+		pass
+
 class ConstellationControls(QtWidgets.QWidget):
 	def __init__(self, *args, **kwargs):
 		super().__init__()
@@ -208,15 +250,15 @@ class ConstellationControls(QtWidgets.QWidget):
 			self.tmp_const_config = data_types.ConstellationConfig.fromJSON(cnfg_file)
 			self.const_config_display.updateConfig(self.tmp_const_config)
 			self.const_config_selector.clearError()
-		except KeyError as e:
+		except KeyError:
 			self.tmp_const_config = None
 			self.const_config_selector.setError('Not a valid configuration file')
 			self.const_config_display.clearConfig()
-		except FileNotFoundError as e:
+		except FileNotFoundError:
 			self.tmp_const_config = None
 			self.const_config_selector.setError('File does not exist')
 			self.const_config_display.clearConfig()
-		except IsADirectoryError as e:
+		except IsADirectoryError:
 			self.tmp_const_config = None
 			self.const_config_selector.setError('Cannot load a directory')
 			self.const_config_display.clearConfig()
@@ -280,7 +322,7 @@ class OptionConfigs(QtWidgets.QWidget):
 				self.opt_sections[opt_section_title]['added_to_layout'] = False
 				self.opt_sections[opt_section_title]['opts'] = {}
 				cb = widgets.CollapsibleSection(title=opt_section_title)
-				logger.debug(f'Creating collapsible section {cb} for asset {root_asset}')
+				logger.debug('Creating collapsible section %s for asset %s', cb, root_asset)
 				self.opt_sections[opt_section_title]['cb'] = cb
 
 				root_layout.addWidget(self.opt_sections[opt_section_title]['cb'])
@@ -298,7 +340,7 @@ class OptionConfigs(QtWidgets.QWidget):
 		orig_dict = asset_w_dict.copy()
 		for w_key, w_dict in orig_dict.items():
 			if w_dict['widget_data']['mark_for_removal']:
-				logger.debug(f'Deleting option widget: {w_key}')
+				logger.debug('Deleting option widget: %s', w_key)
 				w_dict['widget_data']['widget'].setParent(None)
 				del asset_w_dict[w_key]
 				continue
@@ -306,7 +348,7 @@ class OptionConfigs(QtWidgets.QWidget):
 			if w_dict['sub_widgets'] is not None:
 				w_dict['sub_widgets'] = self._recursiveRemoveDefunctOptions(w_dict['sub_widgets'])
 				if len(w_dict['sub_widgets'].values()) == 0:
-					logger.debug(f'Deleting collapsible option container: {w_key}')
+					logger.debug('Deleting collapsible option container: %s', w_key)
 					w_dict['widget_data']['widget'].setParent(None)
 					del asset_w_dict[w_key]
 
@@ -315,11 +357,11 @@ class OptionConfigs(QtWidgets.QWidget):
 	def _recursivePopulateSections(self, widget_dict:dict) -> None:
 		for w_key, widget in widget_dict.items():
 			if not widget['widget_data']['added_to_layout']:
-				logger.debug(f"Adding {widget['widget_data']['widget']}:{w_key} to {widget['parent_layout']}")
+				logger.debug("Adding %s:%s to %s", widget['widget_data']['widget'], w_key, widget['parent_layout'])
 				widget['parent_layout'].addWidget(widget['widget_data']['widget'])
 				widget['widget_data']['added_to_layout'] = True
 			else:
-				logger.debug(f"{widget['widget_data']['widget']}:{w_key} already added to {widget['parent_layout']}")
+				logger.debug("%s:%s already added to %s", widget['widget_data']['widget'], w_key, widget['parent_layout'])
 
 			if widget['sub_widgets'] is not None:
 				self._recursivePopulateSections(widget['sub_widgets'])
@@ -327,11 +369,11 @@ class OptionConfigs(QtWidgets.QWidget):
 	def recursiveBuildOptionWidgets(self, curr_asset, parent_section) -> dict:
 		w_dict = {}
 		# create widget dict for this asset's options:
-		logger.debug(f'Building widgets for {curr_asset} options')
+		logger.debug('Building widgets for %s options', curr_asset)
 		for opt_key, opt_cnfg in curr_asset.opts.items():
 			if opt_cnfg['widget_data'] is not None and opt_cnfg['static']:
 				# widget has previously been added
-				logger.debug(f'Widget for {curr_asset}:{opt_key} has been previously added')
+				logger.debug('Widget for %s:%s has been previously added', curr_asset, opt_key)
 				continue
 
 			opt_widget = self._buildOptionWidget(opt_key, opt_cnfg)
@@ -359,9 +401,9 @@ class OptionConfigs(QtWidgets.QWidget):
 
 
 		if hasattr(curr_asset, 'assets'):
-			logger.debug(f'Processing sub assets for {curr_asset}')
+			logger.debug('Processing sub assets for %s', curr_asset)
 			for sub_asset_key, sub_asset in curr_asset.assets.items():
-				logger.debug(f'Creating collapsible section for sub asset {sub_asset} belonging to {curr_asset}')
+				logger.debug('Creating collapsible section for sub asset %s belonging to %s', sub_asset, curr_asset)
 				section_title = f"{sub_asset_key.capitalize()} Options"
 				cb = widgets.CollapsibleSection(title=section_title)
 				sub_w_dict = self.recursiveBuildOptionWidgets(sub_asset, cb)
@@ -377,7 +419,7 @@ class OptionConfigs(QtWidgets.QWidget):
 					w_dict[f'{sub_asset_key}_cb']['parent_layout'] = parent_section
 
 		# sort w_dict
-		logger.debug(f'Sorting w_dict for {curr_asset}')
+		logger.debug('Sorting w_dict for %s', curr_asset)
 		w_dict = dict(sorted(w_dict.items()))
 		return w_dict
 
@@ -389,27 +431,27 @@ class OptionConfigs(QtWidgets.QWidget):
 				widget = widgets.ToggleBox(label_str,
 											opt_cnfg['value'])
 				widget.add_connect(opt_cnfg['callback'])
-				logger.debug(f"Adding option callback {opt_cnfg['callback']} to {opt_key}")
+				logger.debug("Adding option callback %s to %s", opt_cnfg['callback'], opt_key)
 			except:
-				logger.warning(f"Can't make widget {label_str} for asset {opt_key}")
+				logger.warning("Can't make widget %s for asset %s", label_str, opt_key)
 				raise ValueError
 		elif opt_cnfg['type'] == 'colour':
 			try:
 				widget = widgets.ColourPicker(label_str,
 											opt_cnfg['value'])
 				widget.add_connect(opt_cnfg['callback'])
-				logger.debug(f"Adding option callback {opt_cnfg['callback']} to {opt_key}")
+				logger.debug("Adding option callback %s to %s", opt_cnfg['callback'], opt_key)
 			except:
-				logger.warning(f"Can't make widget {label_str} for asset {opt_key}")
+				logger.warning("Can't make widget %s for asset %s", label_str, opt_key)
 				raise ValueError
 		elif opt_cnfg['type'] == 'integer' or opt_cnfg['type'] == 'number':
 			try:
 				widget = widgets.ValueSpinner(label_str,
 							  				opt_cnfg['value'])
 				widget.add_connect(opt_cnfg['callback'])
-				logger.debug(f"Adding option callback {opt_cnfg['callback']} to {opt_key}")
+				logger.debug("Adding option callback %s to %s", opt_cnfg['callback'], opt_key)
 			except:
-				logger.warning(f"Can't make widget {label_str} for asset {opt_key}")
+				logger.warning("Can't make widget %s for asset %s", label_str, opt_key)
 				raise ValueError
 		elif opt_cnfg['type'] == 'float':
 			try:
@@ -417,9 +459,9 @@ class OptionConfigs(QtWidgets.QWidget):
 							  				opt_cnfg['value'],
 											integer=False)
 				widget.add_connect(opt_cnfg['callback'])
-				logger.debug(f"Adding option callback {opt_cnfg['callback']} to {opt_key}")
+				logger.debug("Adding option callback %s to %s", opt_cnfg['callback'], opt_key)
 			except:
-				logger.warning(f"Can't make widget {label_str} for asset {opt_key}")
+				logger.warning("Can't make widget %s for asset %s", label_str, opt_key)
 				raise ValueError
 		elif opt_cnfg['type'] == 'fraction':
 			try:
@@ -427,9 +469,9 @@ class OptionConfigs(QtWidgets.QWidget):
 							  				opt_cnfg['value'],
 											fraction=True)
 				widget.add_connect(opt_cnfg['callback'])
-				logger.debug(f"Adding option callback {opt_cnfg['callback']} to {opt_key}")
+				logger.debug("Adding option callback %s to %s", opt_cnfg['callback'], opt_key)
 			except:
-				logger.warning(f"Can't make widget {label_str} for asset {opt_key}")
+				logger.warning("Can't make widget %s for asset %s", label_str, opt_key)
 				raise ValueError
 		elif opt_cnfg['type'] == 'option':
 			try:
@@ -437,12 +479,12 @@ class OptionConfigs(QtWidgets.QWidget):
 											dflt_option=opt_cnfg['value'],
 											options_list=opt_cnfg['options'])
 				widget.add_connect(opt_cnfg['callback'])
-				logger.debug(f"Adding option callback {opt_cnfg['callback']} to {opt_key}")
+				logger.debug("Adding option callback %s to %s", opt_cnfg['callback'], opt_key)
 			except:
-				logger.warning(f"Can't make widget {label_str} for asset {opt_key}")
+				logger.warning("Can't make widget %s for asset %s", label_str, opt_key)
 				raise ValueError
 		else:
-			logger.warning(f"Can't find widget type for {label_str}:{opt_cnfg['type']}")
+			logger.warning("Can't find widget type for %s:%s", label_str, opt_cnfg['type'])
 			raise TypeError
 
 		return widget
@@ -461,11 +503,11 @@ class OptionConfigs(QtWidgets.QWidget):
 	def deSerialise(self, state:dict[str, Any]) -> None:
 		for opt_section_title, opt_section in state.items():
 			if opt_section_title not in self.opt_sections.keys():
-				logger.warning(f'{opt_section_title} not a recognised context configuration section')
+				logger.warning('%s not a recognised context configuration section', opt_section_title)
 				continue
 			for opt_key, opt_serialisation in opt_section.items():
 				if opt_key not in self.opt_sections[opt_section_title]['opts'].keys():
-					logger.warning(f'{opt_key} not a recognised option for context configuration section {opt_section_title}')
+					logger.warning('%s not a recognised option for context configuration section %s', opt_key, opt_section_title)
 					continue
 				self.opt_sections[opt_section_title]['opts'][opt_key]['widget_data']['widget'].deSerialise(opt_serialisation)
 
@@ -499,7 +541,7 @@ class SensorViewConfigs(QtWidgets.QWidget):
 																options_list=[]))
 			self.view_sensor_selectors.append(widgets.OptionBox(f'View {ii+1} Sensor:',
 																options_list=[]))
-			self.view_full_res_generator.append(widgets.Button(f'Full Resolution Image','Generate'))
+			self.view_full_res_generator.append(widgets.Button('Full Resolution Image','Generate'))
 			glayout.addWidget(self.view_spacecraft_selectors[-1],ii+1,0)
 			glayout.addWidget(self.view_sensor_selectors[-1],ii+1,1)
 			glayout.addWidget(self.view_full_res_generator[-1],ii+1,2)
@@ -539,7 +581,7 @@ class SensorViewConfigs(QtWidgets.QWidget):
 		self._sens_dict = {}
 		self._sc_dict = {0:(None,None)}
 		sc_num = 1
-		logger.info(f'Creating list of sensors for all spacecraft')
+		logger.info('Creating list of sensors for all spacecraft')
 		for scid, sc_config in sens_dict.items():
 			self._sc_dict[sc_num] = (scid, sc_config[0])
 			sc_num += 1
@@ -551,7 +593,7 @@ class SensorViewConfigs(QtWidgets.QWidget):
 						self._sens_dict[scid][sens_num] = (suite_name, sens_name)
 						sens_num += 1
 
-		logger.info(f'Populating drop down menus with spacecraft')
+		logger.info('Populating drop down menus with spacecraft')
 		for ii in range(self._num_views):
 			self.view_spacecraft_selectors[ii].clear()
 			sc_items_list = [f'{v[0]}: {v[1]}' for v in self._sc_dict.values()]
@@ -559,7 +601,7 @@ class SensorViewConfigs(QtWidgets.QWidget):
 			self.view_spacecraft_selectors[ii].addItems(sc_items_list)
 
 	def setSensList(self, view_id, sc_list_id):
-		logger.info(f'Clearing sensors from drop down menus')
+		logger.info('Clearing sensors from drop down menus')
 		self.view_sensor_selectors[view_id].clear()
 		sc_id = self._sc_dict[sc_list_id][0]
 		if sc_id is None:
@@ -567,7 +609,7 @@ class SensorViewConfigs(QtWidgets.QWidget):
 			return
 		sens_list = [f'{v[0]}: {v[1]}' for v in self._sens_dict[sc_id].values()]
 		sens_list[0] = ''
-		logger.info(f'Populating drop down menus with sensors')
+		logger.info('Populating drop down menus with sensors')
 		self.view_sensor_selectors[view_id].addItems(sens_list)
 
 	def onGenerateSelection(self, view_id):
@@ -610,7 +652,6 @@ class Toolbar(QtWidgets.QWidget):
 
 	def addButtons(self):
 		# Process 'all' actions first
-		old_containing = None
 		for key, action in self.action_dict.items():
 			action_context_list = [ac.lower() for ac in action['contexts']]
 			if 'all'.lower() in action_context_list and action['button_icon'] is not None:
@@ -619,12 +660,10 @@ class Toolbar(QtWidgets.QWidget):
 				self.button_dict[key].setCheckable(action['toggleable'])
 				if action['callback'] is not None:
 					self.button_dict[key].triggered.connect(action['callback'])
-				old_containing = action['containing_menu']
 				self.toolbar.addAction(self.button_dict[key])
 
 		self.toolbar.addSeparator()
 
-		old_containing = None
 
 		for key, action in self.action_dict.items():
 			action_context_list = [ac.lower() for ac in action['contexts']]
@@ -634,7 +673,6 @@ class Toolbar(QtWidgets.QWidget):
 				self.button_dict[key].setCheckable(action['toggleable'])
 				if action['callback'] is not None:
 					self.button_dict[key].triggered.connect(action['callback'])
-				old_containing = action['containing_menu']
 				self.toolbar.addAction(self.button_dict[key])
 
 	def addToWindow(self):
@@ -700,8 +738,8 @@ class Menubar(QtWidgets.QWidget):
 
 def pretty(d, indent=0):
    for key, value in d.items():
-      print('\t' * indent + str(key))
+      print('\t' * indent + str(key)) 				# noqa: T201
       if isinstance(value, dict):
          pretty(value, indent+1)
       else:
-         print('\t' * (indent+1) + str(value))
+         print('\t' * (indent+1) + str(value)) 		# noqa: T201

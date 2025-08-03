@@ -1,9 +1,14 @@
+import logging
+
+import typing
+
 import numpy as np
+
+from vispy.scene.cameras.arcball import ArcballCamera
+from vispy.scene.cameras.perspective import Base3DRotationCamera
 from vispy.util import transforms
 from vispy.util.quaternion import Quaternion
 
-from vispy.scene.cameras.perspective import Base3DRotationCamera
-from vispy.scene.cameras.arcball import ArcballCamera
 
 class FixedCamera(Base3DRotationCamera):
 	"""3D camera class that orbits around a center point while
@@ -40,7 +45,7 @@ class FixedCamera(Base3DRotationCamera):
 	_state_props = Base3DRotationCamera._state_props + ('_quaternion',)
 
 	def __init__(self, fov=45.0, distance=None, translate_speed=1.0, **kwargs):
-		super(FixedCamera, self).__init__(fov=fov, interactive=False, **kwargs)
+		super().__init__(fov=fov, interactive=False, **kwargs)
 
 		# Set camera attributes
 		self._quaternion = Quaternion()
@@ -54,7 +59,6 @@ class FixedCamera(Base3DRotationCamera):
 	def _get_rotation_tr(self):
 		"""Return a rotation matrix based on camera parameters"""
 		rot, x, y, z = self._quaternion.get_axis_angle()
-		print(f'Inside _get_rotation_tr:{self._quaternion=}')
 		return transforms.rotate(180 * rot / np.pi, (x, y, z))
 
 	def _get_dim_vectors(self):
@@ -71,7 +75,7 @@ class FixedCamera(Base3DRotationCamera):
 			sf_quat = (quat[3],quat[0],quat[1],quat[2])
 		else:
 			sf_quat = quat
-		self._setQuat(quat,update=True)
+		self._setQuat(sf_quat,update=True)
 
 	def _setPos(self, pos:tuple[float,float,float], update=False):
 		self.center = pos
@@ -125,7 +129,7 @@ class MovableFixedCamera(ArcballCamera):
 	_state_props = Base3DRotationCamera._state_props + ('_quaternion',)
 
 	def __init__(self, fov=45.0, distance=None, translate_speed=1.0, **kwargs):
-		super(MovableFixedCamera, self).__init__(fov=fov, **kwargs)
+		super().__init__(fov=fov, **kwargs)
 
 		# Set camera attributes
 		self._quaternion = Quaternion()
@@ -136,7 +140,6 @@ class MovableFixedCamera(ArcballCamera):
 	def _get_rotation_tr(self):
 		"""Return a rotation matrix based on camera parameters"""
 		rot, x, y, z = self._quaternion.get_axis_angle()
-		print(f'Inside _get_rotation_tr:{self._quaternion=}')
 		return transforms.rotate(180 * rot / np.pi, (x, y, z))
 
 	def _setQuat(self, quat:tuple[float,float,float,float], update=False):
@@ -149,7 +152,7 @@ class MovableFixedCamera(ArcballCamera):
 			sf_quat = (quat[3],quat[0],quat[1],quat[2])
 		else:
 			sf_quat = quat
-		self._setQuat(quat,update=True)
+		self._setQuat(sf_quat,update=True)
 
 	def _setPos(self, pos:tuple[float,float,float], update=False):
 		self.center = pos

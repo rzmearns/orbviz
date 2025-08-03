@@ -1,32 +1,35 @@
-import json
 import logging
-import numpy as np
 import time
+
+import typing
 from typing import Any
+
+import numpy as np
 
 from PyQt5 import QtGui
 
 from vispy import scene
 from vispy.app.canvas import MouseEvent, ResizeEvent
 
-from satplot.model.data_models.history_data import (HistoryData)
+from satplot.model.data_models.history_data import HistoryData
 import satplot.model.geometry.primgeom as pg
-from satplot.model.data_models.data_types import PrimaryConfig
-from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 import satplot.util.constants as c
 import satplot.util.exceptions as exceptions
-# import satplot.visualiser.assets.axis_indicators as axis_indicators
-import satplot.visualiser.assets.base_assets as base_assets
-import satplot.visualiser.assets.constellation as constellation
-import satplot.visualiser.assets.earth as earth
-import satplot.visualiser.assets.gizmo as gizmo
-import satplot.visualiser.assets.orbit as orbit
-import satplot.visualiser.assets.moon as moon
-import satplot.visualiser.assets.spacecraft as spacecraft
-import satplot.visualiser.assets.sun as sun
-import satplot.visualiser.assets.widgets as widgets
 
-from vispy.visuals.transforms import STTransform
+# import satplot.visualiser.assets.axis_indicators as axis_indicators
+from satplot.visualiser.assets import (
+	base_assets,
+	constellation,
+	earth,
+	events,
+	gizmo,
+	moon,
+	orbit,
+	spacecraft,
+	sun,
+	widgets,
+)
+from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +71,7 @@ class History3DCanvasWrapper(BaseCanvas):
 
 		self.assets['constellation'] = constellation.Constellation(v_parent=self.view_box.scene)
 		self.assets['sun'] = sun.Sun3DAsset(v_parent=self.view_box.scene)
+		self.assets['events'] = events.Events3DAsset(v_parent=self.view_box.scene)
 
 		self.assets['ECI_gizmo'] = gizmo.ViewBoxGizmo(v_parent=self.view_box)
 		self.setCameraZoom(5*c.R_EARTH)
@@ -87,7 +91,7 @@ class History3DCanvasWrapper(BaseCanvas):
 							'magnify',
 							'perspective']
 		if mode not in allowed_cam_modes:
-			logger.error(f'specified camera mode is not a valid mode: {mode}')
+			logger.error('specified camera mode is not a valid mode: %s', mode)
 			raise NameError
 
 		self.view_box.camera = mode
@@ -102,7 +106,7 @@ class History3DCanvasWrapper(BaseCanvas):
 	def modelUpdated(self) -> None:
 		# Update data source for earth asset
 		if self.data_models['history'] is None:
-			logger.error(f'canvas wrapper: {self} does not have a history data model yet')
+			logger.error('canvas wrapper: %s does not have a history data model yet', self)
 			raise exceptions.InvalidDataError
 
 		if self.data_models['history'].timespan is not None:
@@ -126,6 +130,13 @@ class History3DCanvasWrapper(BaseCanvas):
 													self.data_models['history'])
 			self.assets['spacecraft'].makeActive()
 
+		# Update data source for events
+		if self.data_models['history'].getConfigValue('events_defined'):
+			self.assets['events'].setSource(list(self.data_models['history'].events.values())[0])
+			self.assets['events'].makeActive()
+		else:
+			self.assets['events'].makeDormant()
+
 		if self.data_models['history'].getConfigValue('has_supplemental_constellation'):
 			self.assets['constellation'].setSource(self.data_models['history'].getConstellation().getOrbits(),
 													self.data_models['history'].getConstellation().getConfigValue('beam_angle_deg'))
@@ -140,12 +151,12 @@ class History3DCanvasWrapper(BaseCanvas):
 
 
 	def updateIndex(self, index:int) -> None:
-		for asset_name,asset in self.assets.items():
+		for asset in self.assets.values():
 			if asset.isActive():
 				asset.updateIndex(index)
 
 	def recomputeRedraw(self) -> None:
-		for asset_name, asset in self.assets.items():
+		for asset in self.assets.values():
 			# if asset_name == 'sun':
 			# 	continue
 			if asset.isActive():
@@ -158,8 +169,8 @@ class History3DCanvasWrapper(BaseCanvas):
 
 	def centerCameraSpacecraft(self, set_zoom:bool=True) -> None:
 		if self.canvas is None:
-			logger.warning(f"Canvas has not been set for History3D Canvas Wrapper. No camera to center")
-			raise AttributeError(f"Canvas has not been set for History3D Canvas Wrapper. No camera to center")
+			logger.warning("Canvas has not been set for History3D Canvas Wrapper. No camera to center")
+			raise AttributeError("Canvas has not been set for History3D Canvas Wrapper. No camera to center")
 		if self.assets['spacecraft'].isActive():
 			sc_pos = tuple(self.assets['spacecraft'].data['coords'][self.assets['spacecraft'].data['curr_index']])
 		else:
@@ -176,8 +187,8 @@ class History3DCanvasWrapper(BaseCanvas):
 
 	def centerCameraEarth(self) -> None:
 		if self.canvas is None:
-			logger.warning(f"Canvas has not been set for History3D Canvas Wrapper. No camera to center")
-			raise AttributeError(f"Canvas has not been set for History3D Canvas Wrapper. No camera to center")
+			logger.warning("Canvas has not been set for History3D Canvas Wrapper. No camera to center")
+			raise AttributeError("Canvas has not been set for History3D Canvas Wrapper. No camera to center")
 		self.view_box.camera.center = (0,0,0)
 		self.setCameraZoom(5*c.R_EARTH)
 		self.canvas.update()
@@ -206,11 +217,7 @@ class History3DCanvasWrapper(BaseCanvas):
 			asset.deSerialise(state['asset_states'][asset_name])
 
 	def mapAssetPositionsToScreen(self) -> list:
-		mo_infos = []
-		for asset_name, asset in self.assets.items():
-			if asset.isActive():
-				mo_infos.append(asset.getScreenMouseOverInfo())
-
+		mo_infos = [asset.getScreenMouseOverInfo() for asset in self.assets.values() if asset.isActive()]
 		return mo_infos
 
 	def onMouseMove(self, event:MouseEvent) -> None:
@@ -236,7 +243,7 @@ class History3DCanvasWrapper(BaseCanvas):
 			for ii, pos in enumerate(mo_info['screen_pos']):
 				if ((abs(pos[0] - pp[0]) < MOUSEOVER_DIST_THRESHOLD) and \
 					(abs(pos[1] - pp[1]) < MOUSEOVER_DIST_THRESHOLD)):
-					dot = np.dot(pg.unitVector(mo_info['world_pos'][ii]),acamv[1,:])[0]
+					dot = np.dot(pg.unitVector(mo_info['world_pos'][ii].reshape(1,3)),acamv[1,:])[0]
 					if dot >=0:
 						last_mevnt_time = time.monotonic()
 						self.mouseOverText.setVisible(True)

@@ -1,17 +1,20 @@
 import logging
+
+import typing
+from typing import Any
+
 import numpy as np
 import pymap3d
-from typing import Any
+import spherapy.orbit as orbit
+
 import vispy.scene as scene
 from vispy.scene.widgets.viewbox import ViewBox
 import vispy.visuals.transforms as vtransforms
 
 import satplot.model.data_models.history_data as history_data
 import satplot.model.geometry.primgeom as pg
-import satplot.util.constants as c
-import satplot.visualiser.colours as colours
 import satplot.visualiser.assets.base_assets as base_assets
-import spherapy.orbit as orbit
+import satplot.visualiser.colours as colours
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +37,7 @@ class Moon3DAsset(base_assets.AbstractAsset):
 
 	def setSource(self, *args, **kwargs) -> None:
 		if type(args[0]) is not orbit.Orbit:
-			logger.error(f"setSource() of {self} requires an {orbit.Orbit} as value of dict from args[0], not: {type(args[0])}")
+			logger.error("setSource() of %s requires an %s as value of dict from args[0], not: {type(args[0])}", self, orbit.Orbit)
 			raise TypeError
 		self.data['pos'] = args[0].moon_pos
 
@@ -98,7 +101,7 @@ class Moon3DAsset(base_assets.AbstractAsset):
 	
 	#----- OPTIONS CALLBACKS -----#
 	def setMoonSphereColour(self, new_colour:tuple[float,float,float]) -> None:
-		logger.debug(f"Changing moon sphere colour {self.opts['moon_sphere_colour']['value']} -> {new_colour}")
+		logger.debug("Changing moon sphere colour %s -> %s", self.opts['moon_sphere_colour']['value'], new_colour)
 		self.opts['moon_sphere_colour']['value'] = new_colour
 		n_faces = self.visuals['moon'].mesh._meshdata.n_faces
 		n_verts = self.visuals['moon'].mesh._meshdata.n_vertices
@@ -169,7 +172,7 @@ class Moon2DAsset(base_assets.AbstractAsset):
 	def setSource(self, *args, **kwargs):
 		# args[0] history data
 		if type(args[0]) is not history_data.HistoryData:
-			logger.error(f"setSource() of {self} requires a {history_data.HistoryData} as args[1], not: {type(args[1])}")
+			logger.error("setSource() of %s requires a %s as args[1], not: {type(args[1])}", self, history_data.HistoryData)
 			raise TypeError(f"setSource() of {self} requires a {history_data.HistoryData} as args[1], not: {type(args[1])}")
 			return
 
@@ -177,7 +180,7 @@ class Moon2DAsset(base_assets.AbstractAsset):
 		first_sat_orbit = list(self.data['history_src'].getOrbits().values())[0]
 
 		if type(first_sat_orbit) is not orbit.Orbit:
-			logger.error(f"data source for {self} is not an orbit.Orbit, can't extract moon location data")
+			logger.error("data source for %s is not an orbit.Orbit, can't extract moon location data", self)
 			raise TypeError
 
 		lat, lon, alt = pymap3d.eci2geodetic(first_sat_orbit.moon_pos[:,0],
@@ -262,11 +265,11 @@ class Moon2DAsset(base_assets.AbstractAsset):
 		self.visuals['marker'].visible = self.opts['plot_moon_marker']['value']
 
 	def setMoonMarkerColour(self, new_colour):
-		logger.debug(f"Changing moon marker colour {self.opts['moon_marker_colour']['value']} -> {new_colour}")
+		logger.debug("Changing moon marker colour %s -> %s", self.opts['moon_marker_colour']['value'], new_colour)
 		self.opts['moon_marker_colour']['value'] = new_colour
 		self._updateMarkers()
 
 	def setMoonMarkerSize(self, size):
-		logger.debug(f"Changing moon marker size {self.opts['moon_marker_size']['value']} -> {size}")
+		logger.debug("Changing moon marker size %s -> %s", self.opts['moon_marker_size']['value'], size)
 		self.opts['moon_marker_size']['value'] = size
 		self._updateMarkers()

@@ -1,6 +1,9 @@
-import datetime as dt
 import logging
+
+import typing
+
 import satplot.util.paths as satplot_paths
+
 
 def setUpLogLevels():
 
@@ -18,18 +21,18 @@ def setUpLogLevels():
 
 	# satplot
 
-	logging.getLogger('satplot.visualiser').setLevel(logging.INFO)
-	logging.getLogger('satplot.visualiser.window').setLevel(logging.INFO)
-	logging.getLogger('satplot.visualiser.assets').setLevel(logging.INFO)
-	logging.getLogger('satplot.visualiser.assets.spacecraft').setLevel(logging.INFO)
-	logging.getLogger('satplot.visualiser.cameras').setLevel(logging.INFO)
-	logging.getLogger('satplot.visualiser.contexts').setLevel(logging.INFO)
-	logging.getLogger('satplot.visualiser.contexts.canvas_wrappers').setLevel(logging.INFO)
-	logging.getLogger('satplot.visualiser.interface').setLevel(logging.INFO)
-	logging.getLogger('satplot.visualiser.shells').setLevel(logging.INFO)
+	logging.getLogger('satplot.visualiser').setLevel(logging.WARNING)
+	# logging.getLogger('satplot.visualiser.window').setLevel(logging.INFO)
+	# logging.getLogger('satplot.visualiser.assets').setLevel(logging.INFO)
+	# logging.getLogger('satplot.visualiser.assets.spacecraft').setLevel(logging.INFO)
+	# logging.getLogger('satplot.visualiser.cameras').setLevel(logging.INFO)
+	# logging.getLogger('satplot.visualiser.contexts').setLevel(logging.INFO)
+	# logging.getLogger('satplot.visualiser.contexts.canvas_wrappers').setLevel(logging.INFO)
+	# logging.getLogger('satplot.visualiser.interface').setLevel(logging.INFO)
+	# logging.getLogger('satplot.visualiser.shells').setLevel(logging.INFO)
 	logging.getLogger('satplot.model.data_models').setLevel(logging.INFO)
-	logging.getLogger('satplot.model.geometry').setLevel(logging.INFO)
-	logging.getLogger('satplot.model.lens_models').setLevel(logging.INFO)
+	logging.getLogger('satplot.model.geometry').setLevel(logging.WARNING)
+	logging.getLogger('satplot.model.lens_models').setLevel(logging.WARNING)
 
 def configureLogger():
 	# Create handlers

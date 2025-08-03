@@ -1,22 +1,25 @@
-from __future__ import division
+from ctypes import ArgumentError
+import logging
+
+import typing
 
 import numpy as np
-from vispy.scene.cameras import BaseCamera
+
 from vispy.geometry import Rect
-from vispy.scene.cameras import PanZoomCamera
-from ctypes import ArgumentError
+from vispy.scene.cameras import BaseCamera, PanZoomCamera
+
 
 class RestrictedPanZoomCamera(PanZoomCamera):
 	# Subclass created by github user h21ak9, and published in vispy issue https://github.com/vispy/vispy/issues/2486
 
-	def __init__(self, limits:tuple=(-np.Inf, np.Inf, -np.Inf, np.Inf), *args, **kwargs):
+	def __init__(self, limits:tuple=(-np.inf, np.inf, -np.inf, np.inf), *args, **kwargs):
 		if len(limits) != 4:
 			raise ArgumentError("Input 'limits' must have 4 elements")
 		self._left_limit = limits[0]
 		self._right_limit = limits[1]
 		self._bottom_limit = limits[2]
 		self._top_limit = limits[3]
-		super(RestrictedPanZoomCamera, self).__init__(*args, name='RestrictedPanZoom', **kwargs)
+		super().__init__(*args, name='RestrictedPanZoom', **kwargs)
 
 	def zoom(self, factor, center=None):
 		"""

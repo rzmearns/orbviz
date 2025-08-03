@@ -1,12 +1,13 @@
 import logging
+
+import typing
 from typing import Any
 
-from PyQt5 import QtWidgets, QtCore, QtGui
-
-import satplot.visualiser.interface.controls as controls
+from PyQt5 import QtCore, QtWidgets
 
 from satplot.model.data_models import datapane as datapane_model
 from satplot.visualiser.contexts import base_context
+import satplot.visualiser.interface.controls as controls
 import satplot.visualiser.interface.datapane as datapane
 import satplot.visualiser.interface.widgets as satplot_widgets
 
@@ -84,8 +85,8 @@ class BaseShell:
 				context.canvas_wrapper.mouseOverText.notifier.text_updated.connect(self.datapane.setMouseText)
 
 	def updateActiveContext(self, curr_context_idx:int|None, new_context_idx:int|None) -> None:
-		logger.debug(f'Changing toolbar and menu for {self.name} shell')
-		logger.debug(f'{self.name}:{self.active=}')
+		logger.debug('Changing toolbar and menu for %s shell', self.name)
+		logger.debug('%s:%s', self.name, self.active)
 
 		if curr_context_idx is None:
 			curr_context_idx = self.context_tab_stack.currentIndex()
@@ -98,12 +99,12 @@ class BaseShell:
 
 		# process deselects first in order to clear parent pointer to menubar, otherwise menubar gets deleted (workaround for pyqt5)
 		for context_key in self.contexts_dict.keys():
-			logger.debug(f'Deactivating bars for {self.name}:{context_key}')
+			logger.debug('Deactivating bars for %s:%s', self.name, context_key)
 			self.toolbars[context_key].setActiveState(False)
 			self.menubars[context_key].setActiveState(False)
 
 		if self.active and new_context_key is not None:
-			logger.debug(f'Activating bars for {self.name}:{new_context_key}')
+			logger.debug('Activating bars for %s:%s', self.name, new_context_key)
 			self.toolbars[new_context_key].setActiveState(True)
 			self.menubars[new_context_key].setActiveState(True)
 

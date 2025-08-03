@@ -1,15 +1,16 @@
 from abc import abstractmethod
 import logging
+
+import typing
 from typing import Any
 
 from vispy import scene
-import vispy.scene.widgets.grid as vispy_grid
 
 import satplot.visualiser.assets.base_assets as base_assets
 
 logger = logging.getLogger(__name__)
 
-class BaseCanvas():
+class BaseCanvas:
 	def __init__(self, w:int=800, h:int=600, keys:str='interactive', bgcolor:str='white'):
 		pass
 
@@ -53,7 +54,7 @@ class BaseCanvas():
 
 	def getCanvas(self) -> scene.canvas.SceneCanvas:
 		if self.canvas is None:
-			logger.error(f'Canvas wrapper:{self} does not have a canvas yet.')
+			logger.error('Canvas wrapper:%s does not have a canvas yet.', self)
 			raise ValueError(f'Canvas wrapper:{self} does not have a canvas yet.')
 		else:
 			return self.canvas

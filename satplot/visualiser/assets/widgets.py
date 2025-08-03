@@ -1,16 +1,18 @@
-import numpy as np
+import logging
 import sys
-from typing import Any
+
+import typing
 
 from PyQt5 import QtCore
 
 from vispy import scene
-from vispy.scene.widgets.viewbox import ViewBox
 from vispy.scene.canvas import SceneCanvas
+from vispy.scene.widgets.viewbox import ViewBox
 
 import satplot.visualiser.colours as colours
 
-class PopUpTextBox():
+
+class PopUpTextBox:
 	def __init__(self, v_parent:ViewBox|None=None,
 						padding:list[float]=[0,0,0,0],
 						text_colour:tuple[float,float,float]=(0,0,0),
@@ -75,7 +77,7 @@ class PopUpTextBox():
 
 	def updateCenter(self) -> None:
 		self.center = ((self.pos[0] + self.t_width/2+self.padding[0]),
-				 		((self.pos[1] - self.t_height/2-self.padding[3])))
+				 		(self.pos[1] - self.t_height/2-self.padding[3]))
 		if self.b_visual is not None:
 			self.b_visual.center = self.center
 
@@ -122,7 +124,7 @@ class PopUpTextBox():
 			text = text.decode('utf-8')
 		# Need to store the original viewport, because the font[char] will
 		# trigger SDF rendering, which changes our viewport
-		# todo: get rid of call to glGetParameter!
+		# TODO: get rid of call to glGetParameter!
 
 		# Also analyse chars with large ascender and descender, otherwise the
 		# vertical alignment can be very inconsistent
@@ -155,11 +157,11 @@ class PopUpTextBox():
 		y_offset = 0
 
 		# When a line break occur, record the vertices index value
-		vi_marker = 0
+		vi_marker = 0 		# noqa: F841
 		ii_offset = 0  # Offset since certain characters won't be drawn
 
 		# The running tracker of characters vertex index
-		vi = 0
+		vi = 0 				# noqa: F841
 		max_width = 0
 		for ii, char in enumerate(text):
 			if ord(char) in esc_seq:
