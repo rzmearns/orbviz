@@ -242,6 +242,7 @@ class GroundStation2DAsset(base_assets.AbstractAsset):
 		self.data['min_elevations'] = []
 		self.data['oth_edges1'] = []
 		self.data['oth_edges2'] = []
+		self.data['oth_circle_splits'] = []
 		for ii, station in enumerate(stations.values()):
 			self.data['coords'][ii,0] = station.latlon[1] 	# longitude
 			self.data['coords'][ii,1] = station.latlon[0] 	# latitude
@@ -251,18 +252,18 @@ class GroundStation2DAsset(base_assets.AbstractAsset):
 			edge1_data, edge2_data, split = self.calcOTHCircle(self.data['min_elevations'][ii], self.data['coords'][ii])
 			self.data['oth_edges1'].append(edge1_data)
 			self.data['oth_edges2'].append(edge2_data)
-
-			# if split:
-			# 	self.visuals['oth_circle1'].opacity = self.opts['over_the_horizon_circle_alpha']['value']
-			# 	self.visuals['oth_circle2'].opacity = self.opts['over_the_horizon_circle_alpha']['value']
-			# else:
-			# 	self.visuals['oth_circle1'].opacity = self.opts['over_the_horizon_circle_alpha']['value']/2
-			# 	self.visuals['oth_circle2'].opacity = self.opts['over_the_horizon_circle_alpha']['value']/2
+			self.data['oth_circle_splits'].append(split)
 
 		self.data['scaled_coords'] = self._scale(self.data['coords'])
 
 		self._recreateOTHCircleVisuals()
-
+		for ii in range(len(stations.values())):
+			if self.data['oth_circle_splits'][ii]:
+				self.visuals['oth_circles1'][ii].opacity = self.opts['over_the_horizon_circle_alpha']['value']
+				self.visuals['oth_circles2'][ii].opacity = self.opts['over_the_horizon_circle_alpha']['value']
+			else:
+				self.visuals['oth_circles1'][ii].opacity = self.opts['over_the_horizon_circle_alpha']['value']/2
+				self.visuals['oth_circles2'][ii].opacity = self.opts['over_the_horizon_circle_alpha']['value']/2
 
 
 	def setScale(self, horizontal_size, vertical_size):
@@ -327,13 +328,13 @@ class GroundStation2DAsset(base_assets.AbstractAsset):
 												'static': True,
 												'callback': self.setOTHCircleVisibility,
 											'widget_data': None}
-		self._dflt_opts['over_the_horizon_circle_colour'] = {'value': (255,234,0),
+		self._dflt_opts['over_the_horizon_circle_colour'] = {'value': (255,100,0),
 												'type': 'colour',
 												'help': '',
 												'static': True,
 												'callback': self.setOTHCircleColour,
 											'widget_data': None}
-		self._dflt_opts['over_the_horizon_circle_alpha'] = {'value': 0.4,
+		self._dflt_opts['over_the_horizon_circle_alpha'] = {'value': 0.3,
 												'type': 'fraction',
 												'help': '',
 												'static': True,
@@ -370,15 +371,21 @@ class GroundStation2DAsset(base_assets.AbstractAsset):
 		logger.debug("Changing groundstation OTH alpha %s -> %s",  self.opts['over_the_horizon_circle_alpha']['value'], alpha)
 		self.opts['over_the_horizon_circle_alpha']['value'] = alpha
 		for ii in range(len(self.visuals['oth_circles1'])):
-			self.visuals['oth_circles1'][ii].opacity = self.opts['over_the_horizon_circle_alpha']['value']
-			self.visuals['oth_circles2'][ii].opacity = self.opts['over_the_horizon_circle_alpha']['value']
+			if self.data['oth_circle_splits'][ii]:
+				self.visuals['oth_circles1'][ii].opacity = self.opts['over_the_horizon_circle_alpha']['value']
+				self.visuals['oth_circles2'][ii].opacity = self.opts['over_the_horizon_circle_alpha']['value']
+			else:
+				self.visuals['oth_circles1'][ii].opacity = self.opts['over_the_horizon_circle_alpha']['value']/2
+				self.visuals['oth_circles2'][ii].opacity = self.opts['over_the_horizon_circle_alpha']['value']/2
 
 	def setOTHCircleColour(self, new_colour):
 		logger.debug("Changing groundstation OTH colour %s -> %s", self.opts['over_the_horizon_circle_colour']['value'], new_colour)
 		self.opts['over_the_horizon_circle_colour']['value'] = new_colour
 		for ii in range(len(self.visuals['oth_circles1'])):
-			self.visuals['oth_circles1'][ii].color = self.opts['over_the_horizon_circle_colour']['value']
-			self.visuals['oth_circles2'][ii].color = self.opts['over_the_horizon_circle_colour']['value']
+			self.visuals['oth_circles1'][ii].color = colours.normaliseColour(self.opts['over_the_horizon_circle_colour']['value'])
+			self.visuals['oth_circles2'][ii].color = colours.normaliseColour(self.opts['over_the_horizon_circle_colour']['value'])
+			self.visuals['oth_circles1'][ii].border_color = colours.normaliseColour(self.opts['over_the_horizon_circle_colour']['value'])
+			self.visuals['oth_circles2'][ii].border_color = colours.normaliseColour(self.opts['over_the_horizon_circle_colour']['value'])
 
 	def setOTHCircleVisibility(self, state):
 		self.opts['plot_over_the_horizon_circle']['value'] = state
