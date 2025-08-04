@@ -48,5 +48,15 @@
 	"callback": null,
 	"contexts": ["all"],
 	"toggleable": false
-   }     
+   },
+"groundstations": {
+	"tooltip": "Select Groundstations",
+	"menu_item": "Select Groundstations",
+	"containing_menu": "Groundstations",
+	"button_icon": "resources/icons/radio.png",
+	"hotkey": "ctrl+o",
+	"callback": null,
+	"contexts": ["all"],
+	"toggleable": false
+   }
 }

@@ -62,6 +62,7 @@ class Application:
 			context.controls.action_dict['save-as']['callback'] = self.saveAs
 			context.controls.action_dict['load']['callback'] = self.load
 			context.controls.action_dict['spacetrak-credentials']['callback'] = dialogs.SpaceTrackCredentialsDialog
+			context.controls.action_dict['groundstations']['callback'] = self.window.setActiveShellGroundStations
 		else:
 			logger.error('context: %s does not have an associated action dictionary from a resources/actions/<context>.json file.',context)
 			raise ValueError()
