@@ -14,6 +14,7 @@ from vispy.gloo.util import _screenshot
 import satplot.model.data_models.data_types as data_types
 from satplot.model.data_models.earth_raycast_data import EarthRayCastData
 from satplot.model.data_models.history_data import HistoryData
+from satplot.model.data_models.groundstation_data import GroundStationCollection
 import satplot.visualiser.contexts.base_context as base
 from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 from satplot.visualiser.contexts.canvas_wrappers.cw_container import CWContainer
@@ -28,11 +29,15 @@ logger = logging.getLogger(__name__)
 class History2DContext(base.BaseContext):
 	data_type = [data_types.DataType.HISTORY]
 
-	def __init__(self, name:str, parent_window:QtWidgets.QMainWindow, history_data:HistoryData, raycast_data:EarthRayCastData):
+	def __init__(self, name:str, parent_window:QtWidgets.QMainWindow,
+					history_data:HistoryData,
+					groundstation_data:GroundStationCollection,
+					raycast_data:EarthRayCastData):
 		super().__init__(name)
 		self.window = parent_window
 		self.data: dict[str, Any] = {}
 		self.data['history'] = history_data
+		self.data['groundstations'] = groundstation_data
 		self.data['raycast_src'] = raycast_data
 		self._validateDataType()
 		self.canvas_wrapper = history2d_cw.History2DCanvasWrapper()
@@ -98,6 +103,7 @@ class History2DContext(base.BaseContext):
 		self.controls.time_slider.setValue(int(self.controls.time_slider.num_ticks/2))
 
 	def _updateDataSources(self) -> None:
+		# self.data['groundstations'].updateTimespans(self.data['history'].timespan)
 		self.canvas_wrapper.modelUpdated()
 		self.controls.rebuildOptions()
 		self.canvas_wrapper.setFirstDrawFlags()

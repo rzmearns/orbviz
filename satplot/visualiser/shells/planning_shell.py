@@ -36,10 +36,23 @@ class PlanningShell(base_shell.BaseShell):
 			self.data['history_data_model'].index_updated.connect(self.datapane_model.refresh)
 
 		# Build context panes
-		self._addContext('configuration-history', history_configuration_context.HistoryConfigurationContext('configuration-history', self.window, self.data['history_data_model']))
-		self._addContext('3D-planning', history3d_context.History3DContext('3D-planning', self.window, self.data['history_data_model']))
-		self._addContext('2D-planning', history2d_context.History2DContext('2D-planning', self.window, self.data['history_data_model'], self.data['earth_raycast_data_model']))
-		self._addContext('sensors-view',sensor_views_context.SensorViewsContext('sensors-view-planning', self.window, self.data['history_data_model'], self.data['earth_raycast_data_model']))
+		self._addContext('configuration-history', history_configuration_context.HistoryConfigurationContext('configuration-history',
+																												self.window,
+																												self.data['history_data_model']))
+		self._addContext('3D-planning', history3d_context.History3DContext('3D-planning',
+																			self.window,
+																			self.data['history_data_model'],
+																			self.data['groundstations']))
+		self._addContext('2D-planning', history2d_context.History2DContext('2D-planning',
+																			self.window,
+																			self.data['history_data_model'],
+																			self.data['groundstations'],
+																			self.data['earth_raycast_data_model']))
+		self._addContext('sensors-view',sensor_views_context.SensorViewsContext('sensors-view-planning',
+																					self.window,
+																					self.data['history_data_model'],
+																					self.data['groundstations'],
+																					self.data['earth_raycast_data_model']))
 
 		# check toolbar/menubar indices are the same
 		for ii, key in enumerate(self.toolbars.keys()):

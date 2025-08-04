@@ -5,7 +5,7 @@ import typing
 
 from PyQt5 import QtWidgets
 
-from satplot.model.data_models import earth_raycast_data, history_data
+from satplot.model.data_models import earth_raycast_data, history_data, groundstation_data
 from satplot.visualiser.contexts import (
 	history2d_context,
 	history3d_context,
@@ -26,6 +26,7 @@ class HistoricalShell(base_shell.BaseShell):
 
 		# Create empty data models
 		self.data['history'] = history_data.HistoryData()
+		self.data['history'].groundstationCollection = self.data['groundstations']
 		if global_earth_rdm is None:
 			self.data['earth_rdm'] = earth_raycast_data.EarthRayCastData()
 		else:
@@ -37,10 +38,23 @@ class HistoricalShell(base_shell.BaseShell):
 			self.data['history'].index_updated.connect(self.datapane_model.refresh)
 
 		# Build context panes
-		self._addContext('configuration-history', history_configuration_context.HistoryConfigurationContext('configuration-history', self.window, self.data['history']))
-		self._addContext('3D-history', history3d_context.History3DContext('3D-history', self.window, self.data['history']))
-		self._addContext('2D-history', history2d_context.History2DContext('2D-history', self.window, self.data['history'], self.data['earth_rdm']))
-		self._addContext('sensors-view-history', sensor_views_context.SensorViewsContext('sensors-view-history', self.window, self.data['history'], self.data['earth_rdm']))
+		self._addContext('configuration-history', history_configuration_context.HistoryConfigurationContext('configuration-history',
+																											self.window,
+																											self.data['history']))
+		self._addContext('3D-history', history3d_context.History3DContext('3D-history',
+																			self.window,
+																			self.data['history'],
+																			self.data['groundstations']))
+		self._addContext('2D-history', history2d_context.History2DContext('2D-history',
+																			self.window,
+																			self.data['history'],
+																			self.data['groundstations'],
+																			self.data['earth_rdm']))
+		self._addContext('sensors-view-history', sensor_views_context.SensorViewsContext('sensors-view-history',
+																							self.window,
+																							self.data['history'],
+																							self.data['groundstations'],
+																							self.data['earth_rdm']))
 
 		# check toolbar/menubar indices are the same
 		for ii, key in enumerate(self.toolbars.keys()):

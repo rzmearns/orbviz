@@ -13,6 +13,7 @@ from vispy.gloo.util import _screenshot
 
 import satplot.model.data_models.data_types as data_types
 from satplot.model.data_models.history_data import HistoryData
+from satplot.model.data_models.groundstation_data import GroundStationCollection
 import satplot.visualiser.contexts.base_context as base
 from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 import satplot.visualiser.contexts.canvas_wrappers.history3d_cw as history3d_cw
@@ -26,7 +27,9 @@ logger = logging.getLogger(__name__)
 class History3DContext(base.BaseContext):
 	data_type = data_types.DataType.HISTORY
 
-	def __init__(self, name:str, parent_window:QtWidgets.QMainWindow, history_data:HistoryData):
+	def __init__(self, name:str, parent_window:QtWidgets.QMainWindow,
+						history_data:HistoryData,
+						groundstation_data:GroundStationCollection):
 		# super().__init__(name, data)
 		super().__init__(name)
 		self.window = parent_window
@@ -34,6 +37,7 @@ class History3DContext(base.BaseContext):
 		# self.data = data
 		self.data: dict[str,Any] = {}
 		self.data['history'] = history_data
+		self.data['groundstations'] = groundstation_data
 		self.canvas_wrapper = history3d_cw.History3DCanvasWrapper()
 		# self.canvas_wrapper.setModel(self.data)
 		self.canvas_wrapper.setModel(self.data['history'])
@@ -96,6 +100,7 @@ class History3DContext(base.BaseContext):
 		self.controls.time_slider.setValue(int(self.controls.time_slider.num_ticks/2))
 
 	def _updateDataSources(self) -> None:
+		# self.data['groundstations'].updateTimespans(self.data['history'].timespan)
 		self.canvas_wrapper.modelUpdated()
 		self.controls.rebuildOptions()
 		self.canvas_wrapper.setFirstDrawFlags()
