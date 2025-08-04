@@ -45,8 +45,7 @@ class GroundStation3DAsset(base_assets.AbstractAsset):
 										edge_width=0,
 										face_color=colours.normaliseColour(self.opts['groundstation_marker_colour']['value']),
 										edge_color='white',
-										size=self.opts['groundstation_marker_size']['value'],
-										symbol=self.opts['groundstation_marker_style']['value'])
+										size=self.opts['groundstation_marker_size']['value'])
 		self.visuals['marker'].order = -1
 
 
@@ -113,13 +112,6 @@ class GroundStation3DAsset(base_assets.AbstractAsset):
 												'static': True,
 												'callback': self.setGroundStationMarkerSize,
 											'widget_data': None}
-		self._dflt_opts['groundstation_marker_style'] = {'value': 'disc',
-												'type': 'option',
-												'options':['disc','arrow','ring','clobber','square','x','diamond','vbar','hbar','cross','tailed_arrow','triangle_up','triangle_down','star','cross_lines'],
-												'help': '',
-												'static': True,
-												'callback': self.setMarkerStyle,
-											'widget_data': None}
 		# sun radius calculated using 6deg angular size
 
 		self.opts = self._dflt_opts.copy()
@@ -128,8 +120,7 @@ class GroundStation3DAsset(base_assets.AbstractAsset):
 	def _updateMarkers(self):
 		self.visuals['marker'].set_data(pos=self.data['coords'][self.data['curr_index'],:,:].reshape(-1,3),
 											size=self.opts['groundstation_marker_size']['value'],
-											face_color=colours.normaliseColour(self.opts['groundstation_marker_colour']['value']),
-											symbol=self.opts['groundstation_marker_style']['value'])
+											face_color=colours.normaliseColour(self.opts['groundstation_marker_colour']['value']))
 
 	def setGroundStationMarkerColour(self, new_colour):
 		logger.debug("Changing GroundStation marker colour %s -> %s", self.opts['groundstation_marker_colour']['value'], new_colour)
