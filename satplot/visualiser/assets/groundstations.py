@@ -8,8 +8,12 @@ import numpy as np
 import vispy.scene as scene
 
 from satplot.model.data_models import groundstation_data
+import satplot.model.data_models.history_data as history_data
+import satplot.model.geometry.spherical as spherical_geom
+import satplot.util.constants as c
 import satplot.visualiser.assets.base_assets as base_assets
 import satplot.visualiser.colours as colours
+import satplot.visualiser.visuals.polygons as polygon_visuals
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +55,7 @@ class GroundStation3DAsset(base_assets.AbstractAsset):
 
 	def setSource(self, *args, **kwargs):
 		# args[0] groundstation data
+		# args[1] history data
 		if type(args[0]) is not groundstation_data.GroundStationCollection:
 			logger.error("setSource() of %s requires a %s as args[1], not: {type(args[1])}", self, groundstation_data.GroundStationCollection)
 			raise TypeError(f"setSource() of {self} requires a {groundstation_data.GroundStationCollection} as args[1], not: {type(args[1])}")
@@ -161,6 +166,13 @@ class GroundStation2DAsset(base_assets.AbstractAsset):
 
 		self.data['strings'] = []
 
+		self.data['oth_edge1'] = -1*np.ones((364,2))
+		# need to create a valid polygon for instantiation (but before valid data exists)
+		self.data['oth_edge1'][:363,0] = np.arange(0,363)
+		self.data['oth_edge1'][-1,1] = -1
+		self.data['oth_edge1'][-2,1] = -2
+		self.data['oth_edge2'] = self.data['oth_edge1'].copy()
+
 	def _instantiateAssets(self):
 		pass
 
@@ -171,25 +183,87 @@ class GroundStation2DAsset(base_assets.AbstractAsset):
 														antialias=0)
 		self.visuals['marker'].set_data(pos=self.data['scaled_coords'],
 										edge_width=0,
-										face_color=colours.normaliseColour(self.opts['prior_events_marker_colour']['value']),
+										face_color=colours.normaliseColour(self.opts['groundstation_marker_colour']['value']),
 										edge_color='white',
-										size=self.opts['events_marker_size']['value'],
-										symbol=self.opts['events_marker_style']['value'])
+										size=self.opts['groundstation_marker_size']['value'],
+										symbol=self.opts['groundstation_marker_style']['value'])
 		self.visuals['marker'].order = -1
 
+	def _recreateOTHCircleVisuals(self):
+		if 'oth_circles1' in self.visuals.keys():
+			for visual in self.visuals['oth_circles1']:
+				visual.parent=None
+			del self.visuals['oth_circles1']
+
+		if 'oth_circles2' in self.visuals.keys():
+			for visual in self.visuals['oth_circles2']:
+				visual.parent=None
+			del self.visuals['oth_circles2']
+
+		self.visuals['oth_circles1'] = []
+		self.visuals['oth_circles2'] = []
+		for ii in range(len(self.data['oth_edges1'])):
+			v = polygon_visuals.FastPolygon(self.data['oth_edges1'][ii],
+												color=colours.normaliseColour(self.opts['over_the_horizon_circle_colour']['value']),
+												border_color=colours.normaliseColour(self.opts['over_the_horizon_circle_colour']['value']),
+												border_width=2,
+												parent=None)
+			v.opacity = self.opts['over_the_horizon_circle_alpha']['value']
+			v.order = 1
+			v.set_gl_state('translucent', depth_test=False)
+			self.visuals['oth_circles1'].append(v)
+			v2 = polygon_visuals.FastPolygon(self.data['oth_edges2'][ii],
+												color=colours.normaliseColour(self.opts['over_the_horizon_circle_colour']['value']),
+												border_color=colours.normaliseColour(self.opts['over_the_horizon_circle_colour']['value']),
+												border_width=2,
+												parent=None)
+			v2.opacity = self.opts['over_the_horizon_circle_alpha']['value']
+			v2.order = 1
+			v2.set_gl_state('translucent', depth_test=False)
+			self.visuals['oth_circles2'].append(v2)
 
 	def setSource(self, *args, **kwargs):
-		# args[0] history data
-		if type(args[0]) is not event_data.EventData:
-			logger.error("setSource() of %s requires a %s as args[1], not: {type(args[1])}", self, event_data.EventData)
-			raise TypeError(f"setSource() of {self} requires a {event_data.EventData} as args[1], not: {type(args[1])}")
+		# args[0] groundstation data
+		if type(args[0]) is not groundstation_data.GroundStationCollection:
+			logger.error("setSource() of %s requires a %s as args[1], not: {type(args[1])}", self, groundstation_data.GroundStationCollection)
+			raise TypeError(f"setSource() of {self} requires a {groundstation_data.GroundStationCollection} as args[1], not: {type(args[1])}")
 
-		self.data['events_src'] = args[0]
-		self.data['coords'] = self.data['events_src'].latlon
+		if type(args[1]) is not history_data.HistoryData:
+			logger.error("setSource() of %s requires a %s as args[1], not: %s", self, history_data.HistoryData, type(args[1]))
+			raise TypeError(f"setSource() of {self} requires a {history_data.HistoryData} as args[1], not: {type(args[1])}")
 
-		scaled_lat = ((self.data['coords'][:,0] + 90) * self.data['vert_pixel_scale']).reshape(-1,1)
-		scaled_lon = ((self.data['coords'][:,1] + 180) * self.data['horiz_pixel_scale']).reshape(-1,1)
-		self.data['scaled_coords'] = np.hstack((scaled_lon,scaled_lat))
+		self.data['groundstations'] = args[0]
+		self.data['history_src'] = args[1]
+
+		stations = self.data['groundstations'].getStations()
+		num_stations = len(stations.values())
+		self.data['coords'] = np.zeros((num_stations, 2))
+		self.data['strings'] = []
+		self.data['min_elevations'] = []
+		self.data['oth_edges1'] = []
+		self.data['oth_edges2'] = []
+		for ii, station in enumerate(stations.values()):
+			self.data['coords'][ii,0] = station.latlon[1] 	# longitude
+			self.data['coords'][ii,1] = station.latlon[0] 	# latitude
+			self.data['strings'].append(station.name)
+			self.data['min_elevations'].append(station.min_elevation)
+
+			edge1_data, edge2_data, split = self.calcOTHCircle(self.data['min_elevations'][ii], self.data['coords'][ii])
+			self.data['oth_edges1'].append(edge1_data)
+			self.data['oth_edges2'].append(edge2_data)
+
+			# if split:
+			# 	self.visuals['oth_circle1'].opacity = self.opts['over_the_horizon_circle_alpha']['value']
+			# 	self.visuals['oth_circle2'].opacity = self.opts['over_the_horizon_circle_alpha']['value']
+			# else:
+			# 	self.visuals['oth_circle1'].opacity = self.opts['over_the_horizon_circle_alpha']['value']/2
+			# 	self.visuals['oth_circle2'].opacity = self.opts['over_the_horizon_circle_alpha']['value']/2
+
+		self.data['scaled_coords'] = self._scale(self.data['coords'])
+
+		self._recreateOTHCircleVisuals()
+
+
 
 	def setScale(self, horizontal_size, vertical_size):
 		self.data['horiz_pixel_scale'] = horizontal_size/360
@@ -208,7 +282,6 @@ class GroundStation2DAsset(base_assets.AbstractAsset):
 
 			self._clearFirstDrawFlag()
 		if self.isStale():
-			# move the moon
 			self._updateMarkers()
 			self._recomputeRedrawChildren()
 			self._clearStaleFlag()
@@ -217,74 +290,124 @@ class GroundStation2DAsset(base_assets.AbstractAsset):
 		mo_info = {'screen_pos':[], 'world_pos':[], 'strings':[], 'objects':[]}
 		mo_info['screen_pos'] = [(None, None) for _ in range(len(self.data['coords']))]
 		mo_info['world_pos'] = [(self.data['coords'][ii,1],self.data['coords'][ii,0]) for ii in range(len(self.data['coords']))]
-		mo_info['strings'] = self.data['events_src'].descriptions
+		mo_info['strings'] = self.data['strings']
 		mo_info['objects'] = [self for ii in range(len(self.data['coords']))]
 		return mo_info
 
 	def _setDefaultOptions(self):
 		self._dflt_opts = {}
-		self._dflt_opts['plot_events'] = {'value': True,
+		self._dflt_opts['plot_groundstations'] = {'value': True,
 												'type': 'boolean',
 												'help': '',
 												'static': True,
 												'callback': self.setVisibility,
 											'widget_data': None}
-		self._dflt_opts['prior_events_marker_colour'] = {'value': (156,0,252),
+		self._dflt_opts['groundstation_marker_colour'] = {'value': (243,243,0),
 												'type': 'colour',
 												'help': '',
 												'static': True,
-												'callback': self.setPriorEventsMarkerColour,
+												'callback': self.setGroundStationMarkerColour,
 											'widget_data': None}
-		self._dflt_opts['post_events_marker_colour'] = {'value': (80,60,125),
-												'type': 'colour',
-												'help': '',
-												'static': True,
-												'callback': self.setPostEventsMarkerColour,
-											'widget_data': None}
-		self._dflt_opts['events_marker_size'] = {'value': 15,
+		self._dflt_opts['groundstation_marker_size'] = {'value': 20,
 												'type': 'number',
 												'help': '',
 												'static': True,
-												'callback': self.setEventsMarkerSize,
+												'callback': self.setGroundStationMarkerSize,
 											'widget_data': None}
-		self._dflt_opts['events_marker_style'] = {'value': 'disc',
+		self._dflt_opts['groundstation_marker_style'] = {'value': 'disc',
 												'type': 'option',
 												'options':['disc','arrow','ring','clobber','square','x','diamond','vbar','hbar','cross','tailed_arrow','triangle_up','triangle_down','star','cross_lines'],
 												'help': '',
 												'static': True,
 												'callback': self.setMarkerStyle,
 											'widget_data': None}
-		# sun radius calculated using 6deg angular size
+		self._dflt_opts['plot_over_the_horizon_circle'] = {'value': True,
+												'type': 'boolean',
+												'help': '',
+												'static': True,
+												'callback': self.setOTHCircleVisibility,
+											'widget_data': None}
+		self._dflt_opts['over_the_horizon_circle_colour'] = {'value': (255,234,0),
+												'type': 'colour',
+												'help': '',
+												'static': True,
+												'callback': self.setOTHCircleColour,
+											'widget_data': None}
+		self._dflt_opts['over_the_horizon_circle_alpha'] = {'value': 0.4,
+												'type': 'fraction',
+												'help': '',
+												'static': True,
+												'callback': self.setOTHCircleAlpha,
+												'widget_data': None}
 
 		self.opts = self._dflt_opts.copy()
 
 	#----- OPTIONS CALLBACKS -----#
 	def _updateMarkers(self):
-		cols = np.tile(colours.normaliseColour(self.opts['prior_events_marker_colour']['value']),(len(self.data['coords']),1))
-		_, post_truth = self.data['events_src'].sliceByTimespanIdx(self.data['curr_index'])
-		cols[post_truth] = colours.normaliseColour(self.opts['post_events_marker_colour']['value'])
-		self.visuals['marker'].set_data(pos=self.data['scaled_coords'].reshape(-1,2),
-											size=self.opts['events_marker_size']['value'],
-											face_color=cols,
-											symbol=self.opts['events_marker_style']['value'])
+		self.visuals['marker'].set_data(pos=self.data['scaled_coords'],
+											size=self.opts['groundstation_marker_size']['value'],
+											face_color=colours.normaliseColour(self.opts['groundstation_marker_colour']['value']),
+											symbol=self.opts['groundstation_marker_style']['value'])
 
-	def setPriorEventsMarkerColour(self, new_colour):
-		logger.debug("Changing events prior marker colour %s -> %s", self.opts['prior_events_marker_colour']['value'], new_colour)
-		self.opts['prior_events_marker_colour']['value'] = new_colour
+	def setGroundStationMarkerColour(self, new_colour):
+		logger.debug("Changing GroundStation marker colour %s -> %s", self.opts['groundstation_marker_colour']['value'], new_colour)
+		self.opts['groundstation_marker_colour']['value'] = new_colour
 		self._updateMarkers()
 
-	def setPostEventsMarkerColour(self, new_colour):
-		logger.debug("Changing events post marker colour %s -> %s", self.opts['post_events_marker_colour']['value'], new_colour)
-		self.opts['post_events_marker_colour']['value'] = new_colour
-		self._updateMarkers()
-
-	def setEventsMarkerSize(self, size):
-		logger.debug("Changing events marker size %s -> %s", self.opts['events_marker_size']['value'], size)
-		self.opts['events_marker_size']['value'] = size
+	def setGroundStationMarkerSize(self, size):
+		logger.debug("Changing ground station marker size %s -> %s", self.opts['groundstation_marker_size']['value'], size)
+		self.opts['groundstation_marker_size']['value'] = size
 		self._updateMarkers()
 
 	def setMarkerStyle(self, option_idx):
-		new_style = self.opts['events_marker_style']['options'][option_idx]
-		logger.debug("Changing events marker style %s -> %s", self.opts['events_marker_style']['value'], new_style)
-		self.opts['events_marker_style']['value'] = new_style
+		new_style = self.opts['groundstation_marker_style']['options'][option_idx]
+		logger.debug("Changing groundstation marker style %s -> %s", self.opts['groundstation_marker_style']['value'], new_style)
+		self.opts['groundstation_marker_style']['value'] = new_style
 		self._updateMarkers()
+
+	def setOTHCircleAlpha(self, alpha):
+		# Takes a little while to take effect.
+		logger.debug("Changing groundstation OTH alpha %s -> %s",  self.opts['over_the_horizon_circle_alpha']['value'], alpha)
+		self.opts['over_the_horizon_circle_alpha']['value'] = alpha
+		for ii in range(len(self.visuals['oth_circles1'])):
+			self.visuals['oth_circles1'][ii].opacity = self.opts['over_the_horizon_circle_alpha']['value']
+			self.visuals['oth_circles2'][ii].opacity = self.opts['over_the_horizon_circle_alpha']['value']
+
+	def setOTHCircleColour(self, new_colour):
+		logger.debug("Changing groundstation OTH colour %s -> %s", self.opts['over_the_horizon_circle_colour']['value'], new_colour)
+		self.opts['over_the_horizon_circle_colour']['value'] = new_colour
+		for ii in range(len(self.visuals['oth_circles1'])):
+			self.visuals['oth_circles1'][ii].color = self.opts['over_the_horizon_circle_colour']['value']
+			self.visuals['oth_circles2'][ii].color = self.opts['over_the_horizon_circle_colour']['value']
+
+	def setOTHCircleVisibility(self, state):
+		self.opts['plot_over_the_horizon_circle']['value'] = state
+		for ii in range(len(self.visuals['oth_circles1'])):
+			self.visuals['oth_circles1'][ii].visible = self.opts['plot_over_the_horizon_circle']['value']
+			self.visuals['oth_circles2'][ii].visible = self.opts['plot_over_the_horizon_circle']['value']
+
+	def calcOTHCircle(self, min_elevation:float, center:np.ndarray[tuple[int],np.dtype[np.float64]]):
+		prim_orbit = list(self.data['history_src'].getOrbits().values())[0]
+		eci_pos = prim_orbit.pos[self.data['curr_index']]
+		alt = np.linalg.norm(eci_pos)
+		phi = np.rad2deg(self._calcCentralAngle(alt, min_elevation))
+		lats, lons1, lons2 = spherical_geom.genSmallCircleCenterSubtendedAngle(phi*2, center[1], center[0])
+		circle1, circle2 = spherical_geom.splitSmallCirclePatch(center[0], center[1], lats, lons1, lons2)
+
+		if np.all(circle1 == circle2):
+			split = False
+		else:
+			split = True
+
+		return self._scale(circle1), self._scale(circle2), split
+
+	def _calcCentralAngle(self, alt:float, min_elevation:float) -> float:
+		central_el = np.deg2rad(min_elevation)+np.pi/2
+		alpha = np.arcsin(c.R_EARTH*np.sin(central_el)/(c.R_EARTH+alt))
+		return np.pi-alpha-central_el
+
+	def _scale(self, coords):
+		out_arr = coords.copy()
+		out_arr[:,0] = (out_arr[:,0] + 180) * self.data['horiz_pixel_scale']
+		out_arr[:,1] = (out_arr[:,1] + 90) * self.data['vert_pixel_scale']
+		return out_arr

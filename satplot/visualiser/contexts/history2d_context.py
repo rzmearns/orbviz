@@ -41,7 +41,7 @@ class History2DContext(base.BaseContext):
 		self.data['raycast_src'] = raycast_data
 		self._validateDataType()
 		self.canvas_wrapper = history2d_cw.History2DCanvasWrapper()
-		self.canvas_wrapper.setModel(self.data['history'], self.data['raycast_src'])
+		self.canvas_wrapper.setModel(self.data['history'], self.data['groundstations'], self.data['raycast_src'])
 		self.controls = Controls(self, self.canvas_wrapper)
 
 		disp_hsplitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)

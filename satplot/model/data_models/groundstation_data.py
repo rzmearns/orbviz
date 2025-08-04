@@ -146,3 +146,7 @@ class GroundStation(BaseDataModel):
 	@property
 	def downlink_config(self):
 		return self._downlink_config
+
+	@property
+	def min_elevation(self):
+		return min(self._uplink_config['min_elev'], self._downlink_config['min_elev'])

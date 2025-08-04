@@ -10,12 +10,14 @@ from vispy import scene
 from vispy.app.canvas import MouseEvent, ResizeEvent
 
 from satplot.model.data_models.earth_raycast_data import EarthRayCastData
+from satplot.model.data_models.groundstation_data import GroundStationCollection
 from satplot.model.data_models.history_data import HistoryData
 import satplot.util.exceptions as exceptions
 from satplot.visualiser.assets import (
 	base_assets,
 	earth,
 	events,
+	groundstations,
 	moon,
 	orbit,
 	spacecraft,
@@ -76,6 +78,7 @@ class History2DCanvasWrapper(BaseCanvas):
 		self.assets['moon'] = moon.Moon2DAsset(v_parent=self.view_box.scene)
 		self.assets['sun'] = sun.Sun2DAsset(v_parent=self.view_box.scene)
 		self.assets['events'] = events.Events2DAsset(v_parent=self.view_box.scene)
+		self.assets['groundstations'] = groundstations.GroundStation2DAsset(v_parent=self.view_box.scene)
 
 	def getActiveAssets(self) -> list[base_assets.AbstractAsset|base_assets.AbstractCompoundAsset|base_assets.AbstractSimpleAsset]:
 		active_assets = []
@@ -84,9 +87,10 @@ class History2DCanvasWrapper(BaseCanvas):
 				active_assets.append(k)
 		return active_assets
 
-	def setModel(self, hist_data:HistoryData, earth_raycast_data:EarthRayCastData) -> None:
+	def setModel(self, hist_data:HistoryData, gs_data:GroundStationCollection, earth_raycast_data:EarthRayCastData) -> None:
 		self.data_models['history'] = hist_data
 		self.data_models['raycast_src'] = earth_raycast_data
+		self.data_models['groundstations'] = gs_data
 
 	def modelUpdated(self) -> None:
 		if self.data_models['history'] is None:
@@ -127,6 +131,11 @@ class History2DCanvasWrapper(BaseCanvas):
 			self.assets['events'].makeActive()
 		else:
 			self.assets['events'].makeDormant()
+
+		# Update data source for events
+		self.assets['groundstations'].setScale(*self.assets['earth'].getDimensions())
+		self.assets['groundstations'].setSource(self.data_models['groundstations'], self.data_models['history'])
+		self.assets['groundstations'].makeActive()
 
 		# Update data source for sun asset
 		if len(self.data_models['history'].getConfigValue('primary_satellite_ids')) > 0:
