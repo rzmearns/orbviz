@@ -105,7 +105,7 @@ class Worker(QtCore.QRunnable):
 				self.signals.report_finished.emit(self)
 				for worker_name, worker in self.chainedWorkers.items():
 					if worker is not None:
-						logger.info('Starting thread %s:%s',worker_name, worker)
+						logger.info('Starting chained thread %s:%s',worker_name, worker)
 						satplot.threadpool.logStart(worker)
 
 	def isRunning(self) -> bool:
