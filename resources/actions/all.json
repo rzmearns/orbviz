@@ -53,7 +53,7 @@
 	"tooltip": "Select Groundstations",
 	"menu_item": "Select Groundstations",
 	"containing_menu": "Groundstations",
-	"button_icon": "resources/icons/radio.png",
+	"button_icon": "resources/icons/groundstation.png",
 	"hotkey": "ctrl+o",
 	"callback": null,
 	"contexts": ["all"],
