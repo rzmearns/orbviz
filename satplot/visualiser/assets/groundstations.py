@@ -60,9 +60,11 @@ class GroundStation3DAsset(base_assets.AbstractAsset):
 		num_stations = len(stations.values())
 		num_tstamps = len(list(stations.values())[0].eci)
 		self.data['coords'] = np.zeros((num_tstamps, num_stations, 3))
+		self.data['strings'] = []
 		for ii, station in enumerate(stations.values()):
 			self.data['coords'][:,ii,:] = station.eci
-		print()
+			self.data['strings'].append(station.name)
+
 	# Override AbstractAsset.updateIndex()
 	def updateIndex(self, index):
 		self.setStaleFlagRecursive()
@@ -82,14 +84,14 @@ class GroundStation3DAsset(base_assets.AbstractAsset):
 			self._clearStaleFlag()
 
 	def getScreenMouseOverInfo(self) -> dict[str, Any]:
-		# curr_world_pos = (self.data['coords'])
-		# canvas_pos = self.visuals['marker'].get_transform('visual','canvas').map(curr_world_pos)
-		# canvas_pos /= canvas_pos[:,3:]
+		curr_world_pos = (self.data['coords'][self.data['curr_index'],:,:])
+		canvas_pos = self.visuals['marker'].get_transform('visual','canvas').map(curr_world_pos)
+		canvas_pos /= canvas_pos[:,3:]
 		mo_info = {'screen_pos':[], 'world_pos':[], 'strings':[], 'objects':[]}
-		# mo_info['screen_pos'] = [(canvas_pos[ii,0], canvas_pos[ii,1]) for ii in range(len(self.data['coords']))]
-		# mo_info['world_pos'] = [self.data['coords'][ii,:].reshape(3,) for ii in range(len(self.data['coords']))]
-		# mo_info['strings'] = self.data['events_src'].descriptions
-		# mo_info['objects'] = [self for ii in range(len(self.data['coords']))]
+		mo_info['screen_pos'] = [(canvas_pos[ii,0], canvas_pos[ii,1]) for ii in range(len(self.data['coords'][self.data['curr_index'],:,:]))]
+		mo_info['world_pos'] = [self.data['coords'][self.data['curr_index'],ii,:].reshape(3,) for ii in range(len(self.data['coords'][self.data['curr_index'],:,:]))]
+		mo_info['strings'] = self.data['strings']
+		mo_info['objects'] = [self for ii in range(len(self.data['coords']))]
 		return mo_info
 
 	def _setDefaultOptions(self):
