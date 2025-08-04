@@ -29,6 +29,9 @@ class GroundStationCollection:
 
 		return en_list
 
+	def getStations(self):
+		return self._stations
+
 	def updateTimespans(self, timespan:TimeSpan):
 		for station in self._stations.values():
 			station.reloadTimespan(timespan)
@@ -106,7 +109,7 @@ class GroundStation(BaseDataModel):
 			print('NO NEED TO UPDATE GROUNDSTATION')
 			return
 		self._source_timespan = new_timespan
-		self._eci = self._reloadECIPos()
+		self._reloadECIPos()
 
 	@property
 	def name(self):

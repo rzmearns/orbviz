@@ -40,7 +40,7 @@ class History3DContext(base.BaseContext):
 		self.data['groundstations'] = groundstation_data
 		self.canvas_wrapper = history3d_cw.History3DCanvasWrapper()
 		# self.canvas_wrapper.setModel(self.data)
-		self.canvas_wrapper.setModel(self.data['history'])
+		self.canvas_wrapper.setModel(self.data['history'], self.data['groundstations'])
 		self.controls = Controls(self, self.canvas_wrapper)
 
 		disp_hsplitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)

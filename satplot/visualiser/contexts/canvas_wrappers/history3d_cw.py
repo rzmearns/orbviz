@@ -12,6 +12,7 @@ from vispy import scene
 from vispy.app.canvas import MouseEvent, ResizeEvent
 
 from satplot.model.data_models.history_data import HistoryData
+from satplot.model.data_models.groundstation_data import GroundStationCollection
 import satplot.model.geometry.primgeom as pg
 import satplot.util.constants as c
 import satplot.util.exceptions as exceptions
@@ -23,6 +24,7 @@ from satplot.visualiser.assets import (
 	earth,
 	events,
 	gizmo,
+	groundstations,
 	moon,
 	orbit,
 	spacecraft,
@@ -72,6 +74,7 @@ class History3DCanvasWrapper(BaseCanvas):
 		self.assets['constellation'] = constellation.Constellation(v_parent=self.view_box.scene)
 		self.assets['sun'] = sun.Sun3DAsset(v_parent=self.view_box.scene)
 		self.assets['events'] = events.Events3DAsset(v_parent=self.view_box.scene)
+		self.assets['groundstations'] = groundstations.GroundStation3DAsset(v_parent=self.view_box.scene)
 
 		self.assets['ECI_gizmo'] = gizmo.ViewBoxGizmo(v_parent=self.view_box)
 		self.setCameraZoom(5*c.R_EARTH)
@@ -99,8 +102,9 @@ class History3DCanvasWrapper(BaseCanvas):
 	def setCameraZoom(self, zoom:float) -> None:
 		self.view_box.camera.scale_factor = zoom
 
-	def setModel(self, hist_data:HistoryData) -> None:
+	def setModel(self, hist_data:HistoryData, gs_data:GroundStationCollection) -> None:
 		self.data_models['history'] = hist_data
+		self.data_models['groundstations'] = gs_data
 		# self.modelUpdated()
 
 	def modelUpdated(self) -> None:
@@ -136,6 +140,9 @@ class History3DCanvasWrapper(BaseCanvas):
 			self.assets['events'].makeActive()
 		else:
 			self.assets['events'].makeDormant()
+
+		self.assets['groundstations'].setSource(self.data_models['groundstations'])
+		self.assets['groundstations'].makeActive()
 
 		if self.data_models['history'].getConfigValue('has_supplemental_constellation'):
 			self.assets['constellation'].setSource(self.data_models['history'].getConstellation().getOrbits(),
