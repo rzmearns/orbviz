@@ -334,7 +334,7 @@ class GroundStation2DAsset(base_assets.AbstractAsset):
 												'static': True,
 												'callback': self.setOTHCircleColour,
 											'widget_data': None}
-		self._dflt_opts['over_the_horizon_circle_alpha'] = {'value': 0.3,
+		self._dflt_opts['over_the_horizon_circle_alpha'] = {'value': 0.5,
 												'type': 'fraction',
 												'help': '',
 												'static': True,
@@ -410,7 +410,7 @@ class GroundStation2DAsset(base_assets.AbstractAsset):
 
 	def _calcCentralAngle(self, alt:float, min_elevation:float) -> float:
 		central_el = np.deg2rad(min_elevation)+np.pi/2
-		alpha = np.arcsin(c.R_EARTH*np.sin(central_el)/(c.R_EARTH+alt))
+		alpha = np.arcsin(c.R_EARTH*np.sin(central_el)/(alt))
 		return np.pi-alpha-central_el
 
 	def _scale(self, coords):
