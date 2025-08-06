@@ -65,8 +65,7 @@ class HistoryConfigurationContext(BaseContext):
 		if self.data is None:
 			logger.warning('Context HistoryConfiguration: %s does not have a data model.', self)
 			raise AttributeError(f'Context HistoryConfiguration: {self} does not have a data model.')
-		self.data['history'].data_ready.connect(self._updateDataSources)
-		self.data['history'].data_ready.connect(self._updateControls)
+		self.data['history'].data_ready.connect(self._procDataUpdated)
 		self.data['history'].data_err.connect(self._resetControls)
 		self.controls.time_slider.add_connect(self._updateDisplayedIndex)
 
@@ -136,12 +135,14 @@ class HistoryConfigurationContext(BaseContext):
 			raise
 
 	def _updateControls(self, *args, **kwargs) -> None:
+		self.controls.time_slider.blockSignals(True)
 		self.controls.time_slider.setTimespan(self.data['history'].getTimespan())
 		self.controls.time_period_config.period_start.setDatetime(self.data['history'].getConfigValue('timespan_period_start'))
 		self.controls.time_period_config.period_end.setDatetime(self.data['history'].getConfigValue('timespan_period_end'))
 		self.controls.time_slider._curr_dt_picker.setDatetime(self.data['history'].getTimespan().start)
 		self.controls.submit_button.setEnabled(True)
 		self.controls.time_slider.setValue(int(self.controls.time_slider.num_ticks/2))
+		self.controls.time_slider.blockSignals(False)
 
 	def _resetControls(self) -> None:
 		self.controls.submit_button.setEnabled(True)
@@ -154,6 +155,10 @@ class HistoryConfigurationContext(BaseContext):
 			logger.warning("model history data is not set for context %s:%s", self.config['name'], self)
 			ValueError(f"model history data is not set for context {self.config['name']}:{self}")
 		self.data['history'].updateIndex(index)
+
+	def _procDataUpdated(self) -> None:
+		self._updateControls()
+		self._updateDataSources()
 
 	def getIndex(self) -> int|None:
 		return self.controls.time_slider.getValue()

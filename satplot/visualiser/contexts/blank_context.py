@@ -40,6 +40,9 @@ class BlankContext(BaseContext):
 	def setIndex(self, idx:int) -> None:
 		pass
 
+	def _procDataUpdated(self) -> None:
+		pass
+
 	def loadState(self) -> None:
 		pass
 

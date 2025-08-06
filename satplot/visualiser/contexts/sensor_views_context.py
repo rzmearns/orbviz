@@ -68,8 +68,7 @@ class SensorViewsContext(BaseContext):
 		self.layout.addWidget(content_widget)
 
 	def connectControls(self) -> None:
-		self.data['history'].data_ready.connect(self._updateDataSources)
-		self.data['history'].data_ready.connect(self._updateControls)
+		self.data['history'].data_ready.connect(self._procDataUpdated)
 		self.controls.time_slider.add_connect(self._updateDisplayedIndex)
 		self.controls.sensor_view_selectors.selected.connect(self.setViewActiveSensor)
 		self.controls.sensor_view_selectors.generate.connect(self.generateSensorFullRes)
@@ -86,9 +85,11 @@ class SensorViewsContext(BaseContext):
 		pass
 
 	def _updateControls(self, *args, **kwargs) -> None:
+		self.controls.time_slider.blockSignals(True)
 		self.controls.time_slider.setTimespan(self.data['history'].getTimespan())
 		self.controls.time_slider.setValue(int(self.controls.time_slider.num_ticks/2))
 		self.controls.updateSensorViewLists()
+		self.controls.time_slider.blockSignals(False)
 
 	def _updateDataSources(self) -> None:
 		self.canvas_wrapper.modelUpdated()
@@ -103,6 +104,10 @@ class SensorViewsContext(BaseContext):
 		self.canvas_wrapper.updateIndex(index)
 		self.data['history'].updateIndex(index)
 		self.canvas_wrapper.recomputeRedraw()
+
+	def _procDataUpdated(self):
+		self._updateControls()
+		self._updateDataSources()
 
 	def setViewActiveSensor(self, view_id:int, sc_id:int, suite_key:str, sens_key:str) -> None:
 		self.canvas_wrapper.selectSensor(view_id, sc_id, suite_key, sens_key)

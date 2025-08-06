@@ -82,8 +82,7 @@ class History3DContext(base.BaseContext):
 		if self.data is None:
 			logger.warning('Context History3D: %s does not have a data model.', self)
 			raise AttributeError(f'Context History3D: {self} does not have a data model.')
-		self.data['history'].data_ready.connect(self._updateDataSources)
-		self.data['history'].data_ready.connect(self._updateControls)
+		self.data['history'].data_ready.connect(self._procDataUpdated)
 
 	def _validateDataType(self) -> None:
 		if self.data is not None and self.data['history'].getType() != self.data_type:
@@ -91,9 +90,11 @@ class History3DContext(base.BaseContext):
 			console.sendErr(f"\t should be: {self.data_type}")
 
 	def _updateControls(self, *args, **kwargs) -> None:
+		self.controls.time_slider.blockSignals(True)
 		self.controls.time_slider.setTimespan(self.data['history'].getTimespan())
 		self.controls.time_slider._curr_dt_picker.setDatetime(self.data['history'].getTimespan().start)
 		self.controls.time_slider.setValue(int(self.controls.time_slider.num_ticks/2))
+		self.controls.time_slider.blockSignals(False)
 
 	def _updateDataSources(self) -> None:
 		self.canvas_wrapper.modelUpdated()
@@ -108,6 +109,10 @@ class History3DContext(base.BaseContext):
 		self.canvas_wrapper.updateIndex(index)
 		self.data['history'].updateIndex(index)
 		self.canvas_wrapper.recomputeRedraw()
+
+	def _procDataUpdated(self):
+		self._updateControls()
+		self._updateDataSources()
 
 	def loadState(self) -> None:
 		pass
