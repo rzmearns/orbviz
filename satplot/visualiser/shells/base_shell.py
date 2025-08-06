@@ -31,9 +31,8 @@ class BaseShell:
 		self.data: dict[str, Any] = {}
 
 		self.contexts_dict: dict[str, base_context.BaseContext] = {}
-		# self.context_tab_stack = satplot_widgets.ColumnarStackedTabWidget()
-		# self.context_tab_stack.setTabPosition(QtWidgets.QTabWidget.West)
-		self.context_tab_stack = QtWidgets.QTabWidget()
+		self.context_tab_stack = satplot_widgets.ColumnarStackedTabWidget()
+		self.context_tab_stack.setTabPosition(QtWidgets.QTabWidget.West)
 		self.datapane_model = datapane_model.DataPaneModel()
 		self.datapane = datapane.DataPaneWidget(self.datapane_model)
 
@@ -58,9 +57,8 @@ class BaseShell:
 		self.widget.setLayout(self.layout)
 
 	def _connectGenericTabSignals(self) -> None:
-		pass
-		# self.context_tab_stack.tab_changed.connect(self.updateActiveContext)
-		# self.context_tab_stack.tab_changed.connect(self._propagateTimeSlider)
+		self.context_tab_stack.tab_changed.connect(self.updateActiveContext)
+		self.context_tab_stack.tab_changed.connect(self._propagateTimeSlider)
 
 	def _addContext(self, context_name:str, context:base_context.BaseContext):
 		# TODO: add to abstracted shell
