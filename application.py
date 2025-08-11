@@ -28,14 +28,13 @@ warnings.filterwarnings("ignore", message="Optimal rotation is not uniquely or p
 satplot_logging.configureLogger()
 use(gl='gl+')
 
-class Application:
+class Application(QtWidgets.QApplication):
 	def __init__(self) -> None:
 		satplot.threadpool = threading.Threadpool()
 		logger.info("Creating threadpool with %s threads",satplot.threadpool.maxThreadCount())
 		self.pyqt_app = app.use_app("pyqt5")
 		self.pyqt_app.create()
 		self.window = window.MainWindow(title="Sat Plot")
-
 		self._connectControls()
 		self.load_data_worker = None
 		self.load_worker_thread = None
@@ -167,6 +166,7 @@ if __name__ == '__main__':
 	logger.info("Satplot:")
 	logger.info("\tVersion: %s", satplot.version)
 	application = Application()
+	application.setStyle(QtWidgets.QStyleFactory().create('Fusion'))
 	application.run()
 
 

@@ -13,7 +13,7 @@ source ./<env_name>/bin/activate
 Then install the necessary dependancies
 
 ```
-pip install -r requirements.txt
+pip install ".[dev]"
 ```
 
 ## Running

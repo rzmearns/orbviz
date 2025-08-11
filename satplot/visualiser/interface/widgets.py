@@ -147,6 +147,10 @@ class TimeSlider(QtWidgets.QWidget):
 		elif not self._allow_no_callbacks:
 			logger.warning("No Time Slider callbacks are set")
 
+	def blockSignals(self, b: bool) -> bool:
+		slider_res = self.slider.blockSignals(b)
+		return slider_res and super().blockSignals(b)
+
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
 		state['type'] = 'timeSlider'

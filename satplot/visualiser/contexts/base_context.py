@@ -60,6 +60,13 @@ class BaseContext(ABC):
 	def setIndex(self, idx:int) -> None:
 		raise NotImplementedError()
 
+	@abstractmethod
+	def _procDataUpdated(self) -> None:
+		# Use this function to collate all functions which should be called when the data model is updated.
+		# Only using a single function as a callback avoids any race conditions between setting the timeslider
+		# and updating the data
+		raise NotImplementedError()
+
 	def setupScreenshot(self):
 		file = f"{dt.datetime.now().strftime('%Y-%m-%d_%H%M%S')}_{self.config['name']}.png"
 		self.saveScreenshot(pathlib.Path(f'{satplot_paths.data_dir}/screenshots/{file}'))
