@@ -1985,16 +1985,16 @@ class MultiSelector(QtWidgets.QWidget):
 
 	def _transferToRight(self):
 		transfer_list = self.left_list.selectedItems()
-		transfer_idx = [self.left_list.row(item) for item in transfer_list]
-		for ii, item in enumerate(transfer_list):
-			self.left_list.takeItem(transfer_idx[ii])
+		for item in transfer_list:
+			row_idx = self.left_list.row(item)
+			self.left_list.takeItem(row_idx)
 			self.right_list.addItem(item)
 
 	def _transferToLeft(self):
 		transfer_list = self.right_list.selectedItems()
-		transfer_idx = [self.right_list.row(item) for item in transfer_list]
-		for ii, item in enumerate(transfer_list):
-			self.right_list.takeItem(transfer_idx[ii])
+		for item in transfer_list:
+			row_idx = self.right_list.row(item)
+			self.right_list.takeItem(row_idx)
 			self.left_list.addItem(item)
 
 	def getRightEntries(self):
