@@ -283,13 +283,9 @@ class HistoryData(BaseDataModel):
 						'value':lambda : np.rad2deg(list(self.orbits.values())[0].inc[self.curr_index,:]),
 						'unit':'°',
 						'precision':2})
-		# self.datapane_data.append({'parameter':'RAAN',
-		# 				'value':lambda : np.rad2deg(list(self.orbits.values())[0].raan[self.curr_index,:]),
-		# 				'unit':'°',
-		# 				'precision':2})
 		self.datapane_data.append({'parameter':'RAAN',
-						'value':np.array([[-10,2,3],[4,5.456,6],[7,8,9]]),
-						'unit':'km',
+						'value':lambda : np.rad2deg(list(self.orbits.values())[0].raan[self.curr_index,:]),
+						'unit':'°',
 						'precision':2})
 		self.datapane_data.append({'parameter':'Argument of Perigee',
 						'value':lambda : np.rad2deg(list(self.orbits.values())[0].argp[self.curr_index,:]),
