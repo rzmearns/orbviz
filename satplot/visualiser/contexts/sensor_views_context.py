@@ -1,13 +1,13 @@
 import logging
 import pathlib
 
-import typing
 from typing import Any
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 import satplot.model.data_models.data_types as data_types
 from satplot.model.data_models.earth_raycast_data import EarthRayCastData
+from satplot.model.data_models.groundstation_data import GroundStationCollection
 from satplot.model.data_models.history_data import HistoryData
 from satplot.visualiser.contexts.base_context import BaseContext, BaseControls
 from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
@@ -22,11 +22,15 @@ logger = logging.getLogger(__name__)
 class SensorViewsContext(BaseContext):
 	data_type = [data_types.DataType.HISTORY,
 				data_types.DataType.PLANETARYRAYCAST]
-	def __init__(self, name:str, parent_window:QtWidgets.QMainWindow, history_data:HistoryData, raycast_data:EarthRayCastData):
+	def __init__(self, name:str, parent_window:QtWidgets.QMainWindow,
+						history_data:HistoryData,
+						groundstation_data:GroundStationCollection,
+						raycast_data:EarthRayCastData):
 		super().__init__(name)
 		self.window = parent_window
 		self.data: dict[str,Any] = {}
 		self.data['history'] = history_data
+		self.data['groundstations'] = groundstation_data
 		self.data['raycast_src'] = raycast_data
 		self._validateDataType()
 
@@ -92,6 +96,7 @@ class SensorViewsContext(BaseContext):
 		self.controls.time_slider.blockSignals(False)
 
 	def _updateDataSources(self) -> None:
+		# self.data['groundstations'].updateTimespans(self.data['history'].timespan)
 		self.canvas_wrapper.modelUpdated()
 		self.controls.rebuildOptions()
 		self.canvas_wrapper.setFirstDrawFlags()

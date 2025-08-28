@@ -1,13 +1,13 @@
 import logging
 import sys
 
-import typing
 from typing import Any
 
 from PyQt5 import QtCore, QtWidgets
 
 import satplot
 from satplot.model.data_models import earth_raycast_data
+from satplot.visualiser.interface import dialogs
 import satplot.visualiser.interface.console as console
 import satplot.visualiser.interface.controls as controls
 import satplot.visualiser.interface.widgets as satplot_widgets
@@ -91,6 +91,11 @@ class MainWindow(QtWidgets.QMainWindow):
 				shell.updateActiveContext(None, None)
 		new_shell.makeActive()
 		new_shell.updateActiveContext(None, None)
+
+	def setActiveShellGroundStations(self) -> None:
+		for shell in self.shell_dict.values():
+			if shell.isActive():
+				dialogs.GroundStationDialog(shell, shell.data['groundstations'].getEnabledDict())
 
 	def __del__(self) -> None:
 		sys.stderr = sys.__stderr__

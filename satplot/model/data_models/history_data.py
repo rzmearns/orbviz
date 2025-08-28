@@ -1,7 +1,6 @@
 import logging
 import pathlib
 
-import typing
 from typing import Any, cast
 
 import numpy as np
@@ -13,7 +12,7 @@ import spherapy.timespan as timespan
 import spherapy.updater as updater
 
 import satplot
-from satplot.model.data_models import constellation_data, data_types, event_data
+from satplot.model.data_models import constellation_data, data_types, event_data, groundstation_data
 from satplot.model.data_models.base_models import BaseDataModel
 import satplot.util.constants as satplot_constants
 import satplot.util.conversion as satplot_conversions
@@ -46,6 +45,7 @@ class HistoryData(BaseDataModel):
 		self.pointings: dict[int, HistoricalAttitude] = {}
 		self.constellation: constellation_data.ConstellationData | None = None
 		self.events: dict[int, event_data.EventData] | None = None
+		self.groundstationCollection: groundstation_data.GroundStationCollection | None = None
 		self.sun: nptyping.NDArray[np.float64] | None = None
 		self.moon: nptyping.NDArray[np.float64] | None = None
 		self.geo_locations: list[nptyping.NDArray[np.float64]] = []
@@ -148,7 +148,7 @@ class HistoryData(BaseDataModel):
 		# Set up workers for orbit propagation
 		self._worker_threads['primary'] = threading.Worker(self._propagatePrimaryOrbits, self.timespan, self.getConfigValue('primary_satellite_ids'))
 		self._worker_threads['primary'].signals.result.connect(self._storeOrbitData)
-		self._worker_threads['primary'].signals.finished.connect(self._procComplete)
+		self._worker_threads['primary'].signals.report_finished.connect(self._procComplete)
 		self._worker_threads['primary'].signals.error.connect(self._displayError)
 		self._worker_threads['primary'].setAutoDelete(True)
 
@@ -160,7 +160,7 @@ class HistoryData(BaseDataModel):
 			self.constellation.setTimespan(self.timespan)
 			self._worker_threads['constellation'] = threading.Worker(self._propagateConstellationOrbits, self.timespan, self.constellation.getConfigValue('satellite_ids'))
 			self._worker_threads['constellation'].signals.result.connect(self.constellation._storeOrbitData)
-			self._worker_threads['constellation'].signals.finished.connect(self._procComplete)
+			self._worker_threads['constellation'].signals.report_finished.connect(self._procComplete)
 			self._worker_threads['constellation'].signals.error.connect(self._displayError)
 			self._worker_threads['constellation'].setAutoDelete(True)
 		else:
@@ -173,18 +173,26 @@ class HistoryData(BaseDataModel):
 																delay_start=True)
 			self._worker_threads['primary'].addChainedWorker('events', self._worker_threads['events'])
 			self._worker_threads['events'].signals.result.connect(self._storeEventData)
-			self._worker_threads['events'].signals.finished.connect(self._procComplete)
+			self._worker_threads['events'].signals.report_finished.connect(self._procComplete)
 			self._worker_threads['events'].signals.error.connect(self._displayError)
+			self._worker_threads['events'].setAutoDelete(True)
 		else:
 			self.events = None
+
+		self._worker_threads['groundstations'] = threading.Worker(self._recalculateGroundStations,
+																delay_start=True)
+		self._worker_threads['primary'].addChainedWorker('groundstations', self._worker_threads['groundstations'])
+		self._worker_threads['groundstations'].signals.report_finished.connect(self._procComplete)
+		self._worker_threads['groundstations'].signals.error.connect(self._displayError)
+		self._worker_threads['groundstations'].setAutoDelete(True)
 
 		for thread_name, thread in self._worker_threads.items():
 			if thread is not None and not thread.delayStart:
 				logger.info('Starting thread %s:%s',thread_name, thread)
 				satplot.threadpool.logStart(thread)
 
-	def _procComplete(self) -> None:
-		logger.info("Thread completion triggered processing of computed data")
+	def _procComplete(self, worker_object) -> None:
+		logger.info("%s completion triggered processing of computed data", worker_object)
 		for thread_name, thread in self._worker_threads.items():
 			if thread is not None:
 				logger.debug('\t%s:%s', thread_name, thread.isRunning())
@@ -252,6 +260,9 @@ class HistoryData(BaseDataModel):
 			if self.timespan is not None:
 				event_data_objs[sat_id] = event_data.EventData(event_file, self.timespan, orbit_data)
 		return event_data_objs
+
+	def _recalculateGroundStations(self, running:threading.Flag) -> None:
+		self.groundstationCollection.updateTimespans(self.timespan)
 
 	def _storeOrbitData(self, orbits:dict[int,orbit.Orbit]) -> None:
 		self.orbits = orbits

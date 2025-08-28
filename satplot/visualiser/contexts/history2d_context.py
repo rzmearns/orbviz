@@ -1,7 +1,6 @@
 import logging
 import pathlib
 
-import typing
 from typing import Any
 
 import imageio
@@ -13,6 +12,7 @@ from vispy.gloo.util import _screenshot
 
 import satplot.model.data_models.data_types as data_types
 from satplot.model.data_models.earth_raycast_data import EarthRayCastData
+from satplot.model.data_models.groundstation_data import GroundStationCollection
 from satplot.model.data_models.history_data import HistoryData
 import satplot.visualiser.contexts.base_context as base
 from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
@@ -28,15 +28,19 @@ logger = logging.getLogger(__name__)
 class History2DContext(base.BaseContext):
 	data_type = [data_types.DataType.HISTORY]
 
-	def __init__(self, name:str, parent_window:QtWidgets.QMainWindow, history_data:HistoryData, raycast_data:EarthRayCastData):
+	def __init__(self, name:str, parent_window:QtWidgets.QMainWindow,
+					history_data:HistoryData,
+					groundstation_data:GroundStationCollection,
+					raycast_data:EarthRayCastData):
 		super().__init__(name)
 		self.window = parent_window
 		self.data: dict[str, Any] = {}
 		self.data['history'] = history_data
+		self.data['groundstations'] = groundstation_data
 		self.data['raycast_src'] = raycast_data
 		self._validateDataType()
 		self.canvas_wrapper = history2d_cw.History2DCanvasWrapper()
-		self.canvas_wrapper.setModel(self.data['history'], self.data['raycast_src'])
+		self.canvas_wrapper.setModel(self.data['history'], self.data['groundstations'], self.data['raycast_src'])
 		self.controls = Controls(self, self.canvas_wrapper)
 
 		disp_hsplitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)
@@ -98,6 +102,7 @@ class History2DContext(base.BaseContext):
 		self.controls.time_slider.blockSignals(False)
 
 	def _updateDataSources(self) -> None:
+		# self.data['groundstations'].updateTimespans(self.data['history'].timespan)
 		self.canvas_wrapper.modelUpdated()
 		self.controls.rebuildOptions()
 		self.canvas_wrapper.setFirstDrawFlags()

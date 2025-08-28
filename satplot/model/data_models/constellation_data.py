@@ -1,6 +1,5 @@
 import logging
 
-import typing
 from typing import Any
 
 import spherapy.orbit as orbit

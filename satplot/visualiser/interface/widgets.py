@@ -3,7 +3,6 @@ import logging
 import math
 import pathlib
 
-import typing
 from typing import Any
 
 from spherapy.timespan import TimeSpan
@@ -1926,6 +1925,90 @@ class ConstellationConfigDisplay(QtWidgets.QWidget):
 		for ii, (sat_id, sat_name) in enumerate(self.config.sats.items()):
 			self._satellites_table.setItem(ii, 0, QtWidgets.QTableWidgetItem(sat_name))
 			self._satellites_table.setItem(ii, 1, QtWidgets.QTableWidgetItem(str(sat_id)))
+
+class MultiSelector(QtWidgets.QWidget):
+	def __init__(self, left_label:str='', right_label:str='', left_list=[], right_list=[], parent: QtWidgets.QWidget|None=None):
+		super().__init__(parent)
+
+		pane_layout = QtWidgets.QHBoxLayout()
+		left_vlayout = QtWidgets.QVBoxLayout()
+		btn_layout = QtWidgets.QVBoxLayout()
+		right_vlayout = QtWidgets.QVBoxLayout()
+
+		_label_font = QtGui.QFont()
+		_label_font.setWeight(QtGui.QFont.Medium)
+
+		if left_label != '':
+			_left_label = QtWidgets.QLabel(left_label)
+			_left_label.setFont(_label_font)
+			left_vlayout.addWidget(_left_label)
+
+		if right_label != '':
+			_right_label = QtWidgets.QLabel(right_label)
+			_right_label.setFont(_label_font)
+			right_vlayout.addWidget(_right_label)
+
+		self.left_list = QtWidgets.QListWidget()
+		self.left_list.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+		self.right_list = QtWidgets.QListWidget()
+		self.right_list.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+
+		self.move_right = QtWidgets.QPushButton()
+		self.move_right.setIcon(QtGui.QIcon('resources/icons/arrow.png'))
+		self.move_right.clicked.connect(self._transferToRight)
+
+		self.move_left = QtWidgets.QPushButton()
+		self.move_left.setIcon(QtGui.QIcon('resources/icons/arrow-180.png'))
+		self.move_left.clicked.connect(self._transferToLeft)
+
+		btn_layout.addStretch()
+		btn_layout.addWidget(self.move_right)
+		btn_layout.addWidget(self.move_left)
+		btn_layout.addStretch()
+
+		left_vlayout.addWidget(self.left_list)
+		right_vlayout.addWidget(self.right_list)
+
+		pane_layout.addLayout(left_vlayout)
+		pane_layout.addLayout(btn_layout)
+		pane_layout.addLayout(right_vlayout)
+
+		self.setLayout(pane_layout)
+		left_list.sort()
+		right_list.sort()
+		for el in left_list:
+			self.left_list.addItem(QtWidgets.QListWidgetItem(el))
+
+		for el in right_list:
+			self.right_list.addItem(QtWidgets.QListWidgetItem(el))
+
+	def _transferToRight(self):
+		transfer_list = self.left_list.selectedItems()
+		for item in transfer_list:
+			row_idx = self.left_list.row(item)
+			self.left_list.takeItem(row_idx)
+			self.right_list.addItem(item)
+
+	def _transferToLeft(self):
+		transfer_list = self.right_list.selectedItems()
+		for item in transfer_list:
+			row_idx = self.right_list.row(item)
+			self.right_list.takeItem(row_idx)
+			self.left_list.addItem(item)
+
+	def getRightEntries(self):
+		vals = []
+		for row_num in range(self.right_list.count()):
+			item = self.right_list.item(row_num)
+			vals.append(item.text())
+		return vals
+
+	def getLeftEntries(self):
+		vals = []
+		for row_num in range(self.left_list.count()):
+			item = self.left_list.item(row_num)
+			vals.append(item.text())
+		return vals
 
 def embedWidgetsInHBoxLayout(w_list, margin=5):
 	"""Embed a list of widgets into a layout to give it a frame"""

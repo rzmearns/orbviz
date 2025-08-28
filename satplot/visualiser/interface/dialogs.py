@@ -1,9 +1,7 @@
 import datetime as dt
-import logging
+import json
 import pathlib
 import time
-
-import typing
 
 import numpy as np
 from PIL import Image
@@ -24,6 +22,7 @@ import satplot.visualiser.cameras.RestrictedPanZoom as RestrictedPanZoom
 import satplot.visualiser.interface.console as console
 import satplot.visualiser.interface.datapane as datapane
 import satplot.visualiser.interface.widgets as widgets
+from satplot.visualiser.shells import base_shell
 
 
 def createSpaceTrackCredentialsDialog():
@@ -242,6 +241,66 @@ class GIFDialog:
 										camera_adjustment_data=camera_adjustment_data,
 										start_index=slider_range[0],
 										end_index=slider_range[1])
+
+class GroundStationDialog:
+	def __init__(self, shell:base_shell.BaseShell, enabled_gs:dict[str,dict[str,str|pathlib.Path]]={}):
+		# TODO: add flag to save ground stations as default.
+		self.window = QtWidgets.QDialog()
+		self.window.setWindowTitle('Select Ground Stations')
+		self.window.setWindowModality(QtCore.Qt.WindowModality.NonModal)
+		self.shell = shell
+
+		gs_globs = satplot_paths.gs_dir.glob('*')
+		gs_files = [x for x in gs_globs if x.is_file()]
+
+		self._model = {}
+		for file in gs_files:
+			# TODO: use a reader function from the groundstation data class
+			with file.open('r') as fp:
+				data = json.load(fp)
+			self._model[data['name']] = {'file':file,
+										'hash':satplot_hashing.md5(file)}
+
+		available_list = list(self._model.keys())
+		added_list = []
+		for k, gs in enabled_gs.items():
+			# check if current enabled gs is in the stored ground stations
+			if k in self._model.keys() and gs['hash'] == self._model[k]['hash']:
+				available_list.remove(k)
+				added_list.append(k)
+
+		self._gs_selector = widgets.MultiSelector(left_label='Available Groundstations',
+													right_label='Added Groundstations',
+													left_list=available_list,
+													right_list=added_list)
+
+		layout = QtWidgets.QVBoxLayout()
+
+		hlayout2 = QtWidgets.QHBoxLayout()
+		okbutton = QtWidgets.QPushButton('Submit')
+		cancelbutton = QtWidgets.QPushButton('Cancel')
+		hlayout2.addWidget(okbutton)
+		hlayout2.addStretch()
+		hlayout2.addWidget(cancelbutton)
+
+		layout.addWidget(self._gs_selector)
+		layout.addLayout(hlayout2)
+
+		self.window.setLayout(layout)
+
+		okbutton.clicked.connect(self.submit)
+		cancelbutton.clicked.connect(self.cancel)
+
+		self.window.exec_()
+
+	def cancel(self):
+		self.window.close()
+
+	def submit(self):
+		vals = self._gs_selector.getRightEntries()
+		gs_files = [self._model[val] for val in vals]
+		self.shell.data['groundstations'].createGroundStations(gs_files)
+		self.window.close()
 
 class fullResSensorImageDialog:
 	create_time = time.monotonic()

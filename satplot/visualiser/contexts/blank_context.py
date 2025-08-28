@@ -1,7 +1,4 @@
-import logging
 import pathlib
-
-import typing
 
 from PyQt5 import QtCore, QtWidgets
 

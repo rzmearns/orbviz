@@ -1,6 +1,4 @@
-import logging
 
-import typing
 
 from vispy.scene.cameras import PanZoomCamera
 

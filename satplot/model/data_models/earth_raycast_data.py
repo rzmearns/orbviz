@@ -2,7 +2,6 @@ import datetime as dt
 import logging
 import warnings
 
-import typing
 from typing import Any
 
 import numpy as np

@@ -1,6 +1,4 @@
-import logging
 
-import typing
 
 from astropy import SkyCoord
 import numpy as np

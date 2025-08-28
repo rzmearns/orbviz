@@ -2,8 +2,6 @@ import logging
 import sys
 import traceback
 
-import typing
-
 from PyQt5 import QtCore
 
 import satplot
@@ -80,6 +78,9 @@ class Worker(QtCore.QRunnable):
 		# Add the callback to our kwargs
 		# self.kwargs['progress_callback'] = self.signals.progress
 
+	def __repr__(self):
+		return f"{self.fn} worker object"
+
 	@QtCore.pyqtSlot()
 	def run(self) -> None:
 		"""Initalise the runner function with passed args, kwargs
@@ -102,7 +103,7 @@ class Worker(QtCore.QRunnable):
 				self.signals.report_finished.emit(self)
 				for worker_name, worker in self.chainedWorkers.items():
 					if worker is not None:
-						logger.info('Starting thread %s:%s',worker_name, worker)
+						logger.info('Starting chained thread %s:%s',worker_name, worker)
 						satplot.threadpool.logStart(worker)
 
 	def isRunning(self) -> bool:

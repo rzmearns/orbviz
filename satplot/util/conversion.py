@@ -1,7 +1,4 @@
 import datetime as dt
-import logging
-
-import typing
 
 import numpy as np
 import pymap3d

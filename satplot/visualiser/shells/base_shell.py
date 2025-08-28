@@ -1,11 +1,11 @@
 import logging
 
-import typing
 from typing import Any
 
 from PyQt5 import QtCore, QtWidgets
 
 from satplot.model.data_models import datapane as datapane_model
+from satplot.model.data_models.groundstation_data import GroundStationCollection
 from satplot.visualiser.contexts import base_context
 import satplot.visualiser.interface.controls as controls
 import satplot.visualiser.interface.datapane as datapane
@@ -29,6 +29,7 @@ class BaseShell:
 		self.active = False
 		self.active_context:base_context.BaseContext|None = None
 		self.data: dict[str, Any] = {}
+		self.data['groundstations'] = GroundStationCollection()
 
 		self.contexts_dict: dict[str, base_context.BaseContext] = {}
 		self.context_tab_stack = satplot_widgets.ColumnarStackedTabWidget()
@@ -130,6 +131,9 @@ class BaseShell:
 
 	def makeDormant(self) -> None:
 		self.active = False
+
+	def isActive(self) -> bool:
+		return self.active
 
 	def serialiseContexts(self) -> dict[str,Any]:
 		state = {}

@@ -1,7 +1,6 @@
 import logging
 import time
 
-import typing
 from typing import Any
 
 import numpy as np

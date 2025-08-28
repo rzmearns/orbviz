@@ -1,7 +1,6 @@
 from abc import abstractmethod
 import logging
 
-import typing
 from typing import Any
 
 from vispy import scene

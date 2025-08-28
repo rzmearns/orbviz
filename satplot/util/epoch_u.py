@@ -1,7 +1,4 @@
 import datetime as dt
-import logging
-
-import typing
 
 GMST_epoch = dt.datetime(2000,1,1,12,0,0)
 

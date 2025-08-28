@@ -1,8 +1,6 @@
 import logging
 import pathlib
 
-import typing
-
 import numpy as np
 from spherapy.orbit import Orbit
 from spherapy.timespan import TimeSpan

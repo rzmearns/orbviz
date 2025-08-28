@@ -1,7 +1,6 @@
 import logging
 import pathlib
 
-import typing
 from typing import Any
 
 import imageio
@@ -12,6 +11,7 @@ import vispy.app as app
 from vispy.gloo.util import _screenshot
 
 import satplot.model.data_models.data_types as data_types
+from satplot.model.data_models.groundstation_data import GroundStationCollection
 from satplot.model.data_models.history_data import HistoryData
 import satplot.visualiser.contexts.base_context as base
 from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
@@ -26,7 +26,9 @@ logger = logging.getLogger(__name__)
 class History3DContext(base.BaseContext):
 	data_type = data_types.DataType.HISTORY
 
-	def __init__(self, name:str, parent_window:QtWidgets.QMainWindow, history_data:HistoryData):
+	def __init__(self, name:str, parent_window:QtWidgets.QMainWindow,
+						history_data:HistoryData,
+						groundstation_data:GroundStationCollection):
 		# super().__init__(name, data)
 		super().__init__(name)
 		self.window = parent_window
@@ -34,9 +36,10 @@ class History3DContext(base.BaseContext):
 		# self.data = data
 		self.data: dict[str,Any] = {}
 		self.data['history'] = history_data
+		self.data['groundstations'] = groundstation_data
 		self.canvas_wrapper = history3d_cw.History3DCanvasWrapper()
 		# self.canvas_wrapper.setModel(self.data)
-		self.canvas_wrapper.setModel(self.data['history'])
+		self.canvas_wrapper.setModel(self.data['history'], self.data['groundstations'])
 		self.controls = Controls(self, self.canvas_wrapper)
 
 		disp_hsplitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)
@@ -97,6 +100,7 @@ class History3DContext(base.BaseContext):
 		self.controls.time_slider.blockSignals(False)
 
 	def _updateDataSources(self) -> None:
+		# self.data['groundstations'].updateTimespans(self.data['history'].timespan)
 		self.canvas_wrapper.modelUpdated()
 		self.controls.rebuildOptions()
 		self.canvas_wrapper.setFirstDrawFlags()
