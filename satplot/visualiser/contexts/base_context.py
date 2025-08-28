@@ -1,10 +1,8 @@
 from abc import ABC, abstractmethod
 import datetime as dt
 import json
-import logging
 import pathlib
 
-import typing
 from typing import Any
 
 import imageio
@@ -18,20 +16,18 @@ import satplot.visualiser.interface.console as console
 
 
 class BaseContext(ABC):
-
 	# name_str: str
 
 	@abstractmethod
-	def __init__(self, name:str|None=None, data=None):
-
+	def __init__(self, name: str | None = None, data=None):
 		self.widget = QtWidgets.QWidget()
 		self.layout = QtWidgets.QHBoxLayout(self.widget)
 		self.window = None
-		self.controls:None|BaseControls = None
-		self.active:bool = False
+		self.controls: None | BaseControls = None
+		self.active: bool = False
 		# dict storing crucial configuration data for this context
 		self.config = {}
-		self.config['name'] = name
+		self.config["name"] = name
 		self.sccam_state = None
 		self.canvas_wrapper = None
 		self.data = None
@@ -43,7 +39,7 @@ class BaseContext(ABC):
 	@abstractmethod
 	def saveState(self) -> None:
 		raise NotImplementedError()
-	
+
 	@abstractmethod
 	def loadState(self) -> None:
 		raise NotImplementedError()
@@ -53,11 +49,11 @@ class BaseContext(ABC):
 		raise NotImplementedError()
 
 	@abstractmethod
-	def getIndex(self) -> int|None:
+	def getIndex(self) -> int | None:
 		raise NotImplementedError()
 
 	@abstractmethod
-	def setIndex(self, idx:int) -> None:
+	def setIndex(self, idx: int) -> None:
 		raise NotImplementedError()
 
 	@abstractmethod
@@ -69,13 +65,13 @@ class BaseContext(ABC):
 
 	def setupScreenshot(self):
 		file = f"{dt.datetime.now().strftime('%Y-%m-%d_%H%M%S')}_{self.config['name']}.png"
-		self.saveScreenshot(pathlib.Path(f'{satplot_paths.data_dir}/screenshots/{file}'))
+		self.saveScreenshot(pathlib.Path(f"{satplot_paths.data_dir}/screenshots/{file}"))
 
-	def saveScreenshot(self, file:pathlib.Path):
+	def saveScreenshot(self, file: pathlib.Path):
 		if self.canvas_wrapper is None:
-			raise AttributeError(f'{self} has no canvas to screenshot')
+			raise AttributeError(f"{self} has no canvas to screenshot")
 		if self.window is None:
-			raise AttributeError(f'{self} is not in a window')
+			raise AttributeError(f"{self} is not in a window")
 
 		# calculate viewport of just the canvas
 		geom = self.canvas_wrapper.canvas.native.geometry()
@@ -86,20 +82,20 @@ class BaseContext(ABC):
 		viewport = (new_pos.x() * ratio, new_y * ratio, geom[2] * ratio, geom[3] * ratio)
 
 		im = _screenshot(viewport=viewport)
-		imageio.imsave(file, im, extension='.png')
+		imageio.imsave(file, im, extension=".png")
 		console.send(f"Saved {self.config['name']} screenshot to {file}")
 
 	@abstractmethod
-	def saveGif(self, file:pathlib.Path, loop=True, *args, **kwargs):
+	def saveGif(self, file: pathlib.Path, loop=True, *args, **kwargs):
 		raise NotImplementedError
 
 	@abstractmethod
 	def setupGIFDialog(self):
 		raise NotImplementedError
 
-	def prepSerialisation(self) -> dict[str,Any]:
+	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
-		state['data'] = self.data
+		state["data"] = self.data
 		return state
 
 	def deSerialise(self, state_dict):
@@ -116,24 +112,24 @@ class BaseContext(ABC):
 		if self.controls is not None and self.controls.shortcuts is not None:
 			for shortcut in self.controls.shortcuts.values():
 				shortcut.blockSignals(True)
-	
+
+
 class BaseControls:
 	@abstractmethod
-	def __init__(self, context_name:str, *args, **kwargs):
+	def __init__(self, context_name: str, *args, **kwargs):
 		self.context_name = context_name
 		# dict storing config state for this context
 		self.state = {}
 		self.action_dict = {}
-		self.shortcuts:dict[str,QtWidgets.QShortcut] = {}
+		self.shortcuts: dict[str, QtWidgets.QShortcut] = {}
 		self.toolbar = None
 		self.menubar = None
 		self._buildActionDict()
 
-
 	def _buildActionDict(self) -> None:
-		with satplot_paths.actions_dir.joinpath('all.json').open('r') as fp:
+		with satplot_paths.actions_dir.joinpath("all.json").open("r") as fp:
 			all_action_dict = json.load(fp)
-		with satplot_paths.actions_dir.joinpath(f'{self.context_name}.json').open('r') as fp:
+		with satplot_paths.actions_dir.joinpath(f"{self.context_name}.json").open("r") as fp:
 			context_action_dict = json.load(fp)
 		self.action_dict = {**all_action_dict, **context_action_dict}
 

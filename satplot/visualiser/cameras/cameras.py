@@ -1,7 +1,3 @@
-import logging
-
-import typing
-
 import numpy as np
 
 from vispy.scene.cameras.arcball import ArcballCamera
@@ -42,7 +38,7 @@ class FixedCamera(Base3DRotationCamera):
 
 	"""
 
-	_state_props = Base3DRotationCamera._state_props + ('_quaternion',)
+	_state_props = Base3DRotationCamera._state_props + ("_quaternion",)
 
 	def __init__(self, fov=45.0, distance=None, translate_speed=1.0, **kwargs):
 		super().__init__(fov=fov, interactive=False, **kwargs)
@@ -50,8 +46,7 @@ class FixedCamera(Base3DRotationCamera):
 		# Set camera attributes
 		self._quaternion = Quaternion()
 		self.distance = distance  # None means auto-distance
-		self._camera_frame_quat = Quaternion(-0.5,0.5,0.5,0.5)
-
+		self._camera_frame_quat = Quaternion(-0.5, 0.5, 0.5, 0.5)
 
 	def _update_rotation(self, event):
 		pass
@@ -65,29 +60,34 @@ class FixedCamera(Base3DRotationCamera):
 		# Override vectors, camera has no sense of "up"
 		return np.eye(3)[::-1]
 
-	def _setQuat(self, quat:tuple[float,float,float,float], update=False):
-		self._quaternion =  Quaternion(*quat) * self._camera_frame_quat
+	def _setQuat(self, quat: tuple[float, float, float, float], update=False):
+		self._quaternion = Quaternion(*quat) * self._camera_frame_quat
 		if update:
 			self._update_camera_pos()
 
-	def setQuaternion(self, quat:tuple[float,float,float,float], scaler_first=True):
+	def setQuaternion(self, quat: tuple[float, float, float, float], scaler_first=True):
 		if not scaler_first:
-			sf_quat = (quat[3],quat[0],quat[1],quat[2])
+			sf_quat = (quat[3], quat[0], quat[1], quat[2])
 		else:
 			sf_quat = quat
-		self._setQuat(sf_quat,update=True)
+		self._setQuat(sf_quat, update=True)
 
-	def _setPos(self, pos:tuple[float,float,float], update=False):
+	def _setPos(self, pos: tuple[float, float, float], update=False):
 		self.center = pos
 		if update:
 			self._update_camera_pos()
 
-	def setPosition(self, pos:tuple[float,float,float]):
-		self._setPos(pos,update=True)
+	def setPosition(self, pos: tuple[float, float, float]):
+		self._setPos(pos, update=True)
 
-	def setPose(self, pos:tuple[float,float,float], quat:tuple[float,float,float,float], scaler_first=True):
+	def setPose(
+		self,
+		pos: tuple[float, float, float],
+		quat: tuple[float, float, float, float],
+		scaler_first=True,
+	):
 		if not scaler_first:
-			sf_quat = (quat[3],quat[0],quat[1],quat[2])
+			sf_quat = (quat[3], quat[0], quat[1], quat[2])
 		else:
 			sf_quat = quat
 		self._setPos(pos, update=False)
@@ -126,7 +126,7 @@ class MovableFixedCamera(ArcballCamera):
 
 	"""
 
-	_state_props = Base3DRotationCamera._state_props + ('_quaternion',)
+	_state_props = Base3DRotationCamera._state_props + ("_quaternion",)
 
 	def __init__(self, fov=45.0, distance=None, translate_speed=1.0, **kwargs):
 		super().__init__(fov=fov, **kwargs)
@@ -134,37 +134,41 @@ class MovableFixedCamera(ArcballCamera):
 		# Set camera attributes
 		self._quaternion = Quaternion()
 		self.distance = distance  # None means auto-distance
-		self._camera_frame_quat = Quaternion(-0.5,0.5,0.5,0.5)
-
+		self._camera_frame_quat = Quaternion(-0.5, 0.5, 0.5, 0.5)
 
 	def _get_rotation_tr(self):
 		"""Return a rotation matrix based on camera parameters"""
 		rot, x, y, z = self._quaternion.get_axis_angle()
 		return transforms.rotate(180 * rot / np.pi, (x, y, z))
 
-	def _setQuat(self, quat:tuple[float,float,float,float], update=False):
-		self._quaternion =  Quaternion(*quat) * self._camera_frame_quat
+	def _setQuat(self, quat: tuple[float, float, float, float], update=False):
+		self._quaternion = Quaternion(*quat) * self._camera_frame_quat
 		if update:
 			self._update_camera_pos()
 
-	def setQuaternion(self, quat:tuple[float,float,float,float], scaler_first=True):
+	def setQuaternion(self, quat: tuple[float, float, float, float], scaler_first=True):
 		if not scaler_first:
-			sf_quat = (quat[3],quat[0],quat[1],quat[2])
+			sf_quat = (quat[3], quat[0], quat[1], quat[2])
 		else:
 			sf_quat = quat
-		self._setQuat(sf_quat,update=True)
+		self._setQuat(sf_quat, update=True)
 
-	def _setPos(self, pos:tuple[float,float,float], update=False):
+	def _setPos(self, pos: tuple[float, float, float], update=False):
 		self.center = pos
 		if update:
 			self._update_camera_pos()
 
-	def setPosition(self, pos:tuple[float,float,float]):
-		self._setPos(pos,update=True)
+	def setPosition(self, pos: tuple[float, float, float]):
+		self._setPos(pos, update=True)
 
-	def setPose(self, pos:tuple[float,float,float], quat:tuple[float,float,float,float], scaler_first=True):
+	def setPose(
+		self,
+		pos: tuple[float, float, float],
+		quat: tuple[float, float, float, float],
+		scaler_first=True,
+	):
 		if not scaler_first:
-			sf_quat = (quat[3],quat[0],quat[1],quat[2])
+			sf_quat = (quat[3], quat[0], quat[1], quat[2])
 		else:
 			sf_quat = quat
 		self._setPos(pos, update=False)

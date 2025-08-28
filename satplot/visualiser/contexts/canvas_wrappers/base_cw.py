@@ -1,7 +1,6 @@
 from abc import abstractmethod
 import logging
 
-import typing
 from typing import Any
 
 from vispy import scene
@@ -10,8 +9,11 @@ import satplot.visualiser.assets.base_assets as base_assets
 
 logger = logging.getLogger(__name__)
 
+
 class BaseCanvas:
-	def __init__(self, w:int=800, h:int=600, keys:str='interactive', bgcolor:str='white'):
+	def __init__(
+		self, w: int = 800, h: int = 600, keys: str = "interactive", bgcolor: str = "white"
+	):
 		pass
 
 	@abstractmethod
@@ -19,7 +21,13 @@ class BaseCanvas:
 		raise NotImplementedError()
 
 	@abstractmethod
-	def getActiveAssets(self) -> list[base_assets.AbstractAsset|base_assets.AbstractCompoundAsset|base_assets.AbstractSimpleAsset]:
+	def getActiveAssets(
+		self,
+	) -> list[
+		base_assets.AbstractAsset
+		| base_assets.AbstractCompoundAsset
+		| base_assets.AbstractSimpleAsset
+	]:
 		raise NotImplementedError()
 
 	@abstractmethod
@@ -32,7 +40,7 @@ class BaseCanvas:
 		raise NotImplementedError()
 
 	@abstractmethod
-	def updateIndex(self, index:int) -> None:
+	def updateIndex(self, index: int) -> None:
 		raise NotImplementedError()
 
 	@abstractmethod
@@ -48,13 +56,12 @@ class BaseCanvas:
 		raise NotImplementedError()
 
 	@abstractmethod
-	def deSerialise(self, state:dict[str, Any]) -> None:
+	def deSerialise(self, state: dict[str, Any]) -> None:
 		raise NotImplementedError()
-
 
 	def getCanvas(self) -> scene.canvas.SceneCanvas:
 		if self.canvas is None:
-			logger.error('Canvas wrapper:%s does not have a canvas yet.', self)
-			raise ValueError(f'Canvas wrapper:{self} does not have a canvas yet.')
+			logger.error("Canvas wrapper:%s does not have a canvas yet.", self)
+			raise ValueError(f"Canvas wrapper:{self} does not have a canvas yet.")
 		else:
 			return self.canvas

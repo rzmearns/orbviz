@@ -1,7 +1,4 @@
-import logging
 import pathlib
-
-import typing
 
 from PyQt5 import QtCore, QtWidgets
 
@@ -11,7 +8,7 @@ import satplot.visualiser.interface.controls as controls
 
 
 class BlankContext(BaseContext):
-	def __init__(self, name:str, parent_window:QtWidgets.QMainWindow):
+	def __init__(self, name: str, parent_window: QtWidgets.QMainWindow):
 		super().__init__(name)
 		self.window = parent_window
 
@@ -19,14 +16,14 @@ class BlankContext(BaseContext):
 		self.controls = Controls(self, self.canvas_wrapper)
 
 		disp_hsplitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)
-		disp_hsplitter.setObjectName('disp_hsplitter')
-		disp_hsplitter.setStyleSheet('''
+		disp_hsplitter.setObjectName("disp_hsplitter")
+		disp_hsplitter.setStyleSheet("""
 					QSplitter#disp_hsplitter::handle {
 								background-color: #DCDCDC;
 							}
-							''')
-		content_widget = QtWidgets.QWidget() 			# noqa: F841
-		content_vlayout = QtWidgets.QVBoxLayout() 		# noqa: F841
+							""")
+		content_widget = QtWidgets.QWidget()  # noqa: F841
+		content_vlayout = QtWidgets.QVBoxLayout()  # noqa: F841
 
 	def connectControls(self) -> None:
 		pass
@@ -34,10 +31,10 @@ class BlankContext(BaseContext):
 	def _configureData(self) -> None:
 		pass
 
-	def getTimeSliderIndex(self) -> int|None:
+	def getTimeSliderIndex(self) -> int | None:
 		return None
 
-	def setIndex(self, idx:int) -> None:
+	def setIndex(self, idx: int) -> None:
 		pass
 
 	def _procDataUpdated(self) -> None:
@@ -49,16 +46,17 @@ class BlankContext(BaseContext):
 	def saveState(self) -> None:
 		pass
 
-	def saveGif(self, file:pathlib.Path, loop=True):
+	def saveGif(self, file: pathlib.Path, loop=True):
 		pass
 
 	def setupGIFDialog(self):
 		pass
 
+
 class Controls(BaseControls):
-	def __init__(self, parent_context:BaseContext, canvas_wrapper: BaseCanvas|None) -> None:
+	def __init__(self, parent_context: BaseContext, canvas_wrapper: BaseCanvas | None) -> None:
 		self.context = parent_context
-		super().__init__(self.context.config['name'])
+		super().__init__(self.context.config["name"])
 
 		# Prep config widgets
 
@@ -67,5 +65,9 @@ class Controls(BaseControls):
 		# Prep time slider
 
 		# Prep toolbars
-		self.toolbar = controls.Toolbar(self.context.window, self.action_dict, context_name=self.context.config['name'])
-		self.menubar = controls.Menubar(self.context.window, self.action_dict, context_name=self.context.config['name'])
+		self.toolbar = controls.Toolbar(
+			self.context.window, self.action_dict, context_name=self.context.config["name"]
+		)
+		self.menubar = controls.Menubar(
+			self.context.window, self.action_dict, context_name=self.context.config["name"]
+		)

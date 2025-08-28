@@ -1,7 +1,4 @@
 from ctypes import ArgumentError
-import logging
-
-import typing
 
 import numpy as np
 
@@ -12,14 +9,14 @@ from vispy.scene.cameras import BaseCamera, PanZoomCamera
 class RestrictedPanZoomCamera(PanZoomCamera):
 	# Subclass created by github user h21ak9, and published in vispy issue https://github.com/vispy/vispy/issues/2486
 
-	def __init__(self, limits:tuple=(-np.inf, np.inf, -np.inf, np.inf), *args, **kwargs):
+	def __init__(self, limits: tuple = (-np.inf, np.inf, -np.inf, np.inf), *args, **kwargs):
 		if len(limits) != 4:
 			raise ArgumentError("Input 'limits' must have 4 elements")
 		self._left_limit = limits[0]
 		self._right_limit = limits[1]
 		self._bottom_limit = limits[2]
 		self._top_limit = limits[3]
-		super().__init__(*args, name='RestrictedPanZoom', **kwargs)
+		super().__init__(*args, name="RestrictedPanZoom", **kwargs)
 
 	def zoom(self, factor, center=None):
 		"""
@@ -76,7 +73,7 @@ class RestrictedPanZoomCamera(PanZoomCamera):
 
 		if event.type == "mouse_wheel":
 			center = self._scene_transform.imap(event.pos)
-			self.zoom((1 + self.zoom_factor)**(-event.delta[1] * 30), center)
+			self.zoom((1 + self.zoom_factor) ** (-event.delta[1] * 30), center)
 			event.handled = True
 
 		if event.type == "mouse_move":
@@ -105,14 +102,13 @@ class RestrictedPanZoomCamera(PanZoomCamera):
 				# Zoom
 				p1c = np.array(event.last_event.pos)[:2]
 				p2c = np.array(event.pos)[:2]
-				scale = ((1 + self.zoom_factor)**((p1c - p2c) *
-												  np.array([1, -1])))
+				scale = (1 + self.zoom_factor) ** ((p1c - p2c) * np.array([1, -1]))
 				center = self._transform.imap(event.press_event.pos[:2])
 				self.zoom(scale, center)
 				event.handled = True
 		elif event.type == "mouse_press":
 			# accept the event if it is button 1 or 2.
 			# This is required in order to receive future events
-			event.handled = event.button in [1,2]
+			event.handled = event.button in [1, 2]
 		else:
 			event.handled = False

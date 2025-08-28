@@ -1,20 +1,18 @@
 import datetime as dt
-import logging
 
-import typing
+GMST_epoch = dt.datetime(2000, 1, 1, 12, 0, 0)
 
-GMST_epoch = dt.datetime(2000,1,1,12,0,0)
 
-def epoch2datetime(string:str) -> dt.datetime:
+def epoch2datetime(string: str) -> dt.datetime:
 	"""Converts a fractional epoch string to a datetime object.
-	
+
 	[description]
-	
+
 	Parameters
 	----------
 	string : {str}
 		fractional year epoch
-	
+
 	Returns
 	-------
 	datetime
@@ -27,7 +25,7 @@ def epoch2datetime(string:str) -> dt.datetime:
 		year += 2000
 	else:
 		year += 1900
-	
+
 	fractional_DoY = float(string[2:])
 
 	base = dt.datetime(year, 1, 1, tzinfo=dt.timezone.utc)
@@ -36,14 +34,14 @@ def epoch2datetime(string:str) -> dt.datetime:
 	return date
 
 
-def datetime2TLEepoch(date:dt.datetime) -> str:
+def datetime2TLEepoch(date: dt.datetime) -> str:
 	"""Converts a datetime to a TLE epoch
-	
+
 	Parameters
 	----------
 	date : {datetime}
 		Datetime object
-	
+
 	Returns
 	-------
 	str
@@ -52,19 +50,22 @@ def datetime2TLEepoch(date:dt.datetime) -> str:
 	tzinfo = date.tzinfo
 	year_str = str(date.year)[-2:]
 	day_str = str(date.timetuple().tm_yday).zfill(3)
-	fraction_str = str((date - dt.datetime(date.year, date.month, date.day, tzinfo=tzinfo)).total_seconds() / dt.timedelta(days=1).total_seconds())[1:]
+	fraction_str = str(
+		(date - dt.datetime(date.year, date.month, date.day, tzinfo=tzinfo)).total_seconds()
+		/ dt.timedelta(days=1).total_seconds()
+	)[1:]
 
 	return year_str + day_str + fraction_str
 
 
-def datetime2sgp4epoch(date:dt.datetime) -> float:
+def datetime2sgp4epoch(date: dt.datetime) -> float:
 	"""Converts a datetime to an sgp4 epoch
-	
+
 	Parameters
 	----------
 	date : {datetime}
 		Datetime object
-	
+
 	Returns
 	-------
 	float
