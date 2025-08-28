@@ -52,6 +52,8 @@ class GroundStation3DAsset(base_assets.AbstractAsset):
 										size=self.opts['groundstation_marker_size']['value'])
 		self.visuals['marker'].order = -1
 
+	def _removeVisuals(self):
+		self.visuals['marker'].parent = None
 
 	def setSource(self, *args, **kwargs):
 		# args[0] groundstation data
@@ -61,14 +63,24 @@ class GroundStation3DAsset(base_assets.AbstractAsset):
 			raise TypeError(f"setSource() of {self} requires a {groundstation_data.GroundStationCollection} as args[1], not: {type(args[1])}")
 
 		self.data['groundstations'] = args[0]
-		stations = self.data['groundstations'].getStations()
-		num_stations = len(stations.values())
-		num_tstamps = len(list(stations.values())[0].eci)
-		self.data['coords'] = np.zeros((num_tstamps, num_stations, 3))
-		self.data['strings'] = []
-		for ii, station in enumerate(stations.values()):
-			self.data['coords'][:,ii,:] = station.eci
-			self.data['strings'].append(station.name)
+		if self.data['groundstations'].isEnabled():
+			self.groundstations_enabled = True
+		else:
+			self.groundstations_enabled = False
+
+		if self.groundstations_enabled:
+			stations = self.data['groundstations'].getStations()
+			num_stations = len(stations.values())
+			num_tstamps = len(list(stations.values())[0].eci)
+			self.data['coords'] = np.zeros((num_tstamps, num_stations, 3))
+			self.data['strings'] = []
+			for ii, station in enumerate(stations.values()):
+				self.data['coords'][:,ii,:] = station.eci
+				self.data['strings'].append(station.name)
+		else:
+			self.data['coords'] = np.zeros((1, 1, 3))
+			self.data['strings'] = []
+			self._removeVisuals()
 
 	# Override AbstractAsset.updateIndex()
 	def updateIndex(self, index):
@@ -79,24 +91,27 @@ class GroundStation3DAsset(base_assets.AbstractAsset):
 	def recomputeRedraw(self):
 		if self.isFirstDraw():
 			self._detachFromParentView()
-			self._attachToParentView()
+			if self.groundstations_enabled:
+				self._attachToParentView()
 
 			self._clearFirstDrawFlag()
 		if self.isStale():
-			# move the moon
 			self._updateMarkers()
 			self._recomputeRedrawChildren()
 			self._clearStaleFlag()
 
 	def getScreenMouseOverInfo(self) -> dict[str, Any]:
-		curr_world_pos = (self.data['coords'][self.data['curr_index'],:,:])
-		canvas_pos = self.visuals['marker'].get_transform('visual','canvas').map(curr_world_pos)
-		canvas_pos /= canvas_pos[:,3:]
 		mo_info = {'screen_pos':[], 'world_pos':[], 'strings':[], 'objects':[]}
-		mo_info['screen_pos'] = [(canvas_pos[ii,0], canvas_pos[ii,1]) for ii in range(len(self.data['coords'][self.data['curr_index'],:,:]))]
-		mo_info['world_pos'] = [self.data['coords'][self.data['curr_index'],ii,:].reshape(3,) for ii in range(len(self.data['coords'][self.data['curr_index'],:,:]))]
-		mo_info['strings'] = self.data['strings']
-		mo_info['objects'] = [self for ii in range(len(self.data['coords']))]
+		if self.groundstations_enabled:
+			curr_world_pos = (self.data['coords'][self.data['curr_index'],:,:])
+			canvas_pos = self.visuals['marker'].get_transform('visual','canvas').map(curr_world_pos)
+			canvas_pos /= canvas_pos[:,3:]
+
+			mo_info['screen_pos'] = [(canvas_pos[ii,0], canvas_pos[ii,1]) for ii in range(len(self.data['coords'][self.data['curr_index'],:,:]))]
+			mo_info['world_pos'] = [self.data['coords'][self.data['curr_index'],ii,:].reshape(3,) for ii in range(len(self.data['coords'][self.data['curr_index'],:,:]))]
+			mo_info['strings'] = self.data['strings']
+			mo_info['objects'] = [self for ii in range(len(self.data['coords']))]
+
 		return mo_info
 
 	def _setDefaultOptions(self):
@@ -125,9 +140,10 @@ class GroundStation3DAsset(base_assets.AbstractAsset):
 
 	#----- OPTIONS CALLBACKS -----#
 	def _updateMarkers(self):
-		self.visuals['marker'].set_data(pos=self.data['coords'][self.data['curr_index'],:,:].reshape(-1,3),
-											size=self.opts['groundstation_marker_size']['value'],
-											face_color=colours.normaliseColour(self.opts['groundstation_marker_colour']['value']))
+		if self.groundstations_enabled:
+			self.visuals['marker'].set_data(pos=self.data['coords'][self.data['curr_index'],:,:].reshape(-1,3),
+												size=self.opts['groundstation_marker_size']['value'],
+												face_color=colours.normaliseColour(self.opts['groundstation_marker_colour']['value']))
 
 	def setGroundStationMarkerColour(self, new_colour):
 		logger.debug("Changing GroundStation marker colour %s -> %s", self.opts['groundstation_marker_colour']['value'], new_colour)
@@ -189,7 +205,7 @@ class GroundStation2DAsset(base_assets.AbstractAsset):
 										symbol=self.opts['groundstation_marker_style']['value'])
 		self.visuals['marker'].order = -1
 
-	def _recreateOTHCircleVisuals(self):
+	def _removeVisuals(self):
 		if 'oth_circles1' in self.visuals.keys():
 			for visual in self.visuals['oth_circles1']:
 				visual.parent=None
@@ -199,6 +215,11 @@ class GroundStation2DAsset(base_assets.AbstractAsset):
 			for visual in self.visuals['oth_circles2']:
 				visual.parent=None
 			del self.visuals['oth_circles2']
+
+		self.visuals['marker'].parent = None
+	def _recreateOTHCircleVisuals(self):
+
+		self._removeVisuals()
 
 		self.visuals['oth_circles1'] = []
 		self.visuals['oth_circles2'] = []
@@ -235,36 +256,48 @@ class GroundStation2DAsset(base_assets.AbstractAsset):
 		self.data['groundstations'] = args[0]
 		self.data['history_src'] = args[1]
 
-		stations = self.data['groundstations'].getStations()
-		num_stations = len(stations.values())
-		self.data['coords'] = np.zeros((num_stations, 2))
 		self.data['strings'] = []
 		self.data['min_elevations'] = []
 		self.data['oth_edges1'] = []
 		self.data['oth_edges2'] = []
 		self.data['oth_circle_splits'] = []
-		for ii, station in enumerate(stations.values()):
-			self.data['coords'][ii,0] = station.latlon[1] 	# longitude
-			self.data['coords'][ii,1] = station.latlon[0] 	# latitude
-			self.data['strings'].append(station.name)
-			self.data['min_elevations'].append(station.min_elevation)
 
-			edge1_data, edge2_data, split = self.calcOTHCircle(self.data['min_elevations'][ii], self.data['coords'][ii])
-			self.data['oth_edges1'].append(edge1_data)
-			self.data['oth_edges2'].append(edge2_data)
-			self.data['oth_circle_splits'].append(split)
+		if self.data['groundstations'].isEnabled():
+			self.groundstations_enabled = True
+		else:
+			self.groundstations_enabled = False
+
+		if self.groundstations_enabled:
+			stations = self.data['groundstations'].getStations()
+			num_stations = len(stations.values())
+			self.data['coords'] = np.zeros((num_stations, 2))
+
+			for ii, station in enumerate(stations.values()):
+				self.data['coords'][ii,0] = station.latlon[1] 	# longitude
+				self.data['coords'][ii,1] = station.latlon[0] 	# latitude
+				self.data['strings'].append(station.name)
+				self.data['min_elevations'].append(station.min_elevation)
+
+				edge1_data, edge2_data, split = self.calcOTHCircle(self.data['min_elevations'][ii], self.data['coords'][ii])
+				self.data['oth_edges1'].append(edge1_data)
+				self.data['oth_edges2'].append(edge2_data)
+				self.data['oth_circle_splits'].append(split)
+
+			self._recreateOTHCircleVisuals()
+			for ii in range(len(stations.values())):
+				if self.data['oth_circle_splits'][ii]:
+					self.visuals['oth_circles1'][ii].opacity = self.opts['over_the_horizon_circle_alpha']['value']
+					self.visuals['oth_circles2'][ii].opacity = self.opts['over_the_horizon_circle_alpha']['value']
+				else:
+					self.visuals['oth_circles1'][ii].opacity = self.opts['over_the_horizon_circle_alpha']['value']/2
+					self.visuals['oth_circles2'][ii].opacity = self.opts['over_the_horizon_circle_alpha']['value']/2
+
+		else:
+			# groundstations not enabled
+			self.data['coords'] = np.zeros((1, 2))
+			self._removeVisuals()
 
 		self.data['scaled_coords'] = self._scale(self.data['coords'])
-
-		self._recreateOTHCircleVisuals()
-		for ii in range(len(stations.values())):
-			if self.data['oth_circle_splits'][ii]:
-				self.visuals['oth_circles1'][ii].opacity = self.opts['over_the_horizon_circle_alpha']['value']
-				self.visuals['oth_circles2'][ii].opacity = self.opts['over_the_horizon_circle_alpha']['value']
-			else:
-				self.visuals['oth_circles1'][ii].opacity = self.opts['over_the_horizon_circle_alpha']['value']/2
-				self.visuals['oth_circles2'][ii].opacity = self.opts['over_the_horizon_circle_alpha']['value']/2
-
 
 	def setScale(self, horizontal_size, vertical_size):
 		self.data['horiz_pixel_scale'] = horizontal_size/360
@@ -279,7 +312,8 @@ class GroundStation2DAsset(base_assets.AbstractAsset):
 	def recomputeRedraw(self):
 		if self.isFirstDraw():
 			self._detachFromParentView()
-			self._attachToParentView()
+			if self.groundstations_enabled:
+				self._attachToParentView()
 
 			self._clearFirstDrawFlag()
 		if self.isStale():
@@ -289,10 +323,11 @@ class GroundStation2DAsset(base_assets.AbstractAsset):
 
 	def getScreenMouseOverInfo(self) -> dict[str, Any]:
 		mo_info = {'screen_pos':[], 'world_pos':[], 'strings':[], 'objects':[]}
-		mo_info['screen_pos'] = [(None, None) for _ in range(len(self.data['coords']))]
-		mo_info['world_pos'] = [(self.data['coords'][ii,1],self.data['coords'][ii,0]) for ii in range(len(self.data['coords']))]
-		mo_info['strings'] = self.data['strings']
-		mo_info['objects'] = [self for ii in range(len(self.data['coords']))]
+		if self.groundstations_enabled:
+			mo_info['screen_pos'] = [(None, None) for _ in range(len(self.data['coords']))]
+			mo_info['world_pos'] = [(self.data['coords'][ii,1],self.data['coords'][ii,0]) for ii in range(len(self.data['coords']))]
+			mo_info['strings'] = self.data['strings']
+			mo_info['objects'] = [self for ii in range(len(self.data['coords']))]
 		return mo_info
 
 	def _setDefaultOptions(self):
@@ -345,10 +380,11 @@ class GroundStation2DAsset(base_assets.AbstractAsset):
 
 	#----- OPTIONS CALLBACKS -----#
 	def _updateMarkers(self):
-		self.visuals['marker'].set_data(pos=self.data['scaled_coords'],
-											size=self.opts['groundstation_marker_size']['value'],
-											face_color=colours.normaliseColour(self.opts['groundstation_marker_colour']['value']),
-											symbol=self.opts['groundstation_marker_style']['value'])
+		if self.groundstations_enabled:
+			self.visuals['marker'].set_data(pos=self.data['scaled_coords'],
+												size=self.opts['groundstation_marker_size']['value'],
+												face_color=colours.normaliseColour(self.opts['groundstation_marker_colour']['value']),
+												symbol=self.opts['groundstation_marker_style']['value'])
 
 	def setGroundStationMarkerColour(self, new_colour):
 		logger.debug("Changing GroundStation marker colour %s -> %s", self.opts['groundstation_marker_colour']['value'], new_colour)

@@ -21,7 +21,7 @@ class GroundStationCollection:
 	def __init__(self):
 		self._stations = {}
 
-	def getEnabledDict(self):
+	def getEnabledDict(self) -> dict[str,dict[str,pathlib.Path|str]]:
 		en_list = {}
 		for k, gs in self._stations.items():
 			en_list[k] = {'file':gs.file,
@@ -29,14 +29,19 @@ class GroundStationCollection:
 
 		return en_list
 
-	def getStations(self):
+	def getStations(self) -> dict[str,"GroundStation"]:
 		return self._stations
 
-	def updateTimespans(self, timespan:TimeSpan):
+	def updateTimespans(self, timespan:TimeSpan) -> None:
 		for station in self._stations.values():
 			station.reloadTimespan(timespan)
 
-	def createGroundStations(self, gs_files:dict[str,pathlib.Path|str]):
+	def isEnabled(self) -> bool:
+		if len(self._stations) > 0:
+			return True
+		return False
+
+	def createGroundStations(self, gs_files:dict[str,pathlib.Path|str]) -> None:
 		req_hashes= [file['hash'] for file in gs_files]
 		to_delete = []
 		for station_name, station in self._stations.items():
@@ -106,7 +111,6 @@ class GroundStation(BaseDataModel):
 
 	def reloadTimespan(self, new_timespan:TimeSpan):
 		if self._source_timespan == new_timespan:
-			print('NO NEED TO UPDATE GROUNDSTATION')
 			return
 		self._source_timespan = new_timespan
 		self._reloadECIPos()
