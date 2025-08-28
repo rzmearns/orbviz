@@ -5,7 +5,6 @@ import pathlib
 import pickle
 import warnings
 
-import typing
 from typing import Any
 
 import PIL

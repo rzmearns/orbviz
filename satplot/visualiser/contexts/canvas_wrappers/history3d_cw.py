@@ -1,7 +1,6 @@
 import logging
 import time
 
-import typing
 from typing import Any
 
 import numpy as np
@@ -11,8 +10,8 @@ from PyQt5 import QtGui
 from vispy import scene
 from vispy.app.canvas import MouseEvent, ResizeEvent
 
-from satplot.model.data_models.history_data import HistoryData
 from satplot.model.data_models.groundstation_data import GroundStationCollection
+from satplot.model.data_models.history_data import HistoryData
 import satplot.model.geometry.primgeom as pg
 import satplot.util.constants as c
 import satplot.util.exceptions as exceptions

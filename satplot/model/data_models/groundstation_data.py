@@ -7,11 +7,9 @@ from typing import cast
 
 import numpy as np
 import pymap3d
-from spherapy.orbit import Orbit
 from spherapy.timespan import TimeSpan
 
 from satplot.model.data_models.base_models import BaseDataModel
-import satplot.util.conversion as satplot_conversions
 import satplot.util.hashing as satplot_hashing
 
 logger = logging.getLogger(__name__)

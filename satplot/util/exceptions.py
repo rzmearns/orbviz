@@ -1,7 +1,5 @@
 # Generic exceptions that apply throughout satplot.
-import logging
 
-import typing
 
 
 class InputError(Exception):

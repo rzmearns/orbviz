@@ -1,7 +1,4 @@
 from bisect import bisect_left
-import logging
-
-import typing
 
 import numpy as np
 

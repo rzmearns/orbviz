@@ -1,7 +1,6 @@
 import logging
 import pathlib
 
-import typing
 from typing import Any, cast
 
 import numpy as np

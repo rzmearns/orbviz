@@ -1,7 +1,6 @@
 import logging
 import sys
 
-import typing
 from typing import Any
 
 from PyQt5 import QtCore, QtWidgets

@@ -1,7 +1,4 @@
-import logging
 import pathlib
-
-import typing
 
 satplot_dir = pathlib.Path(__file__).parent.parent.parent.resolve()
 resources_dir = satplot_dir.joinpath('resources')

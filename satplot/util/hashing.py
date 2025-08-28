@@ -1,8 +1,5 @@
 import hashlib
-import logging
 import pathlib
-
-import typing
 
 
 def md5(fname:pathlib.Path) -> str:

@@ -5,7 +5,6 @@ import json
 import logging
 import pathlib
 
-import typing
 from typing import Any
 
 import satplot.visualiser.interface.console as console

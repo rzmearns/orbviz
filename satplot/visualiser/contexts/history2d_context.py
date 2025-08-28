@@ -1,7 +1,6 @@
 import logging
 import pathlib
 
-import typing
 from typing import Any
 
 import imageio
@@ -13,8 +12,8 @@ from vispy.gloo.util import _screenshot
 
 import satplot.model.data_models.data_types as data_types
 from satplot.model.data_models.earth_raycast_data import EarthRayCastData
-from satplot.model.data_models.history_data import HistoryData
 from satplot.model.data_models.groundstation_data import GroundStationCollection
+from satplot.model.data_models.history_data import HistoryData
 import satplot.visualiser.contexts.base_context as base
 from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 from satplot.visualiser.contexts.canvas_wrappers.cw_container import CWContainer

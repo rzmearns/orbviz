@@ -1,10 +1,7 @@
 import datetime as dt
 import json
-import logging
 import pathlib
 import time
-
-import typing
 
 import numpy as np
 from PIL import Image
@@ -26,6 +23,7 @@ import satplot.visualiser.interface.console as console
 import satplot.visualiser.interface.datapane as datapane
 import satplot.visualiser.interface.widgets as widgets
 from satplot.visualiser.shells import base_shell
+
 
 def createSpaceTrackCredentialsDialog():
 	SpaceTrackCredentialsDialog()

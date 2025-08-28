@@ -1,15 +1,14 @@
 import logging
 import pathlib
 
-import typing
 from typing import Any
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 import satplot.model.data_models.data_types as data_types
 from satplot.model.data_models.earth_raycast_data import EarthRayCastData
-from satplot.model.data_models.history_data import HistoryData
 from satplot.model.data_models.groundstation_data import GroundStationCollection
+from satplot.model.data_models.history_data import HistoryData
 from satplot.visualiser.contexts.base_context import BaseContext, BaseControls
 from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 import satplot.visualiser.contexts.canvas_wrappers.sensor_views_cw as sensor_views_cw

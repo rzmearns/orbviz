@@ -1,7 +1,4 @@
 from ctypes import ArgumentError
-import logging
-
-import typing
 
 import numpy as np
 

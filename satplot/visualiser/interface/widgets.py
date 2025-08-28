@@ -3,7 +3,6 @@ import logging
 import math
 import pathlib
 
-import typing
 from typing import Any
 
 from spherapy.timespan import TimeSpan

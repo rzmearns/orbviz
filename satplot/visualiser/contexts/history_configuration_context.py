@@ -1,7 +1,6 @@
 import logging
 import pathlib
 
-import typing
 from typing import Any
 
 from PyQt5 import QtCore, QtGui, QtWidgets

@@ -1,7 +1,4 @@
-import logging
 import sys
-
-import typing
 
 from PyQt5 import QtCore
 

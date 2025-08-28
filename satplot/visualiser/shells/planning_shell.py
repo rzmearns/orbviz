@@ -1,8 +1,6 @@
 import logging
 import sys
 
-import typing
-
 from PyQt5 import QtWidgets
 
 from satplot.model.data_models import earth_raycast_data, history_data

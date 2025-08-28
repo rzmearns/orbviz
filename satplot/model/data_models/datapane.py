@@ -1,7 +1,6 @@
 import logging
 
 from collections.abc import Callable
-import typing
 from typing import Any
 
 import numpy as np

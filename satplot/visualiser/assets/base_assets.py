@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 import logging
 
-import typing
 from typing import Any
 from typing_extensions import Self
 
