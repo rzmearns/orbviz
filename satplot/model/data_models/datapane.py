@@ -20,7 +20,7 @@ class DataPaneModel(QtCore.QAbstractTableModel):
 	def __init__(self, *args: Any, **kwargs: Any) -> None:
 		super().__init__()
 		self._items = []
-		self._headers = ['Parameter', 'Value', 'Unit']
+		self._headers = ['Parameter', 'Unit', 'Value']
 
 	def count(self) -> int:
 		return len(self._items)
@@ -49,7 +49,8 @@ class DataPaneModel(QtCore.QAbstractTableModel):
 		row = index.row()
 		column = index.column()
 		if role == QtCore.Qt.ItemDataRole.DisplayRole:
-			val = list(self._items[row].values())[column]
+			column_key = self._headers[column].lower()
+			val = self._items[row][column_key]
 			if val == 'quat':
 				val = ''
 			# if it's a lambda, call it
@@ -63,10 +64,11 @@ class DataPaneModel(QtCore.QAbstractTableModel):
 			else:
 				return_val = val
 
-			# # infer display precision based on unit type (will always return None for parameter name column and unit column)
-			if column == 1:
-				unit_type = self._items[row]['unit']
-				display_precision = self._getDisplayPrecision(unit_type)
+			if self._headers[column].lower() == 'value':
+				if 'precision' in self._items[row].keys():
+					display_precision = self._items[row]['precision']
+				else:
+					display_precision = 2
 				return_val = self._formatReturnVal(return_val, display_precision)
 
 			return f'{return_val}'
