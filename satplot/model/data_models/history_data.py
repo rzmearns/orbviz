@@ -276,19 +276,19 @@ class HistoryData(BaseDataModel):
 						'unit':'km',
 						'precision':6})
 		self.datapane_data.append({'parameter':'Eccentricity',
-						'value':lambda : np.rad2deg(list(self.orbits.values())[0].ecc[self.curr_index,:]),
+						'value':lambda : list(self.orbits.values())[0].ecc[self.curr_index],
 						'unit':None,
-						'precision':2})
+						'precision':6})
 		self.datapane_data.append({'parameter':'Inclination',
-						'value':lambda : np.rad2deg(list(self.orbits.values())[0].inc[self.curr_index,:]),
+						'value':lambda : np.rad2deg(list(self.orbits.values())[0].inc[self.curr_index]),
 						'unit':'°',
 						'precision':2})
 		self.datapane_data.append({'parameter':'RAAN',
-						'value':lambda : np.rad2deg(list(self.orbits.values())[0].raan[self.curr_index,:]),
+						'value':lambda : np.rad2deg(list(self.orbits.values())[0].raan[self.curr_index]),
 						'unit':'°',
 						'precision':2})
 		self.datapane_data.append({'parameter':'Argument of Perigee',
-						'value':lambda : np.rad2deg(list(self.orbits.values())[0].argp[self.curr_index,:]),
+						'value':lambda : np.rad2deg(list(self.orbits.values())[0].argp[self.curr_index]),
 						'unit':'°',
 						'precision':2})
 		self.datapane_data.append({'parameter':'Period Perigee',
@@ -320,7 +320,7 @@ class HistoryData(BaseDataModel):
 						'unit':'m/s',
 						'precision':2})
 		self.datapane_data.append({'parameter':'Quaternion',
-						'value':lambda : list(self.pointings.values())[0][self.curr_index,:],
+						'value':lambda : list(self.pointings.values())[0].getAttitude(self.curr_index),
 						'unit':None,
 						'precision':4})
 
@@ -389,6 +389,11 @@ class HistoricalAttitude:
 
 	def getPointingTimestamps(self) -> np.ndarray[tuple[int], np.dtype[np.datetime64]]:
 		return self._timestamps
+
+	def getAttitude(self, curr_index) -> np.ndarray[tuple[int],np.dtype[np.float64]] | bool:
+		if self.isAttitudeValid(curr_index):
+			return self.getAttitudeQuat(curr_index)
+		return False
 
 	def _loadPointingFile(self, p_file: pathlib.Path) -> tuple[np.ndarray[tuple[int], np.dtype[np.datetime64]], np.ndarray[tuple[int,int],np.dtype[np.float64]]]:
 		pointing_q = np.array(())

@@ -62,10 +62,14 @@ class DataPaneModel(QtCore.QAbstractTableModel):
 			if isinstance(val, Callable):
 				try:
 					return_val = val()
-				except Exception:
+				except IndexError:
 					# TODO: logger not respecting main handlers, prints to stdout as well as log file.
 					# logger.warning(e)
+					# print(e)
 					return_val = None
+				except Exception as e:
+					logger.warning("Datapane callback for %s:%s", self._items[row]['parameter'], e)
+					return_val = 'Error'
 			else:
 				return_val = val
 
