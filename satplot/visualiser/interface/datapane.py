@@ -21,7 +21,8 @@ class DataPaneWidget(QtWidgets.QWidget):
 		self._table.setModel(self._model)
 		self._selection_model = self._table.selectionModel()
 		# self._selection_model.selectionChanged.connect(self.emitSelectionMade)
-		self._entry_font = QtGui.QFont()
+
+		self._entry_font = QtGui.QFontDatabase.systemFont(QtGui.QFontDatabase.FixedFont)
 		self._entry_font.setPointSize(8)
 		self._header_font = QtGui.QFont()
 		self._header_font.setPointSize(10)
@@ -80,7 +81,9 @@ class DataPaneWidget(QtWidgets.QWidget):
 		self._table.setFont(self._entry_font)
 
 		self._setRowStyling(QtCore.QModelIndex(), 0, self._model.rowCount()-1)
-
+		self._table.setWordWrap(True)
+		self._table.setTextElideMode(QtCore.Qt.TextElideMode.ElideMiddle)
+		# self._table.resizeRowsToContents();
 		self._table.setShowGrid(False)
 
 
@@ -93,6 +96,8 @@ class DataPaneWidget(QtWidgets.QWidget):
 	def _autoSetColWidth(self, model, first_row_changed, last_row_changed) -> None:
 		for col_num in range(self._model.columnCount()):
 			self._table.resizeColumnToContents(col_num)
+		# for row_num in range(self._model.rowCount()):
+		self._table.resizeRowsToContents()
 
 	def setMouseText(self,text):
 		if self.geometry().width() < self.mouseover_fontmetric.boundingRect(text).width():
