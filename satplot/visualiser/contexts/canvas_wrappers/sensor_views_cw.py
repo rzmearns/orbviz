@@ -1,6 +1,7 @@
 import logging
 import time
 
+import typing
 from typing import Any
 
 import numpy as np
@@ -31,89 +32,84 @@ mouse_over_is_highlighting = False
 
 
 class SensorViewsCanvasWrapper(BaseCanvas):
-	def __init__(
-		self, w: int = 800, h: int = 600, keys: str = "interactive", bgcolor: str = "white"
-	):
-		self.canvas = scene.canvas.SceneCanvas(size=(w, h), keys=keys, bgcolor=bgcolor)
+	def __init__(self, w:int=800, h:int=600, keys:str='interactive', bgcolor:str='white'):
+		self.canvas = scene.canvas.SceneCanvas(size=(w,h),
+										keys=keys,
+										bgcolor=bgcolor)
 		self.canvas.events.mouse_move.connect(self.onMouseMove)
 		self.canvas.events.mouse_wheel.connect(self.onMouseScroll)
 		self.canvas.events.key_press.connect(self.on_key_press)
 
-		vb1 = scene.widgets.ViewBox(border_color="black", parent=self.canvas.scene)
-		vb2 = scene.widgets.ViewBox(border_color="black", parent=self.canvas.scene)
-		vb3 = scene.widgets.ViewBox(border_color="black", parent=self.canvas.scene)
-		vb4 = scene.widgets.ViewBox(border_color="black", parent=self.canvas.scene)
+		vb1 = scene.widgets.ViewBox(border_color='black', parent=self.canvas.scene)
+		vb2 = scene.widgets.ViewBox(border_color='black', parent=self.canvas.scene)
+		vb3 = scene.widgets.ViewBox(border_color='black', parent=self.canvas.scene)
+		vb4 = scene.widgets.ViewBox(border_color='black', parent=self.canvas.scene)
 		self.view_boxes = [vb1, vb2, vb3, vb4]
 
-		self.displayed_sensors: list[None | sensors.SensorImageAsset] = [None, None, None, None]
+		self.displayed_sensors:list[None|sensors.SensorImageAsset] = [None, None, None, None]
 
 		self.grid = self.canvas.central_widget.add_grid(spacing=0)
-		self.grid.add_widget(self.view_boxes[0], 0, 0)
-		self.grid.add_widget(self.view_boxes[1], 0, 1)
-		self.grid.add_widget(self.view_boxes[2], 1, 0)
-		self.grid.add_widget(self.view_boxes[3], 1, 1)
+		self.grid.add_widget(self.view_boxes[0],0,0)
+		self.grid.add_widget(self.view_boxes[1],0,1)
+		self.grid.add_widget(self.view_boxes[2],1,0)
+		self.grid.add_widget(self.view_boxes[3],1,1)
 
 		for ii in range(len(self.view_boxes)):
 			self.view_boxes[ii].camera = static2d.Static2D(parent=self.view_boxes[ii].scene)
 			self.view_boxes[ii].camera.aspect = 1
-			self.view_boxes[ii].camera.flip = (0, 1, 0)
+			self.view_boxes[ii].camera.flip = (0,1,0)
 
-		self.data_models: dict[str, Any] = {}
-		self.assets: dict[str, spacecraft.SpacecraftViewsAsset] = {}
+
+		self.data_models: dict[str,Any] = {}
+		self.assets:dict[str, spacecraft.SpacecraftViewsAsset] = {}
 		self._buildAssets()
-		self.mouseOverText = widgets.PopUpTextBox(
-			v_parent=self.canvas.scene,
-			padding=[3, 3, 3, 3],
-			colour=(253, 255, 189),
-			border_colour=(186, 186, 186),
-			font_size=10,
-		)
+		self.mouseOverText = widgets.PopUpTextBox(v_parent=self.canvas.scene,
+											padding=[3,3,3,3],
+											colour=(253,255,189),
+											border_colour=(186,186,186),
+											font_size=10)
 		self.mouseOverTimer = QtCore.QTimer()
 		self.mouseOverTimer.timeout.connect(self._setMouseOverVisible)
 		self.mouseOverObject = None
 
 	def _buildAssets(self) -> None:
-		self.assets["spacecraft"] = spacecraft.SpacecraftViewsAsset(v_parent=None)
+		self.assets['spacecraft'] = spacecraft.SpacecraftViewsAsset(v_parent=None)
 
-	def _getCurrentDisplayedSensor(self, view: int) -> sensors.SensorImageAsset | None:
+	def _getCurrentDisplayedSensor(self, view:int) -> sensors.SensorImageAsset | None:
 		return self.displayed_sensors[view]
 
-	def generateSensorFullRes(
-		self, sc_id: int, sens_suite_key: str, sens_key: str
-	) -> tuple[np.ndarray, np.ndarray, object, SensorImgMetadata]:
+	def generateSensorFullRes(self, sc_id: int, sens_suite_key: str, sens_key: str) -> tuple[np.ndarray, np.ndarray, object, SensorImgMetadata]:
 		# TOOD: use sc_id to select which spacecraft asset to generate
-		sc_asset = self.assets["spacecraft"]
-		sensor_asset = (
-			self.assets["spacecraft"].getSensorSuiteByKey(sens_suite_key).getSensorByKey(sens_key)
-		)
+		sc_asset = self.assets['spacecraft']
+		sensor_asset = self.assets['spacecraft'].getSensorSuiteByKey(sens_suite_key).getSensorByKey(sens_key)
 		img_data, mo_data, moConverterFunction = sensor_asset.generateFullRes()
-		img_metadata = SensorImgMetadata(
-			spacecraft_id=sc_id,
-			spacecraft_name=self.assets["spacecraft"].data["name"],
-			sensor_suite_name=sens_suite_key,
-			sensor_name=sens_key,
-			resolution=(img_data.shape[1], img_data.shape[0]),
-			fov=sensor_asset.data["fov"],
-			lens_model=sensor_asset.data["lens_model"].__name__,
-			current_time=sensor_asset.data["curr_datetime"],
-			sensor_body_frame_quaternion=sensor_asset.data["bf_quat"],
-			spacecraft_quaternion=sc_asset.data["curr_quat"].reshape(4).tolist(),
-			spacecraft_eci_position=sc_asset.data["curr_pos"].reshape(3).tolist(),
-			sensor_eci_quaternion=sensor_asset.data["curr_quat"].reshape(4).tolist(),
-			image_md5_hash=None,
-		)
+		img_metadata = SensorImgMetadata(spacecraft_id=sc_id,
+						spacecraft_name=self.assets['spacecraft'].data['name'],
+						sensor_suite_name=sens_suite_key,
+						sensor_name=sens_key,
+						resolution=(img_data.shape[1], img_data.shape[0]),
+						fov=sensor_asset.data['fov'],
+						lens_model=sensor_asset.data['lens_model'].__name__,
+						current_time=sensor_asset.data['curr_datetime'],
+						sensor_body_frame_quaternion = sensor_asset.data['bf_quat'],
+						spacecraft_quaternion=sc_asset.data['curr_quat'].reshape(4,).tolist(),
+						spacecraft_eci_position=sc_asset.data['curr_pos'].reshape(3,).tolist(),
+						sensor_eci_quaternion=sensor_asset.data['curr_quat'].reshape(4,).tolist(),
+						image_md5_hash=None)
 
 		return img_data, mo_data, moConverterFunction, img_metadata
 
-	def selectSensor(self, view: int, sc_id: int, sens_suite_key: str, sens_key: str) -> None:
+	def selectSensor(self, view:int, sc_id: int, sens_suite_key: str, sens_key: str) -> None:
 		# remove parent scene of old sensor
 		# make old sensor dormant
-		logger.debug("Clearing sensor: %s from view: %s", self.displayed_sensors[view], view)
+		logger.debug('Clearing sensor: %s from view: %s', self.displayed_sensors[view], view)
 		if self.displayed_sensors[view] is not None:
 			self.displayed_sensors[view].makeDormant()
 			self.displayed_sensors[view] = None
 
-		if sc_id == None or sens_suite_key == None or sens_key == None:
+		if sc_id == None or \
+			sens_suite_key == None or \
+			sens_key == None:
 			return
 
 		# attach parent scene to new sensor
@@ -125,68 +121,50 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 		sensor_asset._setActiveFlag()
 		sensor_asset._attachToParentView()
 		width, height = sensor_asset.getDimensions()
-		logger.debug(
-			"Setting view: %s to SC: %s, Sensor Suite: %s, sensor:%s",
-			view,
-			sc_id,
-			sens_suite_key,
-			sens_key,
-		)
-		self.view_boxes[view].camera.set_range(x=(0, width), y=(0, height), margin=0)
+		logger.debug('Setting view: %s to SC: %s, Sensor Suite: %s, sensor:%s', view, sc_id, sens_suite_key, sens_key)
+		self.view_boxes[view].camera.set_range(x=(0,width), y=(0, height), margin=0)
 		self.displayed_sensors[view] = sensor_asset
 
-	def _getSensorAsset(
-		self, sc_id: int, sens_suite_key: str, sens_key: str
-	) -> tuple[sensors.SensorSuiteImageAsset, sensors.SensorImageAsset]:
+
+	def _getSensorAsset(self, sc_id: int, sens_suite_key: str, sens_key: str) -> tuple[sensors.SensorSuiteImageAsset,sensors.SensorImageAsset]:
 		# TODO: index spacecraft list using sc_id
-		suite_asset = self.assets["spacecraft"].getSensorSuiteByKey(sens_suite_key)
+		suite_asset = self.assets['spacecraft'].getSensorSuiteByKey(sens_suite_key)
 		sensor_asset = suite_asset.getSensorByKey(sens_key)
 
 		return suite_asset, sensor_asset
 
-	def getActiveAssets(
-		self,
-	) -> list[
-		base_assets.AbstractAsset
-		| base_assets.AbstractCompoundAsset
-		| base_assets.AbstractSimpleAsset
-	]:
+	def getActiveAssets(self) -> list[base_assets.AbstractAsset|base_assets.AbstractCompoundAsset|base_assets.AbstractSimpleAsset]:
 		active_assets = []
-		for k, v in self.assets.items():
+		for k,v in self.assets.items():
 			if v.isActive():
 				active_assets.append(k)
 		return active_assets
 
-	def setModel(self, hist_data: HistoryData, earth_raycast_data: EarthRayCastData) -> None:
-		self.data_models["history"] = hist_data
-		self.data_models["raycast_src"] = earth_raycast_data
+	def setModel(self, hist_data:HistoryData, earth_raycast_data:EarthRayCastData) -> None:
+		self.data_models['history'] = hist_data
+		self.data_models['raycast_src'] = earth_raycast_data
 
 	def modelUpdated(self) -> None:
-		logger.debug("updating model for %s", self)
+		logger.debug('updating model for %s', self)
 		# Update data source for earth asset
-		if self.data_models["history"] is None:
-			logger.error("canvas wrapper: %s does not have a history data model yet", self)
+		if self.data_models['history'] is None:
+			logger.error('canvas wrapper: %s does not have a history data model yet', self)
 			raise exceptions.InvalidDataError
 
-		if self.data_models["raycast_src"] is None:
-			logger.error("canvas wrapper: %s does not have a raycast source data model yet", self)
+		if self.data_models['raycast_src'] is None:
+			logger.error('canvas wrapper: %s does not have a raycast source data model yet', self)
 			raise exceptions.InvalidDataError
 
-		if self.data_models["history"].hasOrbits():
-			if self.data_models["history"].getConfigValue("is_pointing_defined"):
-				self.assets["spacecraft"].setSource(
-					list(
-						self.data_models["history"]
-						.getPrimaryConfig()
-						.getAllSpacecraftConfigs()
-						.values()
-					)[0],
-					self.data_models["history"],
-					self.data_models["raycast_src"],
-				)
-				self.assets["spacecraft"]._setActiveFlag()
+		if self.data_models['history'].hasOrbits():
+			if self.data_models['history'].getConfigValue('is_pointing_defined'):
+				self.assets['spacecraft'].setSource(list(self.data_models['history'].getPrimaryConfig().getAllSpacecraftConfigs().values())[0],
+													self.data_models['history'],
+													self.data_models['raycast_src'])
+				self.assets['spacecraft']._setActiveFlag()
 
-	def updateIndex(self, index: int) -> None:
+
+
+	def updateIndex(self, index:int) -> None:
 		for asset in self.assets.values():
 			if asset.isActive():
 				asset.updateIndex(index)
@@ -200,17 +178,15 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 		for asset in self.assets.values():
 			asset.setFirstDrawFlagRecursive()
 
-	def prepSerialisation(self) -> dict[str, Any]:
+	def prepSerialisation(self) -> dict[str,Any]:
 		state = {}
 		return state
 
-	def deSerialise(self, state: dict[str, Any]) -> None:
+	def deSerialise(self, state:dict[str,Any]) -> None:
 		pass
 
 	def mapAssetPositionsToScreen(self) -> list:
-		mo_infos = [
-			asset.getScreenMouseOverInfo() for asset in self.assets.values() if asset.isActive()
-		]
+		mo_infos = [asset.getScreenMouseOverInfo() for asset in self.assets.values() if asset.isActive()]
 		return mo_infos
 
 	def on_key_press(self, event):
@@ -223,23 +199,20 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 	def stopMouseOverTimer(self) -> None:
 		self.mouseOverTimer.stop()
 
-	def _mapCanvasPosToViewBoxPos(self, canvas_pos: list[int]):
-		y, x = self.grid.grid_size
+	def _mapCanvasPosToViewBoxPos(self, canvas_pos:list[int]):
+		y,x = self.grid.grid_size
 
-		row_spacing = self.canvas.native.height() / y
-		col_spacing = self.canvas.native.width() / x
+		row_spacing = self.canvas.native.height()/y
+		col_spacing = self.canvas.native.width()/x
 
-		vb_col = int(canvas_pos[0] / col_spacing)
-		vb_row = int(canvas_pos[1] / row_spacing)
+		vb_col = int(canvas_pos[0]/col_spacing)
+		vb_row = int(canvas_pos[1]/row_spacing)
 
-		vb_idx = self.grid.layout_array[vb_row, vb_col]
-		vb_pos = (
-			(canvas_pos[0] % col_spacing) / self.view_boxes[vb_idx].width,
-			canvas_pos[1] % row_spacing / self.view_boxes[vb_idx].height,
-		)
+		vb_idx = self.grid.layout_array[vb_row,vb_col]
+		vb_pos = (canvas_pos[0]%col_spacing)/self.view_boxes[vb_idx].width, canvas_pos[1]%row_spacing/self.view_boxes[vb_idx].height
 		return vb_idx, vb_pos
 
-	def onMouseMove(self, event: MouseEvent) -> None:
+	def onMouseMove(self, event:MouseEvent) -> None:
 		global last_mevnt_time
 		global mouse_over_is_highlighting
 
@@ -264,5 +237,5 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 
 		last_mevnt_time = time.monotonic()
 
-	def onMouseScroll(self, event: QtGui.QMouseEvent) -> None:
-		pass
+	def onMouseScroll(self, event:QtGui.QMouseEvent) -> None:
+		pass		

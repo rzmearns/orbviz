@@ -1,6 +1,7 @@
 import logging
 import time
 
+import typing
 from typing import Any
 
 import numpy as np
@@ -10,8 +11,8 @@ from PyQt5 import QtGui
 from vispy import scene
 from vispy.app.canvas import MouseEvent, ResizeEvent
 
-from satplot.model.data_models.groundstation_data import GroundStationCollection
 from satplot.model.data_models.history_data import HistoryData
+from satplot.model.data_models.groundstation_data import GroundStationCollection
 import satplot.model.geometry.primgeom as pg
 import satplot.util.constants as c
 import satplot.util.exceptions as exceptions
@@ -42,134 +43,121 @@ mouse_over_is_highlighting = False
 
 
 class History3DCanvasWrapper(BaseCanvas):
-	def __init__(
-		self, w: int = 800, h: int = 600, keys: str = "interactive", bgcolor: str = "white"
-	):
-		self.canvas = scene.canvas.SceneCanvas(size=(w, h), keys=keys, bgcolor=bgcolor)
+	def __init__(self, w:int=800, h:int=600, keys:str='interactive', bgcolor:str='white'):
+		self.canvas = scene.canvas.SceneCanvas(size=(w,h), keys=keys, bgcolor=bgcolor)
 		self.canvas.events.mouse_move.connect(self.onMouseMove)
 		self.canvas.events.mouse_wheel.connect(self.onMouseScroll)
 		self.canvas.events.resize.connect(self.onResize)
 		self.grid = self.canvas.central_widget.add_grid()
 		self.view_box = self.canvas.central_widget.add_view()
-		self.view_box.camera = scene.cameras.TurntableCamera(
-			parent=self.view_box.scene, fov=60, center=(0, 0, 0), name="Turntable"
-		)
-		self.data_models: dict[str, Any] = {}
+		self.view_box.camera = scene.cameras.TurntableCamera(parent=self.view_box.scene,
+															fov=60,
+															center=(0,0,0),
+															name='Turntable')
+		self.data_models: dict[str,Any] = {}
 		self.assets = {}
 		self._buildAssets()
-		self.mouseOverText = widgets.PopUpTextBox(
-			v_parent=self.view_box,
-			padding=[3, 3, 3, 3],
-			colour=(253, 255, 189),
-			border_colour=(186, 186, 186),
-			font_size=10,
-		)
+		self.mouseOverText = widgets.PopUpTextBox(v_parent=self.view_box,
+											padding=[3,3,3,3],
+											colour=(253,255,189),
+											border_colour=(186,186,186),
+											font_size=10)
 		self.mouseOverObject = None
 
 	def _buildAssets(self) -> None:
-		self.assets["earth"] = earth.Earth3DAsset(v_parent=self.view_box.scene)
-		self.assets["primary_orbit"] = orbit.Orbit3DAsset(v_parent=self.view_box.scene)
-		self.assets["moon"] = moon.Moon3DAsset(v_parent=self.view_box.scene)
+		self.assets['earth'] = earth.Earth3DAsset(v_parent=self.view_box.scene)
+		self.assets['primary_orbit'] = orbit.Orbit3DAsset(v_parent=self.view_box.scene)
+		self.assets['moon'] = moon.Moon3DAsset(v_parent=self.view_box.scene)
 
-		self.assets["spacecraft"] = spacecraft.Spacecraft3DAsset(v_parent=self.view_box.scene)
+		self.assets['spacecraft'] = spacecraft.Spacecraft3DAsset(v_parent=self.view_box.scene)
 
-		self.assets["constellation"] = constellation.Constellation(v_parent=self.view_box.scene)
-		self.assets["sun"] = sun.Sun3DAsset(v_parent=self.view_box.scene)
-		self.assets["events"] = events.Events3DAsset(v_parent=self.view_box.scene)
-		self.assets["groundstations"] = groundstations.GroundStation3DAsset(
-			v_parent=self.view_box.scene
-		)
+		self.assets['constellation'] = constellation.Constellation(v_parent=self.view_box.scene)
+		self.assets['sun'] = sun.Sun3DAsset(v_parent=self.view_box.scene)
+		self.assets['events'] = events.Events3DAsset(v_parent=self.view_box.scene)
+		self.assets['groundstations'] = groundstations.GroundStation3DAsset(v_parent=self.view_box.scene)
 
-		self.assets["ECI_gizmo"] = gizmo.ViewBoxGizmo(v_parent=self.view_box)
-		self.setCameraZoom(5 * c.R_EARTH)
+		self.assets['ECI_gizmo'] = gizmo.ViewBoxGizmo(v_parent=self.view_box)
+		self.setCameraZoom(5*c.R_EARTH)
 
-	def getActiveAssets(
-		self,
-	) -> list[
-		base_assets.AbstractAsset
-		| base_assets.AbstractCompoundAsset
-		| base_assets.AbstractSimpleAsset
-	]:
+	def getActiveAssets(self) -> list[base_assets.AbstractAsset|base_assets.AbstractCompoundAsset|base_assets.AbstractSimpleAsset]:
 		active_assets = []
-		for k, v in self.assets.items():
+		for k,v in self.assets.items():
 			if v.isActive():
 				active_assets.append(k)
 		return active_assets
 
-	def setCameraMode(self, mode: str = "turntable") -> None:
-		allowed_cam_modes = ["turntable", "arcball", "fly", "panzoom", "magnify", "perspective"]
+	def setCameraMode(self, mode:str='turntable') -> None:
+		allowed_cam_modes = ['turntable',
+							'arcball',
+							'fly',
+							'panzoom',
+							'magnify',
+							'perspective']
 		if mode not in allowed_cam_modes:
-			logger.error("specified camera mode is not a valid mode: %s", mode)
+			logger.error('specified camera mode is not a valid mode: %s', mode)
 			raise NameError
 
 		self.view_box.camera = mode
 
-	def setCameraZoom(self, zoom: float) -> None:
+	def setCameraZoom(self, zoom:float) -> None:
 		self.view_box.camera.scale_factor = zoom
 
-	def setModel(self, hist_data: HistoryData, gs_data: GroundStationCollection) -> None:
-		self.data_models["history"] = hist_data
-		self.data_models["groundstations"] = gs_data
+	def setModel(self, hist_data:HistoryData, gs_data:GroundStationCollection) -> None:
+		self.data_models['history'] = hist_data
+		self.data_models['groundstations'] = gs_data
 		# self.modelUpdated()
 
 	def modelUpdated(self) -> None:
 		# Update data source for earth asset
-		if self.data_models["history"] is None:
-			logger.error("canvas wrapper: %s does not have a history data model yet", self)
+		if self.data_models['history'] is None:
+			logger.error('canvas wrapper: %s does not have a history data model yet', self)
 			raise exceptions.InvalidDataError
 
-		if self.data_models["history"].timespan is not None:
-			self.assets["earth"].setSource(self.data_models["history"].timespan)
-			self.assets["earth"].makeActive()
+		if self.data_models['history'].timespan is not None:
+			self.assets['earth'].setSource(self.data_models['history'].timespan)
+			self.assets['earth'].makeActive()
 
 		# Update data source for moon asset
-		if len(self.data_models["history"].getConfigValue("primary_satellite_ids")) > 0:
-			self.assets["moon"].setSource(list(self.data_models["history"].orbits.values())[0])
-			self.assets["moon"].makeActive()
+		if len(self.data_models['history'].getConfigValue('primary_satellite_ids')) > 0:
+			self.assets['moon'].setSource(list(self.data_models['history'].orbits.values())[0])
+			self.assets['moon'].makeActive()
+
 
 		# Update data source for primary orbit(s)
-		if len(self.data_models["history"].getConfigValue("primary_satellite_ids")) > 0:
+		if len(self.data_models['history'].getConfigValue('primary_satellite_ids')) > 0:
 			# TODO: extend to draw multiple primary satellites
-			self.assets["primary_orbit"].setSource(self.data_models["history"].getOrbits())
-			self.assets["primary_orbit"].makeActive()
+			self.assets['primary_orbit'].setSource(self.data_models['history'].getOrbits())
+			self.assets['primary_orbit'].makeActive()
 
-		if self.data_models["history"].hasOrbits():
-			self.assets["spacecraft"].setSource(
-				list(
-					self.data_models["history"]
-					.getPrimaryConfig()
-					.getAllSpacecraftConfigs()
-					.values()
-				)[0],
-				self.data_models["history"],
-			)
-			self.assets["spacecraft"].makeActive()
+		if self.data_models['history'].hasOrbits():
+			self.assets['spacecraft'].setSource(list(self.data_models['history'].getPrimaryConfig().getAllSpacecraftConfigs().values())[0],
+													self.data_models['history'])
+			self.assets['spacecraft'].makeActive()
 
 		# Update data source for events
-		if self.data_models["history"].getConfigValue("events_defined"):
-			self.assets["events"].setSource(list(self.data_models["history"].events.values())[0])
-			self.assets["events"].makeActive()
+		if self.data_models['history'].getConfigValue('events_defined'):
+			self.assets['events'].setSource(list(self.data_models['history'].events.values())[0])
+			self.assets['events'].makeActive()
 		else:
-			self.assets["events"].makeDormant()
+			self.assets['events'].makeDormant()
 
-		self.assets["groundstations"].setSource(self.data_models["groundstations"])
-		self.assets["groundstations"].makeActive()
+		self.assets['groundstations'].setSource(self.data_models['groundstations'])
+		self.assets['groundstations'].makeActive()
 
-		if self.data_models["history"].getConfigValue("has_supplemental_constellation"):
-			self.assets["constellation"].setSource(
-				self.data_models["history"].getConstellation().getOrbits(),
-				self.data_models["history"].getConstellation().getConfigValue("beam_angle_deg"),
-			)
-			self.assets["constellation"].makeActive()
+		if self.data_models['history'].getConfigValue('has_supplemental_constellation'):
+			self.assets['constellation'].setSource(self.data_models['history'].getConstellation().getOrbits(),
+													self.data_models['history'].getConstellation().getConfigValue('beam_angle_deg'))
+			self.assets['constellation'].makeActive()
 		else:
-			self.assets["constellation"].makeDormant()
+			self.assets['constellation'].makeDormant()
 
 		# Update data source for sun asset
-		if len(self.data_models["history"].getConfigValue("primary_satellite_ids")) > 0:
-			self.assets["sun"].setSource(self.data_models["history"].getOrbits())
-			self.assets["sun"].makeActive()
+		if len(self.data_models['history'].getConfigValue('primary_satellite_ids')) > 0:
+			self.assets['sun'].setSource(self.data_models['history'].getOrbits())
+			self.assets['sun'].makeActive()
 
-	def updateIndex(self, index: int) -> None:
+
+	def updateIndex(self, index:int) -> None:
 		for asset in self.assets.values():
 			if asset.isActive():
 				asset.updateIndex(index)
@@ -181,30 +169,19 @@ class History3DCanvasWrapper(BaseCanvas):
 			if asset.isActive():
 				asset.recomputeRedraw()
 
+
 	def setFirstDrawFlags(self) -> None:
 		for asset in self.assets.values():
 			asset.setFirstDrawFlagRecursive()
 
-	def centerCameraSpacecraft(self, set_zoom: bool = True) -> None:
+	def centerCameraSpacecraft(self, set_zoom:bool=True) -> None:
 		if self.canvas is None:
-			logger.warning(
-				"Canvas has not been set for History3D Canvas Wrapper. No camera to center"
-			)
-			raise AttributeError(
-				"Canvas has not been set for History3D Canvas Wrapper. No camera to center"
-			)
-		if self.assets["spacecraft"].isActive():
-			sc_pos = tuple(
-				self.assets["spacecraft"].data["coords"][
-					self.assets["spacecraft"].data["curr_index"]
-				]
-			)
+			logger.warning("Canvas has not been set for History3D Canvas Wrapper. No camera to center")
+			raise AttributeError("Canvas has not been set for History3D Canvas Wrapper. No camera to center")
+		if self.assets['spacecraft'].isActive():
+			sc_pos = tuple(self.assets['spacecraft'].data['coords'][self.assets['spacecraft'].data['curr_index']])
 		else:
-			sc_pos = tuple(
-				self.assets["primary_orbit"].data["coords"][
-					self.assets["primary_orbit"].data["curr_index"]
-				]
-			)
+			sc_pos = tuple(self.assets['primary_orbit'].data['coords'][self.assets['primary_orbit'].data['curr_index']])
 
 		old_az = self.view_box.camera.azimuth
 
@@ -214,61 +191,54 @@ class History3DCanvasWrapper(BaseCanvas):
 		self.view_box.camera.azimuth = old_az
 		self.canvas.update()
 
+
 	def centerCameraEarth(self) -> None:
 		if self.canvas is None:
-			logger.warning(
-				"Canvas has not been set for History3D Canvas Wrapper. No camera to center"
-			)
-			raise AttributeError(
-				"Canvas has not been set for History3D Canvas Wrapper. No camera to center"
-			)
-		self.view_box.camera.center = (0, 0, 0)
-		self.setCameraZoom(5 * c.R_EARTH)
+			logger.warning("Canvas has not been set for History3D Canvas Wrapper. No camera to center")
+			raise AttributeError("Canvas has not been set for History3D Canvas Wrapper. No camera to center")
+		self.view_box.camera.center = (0,0,0)
+		self.setCameraZoom(5*c.R_EARTH)
 		self.canvas.update()
 
-	def prepSerialisation(self) -> dict[str, Any]:
+	def prepSerialisation(self) -> dict[str,Any]:
 		state = {}
-		state["cam-center"] = self.view_box.camera.center
-		state["cam-zoom"] = self.view_box.camera.scale_factor
-		state["cam-az"] = self.view_box.camera.azimuth
-		state["cam-el"] = self.view_box.camera.elevation
-		state["cam-roll"] = self.view_box.camera.roll
+		state['cam-center'] = self.view_box.camera.center
+		state['cam-zoom'] = self.view_box.camera.scale_factor
+		state['cam-az'] = self.view_box.camera.azimuth
+		state['cam-el'] = self.view_box.camera.elevation
+		state['cam-roll'] = self.view_box.camera.roll
 		asset_states = {}
 		for asset_name, asset in self.assets.items():
 			asset_states[asset_name] = asset.prepSerialisation()
 
-		state["asset_states"] = asset_states
+		state['asset_states'] = asset_states
 		return state
 
-	def deSerialise(self, state: dict[str, Any]) -> None:
-		self.view_box.camera.center = state["cam-center"]
-		self.view_box.camera.scale_factor = state["cam-zoom"]
-		self.view_box.camera.azimuth = state["cam-az"]
-		self.view_box.camera.elevation = state["cam-el"]
-		self.view_box.camera.roll = state["cam-roll"]
+	def deSerialise(self, state:dict[str,Any]) -> None:
+		self.view_box.camera.center = state['cam-center']
+		self.view_box.camera.scale_factor = state['cam-zoom']
+		self.view_box.camera.azimuth = state['cam-az']
+		self.view_box.camera.elevation = state['cam-el']
+		self.view_box.camera.roll = state['cam-roll']
 		for asset_name, asset in self.assets.items():
-			asset.deSerialise(state["asset_states"][asset_name])
+			asset.deSerialise(state['asset_states'][asset_name])
 
 	def mapAssetPositionsToScreen(self) -> list:
-		mo_infos = [
-			asset.getScreenMouseOverInfo() for asset in self.assets.values() if asset.isActive()
-		]
+		mo_infos = [asset.getScreenMouseOverInfo() for asset in self.assets.values() if asset.isActive()]
 		return mo_infos
 
-	def onMouseMove(self, event: MouseEvent) -> None:
+	def onMouseMove(self, event:MouseEvent) -> None:
 		global last_mevnt_time
 		global mouse_over_is_highlighting
 		# for asset_name,asset in self.assets.items():
 		# 	if asset.isActive():
 		# 		asset.onMouseMove(event)
-		self.assets["ECI_gizmo"].onMouseMove(event)
+		self.assets['ECI_gizmo'].onMouseMove(event)
 
 		# cull if behind center of camera plane
-		az = np.deg2rad(self.view_box.camera.azimuth + 179)
+		az = np.deg2rad(self.view_box.camera.azimuth+179)
 		el = np.deg2rad(self.view_box.camera.elevation)
-		acamv = np.array(
-			[[0, 0, 0], [np.sin(-az) * np.cos(el), np.cos(-az) * np.cos(el), np.sin(el)]]
-		)
+		acamv = np.array([[0,0,0],[np.sin(-az)*np.cos(el),np.cos(-az)*np.cos(el),np.sin(el)]])
 
 		# throttle mouse events to 100ms
 		if time.monotonic() - last_mevnt_time < 0.1:
@@ -277,19 +247,16 @@ class History3DCanvasWrapper(BaseCanvas):
 		pp = event.pos
 
 		for jj, mo_info in enumerate(mo_infos):
-			for ii, pos in enumerate(mo_info["screen_pos"]):
-				if (abs(pos[0] - pp[0]) < MOUSEOVER_DIST_THRESHOLD) and (
-					abs(pos[1] - pp[1]) < MOUSEOVER_DIST_THRESHOLD
-				):
-					dot = np.dot(
-						pg.unitVector(mo_info["world_pos"][ii].reshape(1, 3)), acamv[1, :]
-					)[0]
-					if dot >= 0:
+			for ii, pos in enumerate(mo_info['screen_pos']):
+				if ((abs(pos[0] - pp[0]) < MOUSEOVER_DIST_THRESHOLD) and \
+					(abs(pos[1] - pp[1]) < MOUSEOVER_DIST_THRESHOLD)):
+					dot = np.dot(pg.unitVector(mo_info['world_pos'][ii].reshape(1,3)),acamv[1,:])[0]
+					if dot >=0:
 						last_mevnt_time = time.monotonic()
 						self.mouseOverText.setVisible(True)
-						self.mouseOverText.setText(mo_info["strings"][ii].lower().capitalize())
-						self.mouseOverText.setPos((pos[0] + 5, pos[1]))
-						self.mouseOverObject = mo_info["objects"][ii].mouseOver(ii)
+						self.mouseOverText.setText(mo_info['strings'][ii].lower().capitalize())
+						self.mouseOverText.setPos((pos[0]+5, pos[1]))
+						self.mouseOverObject = mo_info['objects'][ii].mouseOver(ii)
 						mouse_over_is_highlighting = True
 						return
 
@@ -300,8 +267,8 @@ class History3DCanvasWrapper(BaseCanvas):
 			mouse_over_is_highlighting = False
 		last_mevnt_time = time.monotonic()
 
-	def onResize(self, event: ResizeEvent) -> None:
-		self.assets["ECI_gizmo"].onResize(event)
+	def onResize(self, event:ResizeEvent) -> None:
+		self.assets['ECI_gizmo'].onResize(event)
 
-	def onMouseScroll(self, event: QtGui.QMouseEvent) -> None:
-		pass
+	def onMouseScroll(self, event:QtGui.QMouseEvent) -> None:
+		pass		

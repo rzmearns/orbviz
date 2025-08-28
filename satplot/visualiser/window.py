@@ -1,6 +1,7 @@
 import logging
 import sys
 
+import typing
 from typing import Any
 
 from PyQt5 import QtCore, QtWidgets
@@ -15,17 +16,17 @@ from satplot.visualiser.shells import historical_shell, planning_shell
 
 logger = logging.getLogger(__name__)
 
-
 class MainWindow(QtWidgets.QMainWindow):
 	closing = QtCore.pyqtSignal()
 
-	def __init__(self, title: str = "", *args, **kwargs):
+	def __init__(self,	title:str="",
+						*args, **kwargs):
 		super().__init__(*args, **kwargs)
 		main_widget = QtWidgets.QWidget()
 		main_layout = QtWidgets.QVBoxLayout()
 		console_vsplitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical)
-		console_vsplitter.setObjectName("window_vsplitter")
-		console_vsplitter.setStyleSheet("""
+		console_vsplitter.setObjectName('window_vsplitter')
+		console_vsplitter.setStyleSheet('''
 					QSplitter#window_vsplitter::handle {
 								background-color: #DCDCDC;
 								padding: 2px;
@@ -34,7 +35,7 @@ class MainWindow(QtWidgets.QMainWindow):
 								height: 1px;
 								color: #ff0000;
 							}								  
-							""")
+							''')
 
 		self.shell_dict: dict[str, Any] = {}
 		self.active_shell_idx = None
@@ -47,14 +48,11 @@ class MainWindow(QtWidgets.QMainWindow):
 		global_earth_raycast_data = earth_raycast_data.EarthRayCastData()
 
 		# Build shells
-		self.shell_dict["history"] = historical_shell.HistoricalShell(
-			self, self.toolbars, self.menubars, global_earth_rdm=global_earth_raycast_data
-		)
-		self.shell_tab_stack.addTab(self.shell_dict["history"].widget, "Historical")
-		self.shell_dict["planning"] = planning_shell.PlanningShell(
-			self, self.toolbars, self.menubars, global_earth_rdm=global_earth_raycast_data
-		)
-		self.shell_tab_stack.addTab(self.shell_dict["planning"].widget, "Planning")
+		self.shell_dict['history'] = historical_shell.HistoricalShell(self, self.toolbars, self.menubars, global_earth_rdm=global_earth_raycast_data)
+		self.shell_tab_stack.addTab(self.shell_dict['history'].widget,'Historical')
+		self.shell_dict['planning'] = planning_shell.PlanningShell(self, self.toolbars, self.menubars, global_earth_rdm=global_earth_raycast_data)
+		self.shell_tab_stack.addTab(self.shell_dict['planning'].widget,'Planning')
+
 
 		# Prep console
 		self._console = console.Console()
@@ -64,14 +62,14 @@ class MainWindow(QtWidgets.QMainWindow):
 		console.consoleErrfp = console.EmittingConsoleStream(textWritten=self._console.writeErr)
 
 		# Build main layout
-		"""
+		'''
 		#######
 		#######
 		#######
 		#######
 		-------
 		#######
-		"""
+		'''
 		console_vsplitter.addWidget(self.shell_tab_stack)
 		console_vsplitter.addWidget(self._console)
 
@@ -85,9 +83,9 @@ class MainWindow(QtWidgets.QMainWindow):
 		self.shell_tab_stack.setCurrentIndex(0)
 		self._changeToolbarsToShell(0)
 
-	def _changeToolbarsToShell(self, new_shell_idx: int) -> None:
+	def _changeToolbarsToShell(self, new_shell_idx:int) -> None:
 		new_shell = list(self.shell_dict.values())[new_shell_idx]
-		logger.debug("Changing Shells to %s", new_shell.name)
+		logger.debug('Changing Shells to %s', new_shell.name)
 		for shell in self.shell_dict.values():
 			if shell != new_shell:
 				shell.makeDormant()
@@ -98,12 +96,12 @@ class MainWindow(QtWidgets.QMainWindow):
 	def setActiveShellGroundStations(self) -> None:
 		for shell in self.shell_dict.values():
 			if shell.isActive():
-				dialogs.GroundStationDialog(shell, shell.data["groundstations"].getEnabledDict())
+				dialogs.GroundStationDialog(shell, shell.data['groundstations'].getEnabledDict())
 
 	def __del__(self) -> None:
 		sys.stderr = sys.__stderr__
 
-	def closeEvent(self, event: QtCore.QEvent) -> None:
+	def closeEvent(self, event:QtCore.QEvent) -> None:
 		sys.stderr = sys.__stderr__
 
 		if satplot.threadpool is not None:
@@ -111,5 +109,6 @@ class MainWindow(QtWidgets.QMainWindow):
 			satplot.threadpool.clear()
 			# Stop active jobs
 			satplot.threadpool.killAll()
-		logger.info("Closing satplot window")
+		logger.info('Closing satplot window')
 		return super().closeEvent(event)
+	
