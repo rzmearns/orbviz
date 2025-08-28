@@ -21,7 +21,8 @@ class DataPaneWidget(QtWidgets.QWidget):
 		self._table.setModel(self._model)
 		self._selection_model = self._table.selectionModel()
 		# self._selection_model.selectionChanged.connect(self.emitSelectionMade)
-		self._entry_font = QtGui.QFont()
+
+		self._entry_font = QtGui.QFontDatabase.systemFont(QtGui.QFontDatabase.FixedFont)
 		self._entry_font.setPointSize(8)
 		self._header_font = QtGui.QFont()
 		self._header_font.setPointSize(10)
@@ -55,16 +56,22 @@ class DataPaneWidget(QtWidgets.QWidget):
 		# Config title
 		self._table.setStyleSheet('''
 										QTableView {
-														background-color:#00000000;
+											background-color:#00000000;
 										}
-									''');
-		self._table.horizontalHeader().setStyleSheet('''
-														QHeaderView::section {
-																background-color: #00000000;
-																border: 0px;
-														}
-														''')
-		self._table.horizontalHeader().setDefaultAlignment(QtCore.Qt.AlignLeft)
+									''')
+		horiz_header = self._table.horizontalHeader()
+		vert_header = self._table.verticalHeader()
+		if horiz_header is not None:
+			horiz_header.setStyleSheet('''
+											QHeaderView::section {
+												background-color: #00000000;
+												border: 0px;
+											}
+										''')
+			horiz_header.setDefaultAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
+
+		if vert_header is not None:
+			vert_header.hide()
 
 		# self._table.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
 		# TODO: when contens of data pane can be modified FUTURE, switch to selectRows selection mode
@@ -74,8 +81,9 @@ class DataPaneWidget(QtWidgets.QWidget):
 		self._table.setFont(self._entry_font)
 
 		self._setRowStyling(QtCore.QModelIndex(), 0, self._model.rowCount()-1)
-
-		self._table.verticalHeader().hide()
+		self._table.setWordWrap(True)
+		self._table.setTextElideMode(QtCore.Qt.TextElideMode.ElideMiddle)
+		# self._table.resizeRowsToContents();
 		self._table.setShowGrid(False)
 
 
@@ -88,6 +96,8 @@ class DataPaneWidget(QtWidgets.QWidget):
 	def _autoSetColWidth(self, model, first_row_changed, last_row_changed) -> None:
 		for col_num in range(self._model.columnCount()):
 			self._table.resizeColumnToContents(col_num)
+		# for row_num in range(self._model.rowCount()):
+		self._table.resizeRowsToContents()
 
 	def setMouseText(self,text):
 		if self.geometry().width() < self.mouseover_fontmetric.boundingRect(text).width():
@@ -96,13 +106,16 @@ class DataPaneWidget(QtWidgets.QWidget):
 			new_text = text
 		self.mouseover_text.setText(new_text)
 
+	def sizeHint(self) -> QtCore.QSize:
+		return QtCore.QSize(500, 500)
+
 	class DataPaneTable(QtWidgets.QTableView):
 		def __init__(self):
 			super().__init__()
 
 		def keyPressEvent(self, e):
 			clipboard = QtWidgets.QApplication.clipboard()
-			if e.matches(QtGui.QKeySequence.Copy):
+			if e is not None and e.matches(QtGui.QKeySequence.Copy) and self.selectionModel():
 				row_strs = []
 				for index in self.selectionModel().selectedRows():
 					row_num = index.row()

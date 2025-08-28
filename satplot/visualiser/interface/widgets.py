@@ -1060,7 +1060,7 @@ class CollapsibleSection(QtWidgets.QWidget):
 		self.v_layout = QtWidgets.QVBoxLayout(self)
 		self.v_layout.addWidget(self.initTitleFrame(title, self._is_collapsed))
 		self.v_layout.addWidget(self.initContent(self._is_collapsed))
-		self.v_layout.setAlignment(QtCore.Qt.AlignLeft)
+		self.v_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
 		self.v_layout.setSpacing(5)
 		self._content_layout.setSpacing(5)
 		self.v_layout.setContentsMargins(0,1,0,1)
@@ -1075,7 +1075,7 @@ class CollapsibleSection(QtWidgets.QWidget):
 	def initContent(self, collapsed):
 		self._content = QtWidgets.QWidget()
 		self._content_layout = QtWidgets.QVBoxLayout()
-		self._content_layout.setAlignment(QtCore.Qt.AlignLeft)
+		self._content_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
 		self._content.setLayout(self._content_layout)
 		self._content.setVisible(not collapsed)
 
@@ -1083,15 +1083,15 @@ class CollapsibleSection(QtWidgets.QWidget):
 
 	def addWidget(self, widget):
 		self._content_layout.addWidget(widget)
-		# widget.setAlignment(QtCore.Qt.AlignLeft)
+		# widget.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
 
 	def initCollapsable(self):
 		self._title_frame._button.pressed.connect(self.toggleCollapsed)
 
 	def toggleCollapsed(self):
 		self._content.setVisible(self._is_collapsed)
-		self._content_layout.setAlignment(QtCore.Qt.AlignLeft)
-		self.v_layout.setAlignment(QtCore.Qt.AlignLeft)
+		self._content_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
+		self.v_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
 		self._is_collapsed = not self._is_collapsed
 
 	def setCollapsed(self, state:bool):
@@ -1103,8 +1103,8 @@ class CollapsibleSection(QtWidgets.QWidget):
 		else:
 			self._is_collapsed = False
 			self._content.setVisible(True)
-			self._content_layout.setAlignment(QtCore.Qt.Alignment.AlignLeft)
-			self.v_layout.setAlignment(QtCore.Qt.Alignment.AlignLeft)
+			self._content_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
+			self.v_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
 
 	class TitleButton(QtWidgets.QWidget):
 		def __init__(self, parent=None, title="", collapsed=False):
@@ -1678,7 +1678,7 @@ class PrimaryConfigDisplay(QtWidgets.QWidget):
 
 		# Satelites table
 		self._satellites_table.setHorizontalHeaderLabels(['Sat Name', 'Satcat ID'])
-		self._satellites_table.horizontalHeader().setDefaultAlignment(QtCore.Qt.AlignLeft)
+		self._satellites_table.horizontalHeader().setDefaultAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
 		self._satellites_table.horizontalHeader().setFont(self._header_font)
 		self._satellites_table.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
 		self._satellites_table.setFocusPolicy(QtCore.Qt.NoFocus)
@@ -1879,7 +1879,7 @@ class ConstellationConfigDisplay(QtWidgets.QWidget):
 
 		# Satelites table
 		self._satellites_table.setHorizontalHeaderLabels(['Sat Name', 'Satcat ID'])
-		self._satellites_table.horizontalHeader().setDefaultAlignment(QtCore.Qt.AlignLeft)
+		self._satellites_table.horizontalHeader().setDefaultAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
 		self._satellites_table.horizontalHeader().setFont(self._header_font)
 		self._satellites_table.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
 		self._satellites_table.setFocusPolicy(QtCore.Qt.NoFocus)

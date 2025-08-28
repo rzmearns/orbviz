@@ -273,43 +273,56 @@ class HistoryData(BaseDataModel):
 	def _createDataPaneEntries(self):
 		self.datapane_data.append({'parameter':'Altitude',
 						'value':lambda : np.linalg.norm(list(self.orbits.values())[0].pos[self.curr_index,:]) - satplot_constants.R_EARTH,
-						'unit':'km'})
+						'unit':'km',
+						'precision':6})
 		self.datapane_data.append({'parameter':'Eccentricity',
-						'value':lambda : np.rad2deg(list(self.orbits.values())[0].ecc[self.curr_index,:]),
-						'unit':'km'})
+						'value':lambda : list(self.orbits.values())[0].ecc[self.curr_index],
+						'unit':None,
+						'precision':6})
 		self.datapane_data.append({'parameter':'Inclination',
-						'value':lambda : np.rad2deg(list(self.orbits.values())[0].inc[self.curr_index,:]),
-						'unit':'km'})
+						'value':lambda : np.rad2deg(list(self.orbits.values())[0].inc[self.curr_index]),
+						'unit':'°',
+						'precision':2})
 		self.datapane_data.append({'parameter':'RAAN',
-						'value':lambda : np.rad2deg(list(self.orbits.values())[0].raan[self.curr_index,:]),
-						'unit':'km'})
+						'value':lambda : np.rad2deg(list(self.orbits.values())[0].raan[self.curr_index]),
+						'unit':'°',
+						'precision':2})
 		self.datapane_data.append({'parameter':'Argument of Perigee',
-						'value':lambda : np.rad2deg(list(self.orbits.values())[0].argp[self.curr_index,:]),
-						'unit':'°'})
+						'value':lambda : np.rad2deg(list(self.orbits.values())[0].argp[self.curr_index]),
+						'unit':'°',
+						'precision':2})
 		self.datapane_data.append({'parameter':'Period Perigee',
 						'value':lambda : min(np.linalg.norm(list(self.orbits.values())[0].pos,axis=1) - satplot_constants.R_EARTH),
-						'unit':'km'})
+						'unit':'km',
+						'precision':2})
 		self.datapane_data.append({'parameter':'Period Apogee',
 						'value':lambda : max(np.linalg.norm(list(self.orbits.values())[0].pos,axis=1) - satplot_constants.R_EARTH),
-						'unit':'km'})
+						'unit':'km',
+						'precision':2})
 		self.datapane_data.append({'parameter':'Position (ECI)',
 						'value':lambda : list(self.orbits.values())[0].pos[self.curr_index,:],
-						'unit':'km'})
+						'unit':'km',
+						'precision':2})
 		self.datapane_data.append({'parameter':'Lat, Long',
 						'value':lambda : (list(self.orbits.values())[0].lat[self.curr_index],list(self.orbits.values())[0].lon[self.curr_index]),
-						'unit':'°'})
+						'unit':'°',
+						'precision':2})
 		self.datapane_data.append({'parameter':'Position (ECEF)',
 						'value':lambda : list(self.orbits.values())[0].pos_ecef[self.curr_index,:],
-						'unit':'km'})
+						'unit':'km',
+						'precision':2})
 		self.datapane_data.append({'parameter':'Velocity',
 						'value':lambda : np.linalg.norm(list(self.orbits.values())[0].vel[self.curr_index,:]),
-						'unit':'m/s'})
+						'unit':'m/s',
+						'precision':2})
 		self.datapane_data.append({'parameter':'Velocity Vector (ECI)',
 						'value':lambda : list(self.orbits.values())[0].vel[self.curr_index,:],
-						'unit':'m/s'})
+						'unit':'m/s',
+						'precision':2})
 		self.datapane_data.append({'parameter':'Quaternion',
-						'value':lambda : list(self.pointings.values())[0][self.curr_index,:],
-						'unit':'quat'})
+						'value':lambda : list(self.pointings.values())[0].getAttitude(self.curr_index),
+						'unit':None,
+						'precision':4})
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
@@ -376,6 +389,11 @@ class HistoricalAttitude:
 
 	def getPointingTimestamps(self) -> np.ndarray[tuple[int], np.dtype[np.datetime64]]:
 		return self._timestamps
+
+	def getAttitude(self, curr_index) -> np.ndarray[tuple[int],np.dtype[np.float64]] | bool:
+		if self.isAttitudeValid(curr_index):
+			return self.getAttitudeQuat(curr_index)
+		return False
 
 	def _loadPointingFile(self, p_file: pathlib.Path) -> tuple[np.ndarray[tuple[int], np.dtype[np.datetime64]], np.ndarray[tuple[int,int],np.dtype[np.float64]]]:
 		pointing_q = np.array(())

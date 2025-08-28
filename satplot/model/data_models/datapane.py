@@ -7,9 +7,14 @@ import numpy as np
 
 from PyQt5 import QtCore
 
+from satplot.util import formatting
+
 '''
-data items of the DataPaneModel are stored as a tuple
-(parameter, value/callback, unit)
+data items of the DataPaneModel are stored as a dict
+{parameter:<str>,
+ value:<val/callback>,
+ unit:<str>,
+ precision:<int>}
 
 '''
 
@@ -20,7 +25,7 @@ class DataPaneModel(QtCore.QAbstractTableModel):
 	def __init__(self, *args: Any, **kwargs: Any) -> None:
 		super().__init__()
 		self._items = []
-		self._headers = ['Parameter', 'Value', 'Unit']
+		self._headers = ['Parameter', 'Unit', 'Value']
 
 	def count(self) -> int:
 		return len(self._items)
@@ -49,24 +54,30 @@ class DataPaneModel(QtCore.QAbstractTableModel):
 		row = index.row()
 		column = index.column()
 		if role == QtCore.Qt.ItemDataRole.DisplayRole:
-			val = list(self._items[row].values())[column]
-			if val == 'quat':
+			column_key = self._headers[column].lower()
+			val = self._items[row][column_key]
+			if val is None:
 				val = ''
 			# if it's a lambda, call it
 			if isinstance(val, Callable):
 				try:
 					return_val = val()
-				except Exception:
+				except IndexError:
 					# TODO: logger not respecting main handlers, prints to stdout as well as log file.
 					# logger.warning(e)
+					# print(e)
 					return_val = None
+				except Exception as e:
+					logger.warning("Datapane callback for %s:%s", self._items[row]['parameter'], e)
+					return_val = 'Error'
 			else:
 				return_val = val
 
-			# # infer display precision based on unit type (will always return None for parameter name column and unit column)
-			if column == 1:
-				unit_type = self._items[row]['unit']
-				display_precision = self._getDisplayPrecision(unit_type)
+			if self._headers[column].lower() == 'value':
+				if 'precision' in self._items[row].keys():
+					display_precision = self._items[row]['precision']
+				else:
+					display_precision = 2
 				return_val = self._formatReturnVal(return_val, display_precision)
 
 			return f'{return_val}'
@@ -118,49 +129,15 @@ class DataPaneModel(QtCore.QAbstractTableModel):
 		# required by QT
 		self.endRemoveRows()
 
-	def _getDisplayPrecision(self, unit_type:str):
-		return { 'km': 2,
-				  '°': 2,
-				  'km/s':2,
-				  'm/s':2,
-				  'quat':4,
-				  '[x,y,z,w]':4,
-				  '[w,x,y,z]':4
-		}.get(unit_type,None)
 
 	def _formatReturnVal(self, return_val, display_precision):
 		if isinstance(return_val, float):
-			return f'{return_val:.{display_precision}f}'
+			return formatting.float2TableRow(return_val, display_precision)
 		elif isinstance(return_val, np.ndarray):
-			s = '['
-			for el in return_val:
-				s += f'{el:.{display_precision}f}, '
-			s = s[:-2]
-			s += ']'
-			return s
+			return formatting.ndarray2TableRow(return_val, display_precision)
 		elif isinstance(return_val, list):
-			s = '['
-			for el in return_val:
-				if display_precision is None and not isinstance(el,str):
-					s += f'{el:.2f}, '
-				elif isinstance(el,str):
-					s += f'{el}, '
-				else:
-					s += f'{el:.{display_precision}f}, '
-			s = s[:-2]
-			s += ']'
-			return s
+			return formatting.list2TableRow(return_val, display_precision)
 		elif isinstance(return_val, tuple):
-			s = '('
-			for el in return_val:
-				if display_precision is None and not isinstance(el,str):
-					s += f'{el:.2f}, '
-				elif isinstance(el,str):
-					s += f'{el}, '
-				else:
-					s += f'{el:.{display_precision}f}, '
-			s = s[:-2]
-			s += ')'
-			return s
+			return formatting.tuple2TableRow(return_val, display_precision)
 		else:
 			return f'{return_val}'
