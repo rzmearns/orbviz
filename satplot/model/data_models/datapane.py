@@ -7,9 +7,14 @@ import numpy as np
 
 from PyQt5 import QtCore
 
+from satplot.util import formatting
+
 '''
-data items of the DataPaneModel are stored as a tuple
-(parameter, value/callback, unit)
+data items of the DataPaneModel are stored as a dict
+{parameter:<str>,
+ value:<val/callback>,
+ unit:<str>,
+ precision:<int>}
 
 '''
 
@@ -51,7 +56,7 @@ class DataPaneModel(QtCore.QAbstractTableModel):
 		if role == QtCore.Qt.ItemDataRole.DisplayRole:
 			column_key = self._headers[column].lower()
 			val = self._items[row][column_key]
-			if val == 'quat':
+			if val is None:
 				val = ''
 			# if it's a lambda, call it
 			if isinstance(val, Callable):
@@ -120,49 +125,15 @@ class DataPaneModel(QtCore.QAbstractTableModel):
 		# required by QT
 		self.endRemoveRows()
 
-	def _getDisplayPrecision(self, unit_type:str):
-		return { 'km': 2,
-				  '°': 2,
-				  'km/s':2,
-				  'm/s':2,
-				  'quat':4,
-				  '[x,y,z,w]':4,
-				  '[w,x,y,z]':4
-		}.get(unit_type,None)
 
 	def _formatReturnVal(self, return_val, display_precision):
 		if isinstance(return_val, float):
-			return f'{return_val:.{display_precision}f}'
+			return formatting.float2TableRow(return_val, display_precision)
 		elif isinstance(return_val, np.ndarray):
-			s = '['
-			for el in return_val:
-				s += f'{el:.{display_precision}f}, '
-			s = s[:-2]
-			s += ']'
-			return s
+			return formatting.ndarray2TableRow(return_val, display_precision)
 		elif isinstance(return_val, list):
-			s = '['
-			for el in return_val:
-				if display_precision is None and not isinstance(el,str):
-					s += f'{el:.2f}, '
-				elif isinstance(el,str):
-					s += f'{el}, '
-				else:
-					s += f'{el:.{display_precision}f}, '
-			s = s[:-2]
-			s += ']'
-			return s
+			return formatting.list2TableRow(return_val, display_precision)
 		elif isinstance(return_val, tuple):
-			s = '('
-			for el in return_val:
-				if display_precision is None and not isinstance(el,str):
-					s += f'{el:.2f}, '
-				elif isinstance(el,str):
-					s += f'{el}, '
-				else:
-					s += f'{el:.{display_precision}f}, '
-			s = s[:-2]
-			s += ')'
-			return s
+			return formatting.tuple2TableRow(return_val, display_precision)
 		else:
 			return f'{return_val}'

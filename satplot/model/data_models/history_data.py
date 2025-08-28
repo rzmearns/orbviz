@@ -277,14 +277,18 @@ class HistoryData(BaseDataModel):
 						'precision':6})
 		self.datapane_data.append({'parameter':'Eccentricity',
 						'value':lambda : np.rad2deg(list(self.orbits.values())[0].ecc[self.curr_index,:]),
-						'unit':'km',
+						'unit':None,
 						'precision':2})
 		self.datapane_data.append({'parameter':'Inclination',
 						'value':lambda : np.rad2deg(list(self.orbits.values())[0].inc[self.curr_index,:]),
-						'unit':'km',
+						'unit':'°',
 						'precision':2})
+		# self.datapane_data.append({'parameter':'RAAN',
+		# 				'value':lambda : np.rad2deg(list(self.orbits.values())[0].raan[self.curr_index,:]),
+		# 				'unit':'°',
+		# 				'precision':2})
 		self.datapane_data.append({'parameter':'RAAN',
-						'value':lambda : np.rad2deg(list(self.orbits.values())[0].raan[self.curr_index,:]),
+						'value':np.array([[-10,2,3],[4,5.456,6],[7,8,9]]),
 						'unit':'km',
 						'precision':2})
 		self.datapane_data.append({'parameter':'Argument of Perigee',
