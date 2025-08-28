@@ -55,16 +55,22 @@ class DataPaneWidget(QtWidgets.QWidget):
 		# Config title
 		self._table.setStyleSheet('''
 										QTableView {
-														background-color:#00000000;
+											background-color:#00000000;
 										}
-									''');
-		self._table.horizontalHeader().setStyleSheet('''
-														QHeaderView::section {
-																background-color: #00000000;
-																border: 0px;
-														}
-														''')
-		self._table.horizontalHeader().setDefaultAlignment(QtCore.Qt.AlignLeft)
+									''')
+		horiz_header = self._table.horizontalHeader()
+		vert_header = self._table.verticalHeader()
+		if horiz_header is not None:
+			horiz_header.setStyleSheet('''
+											QHeaderView::section {
+												background-color: #00000000;
+												border: 0px;
+											}
+										''')
+			horiz_header.setDefaultAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
+
+		if vert_header is not None:
+			vert_header.hide()
 
 		# self._table.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
 		# TODO: when contens of data pane can be modified FUTURE, switch to selectRows selection mode
@@ -75,7 +81,6 @@ class DataPaneWidget(QtWidgets.QWidget):
 
 		self._setRowStyling(QtCore.QModelIndex(), 0, self._model.rowCount()-1)
 
-		self._table.verticalHeader().hide()
 		self._table.setShowGrid(False)
 
 
@@ -96,13 +101,16 @@ class DataPaneWidget(QtWidgets.QWidget):
 			new_text = text
 		self.mouseover_text.setText(new_text)
 
+	def sizeHint(self) -> QtCore.QSize:
+		return QtCore.QSize(500, 500)
+
 	class DataPaneTable(QtWidgets.QTableView):
 		def __init__(self):
 			super().__init__()
 
 		def keyPressEvent(self, e):
 			clipboard = QtWidgets.QApplication.clipboard()
-			if e.matches(QtGui.QKeySequence.Copy):
+			if e is not None and e.matches(QtGui.QKeySequence.Copy) and self.selectionModel():
 				row_strs = []
 				for index in self.selectionModel().selectedRows():
 					row_num = index.row()
