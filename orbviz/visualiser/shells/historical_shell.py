@@ -9,6 +9,7 @@ from orbviz.visualiser.contexts import (
 	history3d_context,
 	history_configuration_context,
 	sensor_views_context,
+	timeseries_plot_context,
 )
 import orbviz.visualiser.interface.controls as controls
 from orbviz.visualiser.shells import base_shell
@@ -53,6 +54,10 @@ class HistoricalShell(base_shell.BaseShell):
 																							self.data['history'],
 																							self.data['groundstations'],
 																							self.data['earth_rdm']))
+		self._addContext('timeseries-history', timeseries_plot_context.TimeSeriesContext('timeseries-history',
+																							self.window,
+																							self.data['history'],
+																							self.data['groundstations']))
 
 		# check toolbar/menubar indices are the same
 		for ii, key in enumerate(self.toolbars.keys()):
