@@ -6,10 +6,11 @@ from typing import Any
 from matplotlib.backends import backend_qtagg
 from matplotlib.figure import Figure
 import numpy as np
+
 from orbviz.model.data_models.earth_raycast_data import EarthRayCastData
 from orbviz.model.data_models.groundstation_data import GroundStationCollection
 from orbviz.model.data_models.history_data import HistoryData
-from orbviz.visualiser.contexts.figure_wrappers.base_fw import BaseFigure
+from orbviz.visualiser.contexts.figure_wrappers.base_fw import BaseFigureWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -19,18 +20,22 @@ MOUSEOVER_DIST_THRESHOLD = 5
 last_mevnt_time = time.monotonic()
 mouse_over_is_highlighting = False
 
-class TimeSeriesPlotFigureWrapper(BaseFigure):
+class TimeSeriesPlotFigureWrapper(BaseFigureWrapper):
 	def __init__(self, w:int=1200, h:int=600, bgcolor:str='white'):
+
 		matplotlib_dpi = 100
 		w_inch = w/matplotlib_dpi
 		h_inch = h/matplotlib_dpi
-		self.canvas = backend_qtagg.FigureCanvas(Figure(figsize=(w_inch,h_inch),facecolor=bgcolor))
+		a = Figure(figsize=(w_inch,h_inch),facecolor=bgcolor)
+		canvas = backend_qtagg.FigureCanvas(a)
 
-		self._static_ax = self.canvas.figure.subplots()
-		t = np.linspace(0, 10, 501)
-		self._static_ax.plot(t, np.tan(t), ".")
-		self.data_models: dict[str,Any] = {}
+		super().__init__(w,h,bgcolor, canvas)
+
+		self.addAxes(1,1)
 		self.assets = {}
+
+		self.buildWrapperWidget()
+
 		# self.mouseOverTimer = QtCore.QTimer()
 		# self.mouseOverTimer.timeout.connect(self._setMouseOverVisible)
 		# self.mouseOverObject = None
@@ -45,9 +50,36 @@ class TimeSeriesPlotFigureWrapper(BaseFigure):
 				active_assets.append(k)
 		return active_assets
 
-	def setModel(self, hist_data:HistoryData, gs_data:GroundStationCollection, earth_raycast_data:EarthRayCastData) -> None:
-		self.data_models['history'] = hist_data
-		self.data_models['groundstations'] = gs_data
+	def addTimeSeries(self, axes_idx:tuple[int,int],
+							x:np.ndarray[tuple[int], np.dtype[np.float64]],
+							y:np.ndarray[tuple[int], np.dtype[np.float64]],
+							label:str):
+		if self.axes is None:
+			logger.error('Time Series Figure:%s does not have any axes yet.', self)
+			raise ValueError(f'Time Series Figure:{self} does not have any axes yet.')
+
+		# check if axes indexing makes sense
+		if isinstance(self.axes, np.ndarray):
+			if axes_idx[0] >= self.axes.shape[0] or axes_idx[1] >= self.axes.shape[1]:
+				logger.error('Time Series Figure:%s does not have the specified axes:'\
+								' has %s x %s axes, requested:%s',
+								self, self.axes.shape[0], self.axes.shape[0], axes_idx)
+				raise ValueError(f'Time Series Figure:{self} does not have the specified axes:'
+									f' has {self.axes.shape[0]} x {self.axes.shape[1]} axes,'
+									f' requeseted {axes_idx}')
+
+		else:
+			if axes_idx != (0,0):
+				logger.error('Time Series Figure:%s does not have the specified axes:'\
+								' has 1 x 1 axes, requested:%s',
+								self, axes_idx)
+				raise ValueError(f'Time Series Figure:{self} does not have the specified axes:'
+									f' has 1 x 1 axes, requeseted {axes_idx}')
+
+		if isinstance(self.axes, np.ndarray):
+			self.axes[axes_idx[0], axes_idx[1]].plot(x,y, label=label)
+		else:
+			self.axes.plot(x,y, label=label)
 
 	def modelUpdated(self) -> None:
 		pass

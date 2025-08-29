@@ -2,6 +2,8 @@ import pathlib
 
 from typing import Any
 
+import numpy as np
+
 from PyQt5 import QtCore, QtWidgets
 
 from orbviz.model.data_models.groundstation_data import GroundStationCollection
@@ -14,18 +16,30 @@ import orbviz.visualiser.interface.widgets as widgets
 
 
 class TimeSeriesContext(BaseContext):
-	def __init__(self, name:str, parent_window:QtWidgets.QMainWindow,
-					history_data:HistoryData,
-					groundstation_data:GroundStationCollection):
+	def __init__(self, name:str, parent_window:QtWidgets.QMainWindow):
 		super().__init__(name)
 		self.window = parent_window
 
 		self.data: dict[str, Any] = {}
-		self.data['history'] = history_data
-		self.data['groundstations'] = groundstation_data
 
-		self.canvas_wrapper = timeseries_plot_fw.TimeSeriesPlotFigureWrapper()
+
+		# FAKE DATA
+		self.data['tan'] = {'timestamps':np.linspace(0, 10, 501),
+							'vals':None}
+		self.data['tan']['vals'] = np.tan(self.data['tan']['timestamps'])
+
+		self.data['cos'] = {'timestamps':np.linspace(0, 10, 501),
+							'vals':None}
+		self.data['cos']['vals'] = np.cos(self.data['cos']['timestamps'])
+
+		self.data['sin'] = {'timestamps':np.linspace(0, 10, 501),
+							'vals':None}
+		self.data['sin']['vals'] = np.sin(self.data['sin']['timestamps'])
+		##########
+
+
 		self.controls = Controls(self, self.canvas_wrapper)
+		self.canvas_wrapper = timeseries_plot_fw.TimeSeriesPlotFigureWrapper()
 
 		disp_hsplitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)
 		disp_hsplitter.setObjectName('disp_hsplitter')
@@ -44,7 +58,8 @@ class TimeSeriesContext(BaseContext):
 		# | ###
 		'''
 		disp_hsplitter.addWidget(self.controls.config_tabs)
-		disp_hsplitter.addWidget(self.canvas_wrapper.getCanvas())
+		disp_hsplitter.addWidget(self.canvas_wrapper.widget)
+
 
 		# Build area down to bottom of time slider
 		'''
@@ -58,6 +73,11 @@ class TimeSeriesContext(BaseContext):
 		content_widget.setLayout(content_vlayout)
 		self.layout.setContentsMargins(0, 0, 0, 0)
 		self.layout.addWidget(content_widget)
+
+		self.canvas_wrapper.addAxes(2,2)
+		self.canvas_wrapper.addTimeSeries((0,0), self.data['cos']['timestamps'], self.data['cos']['vals'], 'cos')
+		self.canvas_wrapper.addTimeSeries((0,1), self.data['sin']['timestamps'], self.data['sin']['vals'], 'sin')
+		self.canvas_wrapper.addTimeSeries((1,0), self.data['tan']['timestamps'], self.data['tan']['vals'], 'tan')
 
 	def connectControls(self) -> None:
 		pass
@@ -96,7 +116,6 @@ class Controls(BaseControls):
 
 		# Prep config widgets
 		self.config_controls = controls.OptionConfigs({})
-
 		self.config_tabs = QtWidgets.QTabWidget()
 		self.config_tabs.addTab(self.config_controls, 'Visual Options')
 
