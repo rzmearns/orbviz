@@ -119,6 +119,13 @@ class BaseFigureWrapper:
 		self.figure.tight_layout()
 		self.figure.canvas.draw()
 
+	def getAxes(self, ax_idx:int) -> Axes|None:
+		if self.axes is not None:
+			ax_row_idx, ax_col_idx = np.unravel_index(ax_idx, self.axes.shape)
+			return self.axes[ax_row_idx, ax_col_idx]
+		return None
+
+
 	def getFigure(self) -> matplotlib.figure.Figure:
 		return self.getCanvas().figure
 

@@ -97,15 +97,25 @@ class TimeSeriesContext(BaseContext):
 
 	def selectTimeSeries(self, ax_idx):
 		enabled_timeseries = {}
-		d = dialogs.AddSeriesDialog(self.data['timeseries'], enabled_timeseries)
-		series_keys = d.getSelected()
-		for key in series_keys:
-			if key not in enabled_timeseries.keys():
-				ts = self.data['timeseries'][key]
-				self.canvas_wrapper.addTimeSeries(ax_idx, ts)
-			else:
-				# remove handle
-				pass
+		available_timeseries = self.data['timeseries'].copy()
+		ax = self.canvas_wrapper.getAxes(ax_idx)
+		for ts_key,ts in self.data['timeseries'].items():
+			if ts.hasArtistForAxes(ax):
+				enabled_timeseries[ts_key] = ts
+				del available_timeseries[ts_key]
+
+		d = dialogs.AddSeriesDialog(available_timeseries, enabled_timeseries)
+		new_enabled = d.getNewEnabled()
+		new_disabled = d.getNewDisabled()
+		for ts_key in new_enabled:
+			ts = self.data['timeseries'][ts_key]
+			ts.addArtist(ax, self.canvas_wrapper.addTimeSeries(ax_idx, ts))
+
+		for ts_key in new_disabled:
+			ts = self.data['timeseries'][ts_key]
+			handle = ts.popArtist(ax)
+			if handle is not None:
+				self.canvas_wrapper.removeTimeSeries(ax_idx,handle)
 
 class Controls(BaseControls):
 	def __init__(self, parent_context:BaseContext, canvas_wrapper: BaseCanvas|None) -> None:

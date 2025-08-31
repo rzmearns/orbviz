@@ -343,11 +343,17 @@ class AddSeriesDialog:
 		self.window.close()
 
 	def submit(self) -> None:
-		self._return = self._gs_selector.getRightEntries()
+		self._selected_enabled = self._gs_selector.getRightEntries()
 		self.window.close()
 
 	def getSelected(self) -> list:
 		return self._return
+
+	def getNewEnabled(self) -> list:
+		return self._gs_selector.moved_right
+
+	def getNewDisabled(self) -> list:
+		return self._gs_selector.moved_left
 
 class fullResSensorImageDialog:
 	create_time = time.monotonic()

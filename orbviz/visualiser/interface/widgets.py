@@ -1955,6 +1955,8 @@ class MultiSelector(QtWidgets.QWidget):
 		self.left_list.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
 		self.right_list = QtWidgets.QListWidget()
 		self.right_list.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+		self.moved_right = []
+		self.moved_left = []
 
 		self.move_right = QtWidgets.QPushButton()
 		self.move_right.setIcon(QtGui.QIcon('resources/icons/arrow.png'))
@@ -1992,12 +1994,22 @@ class MultiSelector(QtWidgets.QWidget):
 			self.left_list.takeItem(row_idx)
 			self.right_list.addItem(item)
 
+			key = item.text()
+			if key in self.moved_left:
+				self.moved_left.remove(key)
+			self.moved_right.append(key)
+
 	def _transferToLeft(self):
 		transfer_list = self.right_list.selectedItems()
 		for item in transfer_list:
 			row_idx = self.right_list.row(item)
 			self.right_list.takeItem(row_idx)
 			self.left_list.addItem(item)
+
+			key = item.text()
+			if key in self.moved_right:
+				self.moved_right.remove(key)
+			self.moved_left.append(key)
 
 	def getRightEntries(self):
 		vals = []
@@ -2012,6 +2024,13 @@ class MultiSelector(QtWidgets.QWidget):
 			item = self.left_list.item(row_num)
 			vals.append(item.text())
 		return vals
+
+	def getMovedToRight(self) -> list:
+		return self.moved_right
+
+	def getMovedToLeft(self) -> list:
+		return self.moved_left
+
 
 def embedWidgetsInHBoxLayout(w_list, margin=5):
 	"""Embed a list of widgets into a layout to give it a frame"""

@@ -80,10 +80,18 @@ class TimeSeriesPlotFigureWrapper(BaseFigureWrapper):
 									f' has 1 x 1 axes, requeseted {axes_idx}')
 
 		if isinstance(self.axes, np.ndarray):
-			self.axes[row_idx, col_idx].plot(ts.abscissa, ts.ordinate, label=ts.label)
+			handle = self.axes[row_idx, col_idx].plot(ts.abscissa, ts.ordinate, label=ts.label)
 		else:
-			self.axes.plot(ts.absscissa, ts.ordinate, label=ts.label)
+			handle = self.axes.plot(ts.absscissa, ts.ordinate, label=ts.label)
 
+		self.figure.canvas.draw()
+
+		return handle
+
+	def removeTimeSeries(self, axes_idx:int, handle):
+		if isinstance(handle, list):
+			for el in handle:
+				el.remove()
 		self.figure.canvas.draw()
 
 	def modelUpdated(self) -> None:
