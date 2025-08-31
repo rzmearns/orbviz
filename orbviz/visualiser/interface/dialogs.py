@@ -350,10 +350,10 @@ class AddSeriesDialog:
 		return self._return
 
 	def getNewEnabled(self) -> list:
-		return self._gs_selector.moved_right
+		return self._gs_selector.getMovedToRight()
 
 	def getNewDisabled(self) -> list:
-		return self._gs_selector.moved_left
+		return self._gs_selector.getMovedToLeft()
 
 class fullResSensorImageDialog:
 	create_time = time.monotonic()

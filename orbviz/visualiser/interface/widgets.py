@@ -1951,12 +1951,14 @@ class MultiSelector(QtWidgets.QWidget):
 			_right_label.setFont(_label_font)
 			right_vlayout.addWidget(_right_label)
 
+		self._start_left_list = left_list
+		self._start_right_list = right_list
 		self.left_list = QtWidgets.QListWidget()
 		self.left_list.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
 		self.right_list = QtWidgets.QListWidget()
 		self.right_list.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
-		self.moved_right = []
-		self.moved_left = []
+		self._moved_right = []
+		self._moved_left = []
 
 		self.move_right = QtWidgets.QPushButton()
 		self.move_right.setIcon(QtGui.QIcon('resources/icons/arrow.png'))
@@ -1981,10 +1983,10 @@ class MultiSelector(QtWidgets.QWidget):
 		self.setLayout(pane_layout)
 		left_list.sort()
 		right_list.sort()
-		for el in left_list:
+		for el in self._start_left_list:
 			self.left_list.addItem(QtWidgets.QListWidgetItem(el))
 
-		for el in right_list:
+		for el in self._start_right_list:
 			self.right_list.addItem(QtWidgets.QListWidgetItem(el))
 
 	def _transferToRight(self):
@@ -1995,9 +1997,9 @@ class MultiSelector(QtWidgets.QWidget):
 			self.right_list.addItem(item)
 
 			key = item.text()
-			if key in self.moved_left:
-				self.moved_left.remove(key)
-			self.moved_right.append(key)
+			if key in self._moved_left:
+				self._moved_left.remove(key)
+			self._moved_right.append(key)
 
 	def _transferToLeft(self):
 		transfer_list = self.right_list.selectedItems()
@@ -2007,9 +2009,9 @@ class MultiSelector(QtWidgets.QWidget):
 			self.left_list.addItem(item)
 
 			key = item.text()
-			if key in self.moved_right:
-				self.moved_right.remove(key)
-			self.moved_left.append(key)
+			if key in self._moved_right:
+				self._moved_right.remove(key)
+			self._moved_left.append(key)
 
 	def getRightEntries(self):
 		vals = []
@@ -2026,11 +2028,18 @@ class MultiSelector(QtWidgets.QWidget):
 		return vals
 
 	def getMovedToRight(self) -> list:
-		return self.moved_right
+		for el in self._start_right_list:
+			if el in self._moved_right:
+				self._moved_right.remove(el)
+
+		return self._moved_right
 
 	def getMovedToLeft(self) -> list:
-		return self.moved_left
+		for el in self._start_left_list:
+			if el in self._moved_left:
+				self._moved_left.remove(el)
 
+		return self._moved_left
 
 def embedWidgetsInHBoxLayout(w_list, margin=5):
 	"""Embed a list of widgets into a layout to give it a frame"""
