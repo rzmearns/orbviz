@@ -635,6 +635,7 @@ class SensorViewConfigs(QtWidgets.QWidget):
 class TimeSeriesControls(QtWidgets.QWidget):
 	# new axes created, {num_rows, num_cols}
 	build_axes = QtCore.pyqtSignal(int, int)
+	add_series = QtCore.pyqtSignal(int)
 
 	def __init__(self):
 		super().__init__()
@@ -660,6 +661,8 @@ class TimeSeriesControls(QtWidgets.QWidget):
 		_axes_creation_groupbox.setLayout(hlayout)
 		_axes_config_groupbox.setLayout(self._axes_config_layout)
 		_series_config_groupbox.setLayout(self._series_config_layout)
+
+		self._add_series_btns = []
 
 		self.super_layout.addWidget(_axes_creation_groupbox)
 		self.super_layout.addWidget(_axes_config_groupbox)
@@ -693,9 +696,21 @@ class TimeSeriesControls(QtWidgets.QWidget):
 				axes_idx = col_num + row_num*self._num_cols
 				section = widgets.CollapsibleSection(title=f'Axes {axes_idx+1}: '
 									f'({self._num_rows},{self._num_cols})')
+				_add_series_btn = QtWidgets.QPushButton('Add Series')
+				_add_link = self._createAddLink(axes_idx)
+				_add_series_btn.clicked.connect(_add_link)
+				section.addWidget(_add_series_btn)
 				self._axes_config_layout.addWidget(section)
 		self.build_axes.emit(self._num_rows, self._num_cols)
 
+	def _createAddLink(self, ax_idx):
+		def _function():
+			self._onAddLink(ax_idx)
+		return _function
+
+	def _onAddLink(self, ax_idx):
+		# this could be put inside _function above if no other functionality needed
+		self.add_series.emit(ax_idx)
 
 class Toolbar(QtWidgets.QWidget):
 	# TODO: this should be in widgets, not controls

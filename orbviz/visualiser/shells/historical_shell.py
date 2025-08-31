@@ -1,9 +1,11 @@
 import logging
 import sys
 
+import numpy as np
+
 from PyQt5 import QtWidgets
 
-from orbviz.model.data_models import earth_raycast_data, history_data
+from orbviz.model.data_models import earth_raycast_data, history_data, timeseries
 from orbviz.visualiser.contexts import (
 	history2d_context,
 	history3d_context,
@@ -55,7 +57,15 @@ class HistoricalShell(base_shell.BaseShell):
 																							self.data['groundstations'],
 																							self.data['earth_rdm']))
 		self._addContext('timeseries-history', timeseries_plot_context.TimeSeriesContext('timeseries-history',
-																							self.window))
+																							self.window,
+																							self.timeseries_data))
+
+		# FAKE DATA
+		t = np.linspace(0,10,501)
+		self.timeseries_data['tan'] = timeseries.TimeSeries('tan', t, np.tan(t))
+		self.timeseries_data['cos'] = timeseries.TimeSeries('cos', t, np.cos(t))
+		self.timeseries_data['sin'] = timeseries.TimeSeries('sin', t, np.sin(t))
+		##########
 
 		# check toolbar/menubar indices are the same
 		for ii, key in enumerate(self.toolbars.keys()):

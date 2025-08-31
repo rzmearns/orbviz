@@ -302,6 +302,53 @@ class GroundStationDialog:
 		self.shell.data['groundstations'].createGroundStations(gs_files)
 		self.window.close()
 
+class AddSeriesDialog:
+	def __init__(self, available_timeseries:dict, enabled_timeseries:dict):
+		# TODO: add flag to save ground stations as default.
+		self.window = QtWidgets.QDialog()
+		self.window.setWindowTitle('Select Time Series')
+		self.window.setWindowModality(QtCore.Qt.WindowModality.NonModal)
+
+		available_list = list(available_timeseries.keys())
+		self.added_list = list(enabled_timeseries.keys())
+
+		self._gs_selector = widgets.MultiSelector(left_label='Available TimeSeries',
+													right_label='Added TimeSeries',
+													left_list=available_list,
+													right_list=self.added_list)
+
+		layout = QtWidgets.QVBoxLayout()
+
+		hlayout2 = QtWidgets.QHBoxLayout()
+		okbutton = QtWidgets.QPushButton('Submit')
+		cancelbutton = QtWidgets.QPushButton('Cancel')
+		hlayout2.addWidget(okbutton)
+		hlayout2.addStretch()
+		hlayout2.addWidget(cancelbutton)
+
+		layout.addWidget(self._gs_selector)
+		layout.addLayout(hlayout2)
+
+		self.window.setLayout(layout)
+
+		okbutton.clicked.connect(self.submit)
+		cancelbutton.clicked.connect(self.cancel)
+
+		# set up default return value
+		self._return = self.added_list
+
+		self.window.exec_()
+
+	def cancel(self) -> None:
+		self.window.close()
+
+	def submit(self) -> None:
+		self._return = self._gs_selector.getRightEntries()
+		self.window.close()
+
+	def getSelected(self) -> list:
+		return self._return
+
 class fullResSensorImageDialog:
 	create_time = time.monotonic()
 	MIN_MOVE_UPDATE_THRESHOLD = 1

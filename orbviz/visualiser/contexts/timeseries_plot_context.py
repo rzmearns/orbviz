@@ -2,42 +2,26 @@ import pathlib
 
 from typing import Any
 
-import numpy as np
-
 from PyQt5 import QtCore, QtWidgets
 
 from orbviz.model.data_models.groundstation_data import GroundStationCollection
 from orbviz.model.data_models.history_data import HistoryData
+from orbviz.model.data_models.timeseries import TimeSeries
 from orbviz.visualiser.contexts.base_context import BaseContext, BaseControls
 from orbviz.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 from orbviz.visualiser.contexts.figure_wrappers import timeseries_plot_fw
 import orbviz.visualiser.interface.controls as controls
+import orbviz.visualiser.interface.dialogs as dialogs
 import orbviz.visualiser.interface.widgets as widgets
 
 
 class TimeSeriesContext(BaseContext):
-	def __init__(self, name:str, parent_window:QtWidgets.QMainWindow):
+	def __init__(self, name:str, parent_window:QtWidgets.QMainWindow, timeseries_data:dict[str,TimeSeries]):
 		super().__init__(name)
 		self.window = parent_window
 
 		self.data: dict[str, Any] = {}
-
-
-		# FAKE DATA
-		self.data['tan'] = {'timestamps':np.linspace(0, 10, 501),
-							'vals':None}
-		self.data['tan']['vals'] = np.tan(self.data['tan']['timestamps'])
-
-		self.data['cos'] = {'timestamps':np.linspace(0, 10, 501),
-							'vals':None}
-		self.data['cos']['vals'] = np.cos(self.data['cos']['timestamps'])
-
-		self.data['sin'] = {'timestamps':np.linspace(0, 10, 501),
-							'vals':None}
-		self.data['sin']['vals'] = np.sin(self.data['sin']['timestamps'])
-		##########
-
-
+		self.data['timeseries'] = timeseries_data
 		self.controls = Controls(self, self.canvas_wrapper)
 		self.canvas_wrapper = timeseries_plot_fw.TimeSeriesPlotFigureWrapper()
 
@@ -78,7 +62,10 @@ class TimeSeriesContext(BaseContext):
 
 		self.controls.axes_controls.build_axes.connect(self.canvas_wrapper.addAxes)
 		self.controls.axes_controls.buildConfig()
-		self.canvas_wrapper.addTimeSeries((0,0), self.data['cos']['timestamps'], self.data['cos']['vals'], 'cos')
+
+		self.controls.axes_controls.add_series.connect(self.selectTimeSeries)
+
+		# self.canvas_wrapper.addTimeSeries((0,0), )
 		# self.canvas_wrapper.addTimeSeries((0,1), self.data['sin']['timestamps'], self.data['sin']['vals'], 'sin')
 		# self.canvas_wrapper.addTimeSeries((1,0), self.data['tan']['timestamps'], self.data['tan']['vals'], 'tan')
 
@@ -111,6 +98,18 @@ class TimeSeriesContext(BaseContext):
 
 	def setupGIFDialog(self):
 		pass
+
+	def selectTimeSeries(self, ax_idx):
+		enabled_timeseries = {}
+		d = dialogs.AddSeriesDialog(self.data['timeseries'], enabled_timeseries)
+		series_keys = d.getSelected()
+		for key in series_keys:
+			if key not in enabled_timeseries.keys():
+				ts = self.data['timeseries'][key]
+				self.canvas_wrapper.addTimeSeries(ax_idx, ts)
+			else:
+				# remove handle
+				pass
 
 class Controls(BaseControls):
 	def __init__(self, parent_context:BaseContext, canvas_wrapper: BaseCanvas|None) -> None:
