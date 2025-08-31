@@ -112,7 +112,7 @@ class BaseFigureWrapper:
 			for ax_idx in range(old_naxes, new_naxes):
 				new_ax_row_idx, new_ax_col_idx = np.unravel_index(ax_idx,(nrows, ncols))
 				logger.debug('Adding axes %s at pos: (%s,%s)',ax_idx, new_ax_row_idx, new_ax_col_idx)
-				self.figure.add_subplot(new_gs[new_ax_row_idx, new_ax_col_idx])
+				ax = self.figure.add_subplot(new_gs[new_ax_row_idx, new_ax_col_idx])
 				new_axes[new_ax_row_idx, new_ax_col_idx] = ax
 
 		self.axes = new_axes

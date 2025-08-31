@@ -65,10 +65,6 @@ class TimeSeriesContext(BaseContext):
 
 		self.controls.axes_controls.add_series.connect(self.selectTimeSeries)
 
-		# self.canvas_wrapper.addTimeSeries((0,0), )
-		# self.canvas_wrapper.addTimeSeries((0,1), self.data['sin']['timestamps'], self.data['sin']['vals'], 'sin')
-		# self.canvas_wrapper.addTimeSeries((1,0), self.data['tan']['timestamps'], self.data['tan']['vals'], 'tan')
-
 	def connectControls(self) -> None:
 		pass
 

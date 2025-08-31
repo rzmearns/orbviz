@@ -695,7 +695,7 @@ class TimeSeriesControls(QtWidgets.QWidget):
 			for col_num in range(self._num_cols):
 				axes_idx = col_num + row_num*self._num_cols
 				section = widgets.CollapsibleSection(title=f'Axes {axes_idx+1}: '
-									f'({self._num_rows},{self._num_cols})')
+									f'({row_num},{col_num})')
 				_add_series_btn = QtWidgets.QPushButton('Add Series')
 				_add_link = self._createAddLink(axes_idx)
 				_add_series_btn.clicked.connect(_add_link)
