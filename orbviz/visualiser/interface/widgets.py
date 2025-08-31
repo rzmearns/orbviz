@@ -340,9 +340,10 @@ class ColourPicker(QtWidgets.QWidget):
 
 
 class ValueSpinner(QtWidgets.QWidget):
-	def __init__(self, label, dflt_val, integer=True, fraction=False, parent: QtWidgets.QWidget=None) -> None:
+	def __init__(self, label, dflt_val, integer=True, fraction=False, allow_no_callbacks=False, parent: QtWidgets.QWidget=None) -> None:
 		super().__init__(parent)
 		self._callbacks = []
+		self._allow_no_callbacks = allow_no_callbacks
 		self.allow_float = not integer
 		if fraction:
 			self.allow_float = True
@@ -351,7 +352,6 @@ class ValueSpinner(QtWidgets.QWidget):
 			self.curr_val = dflt_val
 		else:
 			self.curr_val = int(dflt_val)
-
 
 		layout = QtWidgets.QHBoxLayout()
 		layout.setContentsMargins(2,1,2,1)
@@ -381,6 +381,9 @@ class ValueSpinner(QtWidgets.QWidget):
 	def add_connect(self, callback):
 		self._callbacks.append(callback)
 
+	def getValue(self) -> int|float:
+		return self.curr_val
+
 	def _run_callbacks(self):
 
 		if self.allow_float:
@@ -390,7 +393,7 @@ class ValueSpinner(QtWidgets.QWidget):
 		if len(self._callbacks) > 0:
 			for callback in self._callbacks:
 				callback(self.curr_val)
-		else:
+		elif not self._allow_no_callbacks:
 			logger.warning("No Value Spinner callbacks are set")
 
 	def prepSerialisation(self) -> dict[str, Any]:
@@ -710,7 +713,7 @@ class FilePicker(QtWidgets.QWidget):
 										QLabel {
 												color:#FF0000;
 												}
-									''');
+									''')
 
 		hlayout2.addWidget(self._file_text_box)
 		hlayout2.addSpacing(5)
