@@ -31,7 +31,6 @@ class TimeSeriesPlotFigureWrapper(BaseFigureWrapper):
 
 		super().__init__(w,h,bgcolor, canvas)
 
-		self.addAxes(1,1)
 		self.assets = {}
 
 		self.buildWrapperWidget()

@@ -74,10 +74,13 @@ class TimeSeriesContext(BaseContext):
 		self.layout.setContentsMargins(0, 0, 0, 0)
 		self.layout.addWidget(content_widget)
 
-		self.canvas_wrapper.addAxes(2,2)
+		# self.canvas_wrapper.addAxes(2,2)
+
+		self.controls.axes_controls.build_axes.connect(self.canvas_wrapper.addAxes)
+		self.controls.axes_controls.buildConfig()
 		self.canvas_wrapper.addTimeSeries((0,0), self.data['cos']['timestamps'], self.data['cos']['vals'], 'cos')
-		self.canvas_wrapper.addTimeSeries((0,1), self.data['sin']['timestamps'], self.data['sin']['vals'], 'sin')
-		self.canvas_wrapper.addTimeSeries((1,0), self.data['tan']['timestamps'], self.data['tan']['vals'], 'tan')
+		# self.canvas_wrapper.addTimeSeries((0,1), self.data['sin']['timestamps'], self.data['sin']['vals'], 'sin')
+		# self.canvas_wrapper.addTimeSeries((1,0), self.data['tan']['timestamps'], self.data['tan']['vals'], 'tan')
 
 	def connectControls(self) -> None:
 		pass
@@ -116,7 +119,9 @@ class Controls(BaseControls):
 
 		# Prep config widgets
 		self.config_controls = controls.OptionConfigs({})
+		self.axes_controls = controls.TimeSeriesControls()
 		self.config_tabs = QtWidgets.QTabWidget()
+		self.config_tabs.addTab(self.axes_controls, 'Axes Options')
 		self.config_tabs.addTab(self.config_controls, 'Visual Options')
 
 		# Prep time slider
