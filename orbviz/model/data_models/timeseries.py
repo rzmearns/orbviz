@@ -70,6 +70,16 @@ class TimeSeries:
 		else:
 			return False
 
+	def __del__(self):
+		# before the timeseries is garbage collected, remove it from any axes
+		for handle in self._artist_handles.values():
+			if isinstance(handle, list):
+				for el in handle:
+					el.remove()
+			else:
+				handle.remove()
+
+
 def createTimeSeriesFromDataModel(data_model:BaseDataModel, attr_key:str) -> dict[str,TimeSeries]:
 	created_ts:dict[str,TimeSeries] = {}
 	nested_attr_keys = attr_key.split('.')
