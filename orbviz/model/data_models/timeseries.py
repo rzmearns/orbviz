@@ -72,12 +72,23 @@ class TimeSeries:
 
 def createTimeSeriesFromDataModel(data_model:BaseDataModel, attr_key:str) -> dict[str,TimeSeries]:
 	created_ts:dict[str,TimeSeries] = {}
-	attr = getattr(data_model, attr_key)
+	nested_attr_keys = attr_key.split('.')
+	attr = getattr(data_model, nested_attr_keys[0])
+
+	if isinstance(attr, dict):
+		attr = list(attr.values())[0]
+
+	if len(nested_attr_keys) > 1:
+		ts_dct = createTimeSeriesFromDataModel(attr, '.'.join(nested_attr_keys[1:]))
+		ks = ts_dct.keys()
+		vs = ts_dct.values()
+		new_ks = [f'{nested_attr_keys[0]}.{k}' for k in ks]
+		return dict(zip(new_ks,vs))
 
 	if isinstance(attr, np.ndarray):
-		if attr.shape == 1:
+		if len(attr.shape) == 1:
 			created_ts[attr_key] = TimeSeries(attr_key, data_model.timespan[:], attr)
-		elif attr.shape[1] == 3:
+		elif len(attr.shape) == 2 and attr.shape[1] == 3:
 			ts_key = f'{attr_key}_x'
 			created_ts[ts_key] = TimeSeries(ts_key, data_model.timespan[:], attr[:,0])
 
@@ -90,5 +101,7 @@ def createTimeSeriesFromDataModel(data_model:BaseDataModel, attr_key:str) -> dic
 			for dim in range(attr.shape[1]):
 				ts_key = f'{attr_key}_dim'
 				created_ts[ts_key] = TimeSeries(ts_key, data_model.timespan[:], attr[:,0])
+	else:
+		raise KeyError("Can't make a timeseries out of a non ndArray ")
 
 	return created_ts

@@ -11,6 +11,7 @@ from orbviz.visualiser.contexts import (
 	sensor_views_context,
 	timeseries_plot_context,
 )
+import orbviz.visualiser.interface.controls as console
 import orbviz.visualiser.interface.controls as controls
 from orbviz.visualiser.shells import base_shell
 
@@ -83,7 +84,8 @@ class HistoricalShell(base_shell.BaseShell):
 		self.context_tab_stack.setCurrentIndex(1)
 
 	def _onDataReadyCreateTS(self) -> None:
-		for key in ['sun', 'moon']:
+		console.send('Building Timeseries from History Data Model')
+		for key in ['sun', 'moon','orbits.pos', 'orbits.pos_ecef','orbits.vel','orbits.vel_ecef','orbits.lat','orbits.lon','orbits.alt','orbits.eclipse']:
 			if key not in self.timeseries_data.keys():
 				for ts_key, ts in timeseries.createTimeSeriesFromDataModel(self.data['history'], key).items():
 					self.timeseries_data[ts_key] = ts
