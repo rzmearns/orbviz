@@ -3,6 +3,8 @@ import logging
 
 import numpy as np
 
+from satplot.model.data_models.base_models import BaseDataModel
+
 logger = logging.getLogger(__name__)
 
 class TimeSeries:
@@ -13,9 +15,9 @@ class TimeSeries:
 		self._timestamps = timestamps
 
 		# TODO: check vals is a numpy view, not a slice
-		# if vals.base is None:
-		# 	# see https://numpy.org/doc/stable/user/basics.copies.html#how-to-tell-if-the-array-is-a-view-or-a-copy
-		# 	raise TypeError('TimeSeries vals attribute must be a view of the data, is likely a copy')
+		if vals.base is None:
+			# see https://numpy.org/doc/stable/user/basics.copies.html#how-to-tell-if-the-array-is-a-view-or-a-copy
+			raise TypeError('TimeSeries vals attribute must be a view of the data, is likely a copy')
 		self._vals = vals
 
 		self._range = (self._vals.min(), self._vals.max())
@@ -67,3 +69,26 @@ class TimeSeries:
 			return True
 		else:
 			return False
+
+def createTimeSeriesFromDataModel(data_model:BaseDataModel, attr_key:str) -> dict[str,TimeSeries]:
+	created_ts:dict[str,TimeSeries] = {}
+	attr = getattr(data_model, attr_key)
+
+	if isinstance(attr, np.ndarray):
+		if attr.shape == 1:
+			created_ts[attr_key] = TimeSeries(attr_key, data_model.timespan[:], attr)
+		elif attr.shape[1] == 3:
+			ts_key = f'{attr_key}_x'
+			created_ts[ts_key] = TimeSeries(ts_key, data_model.timespan[:], attr[:,0])
+
+			ts_key = f'{attr_key}_y'
+			created_ts[ts_key] = TimeSeries(ts_key, data_model.timespan[:], attr[:,1])
+
+			ts_key = f'{attr_key}_z'
+			created_ts[ts_key] = TimeSeries(ts_key, data_model.timespan[:], attr[:,2])
+		else:
+			for dim in range(attr.shape[1]):
+				ts_key = f'{attr_key}_dim'
+				created_ts[ts_key] = TimeSeries(ts_key, data_model.timespan[:], attr[:,0])
+
+	return created_ts

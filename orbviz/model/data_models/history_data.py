@@ -23,7 +23,6 @@ import orbviz.visualiser.interface.console as console
 import satplot
 from satplot.model.data_models import constellation_data, data_types, event_data, groundstation_data
 from satplot.model.data_models.base_models import BaseDataModel
-from satplot.model.data_models.timeseries import TimeSeries
 import satplot.util.constants as satplot_constants
 import satplot.util.conversion as satplot_conversions
 import satplot.util.threading as threading
@@ -336,29 +335,6 @@ class HistoryData(BaseDataModel):
 						'value':lambda : list(self.pointings.values())[0].getAttitude(self.curr_index),
 						'unit':None,
 						'precision':4})
-
-	def createTimeSeries(self, attr_key:str) -> dict[str,TimeSeries]:
-		created_ts:dict[str,TimeSeries] = {}
-		attr = getattr(self, attr_key)
-
-		if isinstance(attr, np.ndarray):
-			if attr.shape == 1:
-				created_ts[attr_key] = TimeSeries(attr_key, self.timespan[:], attr)
-			elif attr.shape[1] == 3:
-				ts_key = f'{attr_key}_x'
-				created_ts[ts_key] = TimeSeries(ts_key, self.timespan[:], attr[:,0])
-
-				ts_key = f'{attr_key}_y'
-				created_ts[ts_key] = TimeSeries(ts_key, self.timespan[:], attr[:,1])
-
-				ts_key = f'{attr_key}_z'
-				created_ts[ts_key] = TimeSeries(ts_key, self.timespan[:], attr[:,2])
-			else:
-				for dim in range(attr.shape[1]):
-					ts_key = f'{attr_key}_dim'
-					created_ts[ts_key] = TimeSeries(ts_key, self.timespan[:], attr[:,0])
-
-		return created_ts
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}

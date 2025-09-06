@@ -3,7 +3,7 @@ import sys
 
 from PyQt5 import QtWidgets
 
-from orbviz.model.data_models import earth_raycast_data, history_data
+from orbviz.model.data_models import earth_raycast_data, history_data, timeseries
 from orbviz.visualiser.contexts import (
 	history2d_context,
 	history3d_context,
@@ -85,5 +85,5 @@ class HistoricalShell(base_shell.BaseShell):
 	def _onDataReadyCreateTS(self) -> None:
 		for key in ['sun', 'moon']:
 			if key not in self.timeseries_data.keys():
-				for ts_key, ts in self.data['history'].createTimeSeries(key).items():
+				for ts_key, ts in timeseries.createTimeSeriesFromDataModel(self.data['history'], key).items():
 					self.timeseries_data[ts_key] = ts
