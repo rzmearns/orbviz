@@ -1,11 +1,9 @@
 import logging
 import sys
 
-import numpy as np
-
 from PyQt5 import QtWidgets
 
-from orbviz.model.data_models import earth_raycast_data, history_data, timeseries
+from orbviz.model.data_models import earth_raycast_data, history_data
 from orbviz.visualiser.contexts import (
 	history2d_context,
 	history3d_context,
@@ -60,13 +58,6 @@ class HistoricalShell(base_shell.BaseShell):
 																							self.window,
 																							self.timeseries_data))
 
-		# FAKE DATA
-		t = np.linspace(0,10,501)
-		self.timeseries_data['tan'] = timeseries.TimeSeries('tan', t, np.tan(t))
-		self.timeseries_data['cos'] = timeseries.TimeSeries('cos', t, np.cos(t))
-		self.timeseries_data['sin'] = timeseries.TimeSeries('sin', t, np.sin(t))
-		##########
-
 		# check toolbar/menubar indices are the same
 		for ii, key in enumerate(self.toolbars.keys()):
 			if list(self.menubars.keys())[ii] != key:
@@ -81,6 +72,7 @@ class HistoricalShell(base_shell.BaseShell):
 
 		# shell specific connections
 		self.data['history'].data_ready.connect(self._onDataReadySwapTabs)
+		self.data['history'].data_ready.connect(self._onDataReadyCreateTS)
 
 		# build layout
 		self._buildLayout()
@@ -89,3 +81,9 @@ class HistoricalShell(base_shell.BaseShell):
 
 	def _onDataReadySwapTabs(self) -> None:
 		self.context_tab_stack.setCurrentIndex(1)
+
+	def _onDataReadyCreateTS(self) -> None:
+		for key in ['sun', 'moon']:
+			if key not in self.timeseries_data.keys():
+				for ts_key, ts in self.data['history'].createTimeSeries(key).items():
+					self.timeseries_data[ts_key] = ts
