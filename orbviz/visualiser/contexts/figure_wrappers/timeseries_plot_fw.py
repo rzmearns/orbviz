@@ -101,6 +101,7 @@ class TimeSeriesPlotFigureWrapper(BaseFigureWrapper):
 				ax = self.axes[ii,jj]
 				ax.relim()
 				ax.autoscale()
+		self.figure.tight_layout()
 
 	def updateIndex(self, index:int) -> None:
 		for asset in self.assets.values():
