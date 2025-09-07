@@ -80,8 +80,17 @@ class TimeSeriesContext(BaseContext):
 	def getIndex(self) -> int:
 		pass
 
-	def _procDataUpdated(self) -> None:
+	def _updateDataSources(self) -> None:
+		for ts in self.data['timeseries'].values():
+			ts.update()
+		self.canvas_wrapper.modelUpdated()
+
+	def _updateControls(self, *args, **kwargs) -> None:
 		pass
+
+	def _procDataUpdated(self) -> None:
+		self._updateControls()
+		self._updateDataSources()
 
 	def loadState(self) -> None:
 		pass
