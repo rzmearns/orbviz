@@ -95,5 +95,3 @@ class HistoricalShell(base_shell.BaseShell):
 			for ts_key, ts in timeseries.createTimeSeriesFromDataModel(self.data['history'], key).items():
 				self.timeseries_data[ts_key] = ts
 		self._generic_timeseries_created = True
-
-		self.contexts_dict['timeseries-history'].canvas_wrapper.modelUpdated()
