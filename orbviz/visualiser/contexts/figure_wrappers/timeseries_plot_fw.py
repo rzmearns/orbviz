@@ -4,6 +4,7 @@ import time
 from typing import Any
 
 from matplotlib.backends import backend_qtagg
+import matplotlib.dates as mdates
 from matplotlib.figure import Figure
 import numpy as np
 
@@ -101,7 +102,17 @@ class TimeSeriesPlotFigureWrapper(BaseFigureWrapper):
 				ax = self.axes[ii,jj]
 				ax.relim()
 				ax.autoscale()
+				self._formatAxes(ax)
+
 		self.figure.tight_layout()
+
+	def _formatAxes(self, ax):
+		ax.grid(True)
+		# Set date formatter
+		ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d\n%H:%M:%S'))
+		# Rotates and right-aligns the x labels so they don't crowd each other.
+		for label in ax.get_xticklabels(which='major'):
+			label.set(rotation=30, horizontalalignment='right')
 
 	def updateIndex(self, index:int) -> None:
 		for asset in self.assets.values():
