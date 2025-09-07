@@ -99,10 +99,8 @@ class TimeSeriesPlotFigureWrapper(BaseFigureWrapper):
 		for ii in range(m):
 			for jj in range(n):
 				ax = self.axes[ii,jj]
-				# print(f'{ax=}')
 				ax.relim()
 				ax.autoscale()
-				# ax.autoscale_view()
 
 	def updateIndex(self, index:int) -> None:
 		for asset in self.assets.values():

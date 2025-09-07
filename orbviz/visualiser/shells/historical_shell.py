@@ -58,6 +58,7 @@ class HistoricalShell(base_shell.BaseShell):
 																							self.data['earth_rdm']))
 		self._addContext('timeseries-history', timeseries_plot_context.TimeSeriesContext('timeseries-history',
 																							self.window,
+																							self.data['history'],
 																							self.timeseries_data))
 
 		# check toolbar/menubar indices are the same

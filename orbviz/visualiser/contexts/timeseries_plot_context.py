@@ -1,3 +1,4 @@
+import logging
 import pathlib
 
 from typing import Any
@@ -14,13 +15,17 @@ import orbviz.visualiser.interface.controls as controls
 import orbviz.visualiser.interface.dialogs as dialogs
 import orbviz.visualiser.interface.widgets as widgets
 
+logger = logging.getLogger(__name__)
 
 class TimeSeriesContext(BaseContext):
-	def __init__(self, name:str, parent_window:QtWidgets.QMainWindow, timeseries_data:dict[str,TimeSeries]):
+	def __init__(self, name:str, parent_window:QtWidgets.QMainWindow,
+					history_data:HistoryData,
+					timeseries_data:dict[str,TimeSeries]):
 		super().__init__(name)
 		self.window = parent_window
 
 		self.data: dict[str, Any] = {}
+		self.data['history'] = history_data
 		self.data['timeseries'] = timeseries_data
 		self.controls = Controls(self, self.canvas_wrapper)
 		self.canvas_wrapper = timeseries_plot_fw.TimeSeriesPlotFigureWrapper()
@@ -58,35 +63,40 @@ class TimeSeriesContext(BaseContext):
 		self.layout.setContentsMargins(0, 0, 0, 0)
 		self.layout.addWidget(content_widget)
 
-		# self.canvas_wrapper.addAxes(2,2)
-
 		self.controls.axes_controls.build_axes.connect(self.canvas_wrapper.addAxes)
 		self.controls.axes_controls.buildConfig()
 
 		self.controls.axes_controls.add_series.connect(self.selectTimeSeries)
 
 	def connectControls(self) -> None:
-		pass
-
-	def _configureData(self) -> None:
-		pass
-
-	def getTimeSliderIndex(self) -> int|None:
-		return None
+		logger.info("Connecting controls of %s", self.config['name'])
+		self.controls.time_slider.add_connect(self._updateDisplayedIndex)
 
 	def setIndex(self, idx:int) -> None:
-		pass
+		self.controls.time_slider.setValue(idx)
 
 	def getIndex(self) -> int:
+		return self.controls.time_slider.getValue()
+
+	def _updateDisplayedIndex(self, index:int) -> None:
+		# self.canvas_wrapper.updateIndex(index)
+		# self.canvas_wrapper.recomputeRedraw()
 		pass
 
 	def _updateDataSources(self) -> None:
 		for ts in self.data['timeseries'].values():
 			ts.update()
 		self.canvas_wrapper.modelUpdated()
+		# self.controls.rebuildOptions()
+		self.canvas_wrapper.setFirstDrawFlags()
+		self._updateDisplayedIndex(self.controls.time_slider.slider.value())
 
 	def _updateControls(self, *args, **kwargs) -> None:
-		pass
+		self.controls.time_slider.blockSignals(True)
+		self.controls.time_slider.setTimespan(self.data['history'].getTimespan())
+		self.controls.time_slider._curr_dt_picker.setDatetime(self.data['history'].getTimespan().start)
+		self.controls.time_slider.setValue(int(self.controls.time_slider.num_ticks/2))
+		self.controls.time_slider.blockSignals(False)
 
 	def _procDataUpdated(self) -> None:
 		self._updateControls()
