@@ -15,7 +15,7 @@ import orbviz.visualiser.interface.console as console
 
 logger = logging.getLogger(__name__)
 
-class Orbit3DAsset(base_assets.AbstractAsset):
+class Orbit3DAsset(base_assets.AbstractVispyAsset):
 	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 
@@ -68,7 +68,7 @@ class Orbit3DAsset(base_assets.AbstractAsset):
 													width = self.opts['orbital_path_width']['value'],
 													parent=None)
 
-	# Override AbstractAsset.updateIndex()
+	# Override AbstractVispyAsset.updateIndex()
 	def updateIndex(self, index:int) -> None:
 		self.data['curr_index'] = index
 		self.setStaleFlagRecursive()
@@ -181,7 +181,7 @@ class Orbit3DAsset(base_assets.AbstractAsset):
 		self.data['future_conn'] = np.vstack((conn,conn-1)).T - self.data['curr_index']
 
 
-class Orbit2DAsset(base_assets.AbstractAsset):
+class Orbit2DAsset(base_assets.AbstractVispyAsset):
 	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 
@@ -257,7 +257,7 @@ class Orbit2DAsset(base_assets.AbstractAsset):
 		self.visuals['future'].antialias=1
 
 
-	# Override AbstractAsset.updateIndex()
+	# Override AbstractVispyAsset.updateIndex()
 	def updateIndex(self, index:int) -> None:
 		self.data['curr_index'] = index
 		self.setStaleFlagRecursive()

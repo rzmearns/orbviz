@@ -79,7 +79,7 @@ class History2DCanvasWrapper(BaseCanvas):
 		self.assets['events'] = events.Events2DAsset(v_parent=self.view_box.scene)
 		self.assets['groundstations'] = groundstations.GroundStation2DAsset(v_parent=self.view_box.scene)
 
-	def getActiveAssets(self) -> list[base_assets.AbstractAsset|base_assets.AbstractCompoundAsset|base_assets.AbstractSimpleAsset]:
+	def getActiveAssets(self) -> list[base_assets.AbstractVispyAsset|base_assets.AbstractCompoundVispyAsset|base_assets.AbstractSimpleVispyAsset]:
 		active_assets = []
 		for k,v in self.assets.items():
 			if v.isActive():
