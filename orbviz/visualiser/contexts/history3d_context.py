@@ -213,6 +213,7 @@ class History3DContext(base.BaseContext):
 
 			self.canvas_wrapper.view_box.camera.azimuth = start_azimuth - ii*azimuth_step_angle
 			self.canvas_wrapper.view_box.camera.elevation = start_elevation - ii*elevation_step_angle
+			self.canvas_wrapper.onManualCameraRotate()
 			self.controls.time_slider.setValue(ii)
 			app.process_events()
 

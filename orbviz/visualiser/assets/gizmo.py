@@ -197,6 +197,9 @@ class ViewBoxGizmo(base_assets.AbstractSimpleAsset):
 		if event.button == 1 and event.is_dragging:
 			self.setViewBoxTransform()
 
+	def onManualCameraRotate(self) -> None:
+		self.setViewBoxTransform()
+
 	def onResize(self, event:QtGui.QResizeEvent) -> None:
 		self.setViewBoxTransform()
 
