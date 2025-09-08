@@ -58,7 +58,7 @@ class Earth3DAsset(base_assets.AbstractAsset):
 	def setSource(self, *args, **kwargs) -> None:
 		if type(args[0]) is not timespan.TimeSpan:
 			# args[0] assumed to be timespan
-			logger.error("setSource() of %s requires a %s as args[0], not: {type(args[0])}", self, timespan.Timespan)
+			logger.error("setSource() of %s requires a %s as args[0], not: %s", self, timespan.TimeSpan, {type(args[0])})
 			raise TypeError
 		self.data['datetimes'] = args[0].asDatetime()
 		for asset in self.assets.values():
