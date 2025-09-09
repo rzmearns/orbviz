@@ -10,16 +10,16 @@ def generatePixelRays(pixels:tuple[int,int], fov:tuple[float,float]) -> np.ndarr
 	# print(f'{res_arr=}')
 	fov_arr = np.deg2rad(np.asarray(fov))
 	frame_centre = res_arr/2
-	h, w = frame_centre
-	y, x = np.meshgrid(range(res_arr[0]), range(res_arr[1]))
+	w,h = frame_centre
+	x,y = np.meshgrid(range(res_arr[0]), range(res_arr[1]))
 
 	x = x.ravel()
 	y = y.ravel()
 	num_rays = len(x)
-	pixelCoords = np.vstack([y,x]).T
+	pixelCoords = np.vstack([x,y]).T
 	offsets = frame_centre - pixelCoords
 	offsets[:,0] *= -1
-	angles = offsets / np.array([h,w])  * np.array([fov_arr[1]/2, fov_arr[0]/2])
+	angles = offsets / np.array([w, h]) * np.array([fov_arr[0]/2, fov_arr[1]/2])
 
 	# rays in camera frame
 	rays_cf = np.ones((num_rays, 3))
