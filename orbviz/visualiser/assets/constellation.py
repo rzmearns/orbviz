@@ -83,9 +83,9 @@ class Constellation(base_assets.AbstractAsset):
 											self.data['beam_height'],
 											self.data['beam_angle_deg'])
 		self.data['strings'] = []
-		for o in args[0]:
-			if hasattr(o,'name'):
-				self.data['strings'].append(o.name)
+		for sat_orbit in sats_dict.values():
+			if hasattr(sat_orbit,'name'):
+				self.data['strings'].append(sat_orbit.name)
 			else:
 				self.data['strings'].append('')
 
@@ -141,6 +141,7 @@ class Constellation(base_assets.AbstractAsset):
 		mo_info['strings'] = self.data['strings']
 		mo_info['objects'] = [self]*self.data['num_sats']
 		return mo_info
+
 	def mouseOver(self, index:int) -> Self:
 		self.assets['beams'].mouseOver(index)
 		return self
@@ -396,7 +397,6 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 			self.visuals['scircle'].set_data(pos=circles, connect=self.data['s_c_conn'])
 			self._recomputeRedrawChildren()
 			self._clearStaleFlag()
-
 
 	def mouseOver(self, index:int) -> Self:
 		self.data['s_c_conn'] = np.array([np.arange(self.data['num_generic_circle_points']-1),
