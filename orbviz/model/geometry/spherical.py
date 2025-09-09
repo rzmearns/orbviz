@@ -135,10 +135,11 @@ def genSmallCircleCenterSubtendedAngle(subtended_angle:float, center_lat:float, 
 	'''
 	d = np.deg2rad(subtended_angle/2)
 	lat_max, lat_min = findSmallCircleLatRange(subtended_angle, center_lat)
+	nlats = 90
 	if center_lat < 0 :
-		lats = np.linspace(lat_min+0.1,lat_max-0.1,90)
+		lats = np.linspace(lat_min+0.1,lat_max-0.1,nlats)
 	else:
-		lats = np.flip(np.linspace(lat_min+0.1,lat_max-0.1,90))
+		lats = np.flip(np.linspace(lat_min+0.1,lat_max-0.1,nlats))
 	lons1 = np.zeros(lats.shape)
 	lons2 = np.zeros(lats.shape)
 	# for ii, lat in enumerate(lats):
@@ -184,7 +185,12 @@ def splitSmallCirclePatch(center_lon, center_lat, lats, lons1, lons2):
 		else:
 			num_side2_crossings = len(np.where(np.diff(lons2<-180))[0])
 
-		if num_side1_crossings == 1 or num_side2_crossings == 1:
+		end_diff_tol = 1
+		lons1_end_diff = np.abs(lons1[0] - lons1[-1])
+		lons2_end_diff = np.abs(lons2[0] - lons2[-1])
+		lons_end_diff_max = max(lons1_end_diff, lons2_end_diff)
+
+		if (lons_end_diff_max > end_diff_tol) and (num_side1_crossings == 1 or num_side2_crossings == 1):
 			# TODO: ignore those cases were the circle is a circle in 2D (i.e. not a saddle)
 			# could test if start and end lons are the same within some threshold.
 
