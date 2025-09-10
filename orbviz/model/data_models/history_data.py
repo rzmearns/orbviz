@@ -246,7 +246,7 @@ class HistoryData(BaseDataModel):
 			bar_str = int(pc)*'='
 			space_str = (100-int(pc))*'  '
 			console.send(f'Loading {pc:.2f}% ({ii} of {num_sats}) |{bar_str}{space_str}|\r')
-			orbits[sat_id] = orbit.Orbit.fromTLE(timespan, tle_paths[ii])
+			orbits[sat_id] = orbit.Orbit.fromTLE(timespan, tle_paths[ii], astrobodies=False)
 			ii+=1
 		logger.info("\tLoaded %s satellites .", len(sat_ids))
 		console.send(f"\tLoaded {len(sat_ids)} satellites .")
