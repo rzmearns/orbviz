@@ -75,7 +75,7 @@ class SpaceTrackCredentialsDialog:
 
 class GIFDialog:
 	def __init__(self, parent_window, opening_context, camera_type:str, dflt_camera_data:dict[str,float], num_ticks:int, three_dim=True):
-		if camera_type not in ['Turntable', 'RestrictedPanZoom']:
+		if camera_type not in ['Turntable', 'RestrictedPanZoom', 'Static2D', 'matplotlib']:
 			raise ValueError("GIF capture not supported for this context's camera type")
 
 		self.parent = parent_window
