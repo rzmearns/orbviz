@@ -1,0 +1,252 @@
+[build-system]
+requires = ["setuptools >= 77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = 'orbviz'
+version = '0.3.0'
+dependencies = [
+		"wheel",
+		"vispy==0.14.3",
+		"astropy==5.3.4",
+		"scipy>=1.8.0",
+		"skyfield==1.46",
+		"PyQt5==5.15.10",
+		"progressbar2==4.4.1",
+		"hapsira==0.18.0",
+		"pyopengl==3.1.7",
+		"spacetrack==1.2.0",
+		"spherapy>=0.2.0",
+		"triangle",
+		"pymap3d",
+		"imageio",
+	]
+
+requires-python = ">=3.10"
+
+authors = [
+  {name = "Robert Mearns", email = "robert.mearns@unimelb.edu.au"},
+  {name = "Miguel Ortiz del Castillo", email = "miguel.ortizdelcastillo@unimelb.edu.au"},
+  {name = "Jonathan Morgan", email = "morgan.j@unimelb.edu.au"},
+  {name = "Matt Thomas", email = "matthewt3@unimelb.edu.au"},
+  {name = "Yijie Tao", email = "yijie.tao@unimelb.edu.au"},
+]
+
+maintainers = [
+  {name = "Robert Mearns", email = "robert.mearns@unimelb.edu.au"}
+]
+
+description = "Tool for plotting historical and predicted data of satellites and constellations."
+readme = "README.md"
+keywords = ['satellite', 'sgp', 'space', 'orbit']
+
+[project.optional-dependencies]
+dev = [
+	"line-profiler==4.2.0",
+	"pytest==8.4.1",
+	"mypy==1.17.0",
+	"scipy-stubs>=1.8.0",
+	"ruff==0.12.4",
+	"pre-commit==4.2.0",
+	"microsoft-python-type-stubs @ git+https://github.com/microsoft/python-type-stubs.git",
+
+	]
+
+# [project.urls]
+Documentation = "https://rzmearns.github.io/orbviz/"
+Repository = "https://github.com/rzmearns/orbviz"
+Issues = "https://github.com/rzmearns/orbviz/issues"
+
+[tool.setuptools]
+packages = ["orbviz"]
+
+[tool.ruff]
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".git",
+    "__pycache__",
+    ".rcache",
+    ".venv",
+    ".vscode",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+]
+
+line-length = 100
+indent-width = 4
+
+output-format = "grouped"
+
+# Ruff version
+required-version = ">=0.12"
+respect-gitignore = true
+show-fixes = true
+src = ["orbviz"]
+
+[tool.ruff.format]
+docstring-code-format = true
+docstring-code-line-length = 60
+
+#indent with tabs
+indent-style = "tab"
+
+# automatically detect the appropriate line ending.
+line-ending = "auto"
+
+# use double quotes for strings.
+quote-style = "double"
+
+#ignore magic trailing commas
+skip-magic-trailing-comma = true
+
+[tool.ruff.lint]
+# list of all errors checked by Ruff https://docs.astral.sh/ruff/rules/
+select = [
+				# "ANN",	 	# flake8-annotations
+			# "ERA",	 	# eradicate (commented out code)
+			# "S",	 	# flake8-bandit
+			# "FBT",	 	# flake8-boolean-trap
+			# "B",	 	# flake8-bugbear
+			"A",	 	# flake8-builtins
+			"C4",	 	# flake8-comprehensions
+			"LOG",	 	# flake8-logging
+			"G",	 	# flake8-logging-format
+			"PIE",	 	# flake8-pie
+			"T20",	 	# flake8-print
+			"PT",	 	# flake8-pytest-style
+# 			"RET",	 	# flake8-return
+# 			"SLF",	 	# flake8-self
+			# "SIM",	 	# flake8-simplify
+			"TD",	 	# flake8-todos
+			"TC",	 	# flake8-type-checking
+# 			"ARG",	 	# flake8-unused-arguments
+			"PTH",	 	# flake8-use-pathlib
+			"I",	 	# isort
+			# "C90",	 	# mccabe
+			"NPY",	 	# numpy
+			# "N", 	 	# pep8-naming
+			"PERF",	 	# perflint
+			# "E", "W", 	# pycodestyle
+# 			# "DOC",	 	# pydoclint
+# 			"D",	 	# pydocstyle
+			"F",	 	# pyflakes
+			# "PL",	 	# pylint
+			"UP",	 	# pyupgrade
+			"FURB",	 	# refurb
+			# "RUF",	 	# ruff-specific
+			"TRY",	 	# tryceratops
+			]
+
+ignore = [
+			"E266", # too many leading '#' for block comment
+			"W191", # indentation contains tabs
+			"N802", # function name should be lowercase (mixedCase in this codebase)
+			"D206", # docstrings should be indented with spaces (not in this codebase)
+			"TRY003", # avoid specifying long messages outside exception class
+		 "TD002", # missing author in TODO
+		 "TD003", # missing issue link in TODO
+		 "PLR0915", # too many statements (max 50)
+		 "TC003", # TYPE_CHECKING guard around standard imports used only for type checking
+			]
+
+task-tags = ["TODO"]
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["D104"]
+"**/{tests,docs}/*" = ["I",
+												"DOC",
+												 "D",
+												 "B",
+												 "S",
+												 "PLR",
+												 "E",
+												 "SLF",
+												 ]
+
+[tool.ruff.lint.flake8-annotations]
+# Allow typing.Any as a type annotation
+allow-star-arg-any = true
+# __init__ doesn't require return type
+mypy-init-return = true
+suppress-none-returning = true
+
+[tool.ruff.lint.flake8-import-conventions]
+# Declare the banned `from` imports.
+banned-from = ["numpy",
+				"pandas",
+				"datetime",
+				"QtCore",
+				"QtGui",
+				"QtWidgets",
+			]
+
+[tool.ruff.lint.flake8-import-conventions.extend-aliases]
+# Declare a custom alias for the `vispy` module.
+"vispy" = "vp"
+"datetime" = "dt"
+
+[tool.ruff.lint.isort]
+force-sort-within-sections=true
+# import in all files
+required-imports = []
+section-order = [
+  "future",
+  "standard-library",
+  "typing",
+  "third-party",
+  "qt",
+  "vispy",
+  "first-party",
+  "local-folder",
+  "testing"
+]
+
+known-first-party = ["orbviz"]
+
+[tool.ruff.lint.isort.sections]
+"qt" = ["PyQt5"]
+"vispy" = ["vispy"]
+"testing" = ["pytest", "pytest-check"]
+"typing" = ["collections.abc", "types","typing","typing_extensions"]
+
+
+[tool.ruff.lint.pydocstyle]
+convention="google"
+ignore-var-parameters = true
+
+[tool.ruff.lint.pyflakes]
+allowed-unused-imports = ["logging", "typing"]
+
+[tool.mypy]
+disable_error_code = [
+											"attr-defined",
+											"no-redef",
+											"union-attr",
+											"call-arg",
+											"override",
+											"index",
+											"misc",
+											"operator",
+											"arg-type",
+											"var-annotated",
+											"return",
+											"return-value",
+											"import-untyped",
+											"abstract",
+											"assignment",
+											"call-overload",
+											"empty-body",
+											"name-defined",
+											"func-returns-value",
+											"annotation-unchecked"
+											]
