@@ -1,0 +1,17 @@
+blank_issues_enabled: false
+issue_templates:
+  - name: "Question"
+    description: "Ask a question"
+    title: "[Question]: "
+    labels: ["type:support"]
+    body: "./ISSUE_TEMPLATE/question.md"
+  - name: "Bug Report"
+    description: "Report a bug with OrbViz"
+    title: "[Bug]: "
+    labels: ["type:bug"]
+    body: "./ISSUE_TEMPLATE/bug_report.md"
+  - name: "Feature Request"
+    description: "Request a new OrbViz feature"
+    title: "[Feature]: "
+    labels: ["type:enhancement"]
+    body: "./ISSUE_TEMPLATE/feature_request.md"

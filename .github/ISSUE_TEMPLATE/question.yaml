@@ -1,0 +1,24 @@
+name: Question
+description: Create a new question.
+title: '[Question]: <title>'
+labels: [type:support]
+body:
+
+  - type: checkboxes
+    attributes:
+      label: Is there an existing question for this?
+      description: 'Please [search :mag: the issues](https://github.com/rzmearns/orbviz/issues) to check if this question has already been asked.'
+      options:
+      - label: I have searched the existing issues
+        required: true
+
+  - type: textarea
+    attributes:
+      label: Question
+      description: What is your question?
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: ':stop_sign: _Make sure you are asking a question about OrbViz. For reporting bugs, or requesting features, please submit an [issue](https://github.com/rzmearns/orbviz/issues)_'
