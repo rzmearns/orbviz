@@ -2,7 +2,7 @@
 import numpy as np
 import numpy.testing as np_test
 
-from satplot.model.geometry import polygons
+from orbviz.model.geometry import polygons
 
 
 def test_generateCircle_2D():

@@ -13,24 +13,24 @@ from PyQt5 import QtWidgets
 
 from vispy import app, use
 
-import satplot
-import satplot.util.logging as satplot_logging
-import satplot.util.threading as threading
-from satplot.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
-import satplot.visualiser.interface.console as console
-import satplot.visualiser.interface.dialogs as dialogs
-import satplot.visualiser.window as window
+import orbviz
+import orbviz.util.logging as orbviz_logging
+import orbviz.util.threading as threading
+from orbviz.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
+import orbviz.visualiser.interface.console as console
+import orbviz.visualiser.interface.dialogs as dialogs
+import orbviz.visualiser.window as window
 
-logger = logging.getLogger('satplot')
+logger = logging.getLogger('orbviz')
 
 warnings.filterwarnings("ignore", message="Optimal rotation is not uniquely or poorly defined for the given sets of vectors.")
-satplot_logging.configureLogger()
+orbviz_logging.configureLogger()
 use(gl='gl+')
 
 class Application(QtWidgets.QApplication):
 	def __init__(self) -> None:
-		satplot.threadpool = threading.Threadpool()
-		logger.info("Creating threadpool with %s threads",satplot.threadpool.maxThreadCount())
+		orbviz.threadpool = threading.Threadpool()
+		logger.info("Creating threadpool with %s threads",orbviz.threadpool.maxThreadCount())
 		self.pyqt_app = app.use_app("pyqt5")
 		self.pyqt_app.create()
 		self.window = window.MainWindow(title="Sat Plot")
@@ -73,8 +73,8 @@ class Application(QtWidgets.QApplication):
 			self.saveAs()
 
 	def saveAs(self) -> None:
-		dflt_save_file = f'satplot-state_{dt.datetime.now().strftime("%y%m%d-%H%M%S")}.pickle'
-		save_file = self._openFileDialog('SatPlot Save...', pathlib.Path('data/saves/'), dflt_save_file)
+		dflt_save_file = f'orbviz-state_{dt.datetime.now().strftime("%y%m%d-%H%M%S")}.pickle'
+		save_file = self._openFileDialog('orbviz Save...', pathlib.Path('data/saves/'), dflt_save_file)
 		if save_file.name != '':
 			self.save_file = save_file
 			self._saveState()
@@ -91,7 +91,7 @@ class Application(QtWidgets.QApplication):
 			pass
 
 	def load(self) -> None:
-		load_file = self._openFileDialog('SatPlot Load...', pathlib.Path('data/saves/'), None, save=False)
+		load_file = self._openFileDialog('orbviz Load...', pathlib.Path('data/saves/'), None, save=False)
 		if load_file != '':
 			self._loadState(load_file)
 
@@ -126,44 +126,44 @@ class Application(QtWidgets.QApplication):
 		state = {}
 		state['window_contexts'] = self.window.serialiseContexts()
 		state['metadata'] = {}
-		state['metadata']['version'] = satplot.version
-		state['metadata']['gl_plus'] = satplot.gl_plus
+		state['metadata']['version'] = orbviz.version
+		state['metadata']['gl_plus'] = orbviz.gl_plus
 		return state
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
-		if state['metadata']['version'] != satplot.version:
-			logger.error("This satplot state was not created with this version of satplot: file %s, satplot %s",state['metadata']['version'], satplot.version)
+		if state['metadata']['version'] != orbviz.version:
+			logger.error("This orbviz state was not created with this version of orbviz: file %s, orbviz %s",state['metadata']['version'], orbviz.version)
 
-		if state['metadata']['gl_plus'] != satplot.gl_plus:
-			logger.error("WARNING: this file was created with a different GL mode: GL+ = %s. It may not load correctly.", satplot.gl_plus)
+		if state['metadata']['gl_plus'] != orbviz.gl_plus:
+			logger.error("WARNING: this file was created with a different GL mode: GL+ = %s. It may not load correctly.", orbviz.gl_plus)
 
 
 		self.window.deserialiseContexts(state['window_contexts'])
 
 def setDefaultPackageOptions() -> None:
-	satplot.running = True
-	satplot.gl_plus = True
-	satplot.debug = False
-	satplot.high_precision = False
+	orbviz.running = True
+	orbviz.gl_plus = True
+	orbviz.debug = False
+	orbviz.high_precision = False
 	PIL.Image.MAX_IMAGE_PIXELS = None
 
 if __name__ == '__main__':
 	setDefaultPackageOptions()
 	parser = argparse.ArgumentParser(
-						prog='SatPlot',
+						prog='orbviz',
 						description='Visualisation software for satellites; including orbits and pointing.')
 	parser.add_argument('--nogl+', action='store_true', dest='nogl_plus')
 	parser.add_argument('--high_precision', action='store_true', dest='high_precision')
 	parser.add_argument('--debug', action='store_true', dest='debug')
 	args = parser.parse_args()
 	if args.nogl_plus:
-		satplot.gl_plus = False
+		orbviz.gl_plus = False
 	if args.high_precision:
-		satplot.high_precision = True
+		orbviz.high_precision = True
 	if args.debug:
-		satplot.debug = True
-	logger.info("Satplot:")
-	logger.info("\tVersion: %s", satplot.version)
+		orbviz.debug = True
+	logger.info("orbviz:")
+	logger.info("\tVersion: %s", orbviz.version)
 	application = Application()
 	application.setStyle(QtWidgets.QStyleFactory().create('Fusion'))
 	application.run()

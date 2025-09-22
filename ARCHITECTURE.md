@@ -1,5 +1,5 @@
 # Architecture
-This document describes the high-level architecture of SatPlot. If you want to familiarise yourself with the code base, this is a good place to start.
+This document describes the high-level architecture of OrbViz. If you want to familiarise yourself with the code base, this is a good place to start.
 
 ## Concept
 TODO: High level description
@@ -7,54 +7,54 @@ TODO: High level description
 ## Code Map
 This section talks briefly about various important directories and data structures. Pay attention to the Architecture Invariant sections. They often talk about things which are deliberately absent in the source code.
 
-satplot  
+orbviz  
 ├── [data](#data)  
 ├── [resources](#resources)  
-└── satplot  
-&emsp;&emsp;&emsp;├── [model](#satplotmodel)  
-&emsp;&emsp;&emsp;└── [visualiser](#satplotvisualiser)  
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;├── [assets](#satplotvisualiserassets)  
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;├── [contexts](#satplotvisualisercontexts)  
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;│&emsp;&emsp;&emsp;└── [canvaswrappers](#satplotvisualisercontextscanvaswrappers)  
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;└── [controls](#satplotvisualisercontrols)  
+└── orbviz  
+&emsp;&emsp;&emsp;├── [model](#orbvizmodel)  
+&emsp;&emsp;&emsp;└── [visualiser](#orbvizvisualiser)  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;├── [assets](#orbvizvisualiserassets)  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;├── [contexts](#orbvizvisualisercontexts)  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;│&emsp;&emsp;&emsp;└── [canvaswrappers](#orbvizvisualisercontextscanvaswrappers)  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;└── [controls](#orbvizvisualisercontrols)  
 
 
 ### `data`
 This directory stores user data.   
 Currently contains:
   - pointing - files describing a time-series of pointing of a spacecraft
-  - saves - save files of satplot
+  - saves - save files of orbviz
   - spacecraft - files describing a spacecraft; sensor suite descriptions, mesh models, etc.
   - TLEs - TLE files sourced from celestrak
 
 ### `resources`
-This directory stores resources used by satplot. e.g. icon images, data for continent boundaries, etc.
+This directory stores resources used by orbviz. e.g. icon images, data for continent boundaries, etc.
 
-### `satplot/model`
+### `orbviz/model`
 This module encompasses the data structures used to capture the physical behaviour over time.
 
-### `satplot/visualiser`
+### `orbviz/visualiser`
 This module encompasses the necessary gui and visualisation code
 
-### `satplot/visualiser/assets`
+### `orbviz/visualiser/assets`
 Assets are written using `vispy` and follow a defined API to allow contexts to re-use them.
 
-### `satplot/visualiser/contexts`
-Contexts are a combination of a visualisation and user controls, forming a separate 'tab' of the SatPlot application
+### `orbviz/visualiser/contexts`
+Contexts are a combination of a visualisation and user controls, forming a separate 'tab' of the OrbViz application
 
-### `satplot/visualiser/contexts/canvaswrappers`
+### `orbviz/visualiser/contexts/canvaswrappers`
 A canvas wrapper is the `vispy` `scene` which is used to render the assets to the screen. They follow a suggest API to allow a context to utilise them in a defined way. However, as there is a 1-to-1 mapping of a canvaswrapper to a context, there is freedom (and this is sometimes necessar) to hard-code behaviour specific to that context.
 
-### `satplot/visualiser/controls`
+### `orbviz/visualiser/controls`
 This module encompasses QT5 based controls, these can be re-used by any context.
 
 ## Saving & Loading
-capturing the context, data, settings, etc. Essentially a 'snapshot' of satplot
+capturing the context, data, settings, etc. Essentially a 'snapshot' of orbviz
 
 ## Context Structure
 
 ## Asset Structure
-All SatPlot assets inherit from one of:
+All OrbViz assets inherit from one of:
   - `base.BaseAsset`
   - `base.SimpleAsset`
 

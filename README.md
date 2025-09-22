@@ -39,7 +39,7 @@ Some common problems:
 python3 application.py --nogl+
 ```
 
-* If the above doesn't work, and you are running satplot on a wayland based linux distro (rather than X11), try the following:
+* If the above doesn't work, and you are running orbviz on a wayland based linux distro (rather than X11), try the following:
 ```
 export QT_QPA_PLATFORM=wayland
 ```
@@ -147,7 +147,7 @@ The time slider will activate once the orbits have finished propagating.
 ## Fetching TLE Data
 In order to calculate the position of a satellite at any given time, Satplot requires [TLE information](https://en.wikipedia.org/wiki/Two-line_element_set) for each satellite which is accurate for the given time period.  
 TLE data can be obtained from either [Celestrak](https://celestrak.org/) or [Spacetrack](https://www.space-track.org/). Celestrak holds only the most recent TLE data for each satellite, while Spacetrack will provide historical TLE data. Satplot will fall back to using Celestrak if it cannot authenticate access to Spacetrack.  
-In order to use Spacetrack, you must provide your [Spacetrack credentials](https://www.space-track.org/auth/createAccount) to satplot. These can be entered from a dialog, using either the ![image](resources/icons/spacetrak-unlock.png) icon or through the `Spacetrack > Enter Credentials` menu option. Spacetrack credentials are stored in the local keyring via the propagation and TLE fetcher wrapper package [Spherapy](https://gitlab.unimelb.edu.au/msl/libraries/spherapy)
+In order to use Spacetrack, you must provide your [Spacetrack credentials](https://www.space-track.org/auth/createAccount) to orbviz. These can be entered from a dialog, using either the ![image](resources/icons/spacetrak-unlock.png) icon or through the `Spacetrack > Enter Credentials` menu option. Spacetrack credentials are stored in the local keyring via the propagation and TLE fetcher wrapper package [Spherapy](https://gitlab.unimelb.edu.au/msl/libraries/spherapy)
 
 
 ## Contributing
@@ -163,7 +163,7 @@ To save as a new filename, use the `File->Save State As..` menu option.
 
 * To load a state, use the ![image](resources/icons/folder-horizontal-open.png) toolbar button or `File->Load State` menu option
 
-The following information is saved in a satplot state:
+The following information is saved in a orbviz state:
 * propagated satellite information
   * position
   * velocity

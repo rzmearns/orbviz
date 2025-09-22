@@ -1,6 +1,6 @@
 {
  "save": {
-  "tooltip": "Save SatPlot State",
+  "tooltip": "Save OrbViz State",
   "menu_item": "Save State",
   "containing_menu": "file",
   "button_icon": "resources/icons/disk-black.png",
@@ -10,7 +10,7 @@
   "toggleable": false
  },
  "save-as": {
-	"tooltip": "Save SatPlot State",
+	"tooltip": "Save OrbViz State",
 	"menu_item": "Save State As..",
 	"containing_menu": "file",
 	"button_icon": null,
@@ -20,7 +20,7 @@
 	"toggleable": false
    },
  "load": {
-	"tooltip": "Load SatPlot State",
+	"tooltip": "Load OrbViz State",
 	"menu_item": "Load State",
 	"containing_menu": "file",	
 	"button_icon": "resources/icons/folder-horizontal-open.png",

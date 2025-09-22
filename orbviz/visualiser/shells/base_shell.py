@@ -1,0 +1,147 @@
+import logging
+
+from typing import Any
+
+from PyQt5 import QtCore, QtWidgets
+
+from orbviz.model.data_models import datapane as datapane_model
+from orbviz.model.data_models.groundstation_data import GroundStationCollection
+from orbviz.visualiser.contexts import base_context
+import orbviz.visualiser.interface.controls as controls
+import orbviz.visualiser.interface.datapane as datapane
+import orbviz.visualiser.interface.widgets as orbviz_widgets
+
+logger = logging.getLogger(__name__)
+
+class BaseShell:
+	def __init__(self, parent_window:QtWidgets.QMainWindow,
+						toolbars:dict[str, controls.Toolbar],
+						menubars:dict[str, controls.Menubar],
+						name:str='Default Shell', data=None):
+
+
+		self.name = name
+		self.window = parent_window
+		self.widget = QtWidgets.QWidget()
+		self.layout = QtWidgets.QVBoxLayout()
+		self.toolbars = toolbars
+		self.menubars = menubars
+		self.active = False
+		self.active_context:base_context.BaseContext|None = None
+		self.data: dict[str, Any] = {}
+		self.data['groundstations'] = GroundStationCollection()
+
+		self.contexts_dict: dict[str, base_context.BaseContext] = {}
+		self.context_tab_stack = orbviz_widgets.ColumnarStackedTabWidget()
+		self.context_tab_stack.setTabPosition(QtWidgets.QTabWidget.West)
+		self.datapane_model = datapane_model.DataPaneModel()
+		self.datapane = datapane.DataPaneWidget(self.datapane_model)
+
+
+	def _buildLayout(self) -> None:
+		datapane_hsplitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)
+		datapane_hsplitter.setObjectName('window_hsplitter')
+		datapane_hsplitter.setStyleSheet('''
+					QSplitter#window_hsplitter::handle {
+								background-color: #DCDCDC;
+								padding: 2px;
+							}
+					QSplitter#window_hsplitter::handle:horizontal {
+								height: 1px;
+								color: #ff0000;
+							}
+							''')
+		datapane_hsplitter.addWidget(self.context_tab_stack)
+		datapane_hsplitter.addWidget(self.datapane)
+		self.layout.addWidget(datapane_hsplitter)
+		self.layout.setContentsMargins(0, 0, 0, 0)
+		self.widget.setLayout(self.layout)
+
+	def _connectGenericTabSignals(self) -> None:
+		self.context_tab_stack.tab_changed.connect(self.updateActiveContext)
+		self.context_tab_stack.tab_changed.connect(self._propagateTimeSlider)
+
+	def _addContext(self, context_name:str, context:base_context.BaseContext):
+		# TODO: add to abstracted shell
+		# Keep track of context reference
+		self.contexts_dict[context_name] = context
+
+		# Keep track of toolbar references
+		if context.controls is not None and context.controls.toolbar is not None:
+			self.toolbars[context_name] = context.controls.toolbar
+		else:
+			logger.warning('Context: %s:%s, does not have a toolbar', context_name, context)\
+
+		# Keep track of menubar references
+		if context.controls is not None and context.controls.menubar is not None:
+			self.menubars[context_name] = context.controls.menubar
+		else:
+			logger.warning('Context: %s:%s, does not have a menubar', context_name, context)
+
+		# add tab to shell context stack
+		tab_label = ' '.join(context_name.split('-')[:-1]).title()
+		self.context_tab_stack.addTab(context.widget, tab_label)
+		if hasattr(context,'canvas_wrapper') and context.canvas_wrapper is not None:
+			if hasattr(context.canvas_wrapper, 'mouseOverText') and context.canvas_wrapper.mouseOverText is not None:
+				context.canvas_wrapper.mouseOverText.notifier.text_updated.connect(self.datapane.setMouseText)
+
+	def updateActiveContext(self, curr_context_idx:int|None, new_context_idx:int|None) -> None:
+		logger.debug('Changing toolbar and menu for %s shell', self.name)
+		logger.debug('%s:%s', self.name, self.active)
+
+		if curr_context_idx is None:
+			curr_context_idx = self.context_tab_stack.currentIndex()
+		curr_context_key = list(self.contexts_dict.keys())[curr_context_idx]
+
+		if new_context_idx is None:
+			new_context_idx = self.context_tab_stack.currentIndex()
+		new_context_key = list(self.contexts_dict.keys())[new_context_idx]
+		self.active_context = self.contexts_dict[new_context_key]
+
+		# process deselects first in order to clear parent pointer to menubar, otherwise menubar gets deleted (workaround for pyqt5)
+		for context_key in self.contexts_dict.keys():
+			logger.debug('Deactivating bars for %s:%s', self.name, context_key)
+			self.toolbars[context_key].setActiveState(False)
+			self.menubars[context_key].setActiveState(False)
+
+		if self.active and new_context_key is not None:
+			logger.debug('Activating bars for %s:%s', self.name, new_context_key)
+			self.toolbars[new_context_key].setActiveState(True)
+			self.menubars[new_context_key].setActiveState(True)
+
+		self.contexts_dict[curr_context_key].makeDormant()
+		self.contexts_dict[new_context_key].makeActive()
+
+	def _propagateTimeSlider(self, old_context_idx:int, new_context_idx:int) -> None:
+		curr_context_idx = old_context_idx
+		curr_context = list(self.contexts_dict.values())[curr_context_idx]
+		new_context = list(self.contexts_dict.values())[new_context_idx]
+		curr_slider_idx = curr_context.getIndex()
+		if curr_slider_idx is not None:
+			new_context.setIndex(curr_slider_idx)
+
+	def prepSerialisation(self):
+		pass
+
+	def deSerialise(self, state_dict):
+		pass
+
+	def makeActive(self) -> None:
+		self.active = True
+
+	def makeDormant(self) -> None:
+		self.active = False
+
+	def isActive(self) -> bool:
+		return self.active
+
+	def serialiseContexts(self) -> dict[str,Any]:
+		state = {}
+		for context_key, context in self.contexts_dict.items():
+			state[context_key] = context.prepSerialisation()
+
+		return state
+
+	def deserialiseContexts(self, state:dict[str,Any]) -> None:
+		for context_key, context_dict in state.items():
+			self.contexts_dict[context_key].deSerialise(context_dict)
