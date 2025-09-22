@@ -1,0 +1,73 @@
+name: PR pipeline
+
+on: 
+  pull_request:
+    branches:
+      - 'main'
+    paths:
+      - '**.py'
+      - 'pyproject.toml'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Running lint from merge of ${{ github.event.pull_request.head.ref }} on commit ${{ github.event.pull_request.head.sha }}"
+      - id: lint-checkout
+        name: Checkout
+        uses: actions/checkout@v5
+      - id: lint-install-python
+        name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: 3.12
+          cache: pip
+      - id: lint-install-dependencies
+        name: Install dependencies
+        run: pip install --editable .[dev]
+      - id: lint-run
+        run: ruff check
+
+  type:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Running static type analysis from merge of ${{ github.event.pull_request.head.ref }} on commit ${{ github.event.pull_request.head.sha }}"
+      - id: type-checkout
+        name: Checkout for Typing
+        uses: actions/checkout@v5
+      - id: type-install-python
+        name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: 3.12
+          cache: pip
+      - id: type-install-dependencies
+        name: Install dependencies for Typing
+        run: pip install --editable .[dev]
+      - id: type-run
+        run: mypy orbviz --disable-error-code=import-untyped
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - run: echo "Running tests from merge of ${{ github.event.pull_request.head.ref }} on commit ${{ github.event.pull_request.head.sha }}"
+      - id: checkout
+        name: Checkout
+        uses: actions/checkout@v5
+      - id: install-python
+        name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - id: install-dependencies
+        name: Install dependencies
+        run: pip install --editable .[dev]
+      - id: pytest-run
+        name: Running Pytest
+        run: |
+          python -m pytest
+
