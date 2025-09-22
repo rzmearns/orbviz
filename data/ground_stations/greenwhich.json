@@ -1,0 +1,17 @@
+{
+	"name": "Greenwich",
+	"latitude": 51.48,
+	"longitude": 0.00,
+	"altitude": 0.42,
+	"min_elevation": 10.0,
+	"uplink": {
+				"min_frequency": "None",
+				"max_frequency": "None",
+				"max_power": "None"
+				},
+	"downlink": {
+				"min_frequency": "None",
+				"max_frequency": "None",
+				"max_power": "None"
+				}
+}
