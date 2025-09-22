@@ -26,7 +26,7 @@ class PrimaryConfig(QtWidgets.QWidget):
 		config_vlayout.setSpacing(10)
 
 		# Configuration widgets
-		dflt_config_file = orbviz_paths.prim_cnfg_dir.joinpath('SpIRIT_XYNegZ.json')
+		dflt_config_file = orbviz_paths.prim_cnfg_dir.joinpath('ISS_XYZ.json')
 		self.tmp_prim_config = None
 		self.prim_config_selector = widgets.FilePicker('Configuration File',
 															dflt_file=dflt_config_file.name,
@@ -119,7 +119,7 @@ class HistoricalPointingConfig(QtWidgets.QWidget):
 		inv_switch_vlayout.setSpacing(0)
 
 		# Configuration widgets
-		dflt_config_file = orbviz_paths.pnt_dir.joinpath('20240108_test_quaternion_X_ECI_parallel_Z_Zenith.csv')
+		dflt_config_file = orbviz_paths.pnt_dir.joinpath('20240108_ECI_parallel.csv')
 		self._pointing_file_selector = widgets.FilePicker('Pointing File',
 												   			dflt_file=dflt_config_file.name,
 															dflt_dir=dflt_config_file.parent,
