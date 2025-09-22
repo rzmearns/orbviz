@@ -33,7 +33,7 @@ class Application(QtWidgets.QApplication):
 		logger.info("Creating threadpool with %s threads",orbviz.threadpool.maxThreadCount())
 		self.pyqt_app = app.use_app("pyqt5")
 		self.pyqt_app.create()
-		self.window = window.MainWindow(title="Sat Plot")
+		self.window = window.MainWindow(title="OrbViz")
 		self._connectControls()
 		self.load_data_worker = None
 		self.load_worker_thread = None
