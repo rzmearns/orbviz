@@ -1,0 +1,10 @@
+{
+	"name": "ISS",
+	"satellites":{
+		"ISS":{
+			"id": 25544,
+			"sensor_suites":{
+			}
+		}
+	}
+}

@@ -1,0 +1,36 @@
+{
+	"name": "ISS",
+	"satellites":{
+		"ISS":{
+			"id": 25544,
+			"sensor_suites":{
+					"Axes": {
+								"X":{
+									"shape":"square_pyramid",
+									"fov":"(62.2,48.8)",
+									"resolution":"(1920,1080)",
+									"range":550,
+									"colour":"(255, 0, 0)",
+									"bf_quat":"( 0.5, 0.5, 0.5, 0.5)",
+									"description":"boresight down x, width along body y axis"},
+								"Y":{
+									"shape":"square_pyramid",
+									"fov":"(62.2,48.8)",
+									"resolution":"(1920,1080)",
+									"range":550,
+									"colour":"(0, 255, 0)",
+									"bf_quat":"( 0.5, 0.5, 0.5, -0.5)",
+									"description":"boresight down y, width along body z axis"},
+								"Z":{
+									"shape":"square_pyramid",
+									"fov":"(62.2,48.8)",
+									"resolution":"(1920,1080)",
+									"range":700,
+									"colour":"(0, 0, 255)",
+									"bf_quat":"( 0, 0, 0, 1)",
+									"description":"boresight down z, width along body x axis"}
+					}
+			}
+		}
+	}
+}

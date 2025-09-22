@@ -1,0 +1,36 @@
+{
+	"name": "ISS",
+	"satellites":{
+		"SpIRIT":{
+			"id": 25544,
+			"sensor_suites":{
+					"Axes": {
+								"X":{
+									"shape":"square_pyramid",
+									"fov":"(62.2,48.8)",
+									"resolution":"(1920,1080)",
+									"range":550,
+									"colour":"(255, 0, 0)",
+									"bf_quat":"( 0.5, 0.5, 0.5, 0.5)",
+									"description":"boresight down X, width along body Y axis"},
+								"Y":{
+									"shape":"square_pyramid",
+									"fov":"(62.2,48.8)",
+									"resolution":"(1920,1080)",
+									"range":550,
+									"colour":"(0, 255, 0)",
+									"bf_quat":"( 0.5, 0.5, 0.5, -0.5)",
+									"description":"boresight down Y, width along body Z axis"},
+								"Z":{
+									"shape":"square_pyramid",
+									"fov":"(62.2,48.8)",
+									"resolution":"(1920,1080)",
+									"range":700,
+									"colour":"(0, 0, 255)",
+									"bf_quat":"( 1, 0, 0, 0)",
+									"description":"boresight down -Z, width along body X axis"}
+					}
+			}
+		}
+	}
+}
