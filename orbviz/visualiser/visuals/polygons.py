@@ -1,4 +1,9 @@
-
+# Copyright (c) Vispy Development Team. All Rights Reserved.
+# Distributed under the (new) BSD License. See [LICENSE.txt](https://github.com/vispy/vispy/blob/main/LICENSE.txt) for more info.
+# -----------------------------------------------------------------------
+# Modifications to use sped up triangulations
+# Copyright (c) OrbViz Development Team. All Rights Reserved.
+# Distributed under the (new) BSD License. See LICENSE.md for more info.
 
 import numpy as np
 
