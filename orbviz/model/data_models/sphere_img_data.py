@@ -82,10 +82,10 @@ class SphereImageData(BaseDataModel):
 
 	@classmethod
 	def visibleEarthSunlit(cls):
-		return cls(pathlib.Path(f'{orbviz_paths.data_dir}/earth2D/BlueMarble_hires.jpeg'),
+		return cls(pathlib.Path(f'{orbviz_paths.resources_dir}/earth2D/BlueMarble_hires.jpeg'),
 					'earth', True)
 
 	@classmethod
 	def visibleEarthEclipsed(cls):
-		return cls(pathlib.Path(f'{orbviz_paths.data_dir}/earth2D/BlackMarble_hires.jpeg'),
+		return cls(pathlib.Path(f'{orbviz_paths.resources_dir}/earth2D/BlackMarble_hires.jpeg'),
 					'earth', False)

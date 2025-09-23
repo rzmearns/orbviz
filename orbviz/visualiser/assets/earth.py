@@ -47,8 +47,9 @@ class Earth3DAsset(base_assets.AbstractAsset):
 		self.data['ea_coords'][1,2] = (c.R_EARTH+1000)
 
 		# landmass data
-		self.data['landmass'] = np.load(f'{orbviz_paths.data_dir}/land_boundaries/landmass_points.npy')
-		self.data['landmass_conn'] = np.load(f'{orbviz_paths.data_dir}/land_boundaries/landmass_connections.npy')
+		landmass_dir = orbviz_paths.resources_dir.joinpath('earth3D').joinpath('land_boundaries')
+		self.data['landmass'] = np.load(landmass_dir.joinpath('landmass_points.npy'))
+		self.data['landmass_conn'] = np.load(landmass_dir.joinpath('landmass_connections.npy'))
 
 		# rotation data
 		self.data['nullisland_topos'] = wgs84.latlon(0,0)
@@ -523,7 +524,7 @@ class Earth2DAsset(base_assets.AbstractAsset):
 
 	def _createVisuals(self) -> None:
 		# Earth Sphere
-		img_path = orbviz_paths.data_dir.joinpath('earth2D').joinpath('equirectangular.jpg')
+		img_path = orbviz_paths.resources_dir.joinpath('earth2D').joinpath('equirectangular.jpg')
 		img_data = np.flip(read_png(img_path),0)
 		self.visuals['earth'] = scene.visuals.Image(
 			img_data,
