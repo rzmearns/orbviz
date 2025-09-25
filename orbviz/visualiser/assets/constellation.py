@@ -77,8 +77,9 @@ class Constellation(base_assets.AbstractAsset):
 												   			np.linalg.norm(list(sats_dict.values())[0].pos[0,:]))
 
 		if self.assets['beams'] is not None:
-			self.assets['beams'].setSource(self.data['num_sats'],
-											self.data['coords'],
+			num_sats = self.data['num_sats']
+			self.assets['beams'].setSource(num_sats,
+											self.data['coords'][:num_sats],
 											self.data['curr_index'],
 											self.data['beam_height'],
 											self.data['beam_angle_deg'])
