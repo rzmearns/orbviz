@@ -266,6 +266,8 @@ class HistoryData(BaseDataModel):
 
 	def _storeOrbitData(self, orbits:dict[int,orbit.Orbit]) -> None:
 		self.orbits = orbits
+		self.sun = list(orbits.values())[0].sun_pos
+		self.moon = list(orbits.values())[0].moon_pos
 
 	def _storeEventData(self, events:dict[int, event_data.EventData]):
 		self.events = events

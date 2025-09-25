@@ -223,6 +223,7 @@ class EarthRayCastData(BaseDataModel):
 			# atmospheric depth along ray for those rays intersecting atm (but not earth)
 			atm_depth[atm_intsct] = 2*(Re+atm_height)*(-1)*dp
 			max_alpha = 0.75
+			# normalising atm depth that equates to max_alpha for atmosphere mask
 			max_atm_depth = 1390.6
 			alpha = atm_depth/max_atm_depth * max_alpha
 

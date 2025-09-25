@@ -21,7 +21,7 @@ import orbviz.visualiser.colours as colours
 
 logger = logging.getLogger(__name__)
 
-class Earth3DAsset(base_assets.AbstractAsset):
+class Earth3DAsset(base_assets.AbstractVispyAsset):
 	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 						
@@ -84,7 +84,7 @@ class Earth3DAsset(base_assets.AbstractAsset):
 													antialias=True,
 													connect=self.data['landmass_conn'],
 													parent=None)
-	# Use AbstractAsset.updateIndex()
+	# Use AbstractVispyAsset.updateIndex()
 
 	def recomputeRedraw(self) -> None:
 		if self.isFirstDraw():
@@ -215,7 +215,7 @@ class Earth3DAsset(base_assets.AbstractAsset):
 		return coords
 
 
-class ParallelsGrid3DAsset(base_assets.AbstractSimpleAsset):
+class ParallelsGrid3DAsset(base_assets.AbstractSimpleVispyAsset):
 	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 		self._setDefaultOptions()
@@ -368,7 +368,7 @@ class ParallelsGrid3DAsset(base_assets.AbstractSimpleAsset):
 		return coords
 	
 
-class MeridiansGrid3DAsset(base_assets.AbstractSimpleAsset):
+class MeridiansGrid3DAsset(base_assets.AbstractSimpleVispyAsset):
 	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 
@@ -492,7 +492,7 @@ class MeridiansGrid3DAsset(base_assets.AbstractSimpleAsset):
 
 		return coords
 
-class Earth2DAsset(base_assets.AbstractAsset):
+class Earth2DAsset(base_assets.AbstractVispyAsset):
 	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 

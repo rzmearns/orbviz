@@ -632,6 +632,86 @@ class SensorViewConfigs(QtWidgets.QWidget):
 			sens_key = self._sens_dict[sc_id][sens_list_idx][1]
 			self.selected.emit(view_id, sc_id, suite_key, sens_key)
 
+class TimeSeriesControls(QtWidgets.QWidget):
+	# new axes created, {num_rows, num_cols}
+	build_axes = QtCore.pyqtSignal(int, int)
+	add_series = QtCore.pyqtSignal(int)
+
+	def __init__(self):
+		super().__init__()
+
+		self.super_layout = QtWidgets.QVBoxLayout()
+
+		_axes_creation_groupbox = QtWidgets.QGroupBox('Number Axes Selection')
+		_axes_config_groupbox = QtWidgets.QGroupBox('Axes Options')
+		self._axes_config_layout = QtWidgets.QVBoxLayout()
+		_series_config_groupbox = QtWidgets.QGroupBox('Series Options')
+		self._series_config_layout = QtWidgets.QVBoxLayout()
+
+		hlayout = QtWidgets.QHBoxLayout()
+		self._num_rows_box = widgets.ValueSpinner(None, 1, integer=True, allow_no_callbacks=True)
+		self._num_cols_box = widgets.ValueSpinner(None, 1, integer=True, allow_no_callbacks=True)
+		self._build_butt = QtWidgets.QPushButton('Build')
+
+		self._updateNumAxes()
+
+		hlayout.addWidget(self._num_rows_box)
+		hlayout.addWidget(self._num_cols_box)
+		hlayout.addWidget(self._build_butt)
+		_axes_creation_groupbox.setLayout(hlayout)
+		_axes_config_groupbox.setLayout(self._axes_config_layout)
+		_series_config_groupbox.setLayout(self._series_config_layout)
+
+		self._add_series_btns = []
+
+		self.super_layout.addWidget(_axes_creation_groupbox)
+		self.super_layout.addWidget(_axes_config_groupbox)
+		self.super_layout.addWidget(_series_config_groupbox)
+		self.super_layout.addStretch()
+		self.setLayout(self.super_layout)
+		self._build_butt.clicked.connect(self.buildConfig)
+
+	def _updateNumAxes(self):
+		self._num_rows = self._num_rows_box.getValue()
+		if self._num_rows == 0:
+			self._num_rows = 1
+			self._num_rows_box.setValue(1)
+		self._num_cols = self._num_cols_box.getValue()
+
+		if self._num_cols == 0:
+			self._num_cols = 1
+			self._num_cols_box.setValue(1)
+
+		self._num_axes =  self._num_rows * self._num_cols
+
+	def buildConfig(self):
+		self._updateNumAxes()
+		# remove all old widgets
+		for idx in range(self._axes_config_layout.count()-1,-1,-1):
+			w = self._axes_config_layout.itemAt(idx).widget()
+			w.setParent(None)
+
+		for row_num in range(self._num_rows):
+			for col_num in range(self._num_cols):
+				axes_idx = col_num + row_num*self._num_cols
+				section = widgets.CollapsibleSection(title=f'Axes {axes_idx+1}: '
+									f'({row_num},{col_num})')
+				_add_series_btn = QtWidgets.QPushButton('Edit Plotted Series')
+				_add_link = self._createAddLink(axes_idx)
+				_add_series_btn.clicked.connect(_add_link)
+				section.addWidget(_add_series_btn)
+				self._axes_config_layout.addWidget(section)
+		self.build_axes.emit(self._num_rows, self._num_cols)
+
+	def _createAddLink(self, ax_idx):
+		def _function():
+			self._onAddLink(ax_idx)
+		return _function
+
+	def _onAddLink(self, ax_idx):
+		# this could be put inside _function above if no other functionality needed
+		self.add_series.emit(ax_idx)
+
 class Toolbar(QtWidgets.QWidget):
 	# TODO: this should be in widgets, not controls
 	def __init__(self, parent_window:QtWidgets.QMainWindow|None, action_dict, context_name=None):

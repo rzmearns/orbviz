@@ -16,7 +16,7 @@ import orbviz.visualiser.visuals.polygons as polygon_visuals
 
 logger = logging.getLogger(__name__)
 
-class GroundStation3DAsset(base_assets.AbstractAsset):
+class GroundStation3DAsset(base_assets.AbstractVispyAsset):
 	def __init__(self, name=None, v_parent=None):
 		super().__init__(name, v_parent)
 
@@ -81,7 +81,7 @@ class GroundStation3DAsset(base_assets.AbstractAsset):
 			self.data['strings'] = []
 			self._removeVisuals()
 
-	# Override AbstractAsset.updateIndex()
+	# Override AbstractVispyAsset.updateIndex()
 	def updateIndex(self, index):
 		self.setStaleFlagRecursive()
 		self.data['curr_index'] = index
@@ -161,7 +161,7 @@ class GroundStation3DAsset(base_assets.AbstractAsset):
 		self._updateMarkers()
 
 
-class GroundStation2DAsset(base_assets.AbstractAsset):
+class GroundStation2DAsset(base_assets.AbstractVispyAsset):
 	def __init__(self, name=None, v_parent=None):
 		super().__init__(name, v_parent)
 
@@ -302,7 +302,7 @@ class GroundStation2DAsset(base_assets.AbstractAsset):
 		self.data['horiz_pixel_scale'] = horizontal_size/360
 		self.data['vert_pixel_scale'] = vertical_size/180
 
-	# Override AbstractAsset.updateIndex()
+	# Override AbstractVispyAsset.updateIndex()
 	def updateIndex(self, index):
 		self.setStaleFlagRecursive()
 		self.data['curr_index'] = index

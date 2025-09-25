@@ -132,7 +132,7 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 
 		return suite_asset, sensor_asset
 
-	def getActiveAssets(self) -> list[base_assets.AbstractAsset|base_assets.AbstractCompoundAsset|base_assets.AbstractSimpleAsset]:
+	def getActiveAssets(self) -> list[base_assets.AbstractVispyAsset|base_assets.AbstractCompoundVispyAsset|base_assets.AbstractSimpleVispyAsset]:
 		active_assets = []
 		for k,v in self.assets.items():
 			if v.isActive():

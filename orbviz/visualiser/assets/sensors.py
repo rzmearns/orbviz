@@ -21,7 +21,7 @@ import orbviz.visualiser.colours as colours
 
 logger = logging.getLogger(__name__)
 
-class SensorSuite3DAsset(base_assets.AbstractCompoundAsset):
+class SensorSuite3DAsset(base_assets.AbstractCompoundVispyAsset):
 	def __init__(self, sc_id:int, sens_suite_dict:dict[str,Any], name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 		
@@ -111,7 +111,7 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundAsset):
 		for asset in self.assets.values():
 			asset.removePlotOptions()
 
-class Sensor3DAsset(base_assets.AbstractSimpleAsset):
+class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 	def __init__(self, sc_id:int, sensor_name:str, parent_suite_name:str, mesh_verts, mesh_faces,
 			  			bf_quat, colour, sens_type=None, v_parent=None, *args, **kwargs):
 		super().__init__(sensor_name, v_parent)
@@ -243,7 +243,7 @@ class Sensor3DAsset(base_assets.AbstractSimpleAsset):
 		colour = sensor_dict['colour']
 		return cls(sc_id, sensor_name, parent_suite_name, mesh_verts, mesh_faces, bf_quat, colour, sens_type='square_pyramid', v_parent=parent)
 
-class SensorSuite2DAsset(base_assets.AbstractCompoundAsset):
+class SensorSuite2DAsset(base_assets.AbstractCompoundVispyAsset):
 	def __init__(self, sc_id:int, sens_suite_dict:dict[str,Any], name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 
@@ -348,7 +348,7 @@ class SensorSuite2DAsset(base_assets.AbstractCompoundAsset):
 		for asset in self.assets.values():
 			asset.removePlotOptions()
 
-class Sensor2DAsset(base_assets.AbstractSimpleAsset):
+class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 	def __init__(self, sc_id:int, name:str|None=None, parent_suite_name:str|None=None, config:dict={}, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 		self.config = config
@@ -510,7 +510,7 @@ class Sensor2DAsset(base_assets.AbstractSimpleAsset):
 				logger.debug("marking %s for removal", opt_key)
 				opt['widget_data']['mark_for_removal'] = True
 
-class SensorSuiteImageAsset(base_assets.AbstractCompoundAsset):
+class SensorSuiteImageAsset(base_assets.AbstractCompoundVispyAsset):
 	def __init__(self, sc_id:int, sens_suite_dict:dict[str,Any], name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 
@@ -599,7 +599,7 @@ class SensorSuiteImageAsset(base_assets.AbstractCompoundAsset):
 		for asset in self.assets.values():
 			asset.removePlotOptions()
 
-class SensorImageAsset(base_assets.AbstractSimpleAsset):
+class SensorImageAsset(base_assets.AbstractSimpleVispyAsset):
 	def __init__(self, sc_id:int, name:str|None=None, parent_suite_name:str|None=None, config:dict={}, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 		self.config = config
