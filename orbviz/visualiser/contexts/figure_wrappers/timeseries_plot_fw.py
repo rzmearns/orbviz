@@ -8,9 +8,6 @@ import matplotlib.dates as mdates
 from matplotlib.figure import Figure
 import numpy as np
 
-from orbviz.model.data_models.earth_raycast_data import EarthRayCastData
-from orbviz.model.data_models.groundstation_data import GroundStationCollection
-from orbviz.model.data_models.history_data import HistoryData
 import orbviz.model.data_models.timeseries as timeseries_model
 from orbviz.visualiser.contexts.figure_wrappers.base_fw import BaseFigureWrapper
 
