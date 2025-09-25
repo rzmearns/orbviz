@@ -21,7 +21,7 @@ import orbviz.visualiser.visuals.polygons as polygon_visuals
 
 logger = logging.getLogger(__name__)
 
-class Spacecraft3DAsset(base_assets.AbstractAsset):
+class Spacecraft3DAsset(base_assets.AbstractVispyAsset):
 	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)		
 		self._setDefaultOptions()
@@ -160,7 +160,7 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 										edge_color='white',
 										size=self.opts['spacecraft_marker_size']['value'],
 										symbol='o')
-	# Use AbstractAsset.updateIndex()
+	# Use AbstractVispyAsset.updateIndex()
 
 	def recomputeRedraw(self) -> None:
 		if self.isFirstDraw():
@@ -294,7 +294,7 @@ class Spacecraft3DAsset(base_assets.AbstractAsset):
 			self.assets[f'sensor_suite_{suite_name}'].removePlotOptions()
 			del(self.opts[f'plot_sensor_suite_{suite_name}'])
 
-class Spacecraft2DAsset(base_assets.AbstractAsset):
+class Spacecraft2DAsset(base_assets.AbstractVispyAsset):
 	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 		self._setDefaultOptions()
@@ -476,7 +476,7 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 		# key = self.data['sc_config'].values()[sens_suite_id]
 		return self.assets[f'sensor_suite_{sens_suite_key}']
 
-	# Use AbstractAsset.updateIndex()
+	# Use AbstractVispyAsset.updateIndex()
 
 	def recomputeRedraw(self) -> None:
 		if self.isFirstDraw():
@@ -666,7 +666,7 @@ class Spacecraft2DAsset(base_assets.AbstractAsset):
 		out_arr[:,1] = (out_arr[:,1] + 90) * self.data['vert_pixel_scale']
 		return out_arr
 
-class SpacecraftViewsAsset(base_assets.AbstractAsset):
+class SpacecraftViewsAsset(base_assets.AbstractVispyAsset):
 	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 		self._setDefaultOptions()
@@ -783,7 +783,7 @@ class SpacecraftViewsAsset(base_assets.AbstractAsset):
 		# key = self.data['sc_config'].values()[sens_suite_id]
 		return self.assets[f'sensor_suite_{sens_suite_key}']
 
-	# Use AbstractAsset.updateIndex()
+	# Use AbstractVispyAsset.updateIndex()
 
 	def recomputeRedraw(self) -> None:
 		if self.isFirstDraw():

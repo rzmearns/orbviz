@@ -6,12 +6,15 @@ import pathlib
 from typing import Any
 
 import imageio
+import matplotlib.pyplot as plt
 
 from PyQt5 import QtCore, QtWidgets
 
 from vispy.gloo.util import _screenshot
 
 import orbviz.util.paths as orbviz_paths
+from orbviz.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
+from orbviz.visualiser.contexts.figure_wrappers.base_fw import BaseFigureWrapper
 import orbviz.visualiser.interface.console as console
 
 
@@ -75,16 +78,21 @@ class BaseContext(ABC):
 		if self.window is None:
 			raise AttributeError(f'{self} is not in a window')
 
-		# calculate viewport of just the canvas
-		geom = self.canvas_wrapper.canvas.native.geometry()
-		ratio = self.canvas_wrapper.canvas.native.devicePixelRatio()
-		geom = (geom.x(), geom.y(), geom.width(), geom.height())
-		new_pos = self.canvas_wrapper.canvas.native.mapTo(self.window, QtCore.QPoint(0, 0))
-		new_y = self.window.height() - (new_pos.y() + geom[3])
-		viewport = (new_pos.x() * ratio, new_y * ratio, geom[2] * ratio, geom[3] * ratio)
+		if isinstance(self.canvas_wrapper, BaseCanvas):
+			# calculate viewport of just the canvas
+			geom = self.canvas_wrapper.canvas.native.geometry()
+			ratio = self.canvas_wrapper.canvas.native.devicePixelRatio()
+			geom = (geom.x(), geom.y(), geom.width(), geom.height())
+			new_pos = self.canvas_wrapper.canvas.native.mapTo(self.window, QtCore.QPoint(0, 0))
+			new_y = self.window.height() - (new_pos.y() + geom[3])
+			viewport = (new_pos.x() * ratio, new_y * ratio, geom[2] * ratio, geom[3] * ratio)
 
-		im = _screenshot(viewport=viewport)
-		imageio.imsave(file, im, extension='.png')
+			im = _screenshot(viewport=viewport)
+			imageio.imsave(file, im, extension='.png')
+
+		elif isinstance(self.canvas_wrapper, BaseFigureWrapper):
+			plt.savefig(file)
+
 		console.send(f"Saved {self.config['name']} screenshot to {file}")
 
 	@abstractmethod
