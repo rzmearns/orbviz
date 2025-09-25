@@ -82,10 +82,6 @@ class History3DContext(base.BaseContext):
 		self.controls.action_dict['save-gif']['callback'] = self.setupGIFDialog
 		self.controls.action_dict['save-screenshot']['callback'] = self.setupScreenshot
 		self.sccam_state = False
-		if self.data is None:
-			logger.warning('Context History3D: %s does not have a data model.', self)
-			raise AttributeError(f'Context History3D: {self} does not have a data model.')
-		self.data['history'].data_ready.connect(self._procDataUpdated)
 
 	def _validateDataType(self) -> None:
 		if self.data is not None and self.data['history'].getType() != self.data_type:
@@ -95,7 +91,6 @@ class History3DContext(base.BaseContext):
 	def _updateControls(self, *args, **kwargs) -> None:
 		self.controls.time_slider.blockSignals(True)
 		self.controls.time_slider.setTimespan(self.data['history'].getTimespan())
-		self.controls.time_slider._curr_dt_picker.setDatetime(self.data['history'].getTimespan().start)
 		self.controls.time_slider.setValue(int(self.controls.time_slider.num_ticks/2))
 		self.controls.time_slider.blockSignals(False)
 
@@ -213,6 +208,7 @@ class History3DContext(base.BaseContext):
 
 			self.canvas_wrapper.view_box.camera.azimuth = start_azimuth - ii*azimuth_step_angle
 			self.canvas_wrapper.view_box.camera.elevation = start_elevation - ii*elevation_step_angle
+			self.canvas_wrapper.onManualCameraRotate()
 			self.controls.time_slider.setValue(ii)
 			app.process_events()
 

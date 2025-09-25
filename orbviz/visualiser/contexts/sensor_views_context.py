@@ -77,7 +77,6 @@ class SensorViewsContext(BaseContext):
 		self.layout.addWidget(content_widget)
 
 	def connectControls(self) -> None:
-		self.data['history'].data_ready.connect(self._procDataUpdated)
 		self.controls.time_slider.add_connect(self._updateDisplayedIndex)
 		self.controls.sensor_view_selectors.selected.connect(self.setViewActiveSensor)
 		self.controls.sensor_view_selectors.generate.connect(self.generateSensorFullRes)

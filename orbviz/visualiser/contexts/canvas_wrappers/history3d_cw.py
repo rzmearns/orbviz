@@ -76,9 +76,10 @@ class History3DCanvasWrapper(BaseCanvas):
 		self.assets['groundstations'] = groundstations.GroundStation3DAsset(v_parent=self.view_box.scene)
 
 		self.assets['ECI_gizmo'] = gizmo.ViewBoxGizmo(v_parent=self.view_box)
+		self.assets['ECI_gizmo'].makeActive()
 		self.setCameraZoom(5*c.R_EARTH)
 
-	def getActiveAssets(self) -> list[base_assets.AbstractAsset|base_assets.AbstractCompoundAsset|base_assets.AbstractSimpleAsset]:
+	def getActiveAssets(self) -> list[base_assets.AbstractVispyAsset|base_assets.AbstractCompoundVispyAsset|base_assets.AbstractSimpleVispyAsset]:
 		active_assets = []
 		for k,v in self.assets.items():
 			if v.isActive():
@@ -161,11 +162,16 @@ class History3DCanvasWrapper(BaseCanvas):
 			if asset.isActive():
 				asset.updateIndex(index)
 
+	def onManualCameraRotate(self) -> None:
+		for asset in self.assets.values():
+			if asset.isActive():
+				asset.onManualCameraRotate()
+
 	def recomputeRedraw(self) -> None:
 		for asset in self.assets.values():
 			# if asset_name == 'sun':
 			# 	continue
-			if asset.isActive():
+			if asset.isActive() and isinstance(asset,base_assets.AbstractVispyAsset):
 				asset.recomputeRedraw()
 
 

@@ -25,7 +25,7 @@ import orbviz.visualiser.interface.console as console
 
 logger = logging.getLogger(__name__)
 
-class Constellation(base_assets.AbstractAsset):
+class Constellation(base_assets.AbstractVispyAsset):
 	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 		self._setDefaultOptions()
@@ -83,9 +83,9 @@ class Constellation(base_assets.AbstractAsset):
 											self.data['beam_height'],
 											self.data['beam_angle_deg'])
 		self.data['strings'] = []
-		for o in args[0]:
-			if hasattr(o,'name'):
-				self.data['strings'].append(o.name)
+		for sat_orbit in sats_dict.values():
+			if hasattr(sat_orbit,'name'):
+				self.data['strings'].append(sat_orbit.name)
 			else:
 				self.data['strings'].append('')
 
@@ -104,7 +104,7 @@ class Constellation(base_assets.AbstractAsset):
 														antialias=0,
 														parent=None)
 
-	# Use AbstractAsset.updateIndex()
+	# Use AbstractVispyAsset.updateIndex()
 
 	def recomputeRedraw(self) -> None:
 		if self.isFirstDraw():
@@ -141,6 +141,7 @@ class Constellation(base_assets.AbstractAsset):
 		mo_info['strings'] = self.data['strings']
 		mo_info['objects'] = [self]*self.data['num_sats']
 		return mo_info
+
 	def mouseOver(self, index:int) -> Self:
 		self.assets['beams'].mouseOver(index)
 		return self
@@ -237,7 +238,7 @@ class Constellation(base_assets.AbstractAsset):
 		beam_height = cone_range * np.sin(np.pi/2-theta)
 		return beam_height
 	
-class InstancedConstellationBeams(base_assets.AbstractAsset):
+class InstancedConstellationBeams(base_assets.AbstractVispyAsset):
 	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 		self._setDefaultOptions()
@@ -367,7 +368,7 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 		self.visuals['beams'].attach(self.data['beams_alpha_filter'])
 
 
-	# Use AbstractAsset.updateIndex()
+	# Use AbstractVispyAsset.updateIndex()
 
 	def recomputeRedraw(self) -> None:
 		if self.isFirstDraw():
@@ -396,7 +397,6 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 			self.visuals['scircle'].set_data(pos=circles, connect=self.data['s_c_conn'])
 			self._recomputeRedrawChildren()
 			self._clearStaleFlag()
-
 
 	def mouseOver(self, index:int) -> Self:
 		self.data['s_c_conn'] = np.array([np.arange(self.data['num_generic_circle_points']-1),
@@ -480,7 +480,7 @@ class InstancedConstellationBeams(base_assets.AbstractAsset):
 
 		return circles
 
-class ConstellationBeams(base_assets.AbstractAsset):
+class ConstellationBeams(base_assets.AbstractVispyAsset):
 	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 		self._setDefaultOptions()
@@ -558,7 +558,7 @@ class ConstellationBeams(base_assets.AbstractAsset):
 			self.visuals['beams'][ii].attach(self.data['beams_alpha_filter'])
 
 
-	# Use AbstractAsset.updateIndex()
+	# Use AbstractVispyAsset.updateIndex()
 
 	def recomputeRedraw(self) -> None:
 		if self.isFirstDraw():

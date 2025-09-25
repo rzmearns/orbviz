@@ -11,7 +11,7 @@ from vispy.scene.widgets.viewbox import ViewBox
 
 logger = logging.getLogger(__name__)
 
-class AbstractSimpleAsset(ABC):
+class AbstractSimpleVispyAsset(ABC):
 
 	# name_str: str
 
@@ -164,6 +164,9 @@ class AbstractSimpleAsset(ABC):
 				except NotImplementedError:
 					continue
 
+	def onManualCameraRotate(self) -> None:
+		pass
+
 	@abstractmethod
 	def _initData(self, *args, **kwargs) -> None:
 		'''Initialise data used for drawing this and any child assets
@@ -198,6 +201,13 @@ class AbstractSimpleAsset(ABC):
 		self.data['curr_index'] = index
 		self.setStaleFlagRecursive()
 
+	def getScreenMouseOverInfo(self) -> dict[str,list]:
+		mo_info = {'screen_pos':[], 'world_pos':[], 'strings':[], 'objects':[]}
+		return mo_info
+
+	def mouseOver(self, index:int) -> None:
+		return
+
 	def _listVisuals(self) -> tuple[list, list]:
 		keys = list(self.visuals.keys())
 		values = list(self.visuals.values())
@@ -225,8 +235,7 @@ class AbstractSimpleAsset(ABC):
 			for k2,v2 in v.items():
 				print(f'\t{k2}:{v2}') 	# noqa: T201
 
-
-class AbstractCompoundAsset(ABC):
+class AbstractCompoundVispyAsset(ABC):
 	# name_str: str
 
 	@abstractmethod
@@ -404,6 +413,9 @@ class AbstractCompoundAsset(ABC):
 				except NotImplementedError:
 					continue
 
+	def onManualCameraRotate(self) -> None:
+		pass
+
 	@abstractmethod
 	def _initData(self, *args, **kwargs) -> None:
 		'''Initialise data used for drawing this and any child assets
@@ -494,10 +506,7 @@ class AbstractCompoundAsset(ABC):
 			for k2,v2 in v.items():
 				print(f'\t{k2}:{v2}') 							# noqa: T201
 
-
-
-
-class AbstractAsset(ABC):
+class AbstractVispyAsset(ABC):
 
 	# name_str: str
 
@@ -688,6 +697,9 @@ class AbstractAsset(ABC):
 				except KeyError:
 					continue
 
+	def onManualCameraRotate(self) -> None:
+		pass
+
 	@abstractmethod
 	def _initData(self, *args, **kwargs):
 		'''Initialise data used for drawing this and any child assets
@@ -726,9 +738,9 @@ class AbstractAsset(ABC):
 
 	def _recomputeRedrawChildren(self,pos:tuple[float,float,float]=(0,0,0), rotation:nptyping.NDArray=np.eye(3)) -> None:
 		for asset in self.assets.values():
-			if isinstance(asset, AbstractAsset):
+			if isinstance(asset, AbstractVispyAsset):
 				asset.recomputeRedraw()
-			elif isinstance(asset, AbstractSimpleAsset) or isinstance(asset, AbstractCompoundAsset):
+			elif isinstance(asset, AbstractSimpleVispyAsset) or isinstance(asset, AbstractCompoundVispyAsset):
 				asset.setTransform(pos=pos, rotation=rotation)
 
 	def updateIndex(self, index:int) -> None:
@@ -796,7 +808,6 @@ class AbstractAsset(ABC):
 			for k2,v2 in v.items():
 				print(f'\t{k2}:{v2}') 			# noqa: T201
 
-
 def serialiseOption(opt_dict:dict[str,Any]) -> dict[str,Any]:
 	opt_state = {}
 	opt_state['value'] = opt_dict['value']
@@ -812,7 +823,7 @@ def serialiseOption(opt_dict:dict[str,Any]) -> dict[str,Any]:
 
 	return opt_state
 
-def deSerialiseOption(opt_name:str, opt_state:dict[str, Any], asset:AbstractAsset|AbstractCompoundAsset|AbstractSimpleAsset) -> None:
+def deSerialiseOption(opt_name:str, opt_state:dict[str, Any], asset:AbstractVispyAsset|AbstractCompoundVispyAsset|AbstractSimpleVispyAsset) -> None:
 	for k,v in opt_state.items():
 		if k not in asset.opts[opt_name].keys():
 			continue
