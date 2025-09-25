@@ -49,10 +49,9 @@ dev = [
 	"ruff==0.12.4",
 	"pre-commit==4.2.0",
 	"microsoft-python-type-stubs @ git+https://github.com/microsoft/python-type-stubs.git",
-
 	]
 
-# [project.urls]
+[project.urls]
 Documentation = "https://rzmearns.github.io/orbviz/"
 Repository = "https://github.com/rzmearns/orbviz"
 Issues = "https://github.com/rzmearns/orbviz/issues"
