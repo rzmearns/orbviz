@@ -78,7 +78,7 @@ class History3DCanvasWrapper(BaseCanvas):
 		self.assets['ECI_gizmo'] = gizmo.ViewBoxGizmo(v_parent=self.view_box)
 		self.setCameraZoom(5*c.R_EARTH)
 
-	def getActiveAssets(self) -> list[base_assets.AbstractAsset|base_assets.AbstractCompoundAsset|base_assets.AbstractSimpleAsset]:
+	def getActiveAssets(self) -> list[base_assets.AbstractVispyAsset|base_assets.AbstractCompoundVispyAsset|base_assets.AbstractSimpleVispyAsset]:
 		active_assets = []
 		for k,v in self.assets.items():
 			if v.isActive():

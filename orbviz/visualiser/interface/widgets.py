@@ -340,9 +340,10 @@ class ColourPicker(QtWidgets.QWidget):
 
 
 class ValueSpinner(QtWidgets.QWidget):
-	def __init__(self, label, dflt_val, integer=True, fraction=False, parent: QtWidgets.QWidget=None) -> None:
+	def __init__(self, label, dflt_val, integer=True, fraction=False, allow_no_callbacks=False, parent: QtWidgets.QWidget=None) -> None:
 		super().__init__(parent)
 		self._callbacks = []
+		self._allow_no_callbacks = allow_no_callbacks
 		self.allow_float = not integer
 		if fraction:
 			self.allow_float = True
@@ -351,7 +352,6 @@ class ValueSpinner(QtWidgets.QWidget):
 			self.curr_val = dflt_val
 		else:
 			self.curr_val = int(dflt_val)
-
 
 		layout = QtWidgets.QHBoxLayout()
 		layout.setContentsMargins(2,1,2,1)
@@ -381,6 +381,9 @@ class ValueSpinner(QtWidgets.QWidget):
 	def add_connect(self, callback):
 		self._callbacks.append(callback)
 
+	def getValue(self) -> int|float:
+		return self.curr_val
+
 	def _run_callbacks(self):
 
 		if self.allow_float:
@@ -390,7 +393,7 @@ class ValueSpinner(QtWidgets.QWidget):
 		if len(self._callbacks) > 0:
 			for callback in self._callbacks:
 				callback(self.curr_val)
-		else:
+		elif not self._allow_no_callbacks:
 			logger.warning("No Value Spinner callbacks are set")
 
 	def prepSerialisation(self) -> dict[str, Any]:
@@ -710,7 +713,7 @@ class FilePicker(QtWidgets.QWidget):
 										QLabel {
 												color:#FF0000;
 												}
-									''');
+									''')
 
 		hlayout2.addWidget(self._file_text_box)
 		hlayout2.addSpacing(5)
@@ -1948,10 +1951,14 @@ class MultiSelector(QtWidgets.QWidget):
 			_right_label.setFont(_label_font)
 			right_vlayout.addWidget(_right_label)
 
+		self._start_left_list = left_list
+		self._start_right_list = right_list
 		self.left_list = QtWidgets.QListWidget()
 		self.left_list.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
 		self.right_list = QtWidgets.QListWidget()
 		self.right_list.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+		self._moved_right = []
+		self._moved_left = []
 
 		self.move_right = QtWidgets.QPushButton()
 		self.move_right.setIcon(QtGui.QIcon('resources/icons/arrow.png'))
@@ -1976,10 +1983,10 @@ class MultiSelector(QtWidgets.QWidget):
 		self.setLayout(pane_layout)
 		left_list.sort()
 		right_list.sort()
-		for el in left_list:
+		for el in self._start_left_list:
 			self.left_list.addItem(QtWidgets.QListWidgetItem(el))
 
-		for el in right_list:
+		for el in self._start_right_list:
 			self.right_list.addItem(QtWidgets.QListWidgetItem(el))
 
 	def _transferToRight(self):
@@ -1989,12 +1996,22 @@ class MultiSelector(QtWidgets.QWidget):
 			self.left_list.takeItem(row_idx)
 			self.right_list.addItem(item)
 
+			key = item.text()
+			if key in self._moved_left:
+				self._moved_left.remove(key)
+			self._moved_right.append(key)
+
 	def _transferToLeft(self):
 		transfer_list = self.right_list.selectedItems()
 		for item in transfer_list:
 			row_idx = self.right_list.row(item)
 			self.right_list.takeItem(row_idx)
 			self.left_list.addItem(item)
+
+			key = item.text()
+			if key in self._moved_right:
+				self._moved_right.remove(key)
+			self._moved_left.append(key)
 
 	def getRightEntries(self):
 		vals = []
@@ -2009,6 +2026,20 @@ class MultiSelector(QtWidgets.QWidget):
 			item = self.left_list.item(row_num)
 			vals.append(item.text())
 		return vals
+
+	def getMovedToRight(self) -> list:
+		for el in self._start_right_list:
+			if el in self._moved_right:
+				self._moved_right.remove(el)
+
+		return self._moved_right
+
+	def getMovedToLeft(self) -> list:
+		for el in self._start_left_list:
+			if el in self._moved_left:
+				self._moved_left.remove(el)
+
+		return self._moved_left
 
 def embedWidgetsInHBoxLayout(w_list, margin=5):
 	"""Embed a list of widgets into a layout to give it a frame"""

@@ -83,10 +83,6 @@ class History2DContext(base.BaseContext):
 		self.controls.action_dict['center-earth']['callback'] = self._centerCameraEarth
 		self.controls.action_dict['save-gif']['callback'] = self.setupGIFDialog
 		self.controls.action_dict['save-screenshot']['callback'] = self.setupScreenshot
-		if self.data['history'] is None:
-			logger.warning('Context History3D: %s does not have a data model.', self)
-			raise AttributeError(f'Context History3D: {self} does not have a data model.')
-		self.data['history'].data_ready.connect(self._procDataUpdated)
 		self.cw_container.left.connect(self.canvas_wrapper.stopMouseOverTimer)
 
 	def _validateDataType(self) -> None:

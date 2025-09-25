@@ -1,7 +1,10 @@
 from abc import abstractmethod
 import logging
 
+from collections.abc import Callable
 from typing import Any
+
+import numpy as np
 
 from PyQt5 import QtCore
 
@@ -51,6 +54,19 @@ class BaseDataModel(QtCore.QObject):
 	def updateIndex(self, index:int) -> None:
 		self.curr_index = index
 		self.index_updated.emit()
+
+	def attrFetchFunctionGenerator(self, attr_str, sat_id=0) -> Callable:
+		def _function() -> np.ndarray:
+			obj = self
+			for key in attr_str.split('.'):
+				obj = getattr(obj, key)
+				if isinstance(obj, dict):
+					if sat_id == 0:
+						obj = list(obj.values())[sat_id]
+					else:
+						obj = obj[sat_id]
+			return obj
+		return _function
 
 	@abstractmethod
 	def prepSerialisation(self) -> dict[str, Any]:

@@ -61,10 +61,6 @@ class HistoryConfigurationContext(BaseContext):
 	def connectControls(self) -> None:
 		logger.info("Connecting controls of %s", self.config['name'])
 		self.controls.submit_button.clicked.connect(self._configureData)
-		if self.data is None:
-			logger.warning('Context HistoryConfiguration: %s does not have a data model.', self)
-			raise AttributeError(f'Context HistoryConfiguration: {self} does not have a data model.')
-		self.data['history'].data_ready.connect(self._procDataUpdated)
 		self.data['history'].data_err.connect(self._resetControls)
 		self.controls.time_slider.add_connect(self._updateDisplayedIndex)
 
