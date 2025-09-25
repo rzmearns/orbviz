@@ -130,14 +130,15 @@ class HistoryConfigurationContext(BaseContext):
 			raise
 
 	def _updateControls(self, *args, **kwargs) -> None:
-		self.controls.time_slider.blockSignals(True)
-		self.controls.time_slider.setTimespan(self.data['history'].getTimespan())
 		self.controls.time_period_config.period_start.setDatetime(self.data['history'].getConfigValue('timespan_period_start'))
 		self.controls.time_period_config.period_end.setDatetime(self.data['history'].getConfigValue('timespan_period_end'))
-		self.controls.time_slider._curr_dt_picker.setDatetime(self.data['history'].getTimespan().start)
-		self.controls.submit_button.setEnabled(True)
+		# configure timeslider
+		self.controls.time_slider.blockSignals(True)
+		self.controls.time_slider.setTimespan(self.data['history'].getTimespan())
 		self.controls.time_slider.setValue(int(self.controls.time_slider.num_ticks/2))
 		self.controls.time_slider.blockSignals(False)
+
+		self.controls.submit_button.setEnabled(True)
 
 	def _resetControls(self) -> None:
 		self.controls.submit_button.setEnabled(True)

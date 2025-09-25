@@ -79,6 +79,12 @@ class TimeSlider(QtWidgets.QWidget):
 
 	def setValue(self, value):
 		self.slider.setValue(value)
+		if self._timespan is not None:
+			self._curr_dt_picker.setDatetime(self._timespan[self.slider.value()])
+		elif self.tick_delta is not None:
+			self._curr_dt_picker.setDatetime(self.start_dt + (self.slider.value()*self.tick_delta))
+		else:
+			return
 
 	def setEnd(self):
 		self.slider.setValue(self.slider.maximum())
