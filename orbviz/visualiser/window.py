@@ -11,7 +11,7 @@ from orbviz.visualiser.interface import dialogs
 import orbviz.visualiser.interface.console as console
 import orbviz.visualiser.interface.controls as controls
 import orbviz.visualiser.interface.widgets as orbviz_widgets
-from orbviz.visualiser.shells import historical_shell, planning_shell
+from orbviz.visualiser.shells import historical_shell
 
 logger = logging.getLogger(__name__)
 
@@ -49,8 +49,8 @@ class MainWindow(QtWidgets.QMainWindow):
 		# Build shells
 		self.shell_dict['history'] = historical_shell.HistoricalShell(self, self.toolbars, self.menubars, global_earth_rdm=global_earth_raycast_data)
 		self.shell_tab_stack.addTab(self.shell_dict['history'].widget,'Historical')
-		self.shell_dict['planning'] = planning_shell.PlanningShell(self, self.toolbars, self.menubars, global_earth_rdm=global_earth_raycast_data)
-		self.shell_tab_stack.addTab(self.shell_dict['planning'].widget,'Planning')
+		# self.shell_dict['planning'] = planning_shell.PlanningShell(self, self.toolbars, self.menubars, global_earth_rdm=global_earth_raycast_data)
+		# self.shell_tab_stack.addTab(self.shell_dict['planning'].widget,'Planning')
 
 
 		# Prep console
