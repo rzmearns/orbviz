@@ -17,7 +17,7 @@ import orbviz.visualiser.colours as colours
 
 logger = logging.getLogger(__name__)
 
-class Moon3DAsset(base_assets.AbstractAsset):
+class Moon3DAsset(base_assets.AbstractVispyAsset):
 	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
 
@@ -49,7 +49,7 @@ class Moon3DAsset(base_assets.AbstractAsset):
 												color=colours.normaliseColour(self.opts['moon_sphere_colour']['value']),
 												parent=None)
 
-	# Override AbstractAsset.updateIndex()
+	# Override AbstractVispyAsset.updateIndex()
 	def updateIndex(self, index:int) -> None:
 		self.setStaleFlagRecursive()
 		self.data['curr_index'] = index
@@ -131,7 +131,7 @@ class Moon3DAsset(base_assets.AbstractAsset):
 		self.opts['plot_moon']['value'] = state
 		self.visuals['moon'].visible = self.opts['plot_moon']['value']
 
-class Moon2DAsset(base_assets.AbstractAsset):
+class Moon2DAsset(base_assets.AbstractVispyAsset):
 	def __init__(self, name=None, v_parent=None):
 		super().__init__(name, v_parent)
 
@@ -195,7 +195,7 @@ class Moon2DAsset(base_assets.AbstractAsset):
 		self.data['horiz_pixel_scale'] = horizontal_size/360
 		self.data['vert_pixel_scale'] = vertical_size/180
 
-	# Override AbstractAsset.updateIndex()
+	# Override AbstractVispyAsset.updateIndex()
 	def updateIndex(self, index):
 		self.setStaleFlagRecursive()
 		self.data['curr_index'] = index

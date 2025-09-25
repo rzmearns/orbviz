@@ -61,10 +61,6 @@ class HistoryConfigurationContext(BaseContext):
 	def connectControls(self) -> None:
 		logger.info("Connecting controls of %s", self.config['name'])
 		self.controls.submit_button.clicked.connect(self._configureData)
-		if self.data is None:
-			logger.warning('Context HistoryConfiguration: %s does not have a data model.', self)
-			raise AttributeError(f'Context HistoryConfiguration: {self} does not have a data model.')
-		self.data['history'].data_ready.connect(self._procDataUpdated)
 		self.data['history'].data_err.connect(self._resetControls)
 		self.controls.time_slider.add_connect(self._updateDisplayedIndex)
 
@@ -134,14 +130,15 @@ class HistoryConfigurationContext(BaseContext):
 			raise
 
 	def _updateControls(self, *args, **kwargs) -> None:
-		self.controls.time_slider.blockSignals(True)
-		self.controls.time_slider.setTimespan(self.data['history'].getTimespan())
 		self.controls.time_period_config.period_start.setDatetime(self.data['history'].getConfigValue('timespan_period_start'))
 		self.controls.time_period_config.period_end.setDatetime(self.data['history'].getConfigValue('timespan_period_end'))
-		self.controls.time_slider._curr_dt_picker.setDatetime(self.data['history'].getTimespan().start)
-		self.controls.submit_button.setEnabled(True)
+		# configure timeslider
+		self.controls.time_slider.blockSignals(True)
+		self.controls.time_slider.setTimespan(self.data['history'].getTimespan())
 		self.controls.time_slider.setValue(int(self.controls.time_slider.num_ticks/2))
 		self.controls.time_slider.blockSignals(False)
+
+		self.controls.submit_button.setEnabled(True)
 
 	def _resetControls(self) -> None:
 		self.controls.submit_button.setEnabled(True)

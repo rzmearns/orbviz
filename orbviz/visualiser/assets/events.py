@@ -12,7 +12,7 @@ import orbviz.visualiser.colours as colours
 
 logger = logging.getLogger(__name__)
 
-class Events3DAsset(base_assets.AbstractAsset):
+class Events3DAsset(base_assets.AbstractVispyAsset):
 	def __init__(self, name=None, v_parent=None):
 		super().__init__(name, v_parent)
 
@@ -57,7 +57,7 @@ class Events3DAsset(base_assets.AbstractAsset):
 		self.data['events_src'] = args[0]
 		self.data['coords'] = self.data['events_src'].eci_pos
 
-	# Override AbstractAsset.updateIndex()
+	# Override AbstractVispyAsset.updateIndex()
 	def updateIndex(self, index):
 		self.setStaleFlagRecursive()
 		self.data['curr_index'] = index
@@ -155,7 +155,7 @@ class Events3DAsset(base_assets.AbstractAsset):
 		self._updateMarkers()
 
 
-class Events2DAsset(base_assets.AbstractAsset):
+class Events2DAsset(base_assets.AbstractVispyAsset):
 	def __init__(self, name=None, v_parent=None):
 		super().__init__(name, v_parent)
 
@@ -209,7 +209,7 @@ class Events2DAsset(base_assets.AbstractAsset):
 		self.data['horiz_pixel_scale'] = horizontal_size/360
 		self.data['vert_pixel_scale'] = vertical_size/180
 
-	# Override AbstractAsset.updateIndex()
+	# Override AbstractVispyAsset.updateIndex()
 	def updateIndex(self, index):
 		self.setStaleFlagRecursive()
 		self.data['curr_index'] = index
