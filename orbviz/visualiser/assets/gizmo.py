@@ -13,7 +13,7 @@ import orbviz.visualiser.assets.base_assets as base_assets
 import orbviz.visualiser.colours as colours
 
 
-class BodyGizmo(base_assets.AbstractSimpleAsset):
+class BodyGizmo(base_assets.AbstractSimpleVispyAsset):
 	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None, scale:int=1, width:int=1):
 		super().__init__(name, v_parent)
 						
@@ -144,7 +144,7 @@ class BodyGizmo(base_assets.AbstractSimpleAsset):
 		self._setStaleFlag()
 		self.setTransform(pos=pos, rotation=unscaled_rotation)
 
-class ViewBoxGizmo(base_assets.AbstractSimpleAsset):
+class ViewBoxGizmo(base_assets.AbstractSimpleVispyAsset):
 	def __init__(self, name:str|None=None, v_parent:ViewBox|None=None,
 						viewbox_location:tuple[float,float]=(0,0)):
 		super().__init__(name, v_parent)
