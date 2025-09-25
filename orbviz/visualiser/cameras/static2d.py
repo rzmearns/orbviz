@@ -7,7 +7,8 @@ class Static2D(PanZoomCamera):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-    
+        self.name = 'Static2D'
+
     def zoom(self, factor, center=None):
         """
         This overwrites the behavior of the parent class
