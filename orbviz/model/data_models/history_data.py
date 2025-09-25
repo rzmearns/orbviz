@@ -11,7 +11,6 @@ import spherapy.orbit as orbit
 import spherapy.timespan as timespan
 import spherapy.updater as updater
 
-<<<<<<< HEAD:orbviz/model/data_models/history_data.py
 import orbviz
 from orbviz.model.data_models import constellation_data, data_types, event_data, groundstation_data
 from orbviz.model.data_models.base_models import BaseDataModel
@@ -19,15 +18,6 @@ import orbviz.util.constants as orbviz_constants
 import orbviz.util.conversion as orbviz_conversions
 import orbviz.util.threading as threading
 import orbviz.visualiser.interface.console as console
-=======
-import satplot
-from satplot.model.data_models import constellation_data, data_types, event_data, groundstation_data
-from satplot.model.data_models.base_models import BaseDataModel
-import satplot.util.constants as satplot_constants
-import satplot.util.conversion as satplot_conversions
-import satplot.util.threading as threading
-import satplot.visualiser.interface.console as console
->>>>>>> 70e7c13 (removed fake timeseries data; adding timeseries created from history data ndarray attributes):satplot/model/data_models/history_data.py
 
 logger = logging.getLogger(__name__)
 

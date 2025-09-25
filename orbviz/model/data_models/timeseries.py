@@ -5,7 +5,7 @@ from collections.abc import Callable
 
 import numpy as np
 
-from satplot.model.data_models.base_models import BaseDataModel
+from orbviz.model.data_models.base_models import BaseDataModel
 
 logger = logging.getLogger(__name__)
 
