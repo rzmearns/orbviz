@@ -164,6 +164,9 @@ class AbstractSimpleVispyAsset(ABC):
 				except NotImplementedError:
 					continue
 
+	def onManualCameraRotate(self) -> None:
+		pass
+
 	@abstractmethod
 	def _initData(self, *args, **kwargs) -> None:
 		'''Initialise data used for drawing this and any child assets
@@ -197,6 +200,13 @@ class AbstractSimpleVispyAsset(ABC):
 			self.is_stale = True'''
 		self.data['curr_index'] = index
 		self.setStaleFlagRecursive()
+
+	def getScreenMouseOverInfo(self) -> dict[str,list]:
+		mo_info = {'screen_pos':[], 'world_pos':[], 'strings':[], 'objects':[]}
+		return mo_info
+
+	def mouseOver(self, index:int) -> None:
+		return
 
 	def _listVisuals(self) -> tuple[list, list]:
 		keys = list(self.visuals.keys())
@@ -402,6 +412,9 @@ class AbstractCompoundVispyAsset(ABC):
 					opt['callback'](opt['value'])
 				except NotImplementedError:
 					continue
+
+	def onManualCameraRotate(self) -> None:
+		pass
 
 	@abstractmethod
 	def _initData(self, *args, **kwargs) -> None:
@@ -683,6 +696,9 @@ class AbstractVispyAsset(ABC):
 					continue
 				except KeyError:
 					continue
+
+	def onManualCameraRotate(self) -> None:
+		pass
 
 	@abstractmethod
 	def _initData(self, *args, **kwargs):
