@@ -3,13 +3,15 @@ import sys
 
 from PyQt5 import QtWidgets
 
-from orbviz.model.data_models import earth_raycast_data, history_data
+from orbviz.model.data_models import earth_raycast_data, history_data, timeseries
 from orbviz.visualiser.contexts import (
 	history2d_context,
 	history3d_context,
 	history_configuration_context,
 	sensor_views_context,
+	timeseries_plot_context,
 )
+import orbviz.visualiser.interface.controls as console
 import orbviz.visualiser.interface.controls as controls
 from orbviz.visualiser.shells import base_shell
 
@@ -25,6 +27,7 @@ class HistoricalShell(base_shell.BaseShell):
 		# Create empty data models
 		self.data['history'] = history_data.HistoryData()
 		self.data['history'].groundstationCollection = self.data['groundstations']
+		self._generic_timeseries_created = False
 		if global_earth_rdm is None:
 			self.data['earth_rdm'] = earth_raycast_data.EarthRayCastData()
 		else:
@@ -53,6 +56,10 @@ class HistoricalShell(base_shell.BaseShell):
 																							self.data['history'],
 																							self.data['groundstations'],
 																							self.data['earth_rdm']))
+		self._addContext('timeseries-history', timeseries_plot_context.TimeSeriesContext('timeseries-history',
+																							self.window,
+																							self.data['history'],
+																							self.timeseries_data))
 
 		# check toolbar/menubar indices are the same
 		for ii, key in enumerate(self.toolbars.keys()):
@@ -67,12 +74,24 @@ class HistoricalShell(base_shell.BaseShell):
 		self._connectGenericTabSignals()
 
 		# shell specific connections
-		self.data['history'].data_ready.connect(self._onDataReadySwapTabs)
+		self.data['history'].data_ready.connect(self._onDataReady)
 
 		# build layout
 		self._buildLayout()
 
 		self.updateActiveContext(self.context_tab_stack.currentIndex(), 1)
 
-	def _onDataReadySwapTabs(self) -> None:
+	def _onDataReady(self) -> None:
+		if not self._generic_timeseries_created:
+			self._createGenericTS()
+		for context in self.contexts_dict.values():
+			context._procDataUpdated()
+		# swap context tab to 3D
 		self.context_tab_stack.setCurrentIndex(1)
+
+	def _createGenericTS(self) -> None:
+		console.send('Building Timeseries from History Data Model')
+		for key in ['sun', 'moon','orbits.pos', 'orbits.pos_ecef','orbits.vel','orbits.vel_ecef','orbits.lat','orbits.lon','orbits.alt','orbits.eclipse']:
+			for ts_key, ts in timeseries.createTimeSeriesFromDataModel(self.data['history'], key).items():
+				self.timeseries_data[ts_key] = ts
+		self._generic_timeseries_created = True
