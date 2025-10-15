@@ -173,6 +173,10 @@ class Spacecraft3DAsset(base_assets.AbstractVispyAsset):
 				# set gizmo and sensor orientations
 				rot_mat = self.data['history_src'].getSCAttitude(self.data['sc_config'].id).getAttitudeMatrix(self.data['curr_index'])
 				quat = self.data['history_src'].getSCAttitude(self.data['sc_config'].id).getAttitudeQuat(self.data['curr_index'])
+				if self.data['history_src'].getSCAttitude(self.data['sc_config'].id).isAttitudeValid(self.data['curr_index']):
+					self.clearNaNFlagRecursive()
+				else:
+					self.setNaNFlagRecursive()
 				# recomputeRedraw child assets
 				self.data['curr_quat'] = quat
 				self._recomputeRedrawChildren(pos=self.data['curr_pos'].reshape(1,3), rotation=rot_mat)
