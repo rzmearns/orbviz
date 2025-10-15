@@ -426,7 +426,7 @@ class HistoricalAttitude:
 			if self.isAttitudeValid(idx):
 				rot_mat = Rotation.from_quat(self._attitude_quats[idx,:]).as_matrix()
 			else:
-				rot_mat = np.eye(3)
+				rot_mat = np.full((3,3),np.nan)
 			self._cached_sc_idx[cache_key] = True
 			self._attitude_matrix_cache[cache_key,:,:] = rot_mat
 			cast("np.ndarray[tuple[int,int], np.dtype[np.float64]]",rot_mat)
@@ -443,7 +443,12 @@ class HistoricalAttitude:
 		if self._cached_sens_idx[sens_key][cache_key]:
 			return self._sens_attitude_matrix_cache[sens_key][cache_key,:,:]
 		else:
-			rot_mat = Rotation.from_quat(self._sens_attitude_quats[sens_key][idx,:]).as_matrix()
+			if np.any(np.isnan(self._sens_attitude_quats[sens_key][idx,:])):
+				rot_mat = np.full((3,3),np.nan)
+			else:
+				att_quat = self._sens_attitude_quats[sens_key][idx,:]
+				rot_mat = Rotation.from_quat(att_quat).as_matrix()
+
 			self._cached_sens_idx[sens_key][idx] = True
 			self._sens_attitude_matrix_cache[sens_key][cache_key,:,:] = rot_mat
 			return rot_mat
