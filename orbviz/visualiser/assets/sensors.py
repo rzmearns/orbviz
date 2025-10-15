@@ -75,8 +75,10 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundVispyAsset):
 				logger.warning("Both rotation and quaternion passed to sensor suite: %s, don't know which one to use", self.data['name'])
 				raise ValueError("Both rotation and quaternion passed to sensor suite: %s, don't know which one to use", self.data['name'])
 
-			for asset in self.assets.values():
-				asset.setTransform(pos=pos, rotation=rotation, quat=quat)
+			self.applyNaNVisualState()
+			if not self.isNaN():
+				for asset in self.assets.values():
+					asset.setTransform(pos=pos, rotation=rotation, quat=quat)
 			self._clearStaleFlag()
 
 	def _setDefaultOptions(self) -> None:
@@ -99,6 +101,17 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundVispyAsset):
 			self.opts[f'plot_{sens_key}']['value'] = state
 			self.assets[f'{sens_key}'].setSensorVisibility(state)
 		return _visibilityCallback
+
+	def applyNaNVisualState(self) -> None:
+		if self.isNaN():
+			self.setSuiteVisibility(False)
+		else:
+			self.setSuiteVisibility(True)
+
+	def restoreVisualState(self) -> None:
+		if self.data['nan_visual_state']:
+			self.data['nan_visual_state'] = False
+			self.restoreGizmoColours()
 
 	def setSuiteVisibility(self, state:bool) -> None:
 		self.setVisibilityRecursive(state)
