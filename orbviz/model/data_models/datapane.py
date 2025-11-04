@@ -78,7 +78,11 @@ class DataPaneModel(QtCore.QAbstractTableModel):
 					display_precision = self._items[row]['precision']
 				else:
 					display_precision = 2
-				return_val = self._formatReturnVal(return_val, display_precision)
+				try:
+					return_val = self._formatReturnVal(return_val, display_precision)
+				except TypeError as e:
+					return_val = 'ERR'
+					logger.error('Error when trying to format value for %s:%s',self._items[row]['parameter'],e.__repr__())  # noqa: TRY400
 
 			return f'{return_val}'
 
