@@ -201,8 +201,14 @@ class HistoryData(BaseDataModel):
 					return
 			else:
 				logger.debug('\t%s:None', thread_name)
+		# self.curr_index = 0
 		self.data_ready.emit()
 
+	def _resetCurrIndex(self) -> None:
+		# ensure self.curr_index is both within the bounds of the new timespan, and is not None when
+		# calculating a new timespan
+		logger.info('Setting primary orbit index to 0')
+		self.curr_index = 0
 
 	def _propagatePrimaryOrbits(self, timespan:timespan.TimeSpan,
 										sat_ids:list[int],
@@ -266,6 +272,7 @@ class HistoryData(BaseDataModel):
 
 	def _storeOrbitData(self, orbits:dict[int,orbit.Orbit]) -> None:
 		self.orbits = orbits
+		self._resetCurrIndex()
 		self.sun = list(orbits.values())[0].sun_pos
 		self.moon = list(orbits.values())[0].moon_pos
 
