@@ -201,7 +201,6 @@ class HistoryData(BaseDataModel):
 					return
 			else:
 				logger.debug('\t%s:None', thread_name)
-		# self.curr_index = 0
 		self.data_ready.emit()
 
 	def _resetCurrIndex(self) -> None:
