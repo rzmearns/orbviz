@@ -11,7 +11,7 @@ from orbviz.visualiser.contexts import (
 	sensor_views_context,
 	timeseries_plot_context,
 )
-import orbviz.visualiser.interface.controls as console
+import orbviz.visualiser.interface.console as console
 import orbviz.visualiser.interface.controls as controls
 from orbviz.visualiser.shells import base_shell
 
