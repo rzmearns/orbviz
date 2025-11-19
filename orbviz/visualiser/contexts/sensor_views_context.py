@@ -1,5 +1,4 @@
 import logging
-import pathlib
 
 from typing import Any
 
@@ -14,6 +13,7 @@ import orbviz.model.data_models.data_types as data_types
 from orbviz.model.data_models.earth_raycast_data import EarthRayCastData
 from orbviz.model.data_models.groundstation_data import GroundStationCollection
 from orbviz.model.data_models.history_data import HistoryData
+import orbviz.model.utility_types.gif_datatypes as gif_datatypes
 from orbviz.visualiser.contexts.base_context import BaseContext, BaseControls
 from orbviz.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 import orbviz.visualiser.contexts.canvas_wrappers.sensor_views_cw as sensor_views_cw
@@ -140,21 +140,16 @@ class SensorViewsContext(BaseContext):
 	def saveState(self) -> None:
 		pass
 		
-	def saveGif(self, file:pathlib.Path, loop=True, camera_adjustment_data=None, start_index=0, end_index=-1):
+	def saveGif(self, gif_config:gif_datatypes.GIFConfig):
 		# TODO: need to lockout controls
-		console.send('Starting GIF saving, please do not touch the controls.')
-		max_num_steps = self.controls.time_slider.num_ticks
-		start_idx = max(0, min(start_index, max_num_steps))
-		if end_index == -1:
-			end_index = max_num_steps
-		end_idx = max(start_idx, min(end_index, max_num_steps))
 
-		if loop:
+		console.send('Starting GIF saving, please do not touch the controls.')
+		if gif_config.loop:
 			num_loops = 0
 		else:
 			num_loops = 1
 
-		writer = imageio.get_writer(file, loop=num_loops)
+		writer = imageio.get_writer(gif_config.file_path, loop=num_loops)
 
 		# calculate viewport of just the canvas
 		geom = self.canvas_wrapper.canvas.native.geometry()
@@ -164,29 +159,31 @@ class SensorViewsContext(BaseContext):
 		new_y = self.window.height() - (new_pos.y() + geom[3])
 		viewport = (new_pos.x() * ratio, new_y * ratio, geom[2] * ratio, geom[3] * ratio)
 
-		for ii in range(start_idx, end_idx):
-			self.controls.time_slider.setValue(ii)
+		for ii in range(gif_config.num_steps):
+			curr_timespan_idx = gif_config.start_idx + ii
+			self.controls.time_slider.setValue(curr_timespan_idx)
 			app.process_events()
 
 			im = _screenshot(viewport=viewport)
 			writer.append_data(im)
 			# use this to print to console on last iteration, otherwise thread doesn't get serviced until after writer closes
-			if ii==end_idx-1:
+			if ii==gif_config.num_steps-2:
 				console.send("Writing file. Please wait...")
 				app.process_events()
 
 		writer.close()
-		self.controls.time_slider.setValue(start_idx)
-		console.send(f"Saved {self.config['name']} GIF to {file}")
+		self.controls.time_slider.setValue(gif_config.start_idx)
+		del(self._gif_dialog)
+		console.send(f"Saved {self.config['name']} GIF to {gif_config.file_path}")
 
 	def setupGIFDialog(self):
-		dflt_camera_setup = {}
-		timespan_max_range = self.controls.time_slider.num_ticks
-		orbviz_dialogs.GIFDialog(self.window,
-							self,
-							self.canvas_wrapper.view_boxes[0].camera.name,
-							dflt_camera_setup,
-							timespan_max_range)
+		# add check that timespan is not None
+
+		gif_config = gif_datatypes.GIFConfig(self.data['history'].timespan,
+											self.canvas_wrapper.view_boxes[0].camera.name,
+											cam_config=None)
+
+		self._gif_dialog = orbviz_dialogs.GIFDialog(self.window, self, gif_config)
 
 
 class Controls(BaseControls):

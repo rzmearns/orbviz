@@ -12,6 +12,7 @@ from PyQt5 import QtCore, QtWidgets
 
 from vispy.gloo.util import _screenshot
 
+import orbviz.model.utility_types.gif_datatypes as gif_datatypes
 import orbviz.util.paths as orbviz_paths
 from orbviz.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 from orbviz.visualiser.contexts.figure_wrappers.base_fw import BaseFigureWrapper
@@ -96,7 +97,7 @@ class BaseContext(ABC):
 		console.send(f"Saved {self.config['name']} screenshot to {file}")
 
 	@abstractmethod
-	def saveGif(self, file:pathlib.Path, loop=True, *args, **kwargs):
+	def saveGif(self, config:gif_datatypes.GIFConfig):
 		raise NotImplementedError
 
 	@abstractmethod

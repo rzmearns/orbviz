@@ -1,5 +1,4 @@
 import logging
-import pathlib
 
 from typing import Any
 
@@ -12,6 +11,7 @@ import vispy.app as app
 
 from orbviz.model.data_models.history_data import HistoryData
 from orbviz.model.data_models.timeseries import TimeSeries
+import orbviz.model.utility_types.gif_datatypes as gif_datatypes
 from orbviz.visualiser.contexts.base_context import BaseContext, BaseControls
 from orbviz.visualiser.contexts.figure_wrappers import timeseries_plot_fw
 from orbviz.visualiser.contexts.figure_wrappers.base_fw import BaseFigureWrapper
@@ -136,24 +136,20 @@ class TimeSeriesContext(BaseContext):
 			if handle is not None:
 				self.canvas_wrapper.removeTimeSeries(ax_idx,handle)
 
-	def saveGif(self, file:pathlib.Path, loop=True, camera_adjustment_data=None, start_index=0, end_index=-1):
+	def saveGif(self, gif_config):
 		# TODO: need to lockout controls
 		console.send('Starting GIF saving, please do not touch the controls.')
-		max_num_steps = self.controls.time_slider.num_ticks
-		start_idx = max(0, min(start_index, max_num_steps))
-		if end_index == -1:
-			end_index = max_num_steps
-		end_idx = max(start_idx, min(end_index, max_num_steps))
 
-		if loop:
+		if gif_config.loop:
 			num_loops = 0
 		else:
 			num_loops = 1
 
-		writer = imageio.get_writer(file, loop=num_loops)
+		writer = imageio.get_writer(gif_config.file_path, loop=num_loops)
 
-		for ii in range(start_idx, end_idx):
-			self.controls.time_slider.setValue(ii)
+		for ii in range(gif_config.num_steps):
+			curr_timespan_idx = gif_config.start_idx + ii
+			self.controls.time_slider.setValue(curr_timespan_idx)
 			app.process_events()
 			self.canvas_wrapper.figure.canvas.draw()
 
@@ -161,23 +157,24 @@ class TimeSeriesContext(BaseContext):
 			im = im.reshape(self.canvas_wrapper.figure.canvas.get_width_height()[::-1] + (3,))
 			writer.append_data(im)
 			# use this to print to console on last iteration, otherwise thread doesn't get serviced until after writer closes
-			if ii==end_idx-1:
+			if ii==gif_config.num_steps-2:
 				console.send("Writing file. Please wait...")
 				app.process_events()
 				self.canvas_wrapper.figure.canvas.draw()
 
 		writer.close()
-		self.controls.time_slider.setValue(start_idx)
-		console.send(f"Saved {self.config['name']} GIF to {file}")
+		self.controls.time_slider.setValue(gif_config.start_idx)
+		del(self._gif_dialog)
+		console.send(f"Saved {self.config['name']} GIF to {gif_config.file_path}")
 
 	def setupGIFDialog(self):
-		dflt_camera_setup = {}
-		timespan_max_range = self.controls.time_slider.num_ticks
-		dialogs.GIFDialog(self.window,
-							self,
-							'matplotlib',
-							dflt_camera_setup,
-							timespan_max_range)
+		# add check that timespan is not None
+
+		gif_config = gif_datatypes.GIFConfig(self.data['history'].timespan,
+											'matplotlib',
+											cam_config=None)
+
+		self._gif_dialog = dialogs.GIFDialog(self.window, self, gif_config)
 
 class Controls(BaseControls):
 	def __init__(self, parent_context:BaseContext, canvas_wrapper: BaseFigureWrapper|None) -> None:

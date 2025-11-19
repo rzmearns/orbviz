@@ -1,5 +1,4 @@
 import logging
-import pathlib
 
 from typing import Any
 
@@ -13,6 +12,7 @@ from vispy.gloo.util import _screenshot
 import orbviz.model.data_models.data_types as data_types
 from orbviz.model.data_models.groundstation_data import GroundStationCollection
 from orbviz.model.data_models.history_data import HistoryData
+import orbviz.model.utility_types.gif_datatypes as gif_datatypes
 import orbviz.visualiser.contexts.base_context as base
 from orbviz.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 import orbviz.visualiser.contexts.canvas_wrappers.history3d_cw as history3d_cw
@@ -168,33 +168,16 @@ class History3DContext(base.BaseContext):
 
 
 
-	def saveGif(self, file:pathlib.Path, loop=True, camera_adjustment_data={'az_start':0,
-																			'el_start':0,
-																			'az_range':0,
-																			'el_range':0},
-																			start_index=0, end_index=-1):
+	def saveGif(self, gif_config:gif_datatypes.GIFConfig):
 		# TODO: need to lockout controls
+
 		console.send('Starting GIF saving, please do not touch the controls.')
-		max_num_steps = self.controls.time_slider.num_ticks
-		start_idx = max(0, min(start_index, max_num_steps))
-		if end_index == -1:
-			end_index = max_num_steps
-		end_idx = max(start_idx, min(end_index, max_num_steps))
-
-		num_steps = end_idx - start_idx
-
-		start_azimuth = camera_adjustment_data['az_start']
-		start_elevation = camera_adjustment_data['el_start']
-
-		azimuth_step_angle = camera_adjustment_data['az_range']/num_steps
-		elevation_step_angle = camera_adjustment_data['el_range']/num_steps
-
-		if loop:
+		if gif_config.loop:
 			num_loops = 0
 		else:
 			num_loops = 1
 
-		writer = imageio.get_writer(file, loop=num_loops)
+		writer = imageio.get_writer(gif_config.file_path, loop=num_loops)
 
 		# calculate viewport of just the canvas
 		geom = self.canvas_wrapper.canvas.native.geometry()
@@ -204,37 +187,42 @@ class History3DContext(base.BaseContext):
 		new_y = self.window.height() - (new_pos.y() + geom[3])
 		viewport = (new_pos.x() * ratio, new_y * ratio, geom[2] * ratio, geom[3] * ratio)
 
-		for ii in range(start_idx, end_idx):
+		for ii in range(gif_config.num_steps):
+			curr_timespan_idx = gif_config.start_idx + ii
 
-			self.canvas_wrapper.view_box.camera.azimuth = start_azimuth - ii*azimuth_step_angle
-			self.canvas_wrapper.view_box.camera.elevation = start_elevation - ii*elevation_step_angle
+			new_az = gif_config.cam_config.az_start - ii*gif_config.cam_config.az_step
+			new_el = gif_config.cam_config.el_start - ii*gif_config.cam_config.el_step
+			self.canvas_wrapper.view_box.camera.azimuth = new_az
+			self.canvas_wrapper.view_box.camera.elevation = new_el
 			self.canvas_wrapper.onManualCameraRotate()
-			self.controls.time_slider.setValue(ii)
+			self.controls.time_slider.setValue(curr_timespan_idx)
 			app.process_events()
 
 			im = _screenshot(viewport=viewport)
 			writer.append_data(im)
 			# use this to print to console on last iteration, otherwise thread doesn't get serviced until after writer closes
-			if ii==end_idx-1:
+			if ii==gif_config.num_steps-2:
 				console.send("Writing file. Please wait...")
 				app.process_events()
 
 		writer.close()
-		self.canvas_wrapper.view_box.camera.azimuth = start_azimuth
-		self.canvas_wrapper.view_box.camera.elevation = start_elevation
-		self.controls.time_slider.setValue(start_idx)
-		console.send(f"Saved {self.config['name']} GIF to {file}")
+		# reset to pre-gif state
+		self.canvas_wrapper.view_box.camera.azimuth = gif_config.cam_config.az_start
+		self.canvas_wrapper.view_box.camera.elevation = gif_config.cam_config.el_start
+		self.controls.time_slider.setValue(gif_config.start_idx)
+		del(self._gif_dialog)
+		console.send(f"Saved {self.config['name']} GIF to {gif_config.file_path}")
 
 	def setupGIFDialog(self):
-		dflt_camera_setup = {'az_start':self.canvas_wrapper.view_box.camera.azimuth,
-							'el_start':self.canvas_wrapper.view_box.camera.elevation}
-		timespan_max_range = self.controls.time_slider.num_ticks
-		dialogs.GIFDialog(self.window,
-							self,
-							self.canvas_wrapper.view_box.camera.name,
-							dflt_camera_setup,
-							timespan_max_range)
+		# add check that timespan is not None
+		cam_config = gif_datatypes.ThreeDimCameraAdjustment(az_start=self.canvas_wrapper.view_box.camera.azimuth,
+															el_start=self.canvas_wrapper.view_box.camera.elevation)
 
+		gif_config = gif_datatypes.GIFConfig(self.data['history'].timespan,
+											self.canvas_wrapper.view_box.camera.name,
+											cam_config=cam_config)
+
+		self._gif_dialog = dialogs.GIFDialog(self.window, self, gif_config)
 		
 class Controls(base.BaseControls):
 	def __init__(self, parent_context:base.BaseContext, canvas_wrapper:BaseCanvas):
