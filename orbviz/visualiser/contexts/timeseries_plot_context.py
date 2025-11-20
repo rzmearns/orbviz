@@ -6,8 +6,6 @@ from PyQt5 import QtCore, QtWidgets
 
 from orbviz.model.data_models.history_data import HistoryData
 from orbviz.model.data_models.timeseries import TimeSeries
-import orbviz.util.gifs as gifs
-import orbviz.visualiser.cameras.cam_utility_types as cam_utility_types
 from orbviz.visualiser.contexts.base_context import BaseContext, BaseControls
 from orbviz.visualiser.contexts.figure_wrappers import timeseries_plot_fw
 from orbviz.visualiser.contexts.figure_wrappers.base_fw import BaseFigureWrapper
@@ -131,14 +129,8 @@ class TimeSeriesContext(BaseContext):
 			if handle is not None:
 				self.canvas_wrapper.removeTimeSeries(ax_idx,handle)
 
-	def setupGIFDialog(self):
-		# add check that timespan is not None
-		cam_config = cam_utility_types.MatplotlibCameraAdjustment()
-		gif_config = gifs.GIFConfig(self.data['history'].timespan,
-											cam_config=cam_config)
-
-		self._gif_data['abort_dialog'] = dialogs.AbortGIFDialog(self.window, self)
-		self._gif_data['setup_dialog'] = dialogs.GIFDialog(self.window, self, gif_config)
+	def getCameraState(self):
+		return {}
 
 class Controls(BaseControls):
 	def __init__(self, parent_context:BaseContext, canvas_wrapper: BaseFigureWrapper|None) -> None:

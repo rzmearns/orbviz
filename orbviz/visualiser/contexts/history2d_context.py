@@ -8,15 +8,12 @@ import orbviz.model.data_models.data_types as data_types
 from orbviz.model.data_models.earth_raycast_data import EarthRayCastData
 from orbviz.model.data_models.groundstation_data import GroundStationCollection
 from orbviz.model.data_models.history_data import HistoryData
-import orbviz.util.gifs as gifs
-import orbviz.visualiser.cameras.cam_utility_types as cam_utility_types
 import orbviz.visualiser.contexts.base_context as base
 from orbviz.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 from orbviz.visualiser.contexts.canvas_wrappers.cw_container import CWContainer
 import orbviz.visualiser.contexts.canvas_wrappers.history2d_cw as history2d_cw
 import orbviz.visualiser.interface.console as console
 import orbviz.visualiser.interface.controls as controls
-import orbviz.visualiser.interface.dialogs as dialogs
 import orbviz.visualiser.interface.widgets as widgets
 
 logger = logging.getLogger(__name__)
@@ -139,14 +136,8 @@ class History2DContext(base.BaseContext):
 	def _centerCameraEarth(self) -> None:
 		self.canvas_wrapper.centerCameraEarth()
 
-	def setupGIFDialog(self):
-		# add check that timespan is not None
-		cam_config = cam_utility_types.RestrictedPanZoomCameraAdjustment()
-		gif_config = gifs.GIFConfig(self.data['history'].timespan,
-											cam_config=cam_config)
-
-		self._gif_data['abort_dialog'] = dialogs.AbortGIFDialog(self.window, self)
-		self._gif_data['setup_dialog'] = dialogs.GIFDialog(self.window, self, gif_config)
+	def getCameraState(self):
+		return {}
 
 class Controls(base.BaseControls):
 	def __init__(self, parent_context:base.BaseContext, canvas_wrapper:BaseCanvas):

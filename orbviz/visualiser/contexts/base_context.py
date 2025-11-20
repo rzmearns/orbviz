@@ -20,6 +20,7 @@ from orbviz.visualiser.cameras import cam_utility_types
 from orbviz.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 from orbviz.visualiser.contexts.figure_wrappers.base_fw import BaseFigureWrapper
 import orbviz.visualiser.interface.console as console
+import orbviz.visualiser.interface.dialogs as orbviz_dialogs
 
 
 class BaseContext(ABC):
@@ -190,12 +191,22 @@ class BaseContext(ABC):
 
 		console.send(f"Saved {self.config['name']} GIF to {gif_config.file_path}")
 
+	def setupGIFDialog(self):
+		# add check that timespan is not None
+		cam_config = cam_utility_types.TurntableCameraAdjustment(self.getCameraState())
+
+		gif_config = gifs.GIFConfig(self.data['history'].timespan,
+											cam_config=cam_config)
+
+		self._gif_data['abort_dialog'] = orbviz_dialogs.AbortGIFDialog(self.window, self)
+		self._gif_data['setup_dialog'] = orbviz_dialogs.GIFDialog(self.window, self, gif_config)
+
 	def abortGif(self):
 		self._gif_data['running'] = False
 
 	@abstractmethod
-	def setupGIFDialog(self):
-		raise NotImplementedError
+	def getCameraState(self) -> dict:
+		raise NotImplementedError()
 
 	def prepSerialisation(self) -> dict[str,Any]:
 		state = {}

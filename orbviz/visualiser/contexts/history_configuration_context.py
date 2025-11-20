@@ -1,5 +1,4 @@
 import logging
-import pathlib
 
 from typing import Any
 
@@ -168,11 +167,9 @@ class HistoryConfigurationContext(BaseContext):
 	def saveState(self) -> None:
 		pass
 
-	def setupGIFDialog(self):
-		pass
+	def getCameraState(self) -> dict:
+		return {}
 
-	def saveGif(self, file: pathlib.Path, loop=True, *args, **kwargs):
-		pass
 
 class Controls(BaseControls):
 	def __init__(self, parent_context:BaseContext, canvas_wrapper: BaseCanvas|None) -> None:

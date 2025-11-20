@@ -8,8 +8,6 @@ import orbviz.model.data_models.data_types as data_types
 from orbviz.model.data_models.earth_raycast_data import EarthRayCastData
 from orbviz.model.data_models.groundstation_data import GroundStationCollection
 from orbviz.model.data_models.history_data import HistoryData
-import orbviz.util.gifs as gifs
-import orbviz.visualiser.cameras.cam_utility_types as cam_utility_types
 from orbviz.visualiser.contexts.base_context import BaseContext, BaseControls
 from orbviz.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 import orbviz.visualiser.contexts.canvas_wrappers.sensor_views_cw as sensor_views_cw
@@ -136,15 +134,8 @@ class SensorViewsContext(BaseContext):
 	def saveState(self) -> None:
 		pass
 		
-	def setupGIFDialog(self):
-		# add check that timespan is not None
-		cam_config = cam_utility_types.Static2DCameraAdjustment()
-		gif_config = gifs.GIFConfig(self.data['history'].timespan,
-											cam_config=cam_config)
-
-		self._gif_data['abort_dialog'] = dialogs.AbortGIFDialog(self.window, self)
-		self._gif_data['setup_dialog'] = dialogs.GIFDialog(self.window, self, gif_config)
-
+	def getCameraState(self):
+		return {}
 
 class Controls(BaseControls):
 	def __init__(self, parent_context:BaseContext, canvas_wrapper: BaseCanvas|None) -> None:

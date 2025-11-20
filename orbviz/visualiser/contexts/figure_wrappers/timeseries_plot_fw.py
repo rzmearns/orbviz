@@ -9,6 +9,7 @@ from matplotlib.figure import Figure
 import numpy as np
 
 import orbviz.model.data_models.timeseries as timeseries_model
+from orbviz.visualiser.cameras import cam_utility_types
 from orbviz.visualiser.contexts.figure_wrappers.base_fw import BaseFigureWrapper
 
 logger = logging.getLogger(__name__)
@@ -26,6 +27,7 @@ class TimeSeriesPlotFigureWrapper(BaseFigureWrapper):
 		w_inch = w/matplotlib_dpi
 		h_inch = h/matplotlib_dpi
 		a = Figure(figsize=(w_inch,h_inch),facecolor=bgcolor)
+		self.cam_type = cam_utility_types.CanvasCameraTypes.MATPLOTLIB
 		canvas = backend_qtagg.FigureCanvas(a)
 
 		super().__init__(w,h,bgcolor, canvas)

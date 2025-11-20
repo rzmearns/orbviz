@@ -18,6 +18,7 @@ import orbviz.visualiser.assets.base_assets as base_assets
 import orbviz.visualiser.assets.sensors as sensors
 import orbviz.visualiser.assets.spacecraft as spacecraft
 import orbviz.visualiser.assets.widgets as widgets
+from orbviz.visualiser.cameras import cam_utility_types
 import orbviz.visualiser.cameras.static2d as static2d
 from orbviz.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 
@@ -57,6 +58,7 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 			self.view_boxes[ii].camera = static2d.Static2D(parent=self.view_boxes[ii].scene)
 			self.view_boxes[ii].camera.aspect = 1
 			self.view_boxes[ii].camera.flip = (0,1,0)
+		self.cam_type = cam_utility_types.CanvasCameraTypes.STATIC2D
 
 
 		self.data_models: dict[str,Any] = {}

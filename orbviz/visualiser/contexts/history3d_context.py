@@ -7,14 +7,11 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 import orbviz.model.data_models.data_types as data_types
 from orbviz.model.data_models.groundstation_data import GroundStationCollection
 from orbviz.model.data_models.history_data import HistoryData
-import orbviz.util.gifs as gifs
-import orbviz.visualiser.cameras.cam_utility_types as cam_utility_types
 import orbviz.visualiser.contexts.base_context as base
 from orbviz.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 import orbviz.visualiser.contexts.canvas_wrappers.history3d_cw as history3d_cw
 import orbviz.visualiser.interface.console as console
 import orbviz.visualiser.interface.controls as controls
-import orbviz.visualiser.interface.dialogs as dialogs
 import orbviz.visualiser.interface.widgets as widgets
 
 logger = logging.getLogger(__name__)
@@ -162,22 +159,12 @@ class History3DContext(base.BaseContext):
 			# setting button to checkable in case camera set to center via menu
 			self.controls.toolbar.button_dict['center-spacecraft'].setChecked(True)
 
+	def getCameraState(self):
+		return {'az':self.canvas_wrapper.view_box.camera.azimuth,
+				'el':self.canvas_wrapper.view_box.camera.elevation,
+				'zoom': self.canvas_wrapper.view_box.camera.zoom_factor,
+				'center':self.canvas_wrapper.view_box.camera.center}
 
-
-	# def abortGIF(self):
-
-
-	def setupGIFDialog(self):
-		# add check that timespan is not None
-		cam_config = cam_utility_types.TurntableCameraAdjustment(az_start=self.canvas_wrapper.view_box.camera.azimuth,
-															el_start=self.canvas_wrapper.view_box.camera.elevation)
-
-		gif_config = gifs.GIFConfig(self.data['history'].timespan,
-											cam_config=cam_config)
-
-		self._gif_data['abort_dialog'] = dialogs.AbortGIFDialog(self.window, self)
-		self._gif_data['setup_dialog'] = dialogs.GIFDialog(self.window, self, gif_config)
-		
 class Controls(base.BaseControls):
 	def __init__(self, parent_context:base.BaseContext, canvas_wrapper:BaseCanvas):
 		self.context = parent_context
