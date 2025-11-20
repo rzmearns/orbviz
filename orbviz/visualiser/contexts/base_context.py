@@ -192,7 +192,11 @@ class BaseContext(ABC):
 		console.send(f"Saved {self.config['name']} GIF to {gif_config.file_path}")
 
 	def setupGIFDialog(self):
-		# add check that timespan is not None
+
+		if self.data['history'].timespan is None:
+			console.sendErr("Can't create GIF if no data loaded. Please create a scenario.")
+			return
+
 		cam_config = cam_utility_types.TurntableCameraAdjustment(self.getCameraState())
 
 		gif_config = gifs.GIFConfig(self.data['history'].timespan,
