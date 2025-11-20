@@ -15,7 +15,7 @@ from orbviz.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 import orbviz.visualiser.contexts.canvas_wrappers.sensor_views_cw as sensor_views_cw
 import orbviz.visualiser.interface.console as console
 import orbviz.visualiser.interface.controls as controls
-import orbviz.visualiser.interface.dialogs as orbviz_dialogs
+import orbviz.visualiser.interface.dialogs as dialogs
 import orbviz.visualiser.interface.widgets as widgets
 
 logger = logging.getLogger(__name__)
@@ -122,7 +122,7 @@ class SensorViewsContext(BaseContext):
 	def generateSensorFullRes(self, view_id:int, sc_id:int, suite_key:str, sens_key:str) -> None:
 		logger.debug('Generating Full Res for view %s: %s - %s - %s', view_id, sc_id, suite_key, sens_key)
 		img_data, mo_data, moConverterFunction, img_metadata = self.canvas_wrapper.generateSensorFullRes(sc_id, suite_key, sens_key)
-		orbviz_dialogs.fullResSensorImageDialog(img_data, mo_data, moConverterFunction, img_metadata)
+		dialogs.fullResSensorImageDialog(img_data, mo_data, moConverterFunction, img_metadata)
 
 	def getIndex(self) -> int|None:
 		return self.controls.time_slider.getValue()
@@ -142,7 +142,8 @@ class SensorViewsContext(BaseContext):
 		gif_config = gifs.GIFConfig(self.data['history'].timespan,
 											cam_config=cam_config)
 
-		self._gif_dialog = orbviz_dialogs.GIFDialog(self.window, self, gif_config)
+		self._gif_data['abort_dialog'] = dialogs.AbortGIFDialog(self.window, self)
+		self._gif_data['setup_dialog'] = dialogs.GIFDialog(self.window, self, gif_config)
 
 
 class Controls(BaseControls):

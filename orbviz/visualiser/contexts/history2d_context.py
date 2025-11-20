@@ -2,12 +2,7 @@ import logging
 
 from typing import Any
 
-import imageio
-
 from PyQt5 import QtCore, QtGui, QtWidgets
-
-import vispy.app as app
-from vispy.gloo.util import _screenshot
 
 import orbviz.model.data_models.data_types as data_types
 from orbviz.model.data_models.earth_raycast_data import EarthRayCastData
@@ -53,7 +48,7 @@ class History2DContext(base.BaseContext):
 							''')
 		content_widget = QtWidgets.QWidget()
 		content_vlayout = QtWidgets.QVBoxLayout()
-		
+
 		# Build display area layout
 		'''
 		# | ###
@@ -147,11 +142,11 @@ class History2DContext(base.BaseContext):
 	def setupGIFDialog(self):
 		# add check that timespan is not None
 		cam_config = cam_utility_types.RestrictedPanZoomCameraAdjustment()
-		config = gifs.GIFConfig(self.data['history'].timespan,
-											self.canvas_wrapper.view_box.camera.name,
+		gif_config = gifs.GIFConfig(self.data['history'].timespan,
 											cam_config=cam_config)
 
-		self._gif_dialog = dialogs.GIFDialog(self.window, self,config)
+		self._gif_data['abort_dialog'] = dialogs.AbortGIFDialog(self.window, self)
+		self._gif_data['setup_dialog'] = dialogs.GIFDialog(self.window, self, gif_config)
 
 class Controls(base.BaseControls):
 	def __init__(self, parent_context:base.BaseContext, canvas_wrapper:BaseCanvas):

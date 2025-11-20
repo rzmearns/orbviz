@@ -137,7 +137,8 @@ class TimeSeriesContext(BaseContext):
 		gif_config = gifs.GIFConfig(self.data['history'].timespan,
 											cam_config=cam_config)
 
-		self._gif_dialog = dialogs.GIFDialog(self.window, self, gif_config)
+		self._gif_data['abort_dialog'] = dialogs.AbortGIFDialog(self.window, self)
+		self._gif_data['setup_dialog'] = dialogs.GIFDialog(self.window, self, gif_config)
 
 class Controls(BaseControls):
 	def __init__(self, parent_context:BaseContext, canvas_wrapper: BaseFigureWrapper|None) -> None:

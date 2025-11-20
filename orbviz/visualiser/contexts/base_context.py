@@ -43,6 +43,10 @@ class BaseContext(ABC):
 		self.load_worker_thread = None
 		self.save_worker = None
 		self.save_worker_thread = None
+		self._gif_data = {'setup_dialog': None,
+							'abort_dialog': None,
+							'running':False,
+							'config':None}
 
 	@abstractmethod
 	def saveState(self) -> None:
@@ -102,6 +106,7 @@ class BaseContext(ABC):
 		# TODO: need to lockout controls
 
 		console.send('Starting GIF saving, please do not touch the controls.')
+		self._gif_data['running'] = True
 		if gif_config.loop:
 			num_loops = 0
 		else:
@@ -129,7 +134,9 @@ class BaseContext(ABC):
 
 		for ii in range(gif_config.num_steps):
 			# check if GIF aborted
-
+			if not self._gif_data['running']:
+				console.send("Aborting GIF creation...")
+				break
 			# rotate
 			if gif_config.cam_config.cam_adjustment:
 				if gif_config.cam_config.cam_type == 'Turntable':
@@ -160,6 +167,7 @@ class BaseContext(ABC):
 				console.send("Writing file. Please wait...")
 				app.process_events()
 
+		self._gif_data['abort_dialog'].close()
 		writer.close()
 		# reset to pre-gif state
 		if gif_config.cam_config.cam_adjustment:
@@ -168,9 +176,18 @@ class BaseContext(ABC):
 				self.canvas_wrapper.view_box.camera.elevation = gif_config.cam_config.el_start
 
 		self.controls.time_slider.setValue(gif_config.start_idx)
-		del(self._gif_dialog)
+
+
+		del self._gif_data['setup_dialog']
+		self._gif_data['setup_dialog'] = None
+		del self._gif_data['abort_dialog']
+		self._gif_data['abort_dialog'] = None
+		self._gif_data['running'] = False
+
 		console.send(f"Saved {self.config['name']} GIF to {gif_config.file_path}")
 
+	def abortGif(self):
+		self._gif_data['running'] = False
 
 	@abstractmethod
 	def setupGIFDialog(self):

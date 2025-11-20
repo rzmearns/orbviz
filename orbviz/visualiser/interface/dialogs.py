@@ -15,9 +15,11 @@ from vispy.app.canvas import MouseEvent
 
 from orbviz.model.data_models import data_types
 from orbviz.model.data_models import datapane as datapane_model
+import orbviz.util.gifs as gifs
 import orbviz.util.hashing as orbviz_hashing
 import orbviz.util.paths as orbviz_paths
 import orbviz.visualiser.assets.widgets as vispy_widgets
+from orbviz.visualiser.cameras import cam_utility_types
 import orbviz.visualiser.cameras.RestrictedPanZoom as RestrictedPanZoom
 import orbviz.visualiser.interface.console as console
 import orbviz.visualiser.interface.datapane as datapane
@@ -74,10 +76,11 @@ class SpaceTrackCredentialsDialog:
 		self.window.close()
 
 class GIFDialog:
-	def __init__(self, parent_window, opening_context, gif_config):
+	def __init__(self, parent_window, opening_context, gif_config:gifs.GIFConfig):
 
 		self.gif_config = gif_config
-		if self.gif_config.cam_config.cam_type not in ['Turntable', 'RestrictedPanZoom', 'Static2D', 'Matplotlib']:
+
+		if not gifs.isCamSupported(self.gif_config.cam_config.cam_type):
 			raise ValueError("GIF capture not supported for this context's camera type")
 
 		self.parent = parent_window
@@ -117,7 +120,7 @@ class GIFDialog:
 		hlayout1.addStretch()
 		layout.addLayout(hlayout1)
 
-		if self.gif_config.cam_config.cam_type == 'Turntable':
+		if self.gif_config.cam_config.cam_type == cam_utility_types.CanvasCameraTypes.TURNTABLE:
 			self._camera_adjust_option = widgets.ToggleBox("Adjust camera while capturing?", False)
 			# build extra widgets to specify how to adjust camera
 			hlayout2 = QtWidgets.QHBoxLayout()
@@ -223,7 +226,7 @@ class GIFDialog:
 		self.gif_config.file_path = self._file_selector.getPath()
 		self.gif_config.loop = self._loop_option.getState()
 
-		if self.gif_config.cam_config.cam_type == 'Turntable':
+		if self.gif_config.cam_config.cam_type == cam_utility_types.CanvasCameraTypes.TURNTABLE:
 			if self._isCameraAdjustEnabled() :
 				self.gif_config.cam_config.cam_adjustment = True
 				self.gif_config.cam_config.az_start = self._start_azimuth.getValue()
@@ -240,7 +243,39 @@ class GIFDialog:
 				self.gif_config.cam_config.az_step = 0
 				self.gif_config.cam_config.el_step = 0
 
+		self.opening_context._gif_data['abort_dialog'].show()
 		self.opening_context.saveGif(self.gif_config)
+
+class AbortGIFDialog:
+	def __init__(self, parent_window, opening_context):
+
+		self.parent = parent_window
+		self.opening_context = opening_context
+		self.window = QtWidgets.QDialog(parent=self.parent)
+		self.name_str = ' '.join(self.opening_context.config['name'].split('_')).capitalize()
+		self.window.setWindowTitle(f'Abort {self.name_str} GIF Creation')
+		self.window.setWindowModality(QtCore.Qt.WindowModality.NonModal)
+
+		layout = QtWidgets.QVBoxLayout()
+		cancelbutton = QtWidgets.QPushButton('Abort')
+		layout.addWidget(cancelbutton)
+
+		cancelbutton.clicked.connect(self.cancel)
+
+		layout.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
+		self.window.setLayout(layout)
+
+		self.min_size = self.window.size()
+
+	def cancel(self):
+		self.opening_context.abortGif()
+		self.window.close()
+
+	def show(self):
+		self.window.show()
+
+	def close(self):
+		self.window.close()
 
 class GroundStationDialog:
 	def __init__(self, shell:base_shell.BaseShell, enabled_gs:dict[str,dict[str,str|pathlib.Path]]={}):
