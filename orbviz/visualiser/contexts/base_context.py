@@ -132,6 +132,9 @@ class BaseContext(ABC):
 		else:
 			raise TypeError(f'Unrecognised canvas_wrapper:{self.canvas_wrapper}, when saving GIF')
 
+		# calculate number of steps of timespan to skip per frame of gif.
+		# if less than 1, rounds to 0, and timeslider doesn't move.
+		timespan_step_delta = int((gif_config.end_idx - gif_config.start_idx)/gif_config.num_steps)
 
 		for ii in range(gif_config.num_steps):
 			# check if GIF aborted
@@ -148,7 +151,7 @@ class BaseContext(ABC):
 					self.canvas_wrapper.onManualCameraRotate()
 
 			# update time slider
-			curr_timespan_idx = gif_config.start_idx + ii
+			curr_timespan_idx = gif_config.start_idx + ii*timespan_step_delta
 			self.controls.time_slider.setValue(curr_timespan_idx)
 
 			# process events

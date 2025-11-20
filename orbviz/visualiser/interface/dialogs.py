@@ -219,9 +219,14 @@ class GIFDialog:
 		self.window.close()
 		slider_range = self._time_slider.getRange()
 
-		self.gif_config.start_idx = max(0, min(slider_range[0], len(self.gif_config.timespan)))
-		self.gif_config.end_idx = max(self.gif_config.start_idx, min(slider_range[1], len(self.gif_config.timespan)))
-		self.gif_config.num_steps = self.gif_config.end_idx - self.gif_config.start_idx
+		if slider_range[0] != slider_range[1]:
+			self.gif_config.start_idx = max(0, min(slider_range[0], len(self.gif_config.timespan)))
+			self.gif_config.end_idx = max(self.gif_config.start_idx, min(slider_range[1], len(self.gif_config.timespan)))
+			self.gif_config.num_steps = self.gif_config.end_idx - self.gif_config.start_idx
+		else:
+			self.gif_config.start_idx = max(0, min(slider_range[0], len(self.gif_config.timespan)))
+			self.gif_config.end_idx = self.gif_config.end_idx = self.gif_config.start_idx
+			self.gif_config.num_steps = 50
 
 		self.gif_config.file_path = self._file_selector.getPath()
 		self.gif_config.loop = self._loop_option.getState()
