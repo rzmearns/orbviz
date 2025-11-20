@@ -16,6 +16,7 @@ from vispy.gloo.util import _screenshot
 
 import orbviz.util.gifs as gifs
 import orbviz.util.paths as orbviz_paths
+from orbviz.visualiser.cameras import cam_utility_types
 from orbviz.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 from orbviz.visualiser.contexts.figure_wrappers.base_fw import BaseFigureWrapper
 import orbviz.visualiser.interface.console as console
@@ -139,7 +140,7 @@ class BaseContext(ABC):
 				break
 			# rotate
 			if gif_config.cam_config.cam_adjustment:
-				if gif_config.cam_config.cam_type == 'Turntable':
+				if gif_config.cam_config.cam_type == cam_utility_types.CanvasCameraTypes.TURNTABLE:
 					new_az = gif_config.cam_config.az_start - ii*gif_config.cam_config.az_step
 					new_el = gif_config.cam_config.el_start - ii*gif_config.cam_config.el_step
 					self.canvas_wrapper.view_box.camera.azimuth = new_az
