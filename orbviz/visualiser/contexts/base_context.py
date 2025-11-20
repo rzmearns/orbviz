@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtWidgets
 import vispy.app as app
 from vispy.gloo.util import _screenshot
 
-import orbviz.model.utility_types.gif_datatypes as gif_datatypes
+import orbviz.util.gifs as gifs
 import orbviz.util.paths as orbviz_paths
 from orbviz.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 from orbviz.visualiser.contexts.figure_wrappers.base_fw import BaseFigureWrapper
@@ -98,7 +98,7 @@ class BaseContext(ABC):
 
 		console.send(f"Saved {self.config['name']} screenshot to {file}")
 
-	def saveGif(self, gif_config:gif_datatypes.GIFConfig):
+	def saveGif(self, gif_config:gifs.GIFConfig):
 		# TODO: need to lockout controls
 
 		console.send('Starting GIF saving, please do not touch the controls.')

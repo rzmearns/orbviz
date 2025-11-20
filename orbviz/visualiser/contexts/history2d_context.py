@@ -13,7 +13,8 @@ import orbviz.model.data_models.data_types as data_types
 from orbviz.model.data_models.earth_raycast_data import EarthRayCastData
 from orbviz.model.data_models.groundstation_data import GroundStationCollection
 from orbviz.model.data_models.history_data import HistoryData
-import orbviz.model.utility_types.gif_datatypes as gif_datatypes
+import orbviz.util.gifs as gifs
+import orbviz.visualiser.cameras.cam_utility_types as cam_utility_types
 import orbviz.visualiser.contexts.base_context as base
 from orbviz.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 from orbviz.visualiser.contexts.canvas_wrappers.cw_container import CWContainer
@@ -181,8 +182,8 @@ class History2DContext(base.BaseContext):
 
 	def setupGIFDialog(self):
 		# add check that timespan is not None
-		cam_config = gif_datatypes.RestrictedPanZoomCameraAdjustment()
-		config = gif_datatypes.GIFConfig(self.data['history'].timespan,
+		cam_config = cam_utility_types.RestrictedPanZoomCameraAdjustment()
+		config = gifs.GIFConfig(self.data['history'].timespan,
 											self.canvas_wrapper.view_box.camera.name,
 											cam_config=cam_config)
 

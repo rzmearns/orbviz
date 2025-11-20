@@ -6,7 +6,8 @@ from PyQt5 import QtCore, QtWidgets
 
 from orbviz.model.data_models.history_data import HistoryData
 from orbviz.model.data_models.timeseries import TimeSeries
-import orbviz.model.utility_types.gif_datatypes as gif_datatypes
+import orbviz.util.gifs as gifs
+import orbviz.visualiser.cameras.cam_utility_types as cam_utility_types
 from orbviz.visualiser.contexts.base_context import BaseContext, BaseControls
 from orbviz.visualiser.contexts.figure_wrappers import timeseries_plot_fw
 from orbviz.visualiser.contexts.figure_wrappers.base_fw import BaseFigureWrapper
@@ -132,8 +133,8 @@ class TimeSeriesContext(BaseContext):
 
 	def setupGIFDialog(self):
 		# add check that timespan is not None
-		cam_config = gif_datatypes.MatplotlibCameraAdjustment()
-		gif_config = gif_datatypes.GIFConfig(self.data['history'].timespan,
+		cam_config = cam_utility_types.MatplotlibCameraAdjustment()
+		gif_config = gifs.GIFConfig(self.data['history'].timespan,
 											cam_config=cam_config)
 
 		self._gif_dialog = dialogs.GIFDialog(self.window, self, gif_config)

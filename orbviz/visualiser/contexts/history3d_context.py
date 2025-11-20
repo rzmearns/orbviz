@@ -7,7 +7,8 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 import orbviz.model.data_models.data_types as data_types
 from orbviz.model.data_models.groundstation_data import GroundStationCollection
 from orbviz.model.data_models.history_data import HistoryData
-import orbviz.model.utility_types.gif_datatypes as gif_datatypes
+import orbviz.util.gifs as gifs
+import orbviz.visualiser.cameras.cam_utility_types as cam_utility_types
 import orbviz.visualiser.contexts.base_context as base
 from orbviz.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 import orbviz.visualiser.contexts.canvas_wrappers.history3d_cw as history3d_cw
@@ -168,10 +169,10 @@ class History3DContext(base.BaseContext):
 
 	def setupGIFDialog(self):
 		# add check that timespan is not None
-		cam_config = gif_datatypes.TurntableCameraAdjustment(az_start=self.canvas_wrapper.view_box.camera.azimuth,
+		cam_config = cam_utility_types.TurntableCameraAdjustment(az_start=self.canvas_wrapper.view_box.camera.azimuth,
 															el_start=self.canvas_wrapper.view_box.camera.elevation)
 
-		gif_config = gif_datatypes.GIFConfig(self.data['history'].timespan,
+		gif_config = gifs.GIFConfig(self.data['history'].timespan,
 											cam_config=cam_config)
 
 		self._gif_dialog = dialogs.GIFDialog(self.window, self, gif_config)
