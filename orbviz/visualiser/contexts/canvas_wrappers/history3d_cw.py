@@ -30,6 +30,7 @@ from orbviz.visualiser.assets import (
 	sun,
 	widgets,
 )
+from orbviz.visualiser.cameras import cam_utility_types
 from orbviz.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 
 logger = logging.getLogger(__name__)
@@ -53,6 +54,7 @@ class History3DCanvasWrapper(BaseCanvas):
 															fov=60,
 															center=(0,0,0),
 															name='Turntable')
+		self.cam_type = cam_utility_types.CanvasCameraTypes.TURNTABLE
 		self.data_models: dict[str,Any] = {}
 		self.assets = {}
 		self._buildAssets()

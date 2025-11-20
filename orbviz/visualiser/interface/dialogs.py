@@ -15,9 +15,11 @@ from vispy.app.canvas import MouseEvent
 
 from orbviz.model.data_models import data_types
 from orbviz.model.data_models import datapane as datapane_model
+import orbviz.util.gifs as gifs
 import orbviz.util.hashing as orbviz_hashing
 import orbviz.util.paths as orbviz_paths
 import orbviz.visualiser.assets.widgets as vispy_widgets
+from orbviz.visualiser.cameras import cam_utility_types
 import orbviz.visualiser.cameras.RestrictedPanZoom as RestrictedPanZoom
 import orbviz.visualiser.interface.console as console
 import orbviz.visualiser.interface.datapane as datapane
@@ -74,13 +76,15 @@ class SpaceTrackCredentialsDialog:
 		self.window.close()
 
 class GIFDialog:
-	def __init__(self, parent_window, opening_context, camera_type:str, dflt_camera_data:dict[str,float], num_ticks:int, three_dim=True):
-		if camera_type not in ['Turntable', 'RestrictedPanZoom', 'Static2D', 'matplotlib']:
+	def __init__(self, parent_window, opening_context, gif_config:gifs.GIFConfig):
+
+		self.gif_config = gif_config
+
+		if not gifs.isCamSupported(self.gif_config.cam_config.cam_type):
 			raise ValueError("GIF capture not supported for this context's camera type")
 
 		self.parent = parent_window
 		self.opening_context = opening_context
-		self.three_dim = three_dim
 		self.window = QtWidgets.QDialog(parent=self.parent)
 		self.name_str = ' '.join(self.opening_context.config['name'].split('_')).capitalize()
 		self.fname_str = self.opening_context.config['name']
@@ -106,9 +110,7 @@ class GIFDialog:
 		# start_time_display = widgets.SmallDatetimeEntry()
 		# end_time_display =
 
-		self._time_slider = widgets.LabelledRangeSlider('Timespan to capture:',(0,num_ticks))
-
-		self._camera_adjust_option = widgets.ToggleBox("Adjust camera while capturing?", False)
+		self._time_slider = widgets.LabelledRangeSlider('Timespan to capture:',(0,len(self.gif_config.timespan)))
 
 		layout = QtWidgets.QVBoxLayout()
 		layout.addWidget(self._file_selector)
@@ -118,7 +120,9 @@ class GIFDialog:
 		hlayout1.addStretch()
 		layout.addLayout(hlayout1)
 
-		if self.three_dim:
+		if self.gif_config.cam_config.cam_type == cam_utility_types.CanvasCameraTypes.TURNTABLE:
+			self._camera_adjust_option = widgets.ToggleBox("Adjust camera while capturing?", False)
+			# build extra widgets to specify how to adjust camera
 			hlayout2 = QtWidgets.QHBoxLayout()
 			hlayout2.addWidget(self._camera_adjust_option)
 			hlayout2.addStretch()
@@ -132,26 +136,21 @@ class GIFDialog:
 			self._camera_adjust_option.setState(False)
 			self._enableCameraAdjustState(False)
 			self._camera_adjust_option.add_connect(self._camera_adjust_extensions_options.setVisible)
-			self.camera_adjustment_data_sources = {}
 
-			if camera_type == 'Turntable':
-				self._camera_adjust_option.setLabel("Rotate while capturing?")
-				self._start_azimuth = widgets.ValueBox('Start Azimuth:', dflt_camera_data['az_start'], margins=[20,1,2,1])
-				self._start_elevation = widgets.ValueBox('Start Elevation:', dflt_camera_data['el_start'], margins=[20,1,2,1])
-				self._total_elevation_delta = widgets.ValueBox('Rotate Elevation Through:', 0, margins=[20,1,2,1])
-				self._total_azimuth_delta = widgets.ValueBox('Rotate Azimuth Through:', 360, margins=[20,1,2,1])
-				self.camera_adjustment_data_sources['az_start'] = self._start_azimuth
-				self.camera_adjustment_data_sources['el_start'] = self._start_elevation
-				self.camera_adjustment_data_sources['az_range'] = self._total_azimuth_delta
-				self.camera_adjustment_data_sources['el_range'] = self._total_elevation_delta
-				self._addWidgetToCameraAdjustEnabled(self._start_azimuth)
-				self._addWidgetToCameraAdjustEnabled(self._start_elevation)
-				self._addWidgetToCameraAdjustEnabled(self._total_azimuth_delta)
-				self._addWidgetToCameraAdjustEnabled(self._total_elevation_delta)
-				camera_adjust_vlayout.addWidget(self._start_azimuth)
-				camera_adjust_vlayout.addWidget(self._start_elevation)
-				camera_adjust_vlayout.addWidget(self._total_elevation_delta)
-				camera_adjust_vlayout.addWidget(self._total_azimuth_delta)
+			self._camera_adjust_option.setLabel("Rotate while capturing?")
+			self._start_azimuth = widgets.ValueBox('Start Azimuth:', self.gif_config.cam_config.az_start, margins=[20,1,2,1])
+			self._start_elevation = widgets.ValueBox('Start Elevation:', self.gif_config.cam_config.el_start, margins=[20,1,2,1])
+			self._total_elevation_delta = widgets.ValueBox('Rotate Elevation Through:', 0, margins=[20,1,2,1])
+			self._total_azimuth_delta = widgets.ValueBox('Rotate Azimuth Through:', 360, margins=[20,1,2,1])
+
+			self._addWidgetToCameraAdjustEnabled(self._start_azimuth)
+			self._addWidgetToCameraAdjustEnabled(self._start_elevation)
+			self._addWidgetToCameraAdjustEnabled(self._total_azimuth_delta)
+			self._addWidgetToCameraAdjustEnabled(self._total_elevation_delta)
+			camera_adjust_vlayout.addWidget(self._start_azimuth)
+			camera_adjust_vlayout.addWidget(self._start_elevation)
+			camera_adjust_vlayout.addWidget(self._total_elevation_delta)
+			camera_adjust_vlayout.addWidget(self._total_azimuth_delta)
 
 			camera_adjust_hlayout.addLayout(camera_adjust_vlayout)
 			camera_adjust_hlayout.addStretch()
@@ -159,6 +158,7 @@ class GIFDialog:
 			self._camera_adjust_extensions_options.setVisible(False)
 
 			layout.addWidget(self._camera_adjust_extensions_options)
+
 		layout.addWidget(self._time_slider)
 
 		hlayout4 = QtWidgets.QHBoxLayout()
@@ -218,29 +218,70 @@ class GIFDialog:
 	def submit(self):
 		self.window.close()
 		slider_range = self._time_slider.getRange()
-		camera_adjustment_data = {}
 
-		if self.three_dim and self._isCameraAdjustEnabled() :
-
-			for k,v in self.camera_adjustment_data_sources.items():
-				camera_adjustment_data[k] = v.getValue()
-
-			self.opening_context.saveGif(self._file_selector.getPath(),
-										loop=self._loop_option.getState(),
-										camera_adjustment_data=camera_adjustment_data,
-										start_index=slider_range[0],
-										end_index=slider_range[1])
+		if slider_range[0] != slider_range[1]:
+			self.gif_config.start_idx = max(0, min(slider_range[0], len(self.gif_config.timespan)))
+			self.gif_config.end_idx = max(self.gif_config.start_idx, min(slider_range[1], len(self.gif_config.timespan)))
+			self.gif_config.num_steps = self.gif_config.end_idx - self.gif_config.start_idx
 		else:
-			for k,v in self.camera_adjustment_data_sources.items():
-				camera_adjustment_data[k] = v.getValue()
-				if 'range' in k:
-					camera_adjustment_data[k] = 0
+			self.gif_config.start_idx = max(0, min(slider_range[0], len(self.gif_config.timespan)))
+			self.gif_config.end_idx = self.gif_config.end_idx = self.gif_config.start_idx
+			self.gif_config.num_steps = 50
 
-			self.opening_context.saveGif(self._file_selector.getPath(),
-										loop=self._loop_option.getState(),
-										camera_adjustment_data=camera_adjustment_data,
-										start_index=slider_range[0],
-										end_index=slider_range[1])
+		self.gif_config.file_path = self._file_selector.getPath()
+		self.gif_config.loop = self._loop_option.getState()
+
+		if self.gif_config.cam_config.cam_type == cam_utility_types.CanvasCameraTypes.TURNTABLE:
+			if self._isCameraAdjustEnabled() :
+				self.gif_config.cam_config.cam_adjustment = True
+				self.gif_config.cam_config.az_start = self._start_azimuth.getValue()
+				self.gif_config.cam_config.el_start = self._start_elevation.getValue()
+				self.gif_config.cam_config.az_range = self._total_azimuth_delta.getValue()
+				self.gif_config.cam_config.el_range = self._total_elevation_delta.getValue()
+				self.gif_config.cam_config.az_step = self.gif_config.cam_config.az_range/self.gif_config.num_steps
+				self.gif_config.cam_config.el_step = self.gif_config.cam_config.el_range/self.gif_config.num_steps
+			else:
+				# don't modify az_start or el_start
+				self.gif_config.cam_config.cam_adjustment = False
+				self.gif_config.cam_config.az_range = 0
+				self.gif_config.cam_config.el_range = 0
+				self.gif_config.cam_config.az_step = 0
+				self.gif_config.cam_config.el_step = 0
+
+		self.opening_context._gif_data['abort_dialog'].show()
+		self.opening_context.saveGif(self.gif_config)
+
+class AbortGIFDialog:
+	def __init__(self, parent_window, opening_context):
+
+		self.parent = parent_window
+		self.opening_context = opening_context
+		self.window = QtWidgets.QDialog(parent=self.parent)
+		self.name_str = ' '.join(self.opening_context.config['name'].split('_')).capitalize()
+		self.window.setWindowTitle(f'Abort {self.name_str} GIF Creation')
+		self.window.setWindowModality(QtCore.Qt.WindowModality.NonModal)
+
+		layout = QtWidgets.QVBoxLayout()
+		cancelbutton = QtWidgets.QPushButton('Abort')
+		cancelbutton.setStyleSheet("background-color: red")
+		layout.addWidget(cancelbutton)
+
+		cancelbutton.clicked.connect(self.cancel)
+
+		layout.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
+		self.window.setLayout(layout)
+
+		self.min_size = self.window.size()
+
+	def cancel(self):
+		self.opening_context.abortGif()
+		self.window.close()
+
+	def show(self):
+		self.window.show()
+
+	def close(self):
+		self.window.close()
 
 class GroundStationDialog:
 	def __init__(self, shell:base_shell.BaseShell, enabled_gs:dict[str,dict[str,str|pathlib.Path]]={}):
