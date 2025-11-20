@@ -218,6 +218,9 @@ class Controls(BaseControls):
 		self.shortcuts['End'] = QtWidgets.QShortcut(QtGui.QKeySequence('End'), self.context.widget)
 		self.shortcuts['End'].activated.connect(self.time_slider.setEnd)
 
+	def getCurrIndex(self) -> int:
+		return self.time_slider.getValue()
+
 	def updateSensorViewLists(self):
 		if self.context.data['history'].getConfigValue('is_pointing_defined'):
 			sens_dict = self.context.data['history'].getPrimaryConfig().serialiseAllSensors()
