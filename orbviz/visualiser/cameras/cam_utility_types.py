@@ -7,6 +7,17 @@ class CanvasCameraTypes(Enum):
 	MATPLOTLIB = auto()
 	TURNTABLE = auto()
 
+def genCameraAdjustment(cam_type:CanvasCameraTypes, cam_state:dict):
+	if cam_type == CanvasCameraTypes.STATIC2D:
+		return Static2DCameraAdjustment()
+	elif cam_type == CanvasCameraTypes.RESTRICTEDPANZOOM:
+		return RestrictedPanZoomCameraAdjustment()
+	elif cam_type == CanvasCameraTypes.MATPLOTLIB:
+		return MatplotlibCameraAdjustment()
+	elif cam_type == CanvasCameraTypes.TURNTABLE:
+		return TurntableCameraAdjustment(az_start=cam_state['az'],el_start=cam_state['el'])
+
+
 class Static2DCameraAdjustment:
 	_cam_type: str
 	_cam_adjustment: bool
