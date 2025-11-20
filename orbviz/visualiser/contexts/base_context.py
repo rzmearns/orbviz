@@ -7,9 +7,11 @@ from typing import Any
 
 import imageio
 import matplotlib.pyplot as plt
+import numpy as np
 
 from PyQt5 import QtCore, QtWidgets
 
+import vispy.app as app
 from vispy.gloo.util import _screenshot
 
 import orbviz.model.utility_types.gif_datatypes as gif_datatypes
@@ -96,9 +98,79 @@ class BaseContext(ABC):
 
 		console.send(f"Saved {self.config['name']} screenshot to {file}")
 
-	@abstractmethod
-	def saveGif(self, config:gif_datatypes.GIFConfig):
-		raise NotImplementedError
+	def saveGif(self, gif_config:gif_datatypes.GIFConfig):
+		# TODO: need to lockout controls
+
+		console.send('Starting GIF saving, please do not touch the controls.')
+		if gif_config.loop:
+			num_loops = 0
+		else:
+			num_loops = 1
+
+		writer = imageio.get_writer(gif_config.file_path, loop=num_loops)
+
+		# check if vispy based
+		if isinstance(self.canvas_wrapper, BaseCanvas):
+			canvas_wrapper_type = 'vispy'
+			# calculate viewport of just the canvas
+			geom = self.canvas_wrapper.canvas.native.geometry()
+			ratio = self.canvas_wrapper.canvas.native.devicePixelRatio()
+			geom = (geom.x(), geom.y(), geom.width(), geom.height())
+			new_pos = self.canvas_wrapper.canvas.native.mapTo(self.window, QtCore.QPoint(0, 0))
+			new_y = self.window.height() - (new_pos.y() + geom[3])
+			viewport = (new_pos.x() * ratio, new_y * ratio, geom[2] * ratio, geom[3] * ratio)
+
+		elif isinstance(self.canvas_wrapper, BaseFigureWrapper):
+			canvas_wrapper_type = 'matplotlib'
+			viewport = None
+		else:
+			raise TypeError(f'Unrecognised canvas_wrapper:{self.canvas_wrapper}, when saving GIF')
+
+
+		for ii in range(gif_config.num_steps):
+			# check if GIF aborted
+
+			# rotate
+			if gif_config.cam_config.cam_adjustment:
+				if gif_config.cam_config.cam_type == 'Turntable':
+					new_az = gif_config.cam_config.az_start - ii*gif_config.cam_config.az_step
+					new_el = gif_config.cam_config.el_start - ii*gif_config.cam_config.el_step
+					self.canvas_wrapper.view_box.camera.azimuth = new_az
+					self.canvas_wrapper.view_box.camera.elevation = new_el
+					self.canvas_wrapper.onManualCameraRotate()
+
+			# update time slider
+			curr_timespan_idx = gif_config.start_idx + ii
+			self.controls.time_slider.setValue(curr_timespan_idx)
+
+			# process events
+			app.process_events()
+
+			# add image to buffer
+			if canvas_wrapper_type == 'vispy':
+				im = _screenshot(viewport=viewport)
+			elif canvas_wrapper_type == 'matplotlib':
+				im = np.frombuffer(self.canvas_wrapper.figure.canvas.tostring_rgb(), dtype=np.uint8)
+				im = im.reshape(self.canvas_wrapper.figure.canvas.get_width_height()[::-1] + (3,))
+
+			writer.append_data(im)
+
+			# use this to print to console on last iteration, otherwise thread doesn't get serviced until after writer closes
+			if ii==gif_config.num_steps-2:
+				console.send("Writing file. Please wait...")
+				app.process_events()
+
+		writer.close()
+		# reset to pre-gif state
+		if gif_config.cam_config.cam_adjustment:
+			if gif_config.cam_config.cam_type == 'Turntable':
+				self.canvas_wrapper.view_box.camera.azimuth = gif_config.cam_config.az_start
+				self.canvas_wrapper.view_box.camera.elevation = gif_config.cam_config.el_start
+
+		self.controls.time_slider.setValue(gif_config.start_idx)
+		del(self._gif_dialog)
+		console.send(f"Saved {self.config['name']} GIF to {gif_config.file_path}")
+
 
 	@abstractmethod
 	def setupGIFDialog(self):

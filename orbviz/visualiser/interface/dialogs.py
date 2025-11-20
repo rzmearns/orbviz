@@ -77,13 +77,8 @@ class GIFDialog:
 	def __init__(self, parent_window, opening_context, gif_config):
 
 		self.gif_config = gif_config
-		if self.gif_config.cam_type not in ['Turntable', 'RestrictedPanZoom', 'Static2D', 'matplotlib']:
+		if self.gif_config.cam_config.cam_type not in ['Turntable', 'RestrictedPanZoom', 'Static2D', 'Matplotlib']:
 			raise ValueError("GIF capture not supported for this context's camera type")
-
-		if self.gif_config.cam_type in ['Turntable']:
-			self.three_dim = True
-		else:
-			self.three_dim = False
 
 		self.parent = parent_window
 		self.opening_context = opening_context
@@ -122,7 +117,7 @@ class GIFDialog:
 		hlayout1.addStretch()
 		layout.addLayout(hlayout1)
 
-		if self.three_dim:
+		if self.gif_config.cam_config.cam_type == 'Turntable':
 			self._camera_adjust_option = widgets.ToggleBox("Adjust camera while capturing?", False)
 			# build extra widgets to specify how to adjust camera
 			hlayout2 = QtWidgets.QHBoxLayout()
@@ -138,7 +133,6 @@ class GIFDialog:
 			self._camera_adjust_option.setState(False)
 			self._enableCameraAdjustState(False)
 			self._camera_adjust_option.add_connect(self._camera_adjust_extensions_options.setVisible)
-			self.camera_adjustment_data_sources = {}
 
 			self._camera_adjust_option.setLabel("Rotate while capturing?")
 			self._start_azimuth = widgets.ValueBox('Start Azimuth:', self.gif_config.cam_config.az_start, margins=[20,1,2,1])
@@ -229,18 +223,18 @@ class GIFDialog:
 		self.gif_config.file_path = self._file_selector.getPath()
 		self.gif_config.loop = self._loop_option.getState()
 
-		if self.three_dim:
+		if self.gif_config.cam_config.cam_type == 'Turntable':
 			if self._isCameraAdjustEnabled() :
-
+				self.gif_config.cam_config.cam_adjustment = True
 				self.gif_config.cam_config.az_start = self._start_azimuth.getValue()
 				self.gif_config.cam_config.el_start = self._start_elevation.getValue()
 				self.gif_config.cam_config.az_range = self._total_azimuth_delta.getValue()
 				self.gif_config.cam_config.el_range = self._total_elevation_delta.getValue()
 				self.gif_config.cam_config.az_step = self.gif_config.cam_config.az_range/self.gif_config.num_steps
 				self.gif_config.cam_config.el_step = self.gif_config.cam_config.el_range/self.gif_config.num_steps
-
 			else:
 				# don't modify az_start or el_start
+				self.gif_config.cam_config.cam_adjustment = False
 				self.gif_config.cam_config.az_range = 0
 				self.gif_config.cam_config.el_range = 0
 				self.gif_config.cam_config.az_step = 0

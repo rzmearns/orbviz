@@ -2,12 +2,7 @@ import logging
 
 from typing import Any
 
-import imageio
-
 from PyQt5 import QtCore, QtGui, QtWidgets
-
-import vispy.app as app
-from vispy.gloo.util import _screenshot
 
 import orbviz.model.data_models.data_types as data_types
 from orbviz.model.data_models.earth_raycast_data import EarthRayCastData
@@ -140,48 +135,11 @@ class SensorViewsContext(BaseContext):
 	def saveState(self) -> None:
 		pass
 		
-	def saveGif(self, gif_config:gif_datatypes.GIFConfig):
-		# TODO: need to lockout controls
-
-		console.send('Starting GIF saving, please do not touch the controls.')
-		if gif_config.loop:
-			num_loops = 0
-		else:
-			num_loops = 1
-
-		writer = imageio.get_writer(gif_config.file_path, loop=num_loops)
-
-		# calculate viewport of just the canvas
-		geom = self.canvas_wrapper.canvas.native.geometry()
-		ratio = self.canvas_wrapper.canvas.native.devicePixelRatio()
-		geom = (geom.x(), geom.y(), geom.width(), geom.height())
-		new_pos = self.canvas_wrapper.canvas.native.mapTo(self.window, QtCore.QPoint(0, 0))
-		new_y = self.window.height() - (new_pos.y() + geom[3])
-		viewport = (new_pos.x() * ratio, new_y * ratio, geom[2] * ratio, geom[3] * ratio)
-
-		for ii in range(gif_config.num_steps):
-			curr_timespan_idx = gif_config.start_idx + ii
-			self.controls.time_slider.setValue(curr_timespan_idx)
-			app.process_events()
-
-			im = _screenshot(viewport=viewport)
-			writer.append_data(im)
-			# use this to print to console on last iteration, otherwise thread doesn't get serviced until after writer closes
-			if ii==gif_config.num_steps-2:
-				console.send("Writing file. Please wait...")
-				app.process_events()
-
-		writer.close()
-		self.controls.time_slider.setValue(gif_config.start_idx)
-		del(self._gif_dialog)
-		console.send(f"Saved {self.config['name']} GIF to {gif_config.file_path}")
-
 	def setupGIFDialog(self):
 		# add check that timespan is not None
-
+		cam_config = gif_datatypes.Static2DCameraAdjustment()
 		gif_config = gif_datatypes.GIFConfig(self.data['history'].timespan,
-											self.canvas_wrapper.view_boxes[0].camera.name,
-											cam_config=None)
+											cam_config=cam_config)
 
 		self._gif_dialog = orbviz_dialogs.GIFDialog(self.window, self, gif_config)
 

@@ -2,12 +2,7 @@ import logging
 
 from typing import Any
 
-import imageio
-
 from PyQt5 import QtCore, QtGui, QtWidgets
-
-import vispy.app as app
-from vispy.gloo.util import _screenshot
 
 import orbviz.model.data_models.data_types as data_types
 from orbviz.model.data_models.groundstation_data import GroundStationCollection
@@ -168,58 +163,15 @@ class History3DContext(base.BaseContext):
 
 
 
-	def saveGif(self, gif_config:gif_datatypes.GIFConfig):
-		# TODO: need to lockout controls
+	# def abortGIF(self):
 
-		console.send('Starting GIF saving, please do not touch the controls.')
-		if gif_config.loop:
-			num_loops = 0
-		else:
-			num_loops = 1
-
-		writer = imageio.get_writer(gif_config.file_path, loop=num_loops)
-
-		# calculate viewport of just the canvas
-		geom = self.canvas_wrapper.canvas.native.geometry()
-		ratio = self.canvas_wrapper.canvas.native.devicePixelRatio()
-		geom = (geom.x(), geom.y(), geom.width(), geom.height())
-		new_pos = self.canvas_wrapper.canvas.native.mapTo(self.window, QtCore.QPoint(0, 0))
-		new_y = self.window.height() - (new_pos.y() + geom[3])
-		viewport = (new_pos.x() * ratio, new_y * ratio, geom[2] * ratio, geom[3] * ratio)
-
-		for ii in range(gif_config.num_steps):
-			curr_timespan_idx = gif_config.start_idx + ii
-
-			new_az = gif_config.cam_config.az_start - ii*gif_config.cam_config.az_step
-			new_el = gif_config.cam_config.el_start - ii*gif_config.cam_config.el_step
-			self.canvas_wrapper.view_box.camera.azimuth = new_az
-			self.canvas_wrapper.view_box.camera.elevation = new_el
-			self.canvas_wrapper.onManualCameraRotate()
-			self.controls.time_slider.setValue(curr_timespan_idx)
-			app.process_events()
-
-			im = _screenshot(viewport=viewport)
-			writer.append_data(im)
-			# use this to print to console on last iteration, otherwise thread doesn't get serviced until after writer closes
-			if ii==gif_config.num_steps-2:
-				console.send("Writing file. Please wait...")
-				app.process_events()
-
-		writer.close()
-		# reset to pre-gif state
-		self.canvas_wrapper.view_box.camera.azimuth = gif_config.cam_config.az_start
-		self.canvas_wrapper.view_box.camera.elevation = gif_config.cam_config.el_start
-		self.controls.time_slider.setValue(gif_config.start_idx)
-		del(self._gif_dialog)
-		console.send(f"Saved {self.config['name']} GIF to {gif_config.file_path}")
 
 	def setupGIFDialog(self):
 		# add check that timespan is not None
-		cam_config = gif_datatypes.ThreeDimCameraAdjustment(az_start=self.canvas_wrapper.view_box.camera.azimuth,
+		cam_config = gif_datatypes.TurntableCameraAdjustment(az_start=self.canvas_wrapper.view_box.camera.azimuth,
 															el_start=self.canvas_wrapper.view_box.camera.elevation)
 
 		gif_config = gif_datatypes.GIFConfig(self.data['history'].timespan,
-											self.canvas_wrapper.view_box.camera.name,
 											cam_config=cam_config)
 
 		self._gif_dialog = dialogs.GIFDialog(self.window, self, gif_config)

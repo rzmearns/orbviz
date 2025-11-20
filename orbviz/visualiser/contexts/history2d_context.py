@@ -181,10 +181,10 @@ class History2DContext(base.BaseContext):
 
 	def setupGIFDialog(self):
 		# add check that timespan is not None
-
+		cam_config = gif_datatypes.RestrictedPanZoomCameraAdjustment()
 		config = gif_datatypes.GIFConfig(self.data['history'].timespan,
 											self.canvas_wrapper.view_box.camera.name,
-											cam_config=None)
+											cam_config=cam_config)
 
 		self._gif_dialog = dialogs.GIFDialog(self.window, self,config)
 
