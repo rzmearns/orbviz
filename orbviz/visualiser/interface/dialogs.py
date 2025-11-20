@@ -263,6 +263,7 @@ class AbortGIFDialog:
 
 		layout = QtWidgets.QVBoxLayout()
 		cancelbutton = QtWidgets.QPushButton('Abort')
+		cancelbutton.setStyleSheet("background-color: red")
 		layout.addWidget(cancelbutton)
 
 		cancelbutton.clicked.connect(self.cancel)
