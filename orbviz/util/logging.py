@@ -10,6 +10,7 @@ def setUpLogLevels():
 	logging.getLogger('numpy').setLevel(logging.ERROR)
 	logging.getLogger('scipy').setLevel(logging.ERROR)
 	logging.getLogger('skyfield').setLevel(logging.ERROR)
+	logging.getLogger('matplotlib').setLevel(logging.ERROR)
 	logging.getLogger('PyQt5').setLevel(logging.WARNING)
 	logging.getLogger('hapsira').setLevel(logging.ERROR)
 	logging.getLogger('spacetrack').setLevel(logging.WARNING)
