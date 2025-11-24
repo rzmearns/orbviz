@@ -150,7 +150,7 @@ class HistoryConfigurationContext(BaseContext):
 	def _updateDisplayedIndex(self, index:int) -> None:
 		if self.data['history'] is None:
 			logger.warning("model history data is not set for context %s:%s", self.config['name'], self)
-			ValueError(f"model history data is not set for context {self.config['name']}:{self}")
+			raise ValueError(f"model history data is not set for context {self.config['name']}:{self}")
 		self.data['history'].updateIndex(index)
 
 	def _procDataUpdated(self) -> None:
