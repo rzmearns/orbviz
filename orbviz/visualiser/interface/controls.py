@@ -14,9 +14,7 @@ import orbviz.visualiser.interface.widgets as widgets
 logger = logging.getLogger(__name__)
 
 class PrimaryConfig(QtWidgets.QWidget):
-	prim_config_dir = 'data/primary_configs/'
-
-	def __init__(self, parent: QtWidgets.QWidget|None=None) -> None:
+	def __init__(self, path:pathlib.Path, parent: QtWidgets.QWidget|None=None) -> None:
 		super().__init__(parent)
 		# Layout containers
 		super_layout = QtWidgets.QVBoxLayout()
@@ -26,7 +24,7 @@ class PrimaryConfig(QtWidgets.QWidget):
 		config_vlayout.setSpacing(10)
 
 		# Configuration widgets
-		dflt_config_file = orbviz_paths.prim_cnfg_dir.joinpath('ISS_XYZ.json')
+		dflt_config_file = path
 		self.tmp_prim_config = None
 		self.prim_config_selector = widgets.FilePicker('Configuration File',
 															dflt_file=dflt_config_file.name,
@@ -69,7 +67,7 @@ class PrimaryConfig(QtWidgets.QWidget):
 		return self.tmp_prim_config
 
 class TimePeriodConfig(QtWidgets.QWidget):
-	def __init__(self, parent: QtWidgets.QWidget|None=None) -> None:
+	def __init__(self, start:dt.datetime, end:dt.datetime, period:int, parent: QtWidgets.QWidget|None=None) -> None:
 		super().__init__(parent)
 		# Layout containers
 		super_layout = QtWidgets.QVBoxLayout()
@@ -78,9 +76,9 @@ class TimePeriodConfig(QtWidgets.QWidget):
 		config_vlayout.setSpacing(10)
 
 		# Configuration Widgets
-		self.period_start = widgets.DatetimeEntry("Period Start:", dt.datetime.now(tz=dt.timezone.utc)-dt.timedelta(seconds=1.5*60*60))
-		self.period_end = widgets.DatetimeEntry("Period End:", (dt.datetime.now(tz=dt.timezone.utc)+dt.timedelta(seconds=1.5*60*60)))
-		self.sampling_period = widgets.PeriodBox("Sampling Period:", 30)
+		self.period_start = widgets.DatetimeEntry("Period Start:", start)
+		self.period_end = widgets.DatetimeEntry("Period End:", end)
+		self.sampling_period = widgets.PeriodBox("Sampling Period:", period)
 
 		# Place configuration widgets
 		config_vlayout.addWidget(self.period_start)
@@ -108,7 +106,7 @@ class TimePeriodConfig(QtWidgets.QWidget):
 		return self.sampling_period.period
 
 class HistoricalPointingConfig(QtWidgets.QWidget):
-	def __init__(self, *args, **kwargs):
+	def __init__(self, path, *args, **kwargs):
 		super().__init__()
 		# Layout containers
 		super_layout = QtWidgets.QVBoxLayout()
@@ -119,7 +117,7 @@ class HistoricalPointingConfig(QtWidgets.QWidget):
 		inv_switch_vlayout.setSpacing(0)
 
 		# Configuration widgets
-		dflt_config_file = orbviz_paths.pnt_dir.joinpath('20240108_ECI_parallel.csv')
+		dflt_config_file = path
 		self._pointing_file_selector = widgets.FilePicker('Pointing File',
 												   			dflt_file=dflt_config_file.name,
 															dflt_dir=dflt_config_file.parent,
@@ -164,7 +162,7 @@ class HistoricalPointingConfig(QtWidgets.QWidget):
 		self.pointing_file_inv_toggle.deSerialise(state['frame_inv'])
 
 class HistoricalEventConfig(QtWidgets.QWidget):
-	def __init__(self, *args, **kwargs):
+	def __init__(self, *args, path:None|pathlib.Path=None, **kwargs):
 		super().__init__()
 		# Layout containers
 		super_layout = QtWidgets.QVBoxLayout()
@@ -173,7 +171,10 @@ class HistoricalEventConfig(QtWidgets.QWidget):
 		config_vlayout.setSpacing(10)
 
 		# Configuration Widgets
-		dflt_config_file = orbviz_paths.events_dir.joinpath('example_events.csv')
+		if path is None:
+			dflt_config_file = orbviz_paths.events_dir.joinpath('example_events.csv')
+		else:
+			dflt_config_file = path
 		self.events_config_selector = widgets.FilePicker('Events File',
 															dflt_file=dflt_config_file.name,
 															dflt_dir=dflt_config_file.parent,
@@ -208,7 +209,7 @@ class HistoricalEventConfig(QtWidgets.QWidget):
 		pass
 
 class ConstellationControls(QtWidgets.QWidget):
-	def __init__(self, *args, **kwargs):
+	def __init__(self, path:pathlib.Path, *args, **kwargs):
 		super().__init__()
 		# Layout containers
 		super_layout = QtWidgets.QVBoxLayout()
@@ -218,7 +219,7 @@ class ConstellationControls(QtWidgets.QWidget):
 		config_vlayout.setSpacing(10)
 
 		# Configuration Widgets
-		dflt_config_file = orbviz_paths.constellation_dir.joinpath('Iridium_SMALL.json')
+		dflt_config_file = path
 		self.tmp_const_config = None
 		self.const_config_selector = widgets.FilePicker('Configuration File',
 															dflt_file=dflt_config_file.name,
@@ -243,6 +244,7 @@ class ConstellationControls(QtWidgets.QWidget):
 
 		# Set up connections
 		self.const_config_selector.add_connect(self._loadTempConfig)
+		self._loadTempConfig(dflt_config_file)
 
 	def _loadTempConfig(self, cnfg_file:pathlib.Path):
 		try:

@@ -1,3 +1,4 @@
+import datetime as dt
 import logging
 
 from typing import Any
@@ -6,6 +7,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 import orbviz.model.data_models.data_types as data_types
 from orbviz.model.data_models.history_data import HistoryData
+import orbviz.util.paths as orbviz_paths
 from orbviz.visualiser.contexts.base_context import BaseContext, BaseControls
 from orbviz.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
 import orbviz.visualiser.interface.console as console
@@ -178,16 +180,18 @@ class Controls(BaseControls):
 		super().__init__(self.context.config['name'])
 
 		# Prep config widgets
-		self.prim_config = controls.PrimaryConfig()
-		self.time_period_config = controls.TimePeriodConfig()
-		self.pointing_config = controls.HistoricalPointingConfig()
-		self.constellation_config = controls.ConstellationControls()
+		self.prim_config = controls.PrimaryConfig(orbviz_paths.prim_cnfg_dir.joinpath('ISS_XYZ.json'))
+		self.time_period_config = controls.TimePeriodConfig(dt.datetime.now(tz=dt.timezone.utc)-dt.timedelta(seconds=1.5*60*60),
+															dt.datetime.now(tz=dt.timezone.utc)+dt.timedelta(seconds=1.5*60*60),
+															30)
+		self.pointing_config = controls.HistoricalPointingConfig(orbviz_paths.pnt_dir.joinpath('20240108_ECI_parallel.csv'))
+		self.constellation_config = controls.ConstellationControls(orbviz_paths.constellation_dir.joinpath('Iridium_SMALL.json'))
 		dflt_time_dfntn_state = False
 		self.pnting_defines_period_switch = widgets.LabelledSwitch(labels=('Use Manual Time Period','Use Pointing Data Defined Period'),dflt_state=dflt_time_dfntn_state)
 		dflt_constellation_state = False
 		self.use_constellation_switch = widgets.LabelledSwitch(labels=('','Use Supplemental Constellation'),dflt_state=dflt_constellation_state)
 		self.submit_button = QtWidgets.QPushButton('Recalculate')
-		self.events_config = controls.HistoricalEventConfig()
+		self.events_config = controls.HistoricalEventConfig(orbviz_paths.events_dir.joinpath('example_events.csv'))
 		dflt_use_events_state = False
 		self.use_events_switch = widgets.LabelledSwitch(labels=('','Plot Events'),dflt_state=dflt_use_events_state)
 
