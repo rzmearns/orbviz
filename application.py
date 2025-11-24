@@ -14,6 +14,7 @@ from PyQt5 import QtWidgets
 from vispy import app, use
 
 import orbviz
+import orbviz.util.configs as orbviz_config
 import orbviz.util.logging as orbviz_logging
 import orbviz.util.threading as threading
 from orbviz.visualiser.contexts.canvas_wrappers.base_cw import BaseCanvas
@@ -33,6 +34,7 @@ class Application(QtWidgets.QApplication):
 		logger.info("Creating threadpool with %s threads",orbviz.threadpool.maxThreadCount())
 		self.pyqt_app = app.use_app("pyqt5")
 		self.pyqt_app.create()
+		orbviz_config.loadConfig()
 		self.window = window.MainWindow(title="OrbViz")
 		self._connectControls()
 		self.load_data_worker = None
