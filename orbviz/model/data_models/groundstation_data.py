@@ -14,10 +14,23 @@ import orbviz.util.hashing as orbviz_hashing
 
 logger = logging.getLogger(__name__)
 
+def createGSSelectionModelEntry(path:pathlib.Path) -> tuple[str, dict]:
+	with path.open('r') as fp:
+		data = json.load(fp)
+	entry = {'file':path,
+			'hash':orbviz_hashing.md5(path)}
+	return data['name'], entry
+
 class GroundStationCollection:
 	# TODO: use hashes to key instead of names
-	def __init__(self):
+	def __init__(self, initial_gs:list[pathlib.Path]=[]):
+
 		self._stations = {}
+		gs_list = []
+		for path in initial_gs:
+			name, entry = createGSSelectionModelEntry(path)
+			gs_list.append(entry)
+		self.createGroundStations(gs_list)
 
 	def getEnabledDict(self) -> dict[str,dict[str,pathlib.Path|str]]:
 		en_list = {}
@@ -39,7 +52,8 @@ class GroundStationCollection:
 			return True
 		return False
 
-	def createGroundStations(self, gs_files:dict[str,pathlib.Path|str]) -> None:
+	def createGroundStations(self, gs_files:list[dict[str,pathlib.Path|str]]) -> None:
+
 		req_hashes= [file['hash'] for file in gs_files]
 		to_delete = []
 		for station_name, station in self._stations.items():
@@ -50,6 +64,8 @@ class GroundStationCollection:
 			del self._stations[el]
 
 		for gs_file in gs_files:
+			if isinstance(gs_file['file'], str):
+				gs_file['file'] = pathlib.Path(gs_file['file'])
 			gs = GroundStation(gs_file['file'])
 			if gs.name not in self._stations.keys():
 				self._stations[gs.name] = gs
@@ -114,15 +130,15 @@ class GroundStation(BaseDataModel):
 		self._reloadECIPos()
 
 	@property
-	def name(self):
+	def name(self) -> str:
 		return self._name
 
 	@property
-	def file(self):
+	def file(self) -> pathlib.Path:
 		return self._source_file
 
 	@property
-	def hash(self):
+	def hash(self) -> str:
 		return self._source_file_hash
 
 	@property

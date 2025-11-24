@@ -1,5 +1,4 @@
 import datetime as dt
-import json
 import pathlib
 import time
 
@@ -15,6 +14,7 @@ from vispy.app.canvas import MouseEvent
 
 from orbviz.model.data_models import data_types
 from orbviz.model.data_models import datapane as datapane_model
+import orbviz.model.data_models.groundstation_data as groundstation_data
 import orbviz.util.gifs as gifs
 import orbviz.util.hashing as orbviz_hashing
 import orbviz.util.paths as orbviz_paths
@@ -296,11 +296,8 @@ class GroundStationDialog:
 
 		self._model = {}
 		for file in gs_files:
-			# TODO: use a reader function from the groundstation data class
-			with file.open('r') as fp:
-				data = json.load(fp)
-			self._model[data['name']] = {'file':file,
-										'hash':orbviz_hashing.md5(file)}
+			name, entry = groundstation_data.createGSSelectionModelEntry(pathlib.Path(file))
+			self._model[name] = entry
 
 		available_list = list(self._model.keys())
 		added_list = []

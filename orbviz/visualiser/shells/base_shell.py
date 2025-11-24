@@ -7,6 +7,7 @@ from PyQt5 import QtCore, QtWidgets
 from orbviz.model.data_models import datapane as datapane_model
 from orbviz.model.data_models.groundstation_data import GroundStationCollection
 import orbviz.model.data_models.timeseries as timeseries
+import orbviz.util.configs as orbviz_config
 from orbviz.visualiser.contexts import base_context
 import orbviz.visualiser.interface.controls as controls
 import orbviz.visualiser.interface.datapane as datapane
@@ -31,7 +32,7 @@ class BaseShell:
 		self.active_context:base_context.BaseContext|None = None
 		self.data: dict[str, Any] = {}
 		self.timeseries_data: dict[str, timeseries.TimeSeries] = {}
-		self.data['groundstations'] = GroundStationCollection()
+		self.data['groundstations'] = GroundStationCollection(orbviz_config.config.ground_stations)
 
 		self.contexts_dict: dict[str, base_context.BaseContext] = {}
 		self.context_tab_stack = orbviz_widgets.ColumnarStackedTabWidget()
