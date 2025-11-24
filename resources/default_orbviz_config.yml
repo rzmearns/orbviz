@@ -1,0 +1,19 @@
+scenario-modules:
+    primary-configuration:
+      path: primary_configs/ISS_XYZ.json
+    constellation-configuration:
+      path: constellation_configs/Iridium.json
+      enabled: false
+    orbital-events-configuration:
+      path: events/example_events.csv
+      enabled: false
+    attitude-configuration:
+      path: pointing/20240108_ECI_parallel.csv
+    time-period-configuration:
+      manual-definition: true
+      start-time: now-1.5h
+      end-time: now+1.5h
+      sampling-period: 30
+ground-stations:
+  path:
+    - groundstation_configs/greenwhich.json
