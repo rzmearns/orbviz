@@ -107,12 +107,12 @@ class TimePeriodConfig(QtWidgets.QWidget):
 	def getSamplingPeriod(self) -> int:
 		return self.sampling_period.period
 
-class HistoricalPointingConfig(QtWidgets.QWidget):
+class HistoricalAttitudeConfig(QtWidgets.QWidget):
 	def __init__(self, *args, **kwargs):
 		super().__init__()
 		# Layout containers
 		super_layout = QtWidgets.QVBoxLayout()
-		pane_groupbox = QtWidgets.QGroupBox('Historical Pointing Data')
+		pane_groupbox = QtWidgets.QGroupBox('Historical Attitude Data')
 		config_vlayout = QtWidgets.QVBoxLayout()
 		config_vlayout.setSpacing(10)
 		inv_switch_vlayout = QtWidgets.QVBoxLayout()
@@ -120,21 +120,21 @@ class HistoricalPointingConfig(QtWidgets.QWidget):
 
 		# Configuration widgets
 		dflt_config_file = orbviz_paths.pnt_dir.joinpath('20240108_ECI_parallel.csv')
-		self._pointing_file_selector = widgets.FilePicker('Pointing File',
+		self._attitude_file_selector = widgets.FilePicker('Attitude File',
 												   			dflt_file=dflt_config_file.name,
 															dflt_dir=dflt_config_file.parent,
 															save=False,
 															margins=[0,0,0,0])
-		self.pointing_file_inv_toggle = widgets.LabelledSwitch(labels=('BF->ECI','ECI->BF'), dflt_state=True)
+		self.attitude_file_inv_toggle = widgets.LabelledSwitch(labels=('BF->ECI','ECI->BF'), dflt_state=True)
 		_label_font = QtGui.QFont()
 		_label_font.setWeight(QtGui.QFont.Medium)
-		pointing_file_inv_label = QtWidgets.QLabel('Pointing File frame transform direction:')
-		pointing_file_inv_label.setFont(_label_font)
+		attitude_file_inv_label = QtWidgets.QLabel('Attitude File frame transform direction:')
+		attitude_file_inv_label.setFont(_label_font)
 
 		# Place configuration widgets
-		config_vlayout.addWidget(self._pointing_file_selector)
-		inv_switch_vlayout.addWidget(pointing_file_inv_label)
-		inv_switch_vlayout.addWidget(self.pointing_file_inv_toggle)
+		config_vlayout.addWidget(self._attitude_file_selector)
+		inv_switch_vlayout.addWidget(attitude_file_inv_label)
+		inv_switch_vlayout.addWidget(self.attitude_file_inv_toggle)
 		config_vlayout.addLayout(inv_switch_vlayout)
 		pane_groupbox.setLayout(config_vlayout)
 
@@ -146,22 +146,22 @@ class HistoricalPointingConfig(QtWidgets.QWidget):
 		super_layout.addWidget(scroll_area)
 		self.setLayout(super_layout)
 
-	def getPointingConfig(self) -> pathlib.Path:
-		return self._pointing_file_selector.path
+	def getAttitudeConfig(self) -> pathlib.Path:
+		return self._attitude_file_selector.path
 
-	def isPointingTransformInverse(self) -> bool:
-		return self.pointing_file_inv_toggle.isChecked()
+	def isAttitudeTransformInverse(self) -> bool:
+		return self.attitude_file_inv_toggle.isChecked()
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
-		state['use_pointing_period'] = {}
-		state['pointing_file'] = self._pointing_file_selector.prepSerialisation()
-		state['frame_inv'] = self.pointing_file_inv_toggle.prepSerialisation()
+		state['use_attitude_period'] = {}
+		state['attitude_file'] = self._attitude_file_selector.prepSerialisation()
+		state['frame_inv'] = self.attitude_file_inv_toggle.prepSerialisation()
 		return state
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
-		self._pointing_file_selector.deSerialise(state['pointing_file'])
-		self.pointing_file_inv_toggle.deSerialise(state['frame_inv'])
+		self._attitude_file_selector.deSerialise(state['attitude_file'])
+		self.attitude_file_inv_toggle.deSerialise(state['frame_inv'])
 
 class HistoricalEventConfig(QtWidgets.QWidget):
 	def __init__(self, *args, **kwargs):

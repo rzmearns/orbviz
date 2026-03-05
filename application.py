@@ -151,7 +151,7 @@ if __name__ == '__main__':
 	setDefaultPackageOptions()
 	parser = argparse.ArgumentParser(
 						prog='orbviz',
-						description='Visualisation software for satellites; including orbits and pointing.')
+						description='Visualisation software for satellites; including orbits and attitudes.')
 	parser.add_argument('--nogl+', action='store_true', dest='nogl_plus')
 	parser.add_argument('--high_precision', action='store_true', dest='high_precision')
 	parser.add_argument('--debug', action='store_true', dest='debug')

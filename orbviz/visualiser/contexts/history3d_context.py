@@ -127,8 +127,8 @@ class History3DContext(base.BaseContext):
 		# self.data = state_dict['data']
 		# self.canvas_wrapper.setSource(self.data['timespan'],
 		# 								self.data['orbit'],
-		# 								self.data['pointing'],
-		# 								self.data['pointing_invert_transform'],
+		# 								self.data['attitude'],
+		# 								self.data['attitude_invert_transform'],
 		# 								self.data['constellation_list'],
 		# 								self.data['constellation_beam_angle'])
 		# self.canvas_wrapper.setFirstDrawFlags()

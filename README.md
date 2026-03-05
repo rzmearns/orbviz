@@ -56,9 +56,9 @@ Demo data is provided in the `data` directories
     - `data/constellation_configs/Iridium_NEXT.json`
   - Swift satellite
     - `data/constellation_configs/Swift.json`
-- Pointing files
-  - Example pointing data from SpIRIT
-    - `data/pointing/2024-02-23 03:00:00 UTC`
+- Attitude files
+  - Example attitude data from SpIRIT
+    - `data/attitude/2024-02-23 03:00:00 UTC`
 - Sensor suite files
   - Example sensor suite for the SpIRIT spacecraft
   - `data/spacecraft/spirit.json`
@@ -101,21 +101,21 @@ The time slider will activate once the orbits have finished propagating.
   - Select a satellite to display using the file picker
     - The satellite configuration file must be constructed according to the format described in `docs/satellite_configs.md`
 
-- Selecting a Pointing File
-  - Enable the use of a pointing file
-  - The pointing file can then be selected using the file picker
-  - The period times can be derived automatically from the pointing file, select the checkbox if desired
+- Selecting an Atittude File
+  - Enable the use of a attitude file
+  - The atttitude file can then be selected using the file picker
+  - The period times can be derived automatically from the attitude file, select the checkbox if desired
   - Otherwise:
-    - The timestamp of the period start must be present in the pointing file
-  - If the delta between timesteps of the pointing file are not all the same, a warning will be issued
-  - If the pointing file is not sufficiently long, or there is bad data for a particular time step, the previous valid pointing data will be used, however, the spacecraft body frame Gizmo (RGB axis), will be shown as all Magenta. The Body Frame Gizmo colour will be restored once good pointing data is present again.
-  - The pointing file should be a csv file with the following columns in the following order:
+    - The timestamp of the period start must be present in the attitude file
+  - If the delta between timesteps of the attitude file are not all the same, a warning will be issued
+  - If the attitude file is not sufficiently long, or there is bad data for a particular time step, the previous valid attitude data will be used, however, the spacecraft body frame Gizmo (RGB axis), will be shown as all Magenta. The Body Frame Gizmo colour will be restored once good attitude data is present again.
+  - The attitude file should be a csv file with the following columns in the following order:
     1. timestamp (Yr-Mon-Day Hr:Min:Sec.Millis)
     2. Quaternion W
     3. Quaternion X
     4. Quaternion Y
     5. Quaternion Z
-  - The pointing file is expected to have one header row
+  - The attitude file is expected to have one header row
 
 - Constellations
   - Enable the simulation of an additional constellation
@@ -141,7 +141,7 @@ The time slider will activate once the orbits have finished propagating.
       - `"colour":"(52, 235, 198)"`
       - `"bf_quat":"(-0.40860704, -0.40860704, 0.577096542, 0.57709642)"`
   - The `bf_quat` field describes the quaternion of the sensor bore-sight axis ('height' direction up) in the spacecraft body frame
-  - If pointing is not desired, clear the pointing file textbox and press `tab` or `enter`
+  - If attitude is not desired, clear the attitude file textbox and press `tab` or `enter`
 
 
 ## Fetching TLE Data
@@ -168,7 +168,7 @@ The following information is saved in a orbviz state:
   * position
   * velocity
   * time periods
-* satellite pointing information
+* satellite attitude information
 * propagated constellation information
 
 Saving states is particularly useful for large time period simulations, allowing you to forego the TLE update and propagation steps, or for sharing simulations.

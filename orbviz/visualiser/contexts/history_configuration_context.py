@@ -94,24 +94,24 @@ class HistoryConfigurationContext(BaseContext):
 		else:
 			self.data['history'].clearSupplementalConstellation()
 
-		# Historical pointing
+		# Historical attitue
 		if self.controls.pnting_defines_period_switch.isChecked():
-			logger.info('Pointing defined. Setting pointing configuration for %s', self)
-			self.data['history'].updateConfig('is_pointing_defined', True)
-			pointing_file_path = self.controls.pointing_config.getPointingConfig()
-			if pointing_file_path is None or \
-				pointing_file_path == '':
-				console.sendErr("Displaying spacecraft pointing requires a pointing file.")
+			logger.info('Attitude defined. Setting attitude configuration for %s', self)
+			self.data['history'].updateConfig('attitude_defined', True)
+			attitude_file_path = self.controls.attitude_config.getAttitudeConfig()
+			if attitude_file_path is None or \
+				attitude_file_path == '':
+				console.sendErr("Displaying spacecraft attitude requires an attitude file.")
 				return
-			self.data['history'].updateConfig('pointing_defines_timespan', self.controls.pnting_defines_period_switch.isChecked())
-			self.data['history'].updateConfig('pointing_file', pointing_file_path)
-			self.data['history'].updateConfig('pointing_invert_transform', self.controls.pointing_config.isPointingTransformInverse())
+			self.data['history'].updateConfig('attitude_defines_timespan', self.controls.pnting_defines_period_switch.isChecked())
+			self.data['history'].updateConfig('attitude_file', attitude_file_path)
+			self.data['history'].updateConfig('attitude_invert_transform', self.controls.attitude_config.isAttitudeTransformInverse())
 		else:
-			logger.info('Pointing not defined. Clearing pointing configuration for %s', self)
-			self.data['history'].updateConfig('is_pointing_defined', False)
-			self.data['history'].updateConfig('pointing_defines_timespan', False)
-			self.data['history'].updateConfig('pointing_file', None)
-			self.data['history'].updateConfig('pointing_invert_transform', False)
+			logger.info('Attitude not defined. Clearing attitude configuration for %s', self)
+			self.data['history'].updateConfig('is_attitude_defined', False)
+			self.data['history'].updateConfig('attitude_defines_timespan', False)
+			self.data['history'].updateConfig('attitude_file', None)
+			self.data['history'].updateConfig('attitude_invert_transform', False)
 
 		# Events
 		self.data['history'].updateConfig('events_defined', self.controls.use_events_switch.isChecked())
@@ -180,10 +180,10 @@ class Controls(BaseControls):
 		# Prep config widgets
 		self.prim_config = controls.PrimaryConfig()
 		self.time_period_config = controls.TimePeriodConfig()
-		self.pointing_config = controls.HistoricalPointingConfig()
+		self.attitude_config = controls.HistoricalAttitudeConfig()
 		self.constellation_config = controls.ConstellationControls()
 		dflt_time_dfntn_state = False
-		self.pnting_defines_period_switch = widgets.LabelledSwitch(labels=('Use Manual Time Period','Use Pointing Data Defined Period'),dflt_state=dflt_time_dfntn_state)
+		self.pnting_defines_period_switch = widgets.LabelledSwitch(labels=('Use Manual Time Period','Use Attitude Data Defined Period'),dflt_state=dflt_time_dfntn_state)
 		dflt_constellation_state = False
 		self.use_constellation_switch = widgets.LabelledSwitch(labels=('','Use Supplemental Constellation'),dflt_state=dflt_constellation_state)
 		self.submit_button = QtWidgets.QPushButton('Recalculate')
@@ -204,7 +204,7 @@ class Controls(BaseControls):
 		tp_selection_vlayout = QtWidgets.QVBoxLayout()
 		tp_selection_vlayout.addWidget(self.pnting_defines_period_switch)
 		tp_selection_vlayout.addWidget(self.time_period_config)
-		tp_selection_vlayout.addWidget(self.pointing_config)
+		tp_selection_vlayout.addWidget(self.attitude_config)
 		tp_selection_vlayout.addStretch()
 		tp_selection_widget.setLayout(tp_selection_vlayout)
 
@@ -248,7 +248,7 @@ class Controls(BaseControls):
 
 	def toggleTimePeriodDefinitionMethod(self, new_state):
 		self.time_period_config.setEnabled(not new_state)
-		self.pointing_config.setEnabled(new_state)
+		self.attitude_config.setEnabled(new_state)
 
 	def setHotkeys(self):
 		self.shortcuts={}
@@ -269,7 +269,7 @@ class Controls(BaseControls):
 		state = {}
 		# state['orbit_controls'] = self.orbit_controls.prepSerialisation()
 		state['time_slider'] = self.time_slider.prepSerialisation()
-		# add serialisation state variable tracking if using manual time or pointing time
+		# add serialisation state variable tracking if using manual time or attitude time
 		# add serialisation state variable tracking if using constellation
 		return state
 

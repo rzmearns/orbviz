@@ -321,7 +321,7 @@ class EarthRayCastData(BaseDataModel):
 
 		Parameters:
 			position (ndarray(dtype=float, ndim=3)): ECEF position vector of spacecraft
-			pointing (ndarray(dtype=float, ndim=[N,3])): unit vectors defining ECEF pointing directions
+			attitude (ndarray(dtype=float, ndim=[N,3])): unit vectors defining ECEF attitude directions
 
 		Returns:
 			ndarray(dtype=float, ndim=[N,3]): ECEF cartesian vectors describing closest point on earth that each ray intersects

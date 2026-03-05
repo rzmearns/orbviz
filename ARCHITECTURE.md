@@ -22,7 +22,7 @@ orbviz
 ### `data`
 This directory stores user data.   
 Currently contains:
-  - pointing - files describing a time-series of pointing of a spacecraft
+  - attitude - files describing a time-series of attitude of a spacecraft
   - saves - save files of orbviz
   - spacecraft - files describing a spacecraft; sensor suite descriptions, mesh models, etc.
   - TLEs - TLE files sourced from celestrak

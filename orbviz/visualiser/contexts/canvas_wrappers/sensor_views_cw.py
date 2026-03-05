@@ -157,7 +157,7 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 			raise exceptions.InvalidDataError
 
 		if self.data_models['history'].hasOrbits():
-			if self.data_models['history'].getConfigValue('is_pointing_defined'):
+			if self.data_models['history'].getConfigValue('is_attitude_defined'):
 				self.assets['spacecraft'].setSource(list(self.data_models['history'].getPrimaryConfig().getAllSpacecraftConfigs().values())[0],
 													self.data_models['history'],
 													self.data_models['raycast_src'])

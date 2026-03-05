@@ -173,7 +173,7 @@ class Controls(BaseControls):
 		return self.time_slider.getValue()
 
 	def updateSensorViewLists(self):
-		if self.context.data['history'].getConfigValue('is_pointing_defined'):
+		if self.context.data['history'].getConfigValue('is_attitude_defined'):
 			sens_dict = self.context.data['history'].getPrimaryConfig().serialiseAllSensors()
 		else:
 			sens_dict = {}

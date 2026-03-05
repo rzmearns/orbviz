@@ -29,20 +29,20 @@ class HistoryData(BaseDataModel):
 		self._setConfig('timespan_period_start', None)
 		self._setConfig('timespan_period_end', None)
 		self._setConfig('sampling_period', None)
-		self._setConfig('pointing_defines_timespan', False)
+		self._setConfig('attitude_defines_timespan', False)
 		self._setConfig('primary_satellite_ids', []) # keys of orbits, position dict
 		self._setConfig('primary_satellite_config', None)
 		self._setConfig('has_supplemental_constellation', False)
 		self._setConfig('num_geolocations', 0)
-		self._setConfig('is_pointing_defined', False)
-		self._setConfig('pointing_file', None)
-		self._setConfig('pointing_invert_transform', False)
+		self._setConfig('is_attitude_defined', False)
+		self._setConfig('attitude_file', None)
+		self._setConfig('attitude_invert_transform', False)
 		self._setConfig('events_defined', False)
 		self._setConfig('events_file', None)
 
 		self.timespan: timespan.TimeSpan | None = None
 		self.orbits: dict[int, orbit.Orbit] = {}
-		self.pointings: dict[int, HistoricalAttitude] = {}
+		self.attitudes: dict[int, HistoricalAttitude] = {}
 		self.constellation: constellation_data.ConstellationData | None = None
 		self.events: dict[int, event_data.EventData] | None = None
 		self.groundstationCollection: groundstation_data.GroundStationCollection | None = None
@@ -99,29 +99,29 @@ class HistoryData(BaseDataModel):
 			raise ValueError(f'History data:{self} has no orbits yet')
 		return self.orbits
 
-	def getPointings(self) -> dict[int, "HistoricalAttitude"]:
-		if len(self.pointings.values()) == 0:
-			logger.warning('History data:%s has no pointings yet', self)
-			raise ValueError(f'History data:{self} has no pointings yet')
-		return self.pointings
+	def getAttitudess(self) -> dict[int, "HistoricalAttitude"]:
+		if len(self.attitudes.values()) == 0:
+			logger.warning('History data:%s has no attitudes yet', self)
+			raise ValueError(f'History data:{self} has no attitudes yet')
+		return self.attitudes
 
 	def getSCAttitude(self, sc_id:int) -> "HistoricalAttitude":
-		return self.pointings[sc_id]
+		return self.attitudes[sc_id]
 
 	def process(self) -> None:
-		# Load pointing and create timespan
-		if self.getConfigValue('is_pointing_defined'):
+		# Load attitude and create timespan
+		if self.getConfigValue('is_attitude_defined'):
 			for sc_id, sc_config in self.getConfigValue('primary_satellite_config').getAllSpacecraftConfigs().items():
-				self.pointings[sc_id] = HistoricalAttitude(self.getConfigValue('pointing_file'), sc_config)
-			if self.getConfigValue('pointing_defines_timespan'):
-				console.send("Loading timespan from pointing file.")
-				_timearr = self.pointings[self.getConfigValue('primary_satellite_ids')[0]].getPointingTimestamps()
+				self.attitudes[sc_id] = HistoricalAttitude(self.getConfigValue('attitude_file'), sc_config)
+			if self.getConfigValue('attitude_defines_timespan'):
+				console.send("Loading timespan from attitude file.")
+				_timearr = self.attitudes[self.getConfigValue('primary_satellite_ids')[0]].getAttitudeTimestamps()
 				self.timespan = timespan.TimeSpan.fromDatetime(_timearr)
-				logger.info('Generating timespan from pointing file timestamps for: %s', self)
+				logger.info('Generating timespan from attitude file timestamps for: %s', self)
 			else:
 				self.timespan = None
 
-		if self.timespan is None or not self.getConfigValue('is_pointing_defined'):
+		if self.timespan is None or not self.getConfigValue('is_attitude_defined'):
 			logger.info('Generating timespan from configuration for: %s', self)
 			period_start = self.getConfigValue('timespan_period_start').replace(microsecond=0)
 			period_end = self.getConfigValue('timespan_period_end').replace(microsecond=0)
@@ -328,7 +328,7 @@ class HistoryData(BaseDataModel):
 						'unit':'m/s',
 						'precision':2})
 		self.datapane_data.append({'parameter':'Quaternion',
-						'value':lambda : list(self.pointings.values())[0].getAttitude(self.curr_index),
+						'value':lambda : list(self.attitudes.values())[0].getAttitude(self.curr_index),
 						'unit':None,
 						'precision':4})
 
@@ -336,7 +336,7 @@ class HistoryData(BaseDataModel):
 		state = {}
 		state['timespan'] = self.timespan
 		state['orbits'] = self.orbits
-		state['pointings'] = self.pointings
+		state['attitudes'] = self.attitudes
 		if self.constellation is not None:
 			state['constellation'] = self.constellation.prepSerialisation()
 		else:
@@ -351,7 +351,7 @@ class HistoryData(BaseDataModel):
 	def deSerialise(self, state):
 		self.timespan = state['timespan']
 		self.orbits = state['orbits']
-		self.pointings = state['pointings']
+		self.attitudes = state['attitudes']
 		if state['constellation'] is not None:
 			self.constellation = constellation_data.ConstellationData.emptyForDeSerialisation()
 			self.constellation.deSerialise(state['constellation'])
@@ -367,7 +367,7 @@ class HistoryData(BaseDataModel):
 class HistoricalAttitude:
 	def __init__(self, p_file: pathlib.Path, sc_config:data_types.SpacecraftConfig, quat_defn_direction:str='eci2bf'):
 		self.sc_config = sc_config
-		self._timestamps, self._sc_raw_quats = self._loadPointingFile(p_file)
+		self._timestamps, self._sc_raw_quats = self._loadAttitudeFile(p_file)
 		num_samples = len(self._timestamps)
 		self._attitude_quats:np.ndarray[tuple[int,int],np.dtype[np.float64]] = np.zeros(self._sc_raw_quats.shape, dtype=np.float64)
 		self._sens_attitude_quats:dict[tuple[str,str],np.ndarray[tuple[int,int],np.dtype[np.float64]]] = {}
@@ -395,7 +395,7 @@ class HistoricalAttitude:
 				self._sens_attitude_matrix_cache[sens_key] = np.zeros((num_samples,3,3), dtype=np.float64)
 
 
-	def getPointingTimestamps(self) -> np.ndarray[tuple[int], np.dtype[np.datetime64]]:
+	def getAttitudeTimestamps(self) -> np.ndarray[tuple[int], np.dtype[np.datetime64]]:
 		return self._timestamps
 
 	def getAttitude(self, curr_index) -> np.ndarray[tuple[int],np.dtype[np.float64]] | bool:
@@ -403,16 +403,16 @@ class HistoricalAttitude:
 			return self.getAttitudeQuat(curr_index)
 		return False
 
-	def _loadPointingFile(self, p_file: pathlib.Path) -> tuple[np.ndarray[tuple[int], np.dtype[np.datetime64]], np.ndarray[tuple[int,int],np.dtype[np.float64]]]:
-		pointing_q = np.array(())
-		pointing_w = np.genfromtxt(p_file, delimiter=',', usecols=[1], skip_header=1).reshape(-1,1)
-		pointing_x = np.genfromtxt(p_file, delimiter=',', usecols=[2], skip_header=1).reshape(-1,1)
-		pointing_y = np.genfromtxt(p_file, delimiter=',', usecols=[3], skip_header=1).reshape(-1,1)
-		pointing_z = np.genfromtxt(p_file, delimiter=',', usecols=[4], skip_header=1).reshape(-1,1)
-		pointing_q = np.hstack((pointing_x,pointing_y,pointing_z,pointing_w))
-		pointing_dates = np.genfromtxt(p_file, delimiter=',', usecols=[0],skip_header=1, converters={0:orbviz_conversions.date_parser})
+	def _loadAttitudeFile(self, p_file: pathlib.Path) -> tuple[np.ndarray[tuple[int], np.dtype[np.datetime64]], np.ndarray[tuple[int,int],np.dtype[np.float64]]]:
+		attitude_q = np.array(())
+		attitude_w = np.genfromtxt(p_file, delimiter=',', usecols=[1], skip_header=1).reshape(-1,1)
+		attitude_x = np.genfromtxt(p_file, delimiter=',', usecols=[2], skip_header=1).reshape(-1,1)
+		attitude_y = np.genfromtxt(p_file, delimiter=',', usecols=[3], skip_header=1).reshape(-1,1)
+		attitude_z = np.genfromtxt(p_file, delimiter=',', usecols=[4], skip_header=1).reshape(-1,1)
+		attitude_q = np.hstack((attitude_x,attitude_y,attitude_z,attitude_w))
+		attitude_dates = np.genfromtxt(p_file, delimiter=',', usecols=[0],skip_header=1, converters={0:orbviz_conversions.date_parser})
 
-		return pointing_dates, pointing_q
+		return attitude_dates, attitude_q
 
 	def isAttitudeValid(self, idx:int) -> bool:
 		if np.any(np.isnan(self._attitude_quats[idx,:])):
