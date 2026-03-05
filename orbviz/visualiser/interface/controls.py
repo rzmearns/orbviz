@@ -107,6 +107,143 @@ class TimePeriodConfig(QtWidgets.QWidget):
 	def getSamplingPeriod(self) -> int:
 		return self.sampling_period.period
 
+class AttitudeConfig(QtWidgets.QWidget):
+	auto_time_period = QtCore.pyqtSignal(bool)
+
+	def __init__(self, *args, **kwargs):
+		super().__init__()
+
+		self._none_rbutton = QtWidgets.QRadioButton('No Attitude', self)
+		self._historical_rbutton = QtWidgets.QRadioButton('Historical Attitude Data', self)
+		self._generated_rbutton = QtWidgets.QRadioButton('Generated Attitude Data', self)
+		self._err_label = QtWidgets.QLabel('')
+
+		err_font = QtGui.QFont()
+		err_font.setBold(True)
+		self._err_label.setFont(err_font)
+		self._err_label.setStyleSheet('''
+										QLabel {
+												color:#FF0000;
+												}
+									''')
+
+		_rlayout = QtWidgets.QHBoxLayout()
+		_rlayout.addStretch()
+		_rlayout.addWidget(self._none_rbutton)
+		_rlayout.addWidget(self._historical_rbutton)
+		_rlayout.addWidget(self._generated_rbutton)
+		_rlayout.addStretch()
+		_vlayout = QtWidgets.QVBoxLayout()
+		self._slayout = QtWidgets.QStackedLayout()
+
+		self.attitude_configs = {}
+		self.attitude_configs['none'] = QtWidgets.QWidget()
+		self._none_rbutton.toggled.connect(lambda: self._onSelection('none'))
+		self.attitude_configs['historical'] = HistoricalAttitudeConfig()
+		self._historical_rbutton.toggled.connect(lambda: self._onSelection('historical'))
+		self.attitude_configs['generated'] = GeneratedAttitudeConfig()
+		self._generated_rbutton.toggled.connect(lambda: self._onSelection('generated'))
+
+		for att_descr, att_cnfg in self.attitude_configs.items():
+			self._slayout.addWidget(att_cnfg)
+
+		_vlayout.addLayout(_rlayout)
+		_vlayout.addWidget(self._err_label)
+		_vlayout.addLayout(self._slayout)
+		_vlayout.addStretch()
+		self.setLayout(_vlayout)
+
+		self._none_rbutton.setChecked(True)
+
+	def _onSelection(self, attitude_type:str):
+		for k, w in self.attitude_configs.items():
+			if k == attitude_type:
+				self._slayout.setCurrentWidget(w)
+				w.setEnabled(True)
+			else:
+				w.setEnabled(False)
+		if attitude_type == 'historical':
+			self._setWarning('Historical Attitude Data will override the manually entered timeperiod.')
+			self.auto_time_period.emit(True)
+		else:
+			self._clearWarning()
+			self.auto_time_period.emit(False)
+
+	def _setWarning(self, warn_text:str) -> None:
+		self._err_label.setText(warn_text)
+
+	def _clearWarning(self) -> None:
+		self._err_label.setText('')
+
+
+class GeneratedAttitudeConfig(QtWidgets.QWidget):
+	def __init__(self, *args, **kwargs):
+		super().__init__()
+		# Layout containers
+		super_layout = QtWidgets.QVBoxLayout()
+		pane_groupbox = QtWidgets.QGroupBox('Generated Attitude Configuration')
+		config_vlayout = QtWidgets.QVBoxLayout()
+		config_vlayout.setSpacing(10)
+
+		# Configuration widgets
+		_prim_groupbox = QtWidgets.QGroupBox('Primary Axis Selection')
+		_prim_layout = QtWidgets.QVBoxLayout()
+		self._prim_target_selector = widgets.BasicOptionBox('Primary Target',
+																dflt_option='ram',
+																options_list=['ram',
+																 				'nadir',
+																 				'sun',
+																 				'moon'])
+		self._prim_axis_selector = widgets.ValueBox('Primary Axis', str((1, 0, 0)))
+
+		_sec_groupbox = QtWidgets.QGroupBox('Secondary Axis Selection')
+		_sec_layout = QtWidgets.QVBoxLayout()
+		self._sec_target_selector = widgets.BasicOptionBox('Secondary Target',
+																	dflt_option='ram',
+																 	options_list=['ram',
+																 				'nadir',
+																 				'sun',
+																 				'moon'])
+		self._sec_axis_selector = widgets.ValueBox('Secondary Axis', str((0, 1, 0)))
+		self._sec_mode_selector = widgets.BasicOptionBox('Minimisation Method',
+																dflt_option='minimise',
+																options_list=['minimise',
+																				'absolute'])
+
+		# Place configuration widgets
+		_prim_layout.addWidget(self._prim_target_selector)
+		_prim_layout.addWidget(self._prim_axis_selector)
+		_prim_groupbox.setLayout(_prim_layout)
+		_sec_layout.addWidget(self._sec_target_selector)
+		_sec_layout.addWidget(self._sec_axis_selector)
+		_sec_layout.addWidget(self._sec_mode_selector)
+		_sec_groupbox.setLayout(_sec_layout)
+
+		config_vlayout.addWidget(_prim_groupbox)
+		config_vlayout.addWidget(_sec_groupbox)
+		pane_groupbox.setLayout(config_vlayout)
+
+		# Scrollable container
+		scroll_area = QtWidgets.QScrollArea()
+		scroll_area.setWidget(pane_groupbox)
+		scroll_area.setWidgetResizable(True)
+
+		super_layout.addWidget(scroll_area)
+		self.setLayout(super_layout)
+
+	def getAttitudeConfig(self) -> pathlib.Path:
+		return self._attitude_file_selector.path
+
+	def isAttitudeTransformInverse(self) -> bool:
+		return self.attitude_file_inv_toggle.isChecked()
+
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		pass
+
 class HistoricalAttitudeConfig(QtWidgets.QWidget):
 	def __init__(self, *args, **kwargs):
 		super().__init__()
@@ -136,6 +273,7 @@ class HistoricalAttitudeConfig(QtWidgets.QWidget):
 		inv_switch_vlayout.addWidget(attitude_file_inv_label)
 		inv_switch_vlayout.addWidget(self.attitude_file_inv_toggle)
 		config_vlayout.addLayout(inv_switch_vlayout)
+		config_vlayout.addStretch()
 		pane_groupbox.setLayout(config_vlayout)
 
 		# Scrollable container

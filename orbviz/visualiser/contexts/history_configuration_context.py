@@ -95,7 +95,7 @@ class HistoryConfigurationContext(BaseContext):
 			self.data['history'].clearSupplementalConstellation()
 
 		# Historical attitue
-		if self.controls.pnting_defines_period_switch.isChecked():
+		if self.controls.attitude_defines_period:
 			logger.info('Attitude defined. Setting attitude configuration for %s', self)
 			self.data['history'].updateConfig('attitude_defined', True)
 			attitude_file_path = self.controls.attitude_config.getAttitudeConfig()
@@ -103,7 +103,7 @@ class HistoryConfigurationContext(BaseContext):
 				attitude_file_path == '':
 				console.sendErr("Displaying spacecraft attitude requires an attitude file.")
 				return
-			self.data['history'].updateConfig('attitude_defines_timespan', self.controls.pnting_defines_period_switch.isChecked())
+			self.data['history'].updateConfig('attitude_defines_timespan', self.controls.attitude_defines_period_switch.isChecked())
 			self.data['history'].updateConfig('attitude_file', attitude_file_path)
 			self.data['history'].updateConfig('attitude_invert_transform', self.controls.attitude_config.isAttitudeTransformInverse())
 		else:
@@ -180,10 +180,10 @@ class Controls(BaseControls):
 		# Prep config widgets
 		self.prim_config = controls.PrimaryConfig()
 		self.time_period_config = controls.TimePeriodConfig()
-		self.attitude_config = controls.HistoricalAttitudeConfig()
+		self.attitude_config = controls.AttitudeConfig()
 		self.constellation_config = controls.ConstellationControls()
 		dflt_time_dfntn_state = False
-		self.pnting_defines_period_switch = widgets.LabelledSwitch(labels=('Use Manual Time Period','Use Attitude Data Defined Period'),dflt_state=dflt_time_dfntn_state)
+		self.attitude_defines_period = False
 		dflt_constellation_state = False
 		self.use_constellation_switch = widgets.LabelledSwitch(labels=('','Use Supplemental Constellation'),dflt_state=dflt_constellation_state)
 		self.submit_button = QtWidgets.QPushButton('Recalculate')
@@ -192,7 +192,6 @@ class Controls(BaseControls):
 		self.use_events_switch = widgets.LabelledSwitch(labels=('','Plot Events'),dflt_state=dflt_use_events_state)
 
 		# add config interconnects
-		self.pnting_defines_period_switch.toggle.connect(self.toggleTimePeriodDefinitionMethod)
 		self.toggleTimePeriodDefinitionMethod(dflt_time_dfntn_state)
 		self.use_constellation_switch.toggle.connect(self.constellation_config.setEnabled)
 		self.use_constellation_switch.toggle.connect(self._reloadConstellation)
@@ -202,7 +201,7 @@ class Controls(BaseControls):
 
 		tp_selection_widget = QtWidgets.QWidget()
 		tp_selection_vlayout = QtWidgets.QVBoxLayout()
-		tp_selection_vlayout.addWidget(self.pnting_defines_period_switch)
+		self.attitude_config.auto_time_period.connect(self.toggleTimePeriodDefinitionMethod)
 		tp_selection_vlayout.addWidget(self.time_period_config)
 		tp_selection_vlayout.addWidget(self.attitude_config)
 		tp_selection_vlayout.addStretch()
@@ -235,6 +234,7 @@ class Controls(BaseControls):
 
 		self.right_config_tabs = QtWidgets.QTabWidget()
 		self.right_config_tabs.addTab(tp_selection_widget, 'Time Period Configuration')
+		self.right_config_tabs.addTab(self.attitude_config, 'Attitude Configuration')
 
 		# Prep time slider
 		self.time_slider = widgets.TimeSlider()
@@ -248,7 +248,7 @@ class Controls(BaseControls):
 
 	def toggleTimePeriodDefinitionMethod(self, new_state):
 		self.time_period_config.setEnabled(not new_state)
-		self.attitude_config.setEnabled(new_state)
+		# self.attitude_config.setEnabled(new_state)
 
 	def setHotkeys(self):
 		self.shortcuts={}
