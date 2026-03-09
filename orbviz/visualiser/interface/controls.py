@@ -113,9 +113,11 @@ class AttitudeConfig(QtWidgets.QWidget):
 	def __init__(self, *args, **kwargs):
 		super().__init__()
 
-		self._none_rbutton = QtWidgets.QRadioButton('No Attitude', self)
-		self._historical_rbutton = QtWidgets.QRadioButton('Historical Attitude Data', self)
-		self._generated_rbutton = QtWidgets.QRadioButton('Generated Attitude Data', self)
+		self._rbuttons = widgets.RadioGroup({data_types.AttitudeGenMethod.NONE: 'No Attitude',
+											 data_types.AttitudeGenMethod.HISTORICAL: 'Historical Attitude Data',
+											 data_types.AttitudeGenMethod.GENERATED: 'Generated Attitude Data'})
+		self._curr_selected = None
+
 		self._err_label = QtWidgets.QLabel('')
 
 		err_font = QtGui.QFont()
@@ -127,42 +129,39 @@ class AttitudeConfig(QtWidgets.QWidget):
 												}
 									''')
 
-		_rlayout = QtWidgets.QHBoxLayout()
-		_rlayout.addStretch()
-		_rlayout.addWidget(self._none_rbutton)
-		_rlayout.addWidget(self._historical_rbutton)
-		_rlayout.addWidget(self._generated_rbutton)
-		_rlayout.addStretch()
 		_vlayout = QtWidgets.QVBoxLayout()
 		self._slayout = QtWidgets.QStackedLayout()
 
-		self.attitude_configs = {}
-		self.attitude_configs['none'] = QtWidgets.QWidget()
-		self._none_rbutton.toggled.connect(lambda: self._onSelection('none'))
-		self.attitude_configs['historical'] = HistoricalAttitudeConfig()
-		self._historical_rbutton.toggled.connect(lambda: self._onSelection('historical'))
-		self.attitude_configs['generated'] = GeneratedAttitudeConfig()
-		self._generated_rbutton.toggled.connect(lambda: self._onSelection('generated'))
+		self.attitude_configurators = {}
+		self.attitude_configurators[data_types.AttitudeGenMethod.NONE] = QtWidgets.QWidget()
+		self.attitude_configurators[data_types.AttitudeGenMethod.HISTORICAL] = HistoricalAttitudeConfig()
+		self.attitude_configurators[data_types.AttitudeGenMethod.GENERATED] = GeneratedAttitudeConfig()
+		self._rbuttons.selection_changed.connect(self._onSelection)
 
-		for att_descr, att_cnfg in self.attitude_configs.items():
-			self._slayout.addWidget(att_cnfg)
 
-		_vlayout.addLayout(_rlayout)
+		for att_cnfg_w in self.attitude_configurators.values():
+			self._slayout.addWidget(att_cnfg_w)
+
+		_vlayout.addWidget(self._rbuttons)
 		_vlayout.addWidget(self._err_label)
 		_vlayout.addLayout(self._slayout)
 		_vlayout.addStretch()
 		self.setLayout(_vlayout)
 
-		self._none_rbutton.setChecked(True)
+		self._rbuttons.setCurrSelected(data_types.AttitudeGenMethod.NONE)
+		self._curr_selected = data_types.AttitudeGenMethod.NONE
 
-	def _onSelection(self, attitude_type:str):
-		for k, w in self.attitude_configs.items():
+	def _onSelection(self, att_str:str):
+		attitude_type = data_types.AttitudeGenMethod(att_str)
+		for k, w in self.attitude_configurators.items():
 			if k == attitude_type:
 				self._slayout.setCurrentWidget(w)
 				w.setEnabled(True)
+				self._curr_selected = attitude_type
 			else:
 				w.setEnabled(False)
-		if attitude_type == 'historical':
+
+		if attitude_type == data_types.AttitudeGenMethod.HISTORICAL:
 			self._setWarning('Historical Attitude Data will override the manually entered timeperiod.')
 			self.auto_time_period.emit(True)
 		else:
@@ -175,6 +174,29 @@ class AttitudeConfig(QtWidgets.QWidget):
 	def _clearWarning(self) -> None:
 		self._err_label.setText('')
 
+	def getAttitudeConfigs(self, sc_id:int) -> dict[int, data_types.AttitudeConfig]:
+		# TODO: fix method for specifying sc_id shouldn't need to pass from parent
+		configs = {}
+		configs[sc_id] = data_types.AttitudeConfig(sc_id)
+		self._populateConfigDispatcher(self._curr_selected)(configs[sc_id], self.attitude_configurators[self._curr_selected])
+		return configs
+
+	def _populateConfigDispatcher(self, att_gen_method:data_types.AttitudeGenMethod):
+		return {
+			data_types.AttitudeGenMethod.NONE: self._populateConfigFromNone,
+			data_types.AttitudeGenMethod.HISTORICAL: self._populateConfigFromHistorical,
+			data_types.AttitudeGenMethod.GENERATED: self._populateConfigFromNone
+		}.get(att_gen_method, self._populateConfigFromNone)
+
+	def _populateConfigFromNone(self, config:data_types.AttitudeConfig, configurator_widget:QtWidgets.QWidget):
+		pass
+
+	def _populateConfigFromHistorical(self, config:data_types.AttitudeConfig, configurator_widget:QtWidgets.QWidget):
+		print('POPULATING FROM HISTORICAL FILE')
+		config.historical_attitude_file = configurator_widget.getAttitudeFilePath()
+		config.is_attitude_defined = True
+		config.attitude_defines_timespan = True
+		config.attitude_invert_transform = configurator_widget.isAttitudeTransformInverse()
 
 class GeneratedAttitudeConfig(QtWidgets.QWidget):
 	def __init__(self, *args, **kwargs):
@@ -231,11 +253,7 @@ class GeneratedAttitudeConfig(QtWidgets.QWidget):
 		super_layout.addWidget(scroll_area)
 		self.setLayout(super_layout)
 
-	def getAttitudeConfig(self) -> pathlib.Path:
-		return self._attitude_file_selector.path
 
-	def isAttitudeTransformInverse(self) -> bool:
-		return self.attitude_file_inv_toggle.isChecked()
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
@@ -284,10 +302,22 @@ class HistoricalAttitudeConfig(QtWidgets.QWidget):
 		super_layout.addWidget(scroll_area)
 		self.setLayout(super_layout)
 
-	def getAttitudeConfig(self) -> pathlib.Path:
+	def getAttitudeFilePath(self) -> pathlib.Path:
 		return self._attitude_file_selector.path
 
 	def isAttitudeTransformInverse(self) -> bool:
+		''' Determines direction of quaternion frame transform specified by Attitude File
+
+		Default Attitude transform is BF2ECI
+		Inverse transforrm is ECI2BF
+
+		Toggle:
+			True -> ECI2BF (inverse)
+			False: -> BF2ECI
+
+		Returns:
+			bool: Attitude Transform is inverted
+		'''
 		return self.attitude_file_inv_toggle.isChecked()
 
 	def prepSerialisation(self) -> dict[str, Any]:

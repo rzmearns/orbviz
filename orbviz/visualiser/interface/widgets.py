@@ -1,4 +1,5 @@
 import datetime as dt
+from enum import Enum
 import logging
 import math
 import pathlib
@@ -2046,6 +2047,37 @@ class MultiSelector(QtWidgets.QWidget):
 				self._moved_left.remove(el)
 
 		return self._moved_left
+
+class RadioGroup(QtWidgets.QWidget):
+	selection_changed = QtCore.pyqtSignal(str)
+
+	def __init__(self, keys:dict[Enum|int|str, str], horizontal=True):
+		super().__init__()
+		if horizontal:
+			_rlayout = QtWidgets.QHBoxLayout()
+		else:
+			_rlayout = QtWidgets.QVBoxLayout()
+
+		self._buttons:dict[Any, QtWidgets.QRadioButton] = {}
+		self._curr_sel_key = None
+
+		_rlayout.addStretch()
+		for k, text in keys.items():
+			self._buttons[k] = QtWidgets.QRadioButton(text, self)
+			# use default value in lambda to pass value of k at lambda assignment, not reference to k
+			self._buttons[k].toggled.connect(lambda state, x=k:self._onSelection(state, x))
+			_rlayout.addWidget(self._buttons[k])
+
+		_rlayout.addStretch()
+		self.setLayout(_rlayout)
+
+	def _onSelection(self, new_state, key:Enum|int|str):
+		if new_state:
+			self.selection_changed.emit(key.value)
+
+	def setCurrSelected(self, key:Enum|int|str):
+		self._buttons[key].setChecked(True)
+
 
 def embedWidgetsInHBoxLayout(w_list, margin=5):
 	"""Embed a list of widgets into a layout to give it a frame"""

@@ -173,7 +173,9 @@ class Controls(BaseControls):
 		return self.time_slider.getValue()
 
 	def updateSensorViewLists(self):
-		if self.context.data['history'].getConfigValue('is_attitude_defined'):
+		# TODO: need to present selection for sc as well as sensors
+		sc_id = list(self.context.data['history'].getConfigValue('attitudes').keys())[0]
+		if self.context.data['history'].getConfigValue('attitudes')[sc_id].isAttitudeDefined():
 			sens_dict = self.context.data['history'].getPrimaryConfig().serialiseAllSensors()
 		else:
 			sens_dict = {}

@@ -29,14 +29,11 @@ class HistoryData(BaseDataModel):
 		self._setConfig('timespan_period_start', None)
 		self._setConfig('timespan_period_end', None)
 		self._setConfig('sampling_period', None)
-		self._setConfig('attitude_defines_timespan', False)
 		self._setConfig('primary_satellite_ids', []) # keys of orbits, position dict
 		self._setConfig('primary_satellite_config', None)
 		self._setConfig('has_supplemental_constellation', False)
 		self._setConfig('num_geolocations', 0)
-		self._setConfig('is_attitude_defined', False)
-		self._setConfig('attitude_file', None)
-		self._setConfig('attitude_invert_transform', False)
+		self._setConfig('attitudes', {}) # keys of sc_id
 		self._setConfig('events_defined', False)
 		self._setConfig('events_file', None)
 
@@ -110,18 +107,16 @@ class HistoryData(BaseDataModel):
 
 	def process(self) -> None:
 		# Load attitude and create timespan
-		if self.getConfigValue('is_attitude_defined'):
+		prim_sc_id = list(self.getConfigValue('primary_satellite_config').getAllSpacecraftConfigs().keys())[0]
+		if self.getConfigValue('attitudes')[prim_sc_id].definesTimeSpan():
+			# TODO: for multi sat need to pick one?
 			for sc_id, sc_config in self.getConfigValue('primary_satellite_config').getAllSpacecraftConfigs().items():
-				self.attitudes[sc_id] = HistoricalAttitude(self.getConfigValue('attitude_file'), sc_config)
-			if self.getConfigValue('attitude_defines_timespan'):
-				console.send("Loading timespan from attitude file.")
-				_timearr = self.attitudes[self.getConfigValue('primary_satellite_ids')[0]].getAttitudeTimestamps()
-				self.timespan = timespan.TimeSpan.fromDatetime(_timearr)
-				logger.info('Generating timespan from attitude file timestamps for: %s', self)
-			else:
-				self.timespan = None
-
-		if self.timespan is None or not self.getConfigValue('is_attitude_defined'):
+				self.attitudes[sc_id] = HistoricalAttitude.fromAttitudeConfig(sc_config, self.getConfigValue('attitudes')[sc_id])
+			console.send("Loading timespan from attitude file.")
+			_timearr = self.attitudes[prim_sc_id].getAttitudeTimestamps()
+			self.timespan = timespan.TimeSpan.fromDatetime(_timearr)
+			logger.info('Generating timespan from attitude file timestamps for: %s', self)
+		else:
 			logger.info('Generating timespan from configuration for: %s', self)
 			period_start = self.getConfigValue('timespan_period_start').replace(microsecond=0)
 			period_end = self.getConfigValue('timespan_period_end').replace(microsecond=0)
@@ -135,7 +130,6 @@ class HistoryData(BaseDataModel):
 			self.timespan = timespan.TimeSpan(period_start,
 								timestep=f'{timestep}S',
 								timeperiod=f'{duration}S')
-
 
 		if self.timespan is None:
 			logger.warning("History data:%s, timespan has not been configured", self)
@@ -363,11 +357,15 @@ class HistoryData(BaseDataModel):
 		self.geo_locations = state['geo_locations']
 		super().deSerialise(state)
 
-
 class HistoricalAttitude:
-	def __init__(self, p_file: pathlib.Path, sc_config:data_types.SpacecraftConfig, quat_defn_direction:str='eci2bf'):
+	def __init__(self, sc_config:data_types.SpacecraftConfig,
+						timestamps:np.ndarray[tuple[int], np.dtype[np.datetime64]],
+						raw_quats: np.ndarray[tuple[int,int],np.dtype[np.float64]],
+						eci2bf=True):
+		# TODO: why is this a necessary parameter of the Attitude
 		self.sc_config = sc_config
-		self._timestamps, self._sc_raw_quats = self._loadAttitudeFile(p_file)
+		self._timestamps = timestamps
+		self._sc_raw_quats = raw_quats
 		num_samples = len(self._timestamps)
 		self._attitude_quats:np.ndarray[tuple[int,int],np.dtype[np.float64]] = np.zeros(self._sc_raw_quats.shape, dtype=np.float64)
 		self._sens_attitude_quats:dict[tuple[str,str],np.ndarray[tuple[int,int],np.dtype[np.float64]]] = {}
@@ -378,10 +376,10 @@ class HistoricalAttitude:
 		self._sens_attitude_matrix_cache:dict[tuple[str,str], np.ndarray[tuple[int,int],np.dtype[np.float64]]] = {}
 
 		# TODO: set standard transform direction as eci2bf
-		if quat_defn_direction == 'eci2bf':
+		if eci2bf:
 			self._invert_transform = True
 			self._attitude_quats = self._sc_raw_quats
-		elif quat_defn_direction == 'bf2eci':
+		else:
 			self._invert_transform = False
 			self._attitude_quats = self._sc_raw_quats
 			self._attitude_quats[:,3] *= -1
@@ -395,6 +393,7 @@ class HistoricalAttitude:
 				self._sens_attitude_matrix_cache[sens_key] = np.zeros((num_samples,3,3), dtype=np.float64)
 
 
+
 	def getAttitudeTimestamps(self) -> np.ndarray[tuple[int], np.dtype[np.datetime64]]:
 		return self._timestamps
 
@@ -402,17 +401,6 @@ class HistoricalAttitude:
 		if self.isAttitudeValid(curr_index):
 			return self.getAttitudeQuat(curr_index)
 		return False
-
-	def _loadAttitudeFile(self, p_file: pathlib.Path) -> tuple[np.ndarray[tuple[int], np.dtype[np.datetime64]], np.ndarray[tuple[int,int],np.dtype[np.float64]]]:
-		attitude_q = np.array(())
-		attitude_w = np.genfromtxt(p_file, delimiter=',', usecols=[1], skip_header=1).reshape(-1,1)
-		attitude_x = np.genfromtxt(p_file, delimiter=',', usecols=[2], skip_header=1).reshape(-1,1)
-		attitude_y = np.genfromtxt(p_file, delimiter=',', usecols=[3], skip_header=1).reshape(-1,1)
-		attitude_z = np.genfromtxt(p_file, delimiter=',', usecols=[4], skip_header=1).reshape(-1,1)
-		attitude_q = np.hstack((attitude_x,attitude_y,attitude_z,attitude_w))
-		attitude_dates = np.genfromtxt(p_file, delimiter=',', usecols=[0],skip_header=1, converters={0:orbviz_conversions.date_parser})
-
-		return attitude_dates, attitude_q
 
 	def isAttitudeValid(self, idx:int) -> bool:
 		if np.any(np.isnan(self._attitude_quats[idx,:])):
@@ -487,3 +475,23 @@ class HistoricalAttitude:
 		res_q_arr[:,1] = q1_arr[:,3]*q2_arr[:,1]-q1_arr[:,0]*q2_arr[:,2]+q1_arr[:,1]*q2_arr[:,3]+q1_arr[:,2]*q2_arr[:,0]
 		res_q_arr[:,2] = q1_arr[:,3]*q2_arr[:,2]+q1_arr[:,0]*q2_arr[:,1]-q1_arr[:,1]*q2_arr[:,0]+q1_arr[:,2]*q2_arr[:,3]
 		return res_q_arr
+
+	@classmethod
+	def fromAttitudeConfig(cls, sc_cnfg: data_types.SpacecraftConfig, att_cnfg:data_types.AttitudeConfig):
+
+		# check sc_id matches sc_config
+		if att_cnfg.historical_attitude_file is not None:
+			timestamps, raw_quats = cls._loadAttitudeFile(att_cnfg.historical_attitude_file)
+			return cls(sc_cnfg, timestamps, raw_quats)
+
+	@classmethod
+	def _loadAttitudeFile(cls, p_file: pathlib.Path) -> tuple[np.ndarray[tuple[int], np.dtype[np.datetime64]], np.ndarray[tuple[int,int],np.dtype[np.float64]]]:
+		attitude_q = np.array(())
+		attitude_w = np.genfromtxt(p_file, delimiter=',', usecols=[1], skip_header=1).reshape(-1,1)
+		attitude_x = np.genfromtxt(p_file, delimiter=',', usecols=[2], skip_header=1).reshape(-1,1)
+		attitude_y = np.genfromtxt(p_file, delimiter=',', usecols=[3], skip_header=1).reshape(-1,1)
+		attitude_z = np.genfromtxt(p_file, delimiter=',', usecols=[4], skip_header=1).reshape(-1,1)
+		attitude_q = np.hstack((attitude_x,attitude_y,attitude_z,attitude_w))
+		attitude_dates = np.genfromtxt(p_file, delimiter=',', usecols=[0],skip_header=1, converters={0:orbviz_conversions.date_parser})
+
+		return attitude_dates, attitude_q

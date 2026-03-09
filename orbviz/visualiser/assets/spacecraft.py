@@ -86,8 +86,8 @@ class Spacecraft3DAsset(base_assets.AbstractVispyAsset):
 			self.data['strings'] = ['']
 
 		config_changed = (self.data['sc_config'] != self.data['old_sc_config'])
-		attitude_active_changed = (self.data['history_src'].getConfigValue('is_attitude_defined') != self.data['old_attitude_defined'])
-		attitude_defined = self.data['history_src'].getConfigValue('is_attitude_defined')
+		attitude_active_changed = (self.data['history_src'].getConfigValue('attitudes')[self.data['sc_config'].id].isAttitudeDefined() != self.data['old_attitude_defined'])
+		attitude_defined = self.data['history_src'].getConfigValue('attitudes')[self.data['sc_config'].id].isAttitudeDefined()
 
 		if not attitude_active_changed and not config_changed:
 			# config has not changed -> don't need to re-instantiate sensors
@@ -113,12 +113,12 @@ class Spacecraft3DAsset(base_assets.AbstractVispyAsset):
 			self.data['old_config_filestem'] = None
 			self.data['old_suite_names'] = []
 		if self.data['history_src']:
-			self.data['old_attitude_defined'] = self.data['history_src'].getConfigValue('is_attitude_defined')
+			self.data['old_attitude_defined'] = self.data['history_src'].getConfigValue('attitudes')[self.data['sc_config'].id].isAttitudeDefined()
 		else:
 			self.data['old_attitude_defined'] = False
 
-		self.setOrbitalMarkerVisibility(not self.data['history_src'].getConfigValue('is_attitude_defined'))
-		self.setAttitudeAssetsVisibility(self.data['history_src'].getConfigValue('is_attitude_defined'))
+		self.setOrbitalMarkerVisibility(not self.data['history_src'].getConfigValue('attitudes')[self.data['sc_config'].id].isAttitudeDefined())
+		self.setAttitudeAssetsVisibility(self.data['history_src'].getConfigValue('attitudes')[self.data['sc_config'].id].isAttitudeDefined())
 
 	def _instantiateAssets(self) -> None:
 		self.assets['body_frame'] = gizmo.BodyGizmo(scale=700,
@@ -169,7 +169,7 @@ class Spacecraft3DAsset(base_assets.AbstractVispyAsset):
 			# set marker position
 			self._updateMarkers()
 			self.data['curr_pos'] = self.data['history_src'].getOrbits()[self.data['sc_config'].id].pos[self.data['curr_index']].reshape(1,3)
-			if self.data['history_src'].getConfigValue('is_attitude_defined'):
+			if self.data['history_src'].getConfigValue('attitudes')[self.data['sc_config'].id].isAttitudeDefined():
 				# set gizmo and sensor orientations
 				rot_mat = self.data['history_src'].getSCAttitude(self.data['sc_config'].id).getAttitudeMatrix(self.data['curr_index'])
 				quat = self.data['history_src'].getSCAttitude(self.data['sc_config'].id).getAttitudeQuat(self.data['curr_index'])
@@ -379,11 +379,15 @@ class Spacecraft2DAsset(base_assets.AbstractVispyAsset):
 		else:
 			self.data['strings'] = ['']
 
-		config_changed = (self.data['sc_config'] != self.data['old_sc_config'])
-		attitude_active_changed = (self.data['history_src'].getConfigValue('is_attitude_defined') != self.data['old_attitude_defined'])
-		attitude_defined = self.data['history_src'].getConfigValue('is_attitude_defined')
+		# new attitude info passed to setSource
+		passed_attitude = self.data['history_src'].getConfigValue('attitudes')[self.data['sc_config'].id]
 
-		if not attitude and not config_changed:
+		# TODO: a lot of this can be done by comparison between attitude configs directly (save the old config)
+		config_changed = (self.data['sc_config'] != self.data['old_sc_config'])
+		attitude_active_changed = (passed_attitude.isAttitudeDefined() != self.data['old_attitude_defined'])
+		attitude_defined = passed_attitude.isAttitudeDefined()
+
+		if not attitude_active_changed and not config_changed:
 			# config has not changed -> don't need to re-instantiate sensors
 			logger.debug('Spacecraft attitude related config has not changed')
 			return
@@ -407,7 +411,7 @@ class Spacecraft2DAsset(base_assets.AbstractVispyAsset):
 			self.data['old_config_filestem'] = None
 			self.data['old_suite_names'] = []
 		if self.data['history_src']:
-			self.data['old_attitude_defined'] = self.data['history_src'].getConfigValue('is_attitude_defined')
+			self.data['old_attitude_defined'] = self.data['history_src'].getConfigValue('attitudes')[self.data['sc_config'].id].isAttitudeDefined()
 		else:
 			self.data['old_attitude_defined'] = False
 
@@ -483,7 +487,7 @@ class Spacecraft2DAsset(base_assets.AbstractVispyAsset):
 			self._clearFirstDrawFlag()
 		if self.isStale():
 			self._updateMarkers()
-			if self.data['history_src'].getConfigValue('is_attitude_defined'):
+			if self.data['history_src'].getConfigValue('attitudes')[self.data['sc_config'].id].isAttitudeDefined():
 				self.data['curr_pos'] = self.data['history_src'].getOrbits()[self.data['sc_config'].id].pos[self.data['curr_index']].reshape(1,3)
 				# set gizmo and sensor orientations
 				rot_mat = self.data['history_src'].getSCAttitude(self.data['sc_config'].id).getAttitudeMatrix(self.data['curr_index'])
@@ -723,8 +727,8 @@ class SpacecraftViewsAsset(base_assets.AbstractVispyAsset):
 		self.data['strings'] = [self.data['sc_config'].name]
 
 		config_changed = (self.data['sc_config'] != self.data['old_sc_config'])
-		attitude_active_changed = (self.data['history_src'].getConfigValue('is_attitude_defined') != self.data['old_attitude_defined'])
-		attitude_defined = self.data['history_src'].getConfigValue('is_attitude_defined')
+		attitude_active_changed = (self.data['history_src'].getConfigValue('attitudes')[self.data['sc_config'].id].isAttitudeDefined() != self.data['old_attitude_defined'])
+		attitude_defined = self.data['history_src'].getConfigValue('attitudes')[self.data['sc_config'].id].isAttitudeDefined()
 
 		if not attitude_active_changed and not config_changed:
 			# config has not changed -> don't need to re-instantiate sensors
@@ -750,7 +754,7 @@ class SpacecraftViewsAsset(base_assets.AbstractVispyAsset):
 			self.data['old_config_filestem'] = None
 			self.data['old_suite_names'] = []
 		if self.data['history_src']:
-			self.data['old_attitude_defined'] = self.data['history_src'].getConfigValue('is_attitude_defined')
+			self.data['old_attitude_defined'] = self.data['history_src'].getConfigValue('attitudes')[self.data['sc_config'].id].isAttitudeDefined()
 		else:
 			self.data['old_attitude_defined'] = False
 
@@ -789,7 +793,7 @@ class SpacecraftViewsAsset(base_assets.AbstractVispyAsset):
 		if self.isFirstDraw():
 			self._clearFirstDrawFlag()
 		if self.isStale():
-			if self.data['history_src'].getConfigValue('is_attitude_defined'):
+			if self.data['history_src'].getConfigValue('attitudes')[self.data['sc_config'].id].isAttitudeDefined():
 				orbit_data = self.data['history_src'].getOrbits()[self.data['sc_config'].id]
 				self.data['curr_pos'] = orbit_data.pos[self.data['curr_index']].reshape(1,3)
 				# set gizmo and sensor orientations

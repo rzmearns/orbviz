@@ -3,6 +3,7 @@ import datetime as dt
 from enum import Enum
 import json
 import logging
+import numpy as np
 import pathlib
 
 from typing import Any
@@ -25,6 +26,80 @@ class SensorTypes(Enum):
 	@classmethod
 	def hasValue(cls, value):
 		return value in cls._value2member_map_
+
+class AttitudeGenMethod(Enum):
+	NONE = 'none'
+	HISTORICAL = 'historical'
+	GENERATED = 'generated'
+
+class RefFrame(Enum):
+	ZENITH = 'zenith'
+	SUN = 'sun'
+
+class AttitudeConfig:
+	def __init__(self, sc_id):
+		self._sc_id:int = sc_id
+		self._is_attitude_defined:bool = False
+		self._attitude_defines_timespan:bool = False
+		self._historical_attitude_file = None
+		self._attitude_invert_transform:bool = False
+		self._prim_body_axis:np.ndarray = np.array((1,0,0))
+		self._prim_ref_axis:np.ndarray = np.array((0,0,0))
+		self._prim_ref_frame:RefFrame = 'zenith'
+		self._sec_body_axis:np.ndarray = np.array((0,1,0))
+		self._sec_ref_axis:np.ndarray = np.array((0,0,0))
+		self._sec_ref_frame:RefFrame = 'sun'
+		self._sec_mode = 'minimum'
+
+		if not self._isBodyOrthoganal():
+			console.send('Body vectors in Attitude definition are not orthogonal')
+			raise ValueError('Body vectors in Attitude definition are not orthogonal')
+
+	def _isBodyOrthoganal(self) -> bool:
+		'''Return True if prim_body_axis and sec_body_axis are orthogonal.'''
+		return True
+
+	def definesTimeSpan(self) -> bool:
+		return self._attitude_defines_timespan
+
+	def isAttitudeDefined(self):
+		return self._is_attitude_defined
+
+	@property
+	def historical_attitude_file(self) -> pathlib.Path|None:
+		return self._historical_attitude_file
+
+	@historical_attitude_file.setter
+	def historical_attitude_file(self, p:pathlib.Path):
+		if not isinstance(p, pathlib.Path):
+			# TODO: some checking logic, needs to be a pathlib
+			pass
+		self._historical_attitude_file = p
+
+	@property
+	def attitude_defines_timespan(self):
+		return self._attitude_defines_timespan
+
+	@attitude_defines_timespan.setter
+	def attitude_defines_timespan(self, val:bool):
+		self._attitude_defines_timespan = val
+
+	@property
+	def is_attitude_defined(self):
+		return self._is_attitude_defined
+
+	@is_attitude_defined.setter
+	def is_attitude_defined(self, val:bool):
+		self._is_attitude_defined = val
+
+	@property
+	def attitude_invert_transform(self):
+		return self._attitude_invert_transform
+
+	@attitude_invert_transform.setter
+	def attitude_invert_transform(self, val:bool):
+		self._attitude_invert_transform = val
+
 
 class ConstellationConfig:
 	def __init__(self, filestem:str, name:str, beam_width:float, satellites:dict[int, str]):

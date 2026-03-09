@@ -76,7 +76,8 @@ class HistoryConfigurationContext(BaseContext):
 		self.data['history'].updateConfig('sampling_period', self.controls.time_period_config.getSamplingPeriod())
 		# Primary orbits configuration
 		try:
-			self.data['history'].setPrimaryConfig(self.controls.prim_config.getConfig())
+			p_config = self.controls.prim_config.getConfig()
+			self.data['history'].setPrimaryConfig(p_config)
 		except ValueError:
 			console.sendErr("Primary Configuration not selected: Please select a configuration.")
 			return
@@ -95,23 +96,7 @@ class HistoryConfigurationContext(BaseContext):
 			self.data['history'].clearSupplementalConstellation()
 
 		# Historical attitue
-		if self.controls.attitude_defines_period:
-			logger.info('Attitude defined. Setting attitude configuration for %s', self)
-			self.data['history'].updateConfig('attitude_defined', True)
-			attitude_file_path = self.controls.attitude_config.getAttitudeConfig()
-			if attitude_file_path is None or \
-				attitude_file_path == '':
-				console.sendErr("Displaying spacecraft attitude requires an attitude file.")
-				return
-			self.data['history'].updateConfig('attitude_defines_timespan', self.controls.attitude_defines_period_switch.isChecked())
-			self.data['history'].updateConfig('attitude_file', attitude_file_path)
-			self.data['history'].updateConfig('attitude_invert_transform', self.controls.attitude_config.isAttitudeTransformInverse())
-		else:
-			logger.info('Attitude not defined. Clearing attitude configuration for %s', self)
-			self.data['history'].updateConfig('is_attitude_defined', False)
-			self.data['history'].updateConfig('attitude_defines_timespan', False)
-			self.data['history'].updateConfig('attitude_file', None)
-			self.data['history'].updateConfig('attitude_invert_transform', False)
+		self.data['history'].updateConfig('attitudes', self.controls.attitude_config.getAttitudeConfigs(p_config.getSatIDs()[0]))
 
 		# Events
 		self.data['history'].updateConfig('events_defined', self.controls.use_events_switch.isChecked())
@@ -183,7 +168,6 @@ class Controls(BaseControls):
 		self.attitude_config = controls.AttitudeConfig()
 		self.constellation_config = controls.ConstellationControls()
 		dflt_time_dfntn_state = False
-		self.attitude_defines_period = False
 		dflt_constellation_state = False
 		self.use_constellation_switch = widgets.LabelledSwitch(labels=('','Use Supplemental Constellation'),dflt_state=dflt_constellation_state)
 		self.submit_button = QtWidgets.QPushButton('Recalculate')
@@ -201,9 +185,7 @@ class Controls(BaseControls):
 
 		tp_selection_widget = QtWidgets.QWidget()
 		tp_selection_vlayout = QtWidgets.QVBoxLayout()
-		self.attitude_config.auto_time_period.connect(self.toggleTimePeriodDefinitionMethod)
 		tp_selection_vlayout.addWidget(self.time_period_config)
-		tp_selection_vlayout.addWidget(self.attitude_config)
 		tp_selection_vlayout.addStretch()
 		tp_selection_widget.setLayout(tp_selection_vlayout)
 
