@@ -4,7 +4,9 @@ import logging
 import math
 import pathlib
 
-from typing import Any
+from typing import Any, TYPE_CHECKING
+# if TYPE_CHECKING:
+import numpy as np
 
 from spherapy.timespan import TimeSpan
 
@@ -621,6 +623,9 @@ class BasicOptionBox(QtWidgets.QWidget):
 
 
 		self._label = QtWidgets.QLabel(label)
+		self._options = options_list
+		# insert empty field at start
+		self._options.insert(0,'')
 
 		self._optionbox = NonScrollingComboBox()
 		for item in options_list:
@@ -629,8 +634,8 @@ class BasicOptionBox(QtWidgets.QWidget):
 
 		layout.addWidget(self._label)
 		layout.addWidget(self._optionbox)
-
-		self._optionbox.setCurrentIndex(options_list.index(dflt_option))
+		self._curr_index = self._options.index(dflt_option)
+		self._optionbox.setCurrentIndex(self._curr_index)
 		self._optionbox.currentIndexChanged.connect(self._run_callbacks)
 		self._optionbox.currentIndexChanged.connect(self.setCurrentIndex)
 
@@ -644,6 +649,9 @@ class BasicOptionBox(QtWidgets.QWidget):
 			return self._curr_index-1
 		else:
 			return None
+
+	def getCurrentValue(self) -> str:
+		return self._options[self._curr_index]
 
 	def add_connect(self, callback):
 		self._callbacks.append(callback)
@@ -1023,9 +1031,13 @@ class ValueBox(QtWidgets.QWidget):
 		self.setLayout(vlayout)
 		self._val_text_box.editingFinished.connect(self._updateValue)
 
-
+	# TODO: specify different data types
+	# TODO: return different types based on data type
 	def getValue(self) -> float:
 		return float(self.value)
+
+	def getValueAsArray(self) -> np.ndarray:
+		return np.fromstring(self.value.strip('()[]'), dtype=float, sep=',')
 
 	def _updateValue(self):
 		self.value = self._val_text_box.text()

@@ -3,7 +3,9 @@ import logging
 import pathlib
 import string
 
-from typing import Any
+from typing import Any, TYPE_CHECKING
+# if TYPE_CHECKING:
+import numpy as np
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -178,6 +180,7 @@ class AttitudeConfig(QtWidgets.QWidget):
 		# TODO: fix method for specifying sc_id shouldn't need to pass from parent
 		configs = {}
 		configs[sc_id] = data_types.AttitudeConfig(sc_id)
+		logger.debug('Populating Attitude Configuration')
 		self._populateConfigDispatcher(self._curr_selected)(configs[sc_id], self.attitude_configurators[self._curr_selected])
 		return configs
 
@@ -185,18 +188,31 @@ class AttitudeConfig(QtWidgets.QWidget):
 		return {
 			data_types.AttitudeGenMethod.NONE: self._populateConfigFromNone,
 			data_types.AttitudeGenMethod.HISTORICAL: self._populateConfigFromHistorical,
-			data_types.AttitudeGenMethod.GENERATED: self._populateConfigFromNone
+			data_types.AttitudeGenMethod.GENERATED: self._populateConfigFromGenerator
 		}.get(att_gen_method, self._populateConfigFromNone)
 
 	def _populateConfigFromNone(self, config:data_types.AttitudeConfig, configurator_widget:QtWidgets.QWidget):
-		pass
+		logger.debug('No Attitude Selected')
 
 	def _populateConfigFromHistorical(self, config:data_types.AttitudeConfig, configurator_widget:QtWidgets.QWidget):
-		print('POPULATING FROM HISTORICAL FILE')
+		logger.debug('Attitude configured to use Historical file')
+		config.gen_type = data_types.AttitudeGenMethod('historical')
 		config.historical_attitude_file = configurator_widget.getAttitudeFilePath()
 		config.is_attitude_defined = True
 		config.attitude_defines_timespan = True
 		config.attitude_invert_transform = configurator_widget.isAttitudeTransformInverse()
+
+	def _populateConfigFromGenerator(self, config:data_types.AttitudeConfig, configurator_widget:QtWidgets.QWidget):
+		logger.debug('Attitude configured to be generated')
+		config.gen_type = data_types.AttitudeGenMethod('generated')
+		config.is_attitude_defined = True
+		config.attitude_defines_timespan = False
+		config.attitude_invert_transform = True
+		config.prim_body_axis = configurator_widget.getPrimBodyAxis()
+		config.prim_target = configurator_widget.getPrimTarget()
+		config.sec_body_axis = configurator_widget.getSecBodyAxis()
+		config.sec_target = configurator_widget.getSecTarget()
+
 
 class GeneratedAttitudeConfig(QtWidgets.QWidget):
 	def __init__(self, *args, **kwargs):
@@ -213,6 +229,7 @@ class GeneratedAttitudeConfig(QtWidgets.QWidget):
 		self._prim_target_selector = widgets.BasicOptionBox('Primary Target',
 																dflt_option='ram',
 																options_list=['ram',
+																				'wake',
 																 				'nadir',
 																 				'sun',
 																 				'moon'])
@@ -223,9 +240,10 @@ class GeneratedAttitudeConfig(QtWidgets.QWidget):
 		self._sec_target_selector = widgets.BasicOptionBox('Secondary Target',
 																	dflt_option='ram',
 																 	options_list=['ram',
-																 				'nadir',
-																 				'sun',
-																 				'moon'])
+																 					'wake',
+																 					'nadir',
+																 					'sun',
+																 					'moon'])
 		self._sec_axis_selector = widgets.ValueBox('Secondary Axis', str((0, 1, 0)))
 		self._sec_mode_selector = widgets.BasicOptionBox('Minimisation Method',
 																dflt_option='minimise',
@@ -253,7 +271,17 @@ class GeneratedAttitudeConfig(QtWidgets.QWidget):
 		super_layout.addWidget(scroll_area)
 		self.setLayout(super_layout)
 
+	def getPrimTarget(self) -> data_types.RefTarget:
+		return data_types.RefTarget(self._prim_target_selector.getCurrentValue())
 
+	def getPrimBodyAxis(self) -> np.ndarray:
+		return self._prim_axis_selector.getValueAsArray()
+
+	def getSecTarget(self) -> data_types.RefTarget:
+		return data_types.RefTarget(self._prim_target_selector.getCurrentValue())
+
+	def getSecBodyAxis(self) -> np.ndarray:
+		return self._sec_axis_selector.getValueAsArray()
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}

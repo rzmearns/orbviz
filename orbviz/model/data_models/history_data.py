@@ -1,6 +1,8 @@
 import logging
 import pathlib
 
+import time
+
 from typing import Any, cast
 
 import numpy as np
@@ -99,13 +101,16 @@ class HistoryData(BaseDataModel):
 			raise ValueError(f'History data:{self} has no orbits yet')
 		return self.orbits
 
-	def getAttitudess(self) -> dict[int, "HistoricalAttitude"]:
+	def getAttitudes(self) -> dict[int, "HistoricalAttitude"]:
 		if len(self.attitudes.values()) == 0:
 			logger.warning('History data:%s has no attitudes yet', self)
 			raise ValueError(f'History data:{self} has no attitudes yet')
 		return self.attitudes
 
 	def getSCAttitude(self, sc_id:int) -> "HistoricalAttitude":
+		if len(self.attitudes.values()) == 0:
+			logger.warning('History data:%s has no attitudes yet', self)
+			raise ValueError(f'History data:{self} has no attitudes yet')
 		return self.attitudes[sc_id]
 
 	def process(self) -> None:
@@ -145,11 +150,15 @@ class HistoryData(BaseDataModel):
 
 
 		# Set up workers for orbit propagation
-		self._worker_threads['primary'] = threading.Worker(self._propagatePrimaryOrbits, self.timespan, self.getConfigValue('primary_satellite_ids'))
-		self._worker_threads['primary'].signals.result.connect(self._storeOrbitData)
-		self._worker_threads['primary'].signals.report_finished.connect(self._procComplete)
-		self._worker_threads['primary'].signals.error.connect(self._displayError)
-		self._worker_threads['primary'].setAutoDelete(True)
+		self._worker_manager.addWorkerThreadConfig({'thread_name':'primary',
+											'processing_fn':self._propagatePrimaryOrbits,
+											'processing_args':[self.timespan, self.getConfigValue('primary_satellite_ids')],
+											'chain_parent':None,
+											'delay_start':False,
+											'storage_fn': self._storeOrbitData,
+											'finished_fn':self._procComplete,
+											'error_fn':self._displayError,
+											'auto_delete': True})
 
 		if self.getConfigValue('has_supplemental_constellation'):
 			if self.constellation is None:
@@ -277,6 +286,19 @@ class HistoryData(BaseDataModel):
 
 	def _recalculateGroundStations(self, running:threading.Flag) -> None:
 		self.groundstationCollection.updateTimespans(self.timespan)
+		console.send("Completed generating ground station location data")
+		logger.info("Completed generating ground station location data")
+
+	def _processAttitudes(self, running:threading.Flag) -> None:
+		attitudes = {}
+		for sat_id, orbit_data in self.orbits.items():
+			console.send(f"Generating attitude for {sat_id} ...")
+			logger.info(f"Generating attitude for %s", sat_id)
+			sc_config = self.getConfigValue('primary_satellite_config').getSpacecraftConfig(sat_id)
+			attitudes[sat_id] = HistoricalAttitude.fromAttitudeConfig(sc_config, orbit_data, self.getConfigValue('attitude_configs')[sat_id])
+		console.send(f"Completed attitude generation")
+		logger.info(f"Completed attitude generation")
+		return attitudes
 
 	def _storeOrbitData(self, orbits:dict[int,orbit.Orbit]) -> None:
 		logger.info('Storing orbit data')
@@ -288,6 +310,10 @@ class HistoryData(BaseDataModel):
 	def _storeEventData(self, events:dict[int, event_data.EventData]):
 		logger.info('Storing event data')
 		self.events = events
+
+	def _storeAttitudeData(self, attitudes:dict[int, "HistoricalAttitude"]):
+		logger.info('Storing attitude data')
+		self.attitudes = attitudes
 
 	def _createDataPaneEntries(self):
 		self.datapane_data.append({'parameter':'Altitude',
@@ -409,8 +435,6 @@ class HistoricalAttitude:
 				self._cached_sens_idx[sens_key] = np.full((num_samples),False)
 				self._sens_attitude_matrix_cache[sens_key] = np.zeros((num_samples,3,3), dtype=np.float64)
 
-
-
 	def getAttitudeTimestamps(self) -> np.ndarray[tuple[int], np.dtype[np.datetime64]]:
 		return self._timestamps
 
@@ -502,15 +526,14 @@ class HistoricalAttitude:
 		if att_cnfg.gen_type == data_types.AttitudeGenMethod.HISTORICAL:
 			if att_cnfg.historical_attitude_file is not None:
 				timestamps, raw_quats = cls._loadAttitudeFile(att_cnfg.historical_attitude_file)
-				return cls(sc_cnfg, timestamps, raw_quats)
+				return cls(sc_cnfg, timestamps, raw_quats, eci2bf=att_cnfg._attitude_invert_transform)
 			else:
 				logger.error('Historical Attitude selected, but no data file selected')
 				raise ValueError('Historical Attitude selected, but no data file selected')
 		elif att_cnfg.gen_type == data_types.AttitudeGenMethod.GENERATED:
+			raw_quats = np.tile((0,0,0,1), (len(orbit_data.timespan), 1))
 
-			raw_quats = np.tile((1,0,0,0), (len(orbit_data.timespan), 1))
-
-			return (sc_cnfg, orbit_data.timespan[:], raw_quats)
+			return cls(sc_cnfg, orbit_data.timespan[:], raw_quats, eci2bf=att_cnfg._attitude_invert_transform)
 
 	@classmethod
 	def _loadAttitudeFile(cls, p_file: pathlib.Path) -> tuple[np.ndarray[tuple[int], np.dtype[np.datetime64]], np.ndarray[tuple[int,int],np.dtype[np.float64]]]:

@@ -36,18 +36,29 @@ class RefFrame(Enum):
 	ZENITH = 'zenith'
 	SUN = 'sun'
 
+class RefTarget(Enum):
+	RAM = 'ram'
+	WAKE = 'wake'
+	ZENITH = 'zenith'
+	NADIR = 'nadir'
+	SUN = 'sun'
+	MOON = 'moon'
+
 class AttitudeConfig:
 	def __init__(self, sc_id):
 		self._sc_id:int = sc_id
+		self._gen_type:AttitudeGenMethod = AttitudeGenMethod('none')
 		self._is_attitude_defined:bool = False
 		self._attitude_defines_timespan:bool = False
 		self._historical_attitude_file = None
 		self._attitude_invert_transform:bool = False
 		self._prim_body_axis:np.ndarray = np.array((1,0,0))
 		self._prim_ref_axis:np.ndarray = np.array((0,0,0))
+		self._prim_target = RefTarget('ram')
 		self._prim_ref_frame:RefFrame = 'zenith'
 		self._sec_body_axis:np.ndarray = np.array((0,1,0))
 		self._sec_ref_axis:np.ndarray = np.array((0,0,0))
+		self._sec_target = RefTarget('ram')
 		self._sec_ref_frame:RefFrame = 'sun'
 		self._sec_mode = 'minimum'
 
@@ -85,6 +96,14 @@ class AttitudeConfig:
 		self._attitude_defines_timespan = val
 
 	@property
+	def gen_type(self):
+		return self._gen_type
+
+	@gen_type.setter
+	def gen_type(self, val:AttitudeGenMethod):
+		self._gen_type = val
+
+	@property
 	def is_attitude_defined(self):
 		return self._is_attitude_defined
 
@@ -99,6 +118,62 @@ class AttitudeConfig:
 	@attitude_invert_transform.setter
 	def attitude_invert_transform(self, val:bool):
 		self._attitude_invert_transform = val
+
+	@property
+	def prim_body_axis(self) -> np.ndarray:
+		return self._prim_body_axis
+
+	@prim_body_axis.setter
+	def prim_body_axis(self, val:np.ndarray):
+		self._prim_body_axis = val
+
+	@property
+	def prim_ref_axis(self) -> np.ndarray:
+		return self._prim_ref_axis
+
+	@prim_ref_axis.setter
+	def prim_ref_axis(self, val:np.ndarray):
+		self._prim_ref_axis = val
+
+	@property
+	def prim_ref_frame(self) -> RefFrame:
+		return self._prim_ref_frame
+
+	@prim_ref_frame.setter
+	def prim_ref_frame(self, val:RefFrame):
+		self._prim_ref_frame = val
+
+	@property
+	def sec_body_axis(self) -> np.ndarray:
+		return self._sec_body_axis
+
+	@sec_body_axis.setter
+	def sec_body_axis(self, val:np.ndarray):
+		self._sec_body_axis = val
+
+	@property
+	def sec_ref_axis(self) -> np.ndarray:
+		return self._sec_ref_axis
+
+	@sec_ref_axis.setter
+	def sec_ref_axis(self, val:np.ndarray):
+		self._sec_ref_axis = val
+
+	@property
+	def sec_ref_frame(self) -> RefFrame:
+		return self._sec_ref_frame
+
+	@sec_ref_frame.setter
+	def sec_ref_frame(self, val:RefFrame):
+		self._sec_ref_frame = val
+
+	@property
+	def sec_mode(self):
+		return self._sec_mode
+
+	@sec_mode.setter
+	def sec_mode(self, val):
+		self._sec_mode = val
 
 
 class ConstellationConfig:
@@ -316,7 +391,7 @@ class PrimaryConfig:
 		return self.sats[idx]
 
 	def getSpacecraftConfig(self, idx:int) -> SpacecraftConfig:
-		return self.sat_configs[self.getSatName(idx)]
+		return self.sat_configs[idx]
 
 	def getAllSpacecraftConfigs(self):
 		return self.sat_configs
