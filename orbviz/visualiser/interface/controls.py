@@ -227,20 +227,17 @@ class GeneratedAttitudeConfig(QtWidgets.QWidget):
 		_prim_groupbox = QtWidgets.QGroupBox('Primary Axis Selection')
 		_prim_layout = QtWidgets.QVBoxLayout()
 		self._prim_target_selector = widgets.BasicOptionBox('Primary Target',
-																dflt_option='ram',
-																options_list=[e.value for e in data_types.RefTarget])
-		self._prim_axis_selector = widgets.ValueBox('Primary Axis', str((1, 0, 0)))
+															dflt_option='nadir',
+															options_list=[e.value for e in data_types.RefTarget])
+		self._prim_axis_selector = widgets. BasicValueBox('Body Axis to Pimary Target', str((1, 0, 0)))
 
 		_sec_groupbox = QtWidgets.QGroupBox('Secondary Axis Selection')
 		_sec_layout = QtWidgets.QVBoxLayout()
 		self._sec_target_selector = widgets.BasicOptionBox('Secondary Target',
-																	dflt_option='ram',
-																 	options_list=[e.value for e in data_types.RefTarget])
-		self._sec_axis_selector = widgets.ValueBox('Secondary Axis', str((0, 1, 0)))
-		self._sec_mode_selector = widgets.BasicOptionBox('Minimisation Method',
-																dflt_option='minimise',
-																options_list=['minimise',
-																				'absolute'])
+															dflt_option='ram',
+															options_list=[e.value for e in data_types.RefTarget])
+		self._sec_axis_selector = widgets.BasicValueBox('Secondary Axis to Secondary Target', str((0, 1, 0)))
+		self._sec_mode_selector = QtWidgets.QLabel('The angle between the secondary axis and the target will be minimised.')
 
 		# Place configuration widgets
 		_prim_layout.addWidget(self._prim_target_selector)

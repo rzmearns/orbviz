@@ -633,6 +633,7 @@ class BasicOptionBox(QtWidgets.QWidget):
 		self._optionbox.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
 
 		layout.addWidget(self._label)
+		layout.addStretch()
 		layout.addWidget(self._optionbox)
 		self._curr_index = self._options.index(dflt_option)
 		self._optionbox.setCurrentIndex(self._curr_index)
@@ -1068,6 +1069,63 @@ class ValueBox(QtWidgets.QWidget):
 			logger.error("%s state was serialised as a %s, is now a ValueBox", self, state['type'])
 			return
 		self.setValue(state['value'])
+
+class BasicValueBox(QtWidgets.QWidget):
+	def __init__(self, label, dflt_value, parent: QtWidgets.QWidget=None):
+		super().__init__(parent)
+		self._callbacks = []
+		self.value = str(dflt_value)
+		layout = QtWidgets.QHBoxLayout()
+		layout.setContentsMargins(2,1,2,1)
+
+		self._label = QtWidgets.QLabel(label)
+		self._val_text_box = QtWidgets.QLineEdit(self.value)
+
+		layout.addWidget(self._label)
+		layout.addStretch()
+		layout.addWidget(self._val_text_box)
+
+		self.setLayout(layout)
+		self._val_text_box.editingFinished.connect(self._updateValue)
+
+	# TODO: specify different data types
+	# TODO: return different types based on data type
+	def getValue(self) -> float:
+		return float(self.value)
+
+	def getValueAsArray(self) -> np.ndarray:
+		return np.fromstring(self.value.strip('()[]'), dtype=float, sep=',')
+
+	def _updateValue(self):
+		self.value = self._val_text_box.text()
+
+	def setValue(self, val:float) -> None:
+		self.value = str(val)
+		self._val_text_box.setText(self.value)
+
+	def addConnect(self, callback):
+		self._callbacks.append(callback)
+
+	def _runCallbacks(self):
+		if len(self._callbacks) > 0:
+			for callback in self._callbacks:
+				pass
+				# callback(self._checkbox.isChecked())
+		else:
+			logger.warning("No BasicValueBox callbacks are set")
+
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['type'] = 'BasicValueBox'
+		state['value'] = str(self.value)
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		if state['type'] != 'BasicValueBox':
+			logger.error("%s state was serialised as a %s, is now a BasicValueBox", self, state['type'])
+			return
+		self.setValue(state['value'])
+
 
 class CollapsibleSection(QtWidgets.QWidget):
 	# Ported to PyQT5 and modified, original widget by Caroline Beyne, github user: cbeyne
