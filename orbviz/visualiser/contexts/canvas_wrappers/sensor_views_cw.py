@@ -158,7 +158,7 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 
 		if self.data_models['history'].hasOrbits():
 			sc_id = self.data_models['history'].getConfigValue('primary_satellite_ids')[0]
-			if self.data_models['history'].getConfigValue('attitudes')[sc_id].isAttitudeDefined():
+			if self.data_models['history'].getConfigValue('attitude_configs')[sc_id].isAttitudeDefined():
 				self.assets['spacecraft'].setSource(list(self.data_models['history'].getPrimaryConfig().getAllSpacecraftConfigs().values())[0],
 													self.data_models['history'],
 													self.data_models['raycast_src'])

@@ -2,11 +2,106 @@ import logging
 import sys
 import traceback
 
+from typing import TypedDict, Callable, Any
+
 from PyQt5 import QtCore
 
 import orbviz
 
 logger = logging.getLogger(__name__)
+
+class WorkerThreadConfig(TypedDict):
+	"""TypedDict container for configuring a worker thread
+
+	Attributes:
+	"""
+	thread_name: str
+	processing_fn: Callable
+	processing_args: list[Any]
+	chain_parent: str
+	delay_start: bool
+	storage_fn: Callable
+	finished_fn: Callable
+	error_fn: Callable
+	auto_delete: bool
+
+class WorkerManager:
+	def __init__(self):
+		self._worker_thread_configs: dict[str, WorkerThreadConfig] = {}
+		self._worker_threads: dict[str, Worker] = {}
+		self._worker_thread_completion: dict [str, bool] = {}
+		self._all_completion_fn = None
+
+	def setAllThreadCompletionFunction(self, fn):
+		self._all_completion_fn = fn
+
+	def clearWorkerThreads(self):
+		self._worker_thread_configs = {}
+		self._worker_threads = {}
+		self._worker_thread_completion = {}
+
+	def addWorkerThreadConfig(self, config:WorkerThreadConfig):
+		# TODO: check no thread with the same name
+		logger.debug('Adding worker thread config %s', config)
+		self._worker_thread_configs[config['thread_name']] = config
+
+	def registerWorkerThreads(self):
+		self._validateFields()
+		for name, config in self._worker_thread_configs.items():
+			self._worker_threads[name] = Worker(config['processing_fn'], *config['processing_args'], delay_start=config['delay_start'])
+			self._worker_thread_completion[name] = False
+			if config['chain_parent'] is not None:
+				self._worker_threads[config['chain_parent']].addChainedWorker(config['thread_name'], self._worker_threads[config['thread_name']])
+			if config['storage_fn'] is not None:
+				storageFn = self.createStorageFn(config['thread_name'], config['storage_fn'])
+				self._worker_threads[name].signals.result.connect(storageFn)
+				use_finished_to_mark_completion = False
+			else:
+				use_finished_to_mark_completion = True
+
+			if config['finished_fn'] is not None:
+				completionFn = self.createCompleteFn(config['thread_name'], config['finished_fn'], use_finished_to_mark_completion)
+				self._worker_threads[name].signals.report_finished.connect(completionFn)
+
+			if config['error_fn'] is not None:
+				self._worker_threads[name].signals.error.connect(config['error_fn'])
+
+			self._worker_threads[name].setAutoDelete(config['auto_delete'])
+
+	def start(self):
+		for thread_name, thread in self._worker_threads.items():
+			if thread is not None and not thread.delayStart:
+				logger.info('Starting thread %s:%s',thread_name, thread)
+				orbviz.threadpool.logStart(thread)
+
+	def createCompleteFn(self, thread_name, orig_completion_fn, use_for_thread_completion=False):
+		def completionFn(*args):
+			orig_completion_fn(*args)
+			if use_for_thread_completion:
+				self._worker_thread_completion[thread_name] = True
+				self._checkAllThreadsComplete()
+		return completionFn
+
+	def createStorageFn(self, thread_name, orig_storage_fn):
+		def storageFn(*args):
+			orig_storage_fn(*args)
+			self._worker_thread_completion[thread_name] = True
+			self._checkAllThreadsComplete()
+		return storageFn
+
+	def _checkAllThreadsComplete(self):
+		all_completed = True
+		for thread_name, completed in self._worker_thread_completion.items():
+			if not completed:
+				all_completed = False
+
+		if all_completed:
+			logger.info("All data threads completed processing. Running completion function %s", self._all_completion_fn)
+			self._all_completion_fn()
+
+	def _validateFields(self):
+		# TODO: add checks for all correct types and no strings versions of variables
+		pass
 
 class WorkerSignals(QtCore.QObject):
 	'''
@@ -93,12 +188,15 @@ class Worker(QtCore.QRunnable):
 		except:
 			traceback.print_exc()
 			exctype, value = sys.exc_info()[:2]
+			logger.error('Thread %s experienced error. TERMINATING', self)
 			self.signals.error.emit((exctype, value, traceback.format_exc()))
 		else:
+			logger.info('Thread %s finished. Emitting RESULT signal', self)
 			self.signals.result.emit(result)
 		finally:
 			if not self.running:
 				self.running.setState(False)
+				logger.info('Thread %s finished. Emitting FINISHED signal', self)
 				self.signals.finished.emit()
 				self.signals.report_finished.emit(self)
 				for worker_name, worker in self.chainedWorkers.items():

@@ -26,6 +26,7 @@ class HistoryData(BaseDataModel):
 		super().__init__(*args, **kwargs)
 		self._setConfig('data_type',data_types.DataType.HISTORY)
 		# initialise empty config
+		# configs
 		self._setConfig('timespan_period_start', None)
 		self._setConfig('timespan_period_end', None)
 		self._setConfig('sampling_period', None)
@@ -33,10 +34,11 @@ class HistoryData(BaseDataModel):
 		self._setConfig('primary_satellite_config', None)
 		self._setConfig('has_supplemental_constellation', False)
 		self._setConfig('num_geolocations', 0)
-		self._setConfig('attitudes', {}) # keys of sc_id
+		self._setConfig('attitude_configs', {}) # keys of sc_id
 		self._setConfig('events_defined', False)
 		self._setConfig('events_file', None)
 
+		# data
 		self.timespan: timespan.TimeSpan | None = None
 		self.orbits: dict[int, orbit.Orbit] = {}
 		self.attitudes: dict[int, HistoricalAttitude] = {}
@@ -47,8 +49,9 @@ class HistoryData(BaseDataModel):
 		self.moon: nptyping.NDArray[np.float64] | None = None
 		self.geo_locations: list[nptyping.NDArray[np.float64]] = []
 		self.curr_index:int|None = None
-		self._worker_threads: dict[str, threading.Worker | None] = {'primary': None,
-																	'constellation': None}
+		self._worker_manager = threading.WorkerManager()
+		self._worker_manager.setAllThreadCompletionFunction(self.data_ready.emit)
+
 		self.datapane_data = []
 		self._createDataPaneEntries()
 		logger.info("Finished initialising HistoryData")
@@ -108,10 +111,12 @@ class HistoryData(BaseDataModel):
 	def process(self) -> None:
 		# Load attitude and create timespan
 		prim_sc_id = list(self.getConfigValue('primary_satellite_config').getAllSpacecraftConfigs().keys())[0]
-		if self.getConfigValue('attitudes')[prim_sc_id].definesTimeSpan():
+		# clear attitudes
+		self.attitudes = {}
+		if self.getConfigValue('attitude_configs')[prim_sc_id].definesTimeSpan():
 			# TODO: for multi sat need to pick one?
 			for sc_id, sc_config in self.getConfigValue('primary_satellite_config').getAllSpacecraftConfigs().items():
-				self.attitudes[sc_id] = HistoricalAttitude.fromAttitudeConfig(sc_config, self.getConfigValue('attitudes')[sc_id])
+				self.attitudes[sc_id] = HistoricalAttitude.fromAttitudeConfig(sc_config, None, self.getConfigValue('attitude_configs')[sc_id])
 			console.send("Loading timespan from attitude file.")
 			_timearr = self.attitudes[prim_sc_id].getAttitudeTimestamps()
 			self.timespan = timespan.TimeSpan.fromDatetime(_timearr)
@@ -152,50 +157,60 @@ class HistoryData(BaseDataModel):
 				raise AttributeError(f"History data:{self},onstellation has not been configured")
 
 			self.constellation.setTimespan(self.timespan)
-			self._worker_threads['constellation'] = threading.Worker(self._propagateConstellationOrbits, self.timespan, self.constellation.getConfigValue('satellite_ids'))
-			self._worker_threads['constellation'].signals.result.connect(self.constellation._storeOrbitData)
-			self._worker_threads['constellation'].signals.report_finished.connect(self._procComplete)
-			self._worker_threads['constellation'].signals.error.connect(self._displayError)
-			self._worker_threads['constellation'].setAutoDelete(True)
-		else:
-			self._worker_threads['constellation'] = None
+			self._worker_manager.addWorkerThreadConfig({'thread_name':'constellation',
+												'processing_fn':self._propagateConstellationOrbits,
+												'processing_args':[self.timespan, self.constellation.getConfigValue('satellite_ids')],
+												'chain_parent':None,
+												'delay_start':False,
+												'storage_fn': self.constellation._storeOrbitData,
+												'finished_fn':self._procComplete,
+												'error_fn':self._displayError,
+												'auto_delete': True})
 
 		if self.getConfigValue('events_defined'):
 			# Set up event processing thread
-			self._worker_threads['events'] = threading.Worker(self._loadEvents,
-																self.getConfigValue('events_file'),
-																delay_start=True)
-			self._worker_threads['primary'].addChainedWorker('events', self._worker_threads['events'])
-			self._worker_threads['events'].signals.result.connect(self._storeEventData)
-			self._worker_threads['events'].signals.report_finished.connect(self._procComplete)
-			self._worker_threads['events'].signals.error.connect(self._displayError)
-			self._worker_threads['events'].setAutoDelete(True)
+			self._worker_manager.addWorkerThreadConfig({'thread_name':'events',
+												'processing_fn':self._loadEvents,
+												'processing_args':[self.get_configValue('events_file')],
+												'chain_parent':'primary',
+												'delay_start':True,
+												'storage_fn': self._storeEventData,
+												'finished_fn':self._procComplete,
+												'error_fn':self._displayError,
+												'auto_delete': True})
 		else:
 			self.events = None
 
-		self._worker_threads['groundstations'] = threading.Worker(self._recalculateGroundStations,
-																delay_start=True)
-		self._worker_threads['primary'].addChainedWorker('groundstations', self._worker_threads['groundstations'])
-		self._worker_threads['groundstations'].signals.report_finished.connect(self._procComplete)
-		self._worker_threads['groundstations'].signals.error.connect(self._displayError)
-		self._worker_threads['groundstations'].setAutoDelete(True)
+		self._worker_manager.addWorkerThreadConfig({'thread_name':'groundstations',
+											'processing_fn':self._recalculateGroundStations,
+											'processing_args':[],
+											'chain_parent':'primary',
+											'delay_start':True,
+											'storage_fn': None,
+											'finished_fn':self._procComplete,
+											'error_fn':self._displayError,
+											'auto_delete': True})
 
-		for thread_name, thread in self._worker_threads.items():
-			if thread is not None and not thread.delayStart:
-				logger.info('Starting thread %s:%s',thread_name, thread)
-				orbviz.threadpool.logStart(thread)
+		# check if attitudes is already created, otherwise process
+		if not bool(self.attitudes):
+			self._worker_manager.addWorkerThreadConfig({'thread_name':'attitudes',
+														'processing_fn':self._processAttitudes,
+														'processing_args':[],
+														'chain_parent':'primary',
+														'delay_start':True,
+														'storage_fn': self._storeAttitudeData,
+														'finished_fn':None,
+														'error_fn':self._displayError,
+														'auto_delete': True})
+
+
+		self._worker_manager.registerWorkerThreads()
+		self._worker_manager.start()
+
+
 
 	def _procComplete(self, worker_object) -> None:
-		logger.info("%s completion triggered processing of computed data", worker_object)
-		for thread_name, thread in self._worker_threads.items():
-			if thread is not None:
-				logger.debug('\t%s:%s', thread_name, thread.isRunning())
-				if thread.isRunning() or (not thread.hasStarted() and not thread.isRunning()):
-					# if any thread is running, or isn't running but hasn't started yet
-					return
-			else:
-				logger.debug('\t%s:None', thread_name)
-		self.data_ready.emit()
+		logger.info("%s completed", worker_object)
 
 	def _resetCurrIndex(self) -> None:
 		# ensure self.curr_index is both within the bounds of the new timespan, and is not None when
@@ -264,12 +279,14 @@ class HistoryData(BaseDataModel):
 		self.groundstationCollection.updateTimespans(self.timespan)
 
 	def _storeOrbitData(self, orbits:dict[int,orbit.Orbit]) -> None:
+		logger.info('Storing orbit data')
 		self.orbits = orbits
 		self._resetCurrIndex()
 		self.sun = list(orbits.values())[0].sun_pos
 		self.moon = list(orbits.values())[0].moon_pos
 
 	def _storeEventData(self, events:dict[int, event_data.EventData]):
+		logger.info('Storing event data')
 		self.events = events
 
 	def _createDataPaneEntries(self):
@@ -477,12 +494,23 @@ class HistoricalAttitude:
 		return res_q_arr
 
 	@classmethod
-	def fromAttitudeConfig(cls, sc_cnfg: data_types.SpacecraftConfig, att_cnfg:data_types.AttitudeConfig):
+	def fromAttitudeConfig(cls, sc_cnfg: data_types.SpacecraftConfig,
+								orbit_data: orbit.Orbit,
+								att_cnfg:data_types.AttitudeConfig):
 
 		# check sc_id matches sc_config
-		if att_cnfg.historical_attitude_file is not None:
-			timestamps, raw_quats = cls._loadAttitudeFile(att_cnfg.historical_attitude_file)
-			return cls(sc_cnfg, timestamps, raw_quats)
+		if att_cnfg.gen_type == data_types.AttitudeGenMethod.HISTORICAL:
+			if att_cnfg.historical_attitude_file is not None:
+				timestamps, raw_quats = cls._loadAttitudeFile(att_cnfg.historical_attitude_file)
+				return cls(sc_cnfg, timestamps, raw_quats)
+			else:
+				logger.error('Historical Attitude selected, but no data file selected')
+				raise ValueError('Historical Attitude selected, but no data file selected')
+		elif att_cnfg.gen_type == data_types.AttitudeGenMethod.GENERATED:
+
+			raw_quats = np.tile((1,0,0,0), (len(orbit_data.timespan), 1))
+
+			return (sc_cnfg, orbit_data.timespan[:], raw_quats)
 
 	@classmethod
 	def _loadAttitudeFile(cls, p_file: pathlib.Path) -> tuple[np.ndarray[tuple[int], np.dtype[np.datetime64]], np.ndarray[tuple[int,int],np.dtype[np.float64]]]:

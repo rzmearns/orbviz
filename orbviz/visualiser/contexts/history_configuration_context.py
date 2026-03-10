@@ -96,7 +96,7 @@ class HistoryConfigurationContext(BaseContext):
 			self.data['history'].clearSupplementalConstellation()
 
 		# Historical attitue
-		self.data['history'].updateConfig('attitudes', self.controls.attitude_config.getAttitudeConfigs(p_config.getSatIDs()[0]))
+		self.data['history'].updateConfig('attitude_configs', self.controls.attitude_config.getAttitudeConfigs(p_config.getSatIDs()[0]))
 
 		# Events
 		self.data['history'].updateConfig('events_defined', self.controls.use_events_switch.isChecked())

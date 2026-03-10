@@ -174,8 +174,8 @@ class Controls(BaseControls):
 
 	def updateSensorViewLists(self):
 		# TODO: need to present selection for sc as well as sensors
-		sc_id = list(self.context.data['history'].getConfigValue('attitudes').keys())[0]
-		if self.context.data['history'].getConfigValue('attitudes')[sc_id].isAttitudeDefined():
+		sc_id = list(self.context.data['history'].getConfigValue('attitude_configs').keys())[0]
+		if self.context.data['history'].getConfigValue('attitude_configs')[sc_id].isAttitudeDefined():
 			sens_dict = self.context.data['history'].getPrimaryConfig().serialiseAllSensors()
 		else:
 			sens_dict = {}
