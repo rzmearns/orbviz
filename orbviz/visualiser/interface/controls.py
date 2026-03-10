@@ -228,22 +228,14 @@ class GeneratedAttitudeConfig(QtWidgets.QWidget):
 		_prim_layout = QtWidgets.QVBoxLayout()
 		self._prim_target_selector = widgets.BasicOptionBox('Primary Target',
 																dflt_option='ram',
-																options_list=['ram',
-																				'wake',
-																 				'nadir',
-																 				'sun',
-																 				'moon'])
+																options_list=[e.value for e in data_types.RefTarget])
 		self._prim_axis_selector = widgets.ValueBox('Primary Axis', str((1, 0, 0)))
 
 		_sec_groupbox = QtWidgets.QGroupBox('Secondary Axis Selection')
 		_sec_layout = QtWidgets.QVBoxLayout()
 		self._sec_target_selector = widgets.BasicOptionBox('Secondary Target',
 																	dflt_option='ram',
-																 	options_list=['ram',
-																 					'wake',
-																 					'nadir',
-																 					'sun',
-																 					'moon'])
+																 	options_list=[e.value for e in data_types.RefTarget])
 		self._sec_axis_selector = widgets.ValueBox('Secondary Axis', str((0, 1, 0)))
 		self._sec_mode_selector = widgets.BasicOptionBox('Minimisation Method',
 																dflt_option='minimise',
@@ -278,7 +270,7 @@ class GeneratedAttitudeConfig(QtWidgets.QWidget):
 		return self._prim_axis_selector.getValueAsArray()
 
 	def getSecTarget(self) -> data_types.RefTarget:
-		return data_types.RefTarget(self._prim_target_selector.getCurrentValue())
+		return data_types.RefTarget(self._sec_target_selector.getCurrentValue())
 
 	def getSecBodyAxis(self) -> np.ndarray:
 		return self._sec_axis_selector.getValueAsArray()

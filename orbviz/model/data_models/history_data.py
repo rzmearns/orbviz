@@ -16,6 +16,7 @@ import spherapy.updater as updater
 import orbviz
 from orbviz.model.data_models import constellation_data, data_types, event_data, groundstation_data
 from orbviz.model.data_models.base_models import BaseDataModel
+from orbviz.model.geometry import primgeom
 import orbviz.util.constants as orbviz_constants
 import orbviz.util.conversion as orbviz_conversions
 import orbviz.util.threading as threading
@@ -531,7 +532,8 @@ class HistoricalAttitude:
 				logger.error('Historical Attitude selected, but no data file selected')
 				raise ValueError('Historical Attitude selected, but no data file selected')
 		elif att_cnfg.gen_type == data_types.AttitudeGenMethod.GENERATED:
-			raw_quats = np.tile((0,0,0,1), (len(orbit_data.timespan), 1))
+			# raw_quats = np.tile((0,0,0,1), (len(orbit_data.timespan), 1))
+			raw_quats = cls._genQuats(orbit_data, att_cnfg)
 
 			return cls(sc_cnfg, orbit_data.timespan[:], raw_quats, eci2bf=att_cnfg._attitude_invert_transform)
 
@@ -546,3 +548,79 @@ class HistoricalAttitude:
 		attitude_dates = np.genfromtxt(p_file, delimiter=',', usecols=[0],skip_header=1, converters={0:orbviz_conversions.date_parser})
 
 		return attitude_dates, attitude_q
+
+	@classmethod
+	def _genQuats(cls, orbit_data: orbit.Orbit,
+								att_cnfg:data_types.AttitudeConfig):
+		num_steps = len(orbit_data.timespan)
+		quats = np.zeros((num_steps,4))
+
+
+		if att_cnfg._prim_target == data_types.RefTarget('ram'):
+			prim_target_unit_v = primgeom.unitVector(orbit_data.vel)
+		elif att_cnfg._prim_target == data_types.RefTarget('wake'):
+			prim_target_unit_v = primgeom.unitVector(-1*orbit_data.vel)
+		elif att_cnfg._prim_target == data_types.RefTarget('zenith'):
+			prim_target_unit_v = primgeom.unitVector(orbit_data.pos)
+		elif att_cnfg._prim_target == data_types.RefTarget('nadir'):
+			prim_target_unit_v = primgeom.unitVector(-1*orbit_data.pos)
+		elif att_cnfg._prim_target == data_types.RefTarget('sun'):
+			prim_target_unit_v = primgeom.unitVector(orbit_data.sun_pos)
+		elif att_cnfg._prim_target == data_types.RefTarget('moon'):
+			prim_target_unit_v = primgeom.unitVector(orbit_data.moon_pos)
+
+		if att_cnfg._sec_target == data_types.RefTarget('ram'):
+			sec_target_unit_v = primgeom.unitVector(orbit_data.vel)
+		elif att_cnfg.sec_target == data_types.RefTarget('wake'):
+			sec_target_unit_v = primgeom.unitVector(-1*orbit_data.vel)
+		elif att_cnfg.sec_target == data_types.RefTarget('zenith'):
+			sec_target_unit_v = primgeom.unitVector(orbit_data.pos)
+		elif att_cnfg.sec_target == data_types.RefTarget('nadir'):
+			sec_target_unit_v = primgeom.unitVector(-1*orbit_data.pos)
+		elif att_cnfg.sec_target == data_types.RefTarget('sun'):
+			sec_target_unit_v = primgeom.unitVector(orbit_data.sun_pos)
+		elif att_cnfg.sec_target == data_types.RefTarget('moon'):
+			sec_target_unit_v = primgeom.unitVector(orbit_data.moon_pos)
+
+		ortho_sec_target_unit_v = primgeom.orthogonalProjection(sec_target_unit_v, prim_target_unit_v)
+		third_target_vec = np.cross(prim_target_unit_v, ortho_sec_target_unit_v)
+
+		prim_body = primgeom.unitVector(att_cnfg.prim_body_axis)
+		sec_body = primgeom.unitVector(att_cnfg.sec_body_axis)
+		third_body = np.cross(prim_body, sec_body)
+
+		if not np.isclose(np.dot(prim_body, sec_body), 0):
+			raise ValueError("Prim body vectors and Sec Body vectors aren't orthogonal")
+
+		basis_rot = np.zeros((3,3))
+		basis_rot[0,0] = np.dot(prim_body, [1,0,0])
+		basis_rot[1,0] = np.dot(prim_body, [0,1,0])
+		basis_rot[2,0] = np.dot(prim_body, [0,0,1])
+		basis_rot[0,1] = np.dot(sec_body, [1,0,0])
+		basis_rot[1,1] = np.dot(sec_body, [0,1,0])
+		basis_rot[2,1] = np.dot(sec_body, [0,0,1])
+		basis_rot[0,2] = np.dot(third_body, [1,0,0])
+		basis_rot[1,2] = np.dot(third_body, [0,1,0])
+		basis_rot[2,2] = np.dot(third_body, [0,0,1])
+
+		rot = np.zeros((3,3))
+		for ii in range(num_steps):
+
+			dot = np.dot(prim_target_unit_v[ii,:], ortho_sec_target_unit_v[ii,:])
+			if not np.isclose(dot, 0):
+				raise ValueError(f"Prim target vectors and Sec target vectors aren't orthogonal, dot:{dot}, timespan index:{ii}")
+
+			rot[0,0] = np.dot([1,0,0],prim_target_unit_v[ii,:])
+			rot[1,0] = np.dot([1,0,0],ortho_sec_target_unit_v[ii,:])
+			rot[2,0] = np.dot([1,0,0],third_target_vec[ii,:])
+			rot[0,1] = np.dot([0,1,0],prim_target_unit_v[ii,:])
+			rot[1,1] = np.dot([0,1,0],ortho_sec_target_unit_v[ii,:])
+			rot[2,1] = np.dot([0,1,0],third_target_vec[ii,:])
+			rot[0,2] = np.dot([0,0,1],prim_target_unit_v[ii,:])
+			rot[1,2] = np.dot([0,0,1],ortho_sec_target_unit_v[ii,:])
+			rot[2,2] = np.dot([0,0,1],third_target_vec[ii,:])
+
+			r = Rotation.from_matrix(basis_rot) * Rotation.from_matrix(rot)
+			quats[ii, :] = r.inv().as_quat()
+
+		return quats

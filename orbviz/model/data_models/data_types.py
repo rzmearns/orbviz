@@ -168,6 +168,22 @@ class AttitudeConfig:
 		self._sec_ref_frame = val
 
 	@property
+	def prim_target(self):
+		return self._prim_target
+
+	@prim_target.setter
+	def prim_target(self, val:RefFrame):
+		self._prim_target = val
+
+	@property
+	def sec_target(self):
+		return self._sec_target
+
+	@sec_target.setter
+	def sec_target(self, val:RefFrame):
+		self._sec_target = val
+
+	@property
 	def sec_mode(self):
 		return self._sec_mode
 
