@@ -6,6 +6,7 @@ from typing import Any
 import numpy as np
 import numpy.typing as nptyping
 from scipy.spatial.transform import Rotation
+from scipy.spatial import ConvexHull
 
 import vispy.scene.visuals as vVisuals
 from vispy.scene.widgets.viewbox import ViewBox
@@ -18,6 +19,7 @@ import orbviz.model.lens_models.pinhole as pinhole
 import orbviz.util.conversion as orbviz_conversion
 import orbviz.visualiser.assets.base_assets as base_assets
 import orbviz.visualiser.colours as colours
+import orbviz.visualiser.visuals.polygons as polygon_visuals
 
 logger = logging.getLogger(__name__)
 
@@ -446,9 +448,14 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 		self.data['lowres_rays_sf'] = self.data['lens_model'].generatePixelRays(self.data['lowres'], self.data['fov'])
 		self.data['edge_rays'] = self.data['lens_model'].generateEdgeRays(self.data['lowres'], self.data['fov'])
 		# need to create a valid polygon for instantiation (but before valid data exists)
-		self.data['point_cloud'] = np.zeros((364,2))
-		self.data['point_cloud'][:363,0] = np.arange(0,363)
-		self.data['point_cloud'][-1,0] = -1
+		# self.data['point_cloud'] = np.zeros((364,2))
+		# self.data['point_cloud'][:363,0] = np.arange(0,363)
+		# self.data['point_cloud'][-1,0] = -1
+
+		self.data['point_cloud'] = np.array([[1,0],
+											[0,0],
+											[0,1]])
+
 		self.data['last_transform'] = np.eye(4)
 		self.data['history_src'] = None
 		self.data['raycast_src'] = None
@@ -496,6 +503,16 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 													size=self.opts['sensor_pixel_size']['value'],
 													symbol='o')
 
+		self.visuals['pixel_boundary'] = polygon_visuals.FastPolygon(self.data['point_cloud'],
+																		color=colours.normaliseColour(self.opts['sensor_colour']['value']),
+																		border_color=colours.normaliseColour(self.opts['sensor_colour']['value']),
+																		border_width=2,
+																		parent=None)
+
+		self.visuals['pixel_boundary'].opacity = self.opts['sensor_alpha']['value']
+		self.visuals['pixel_boundary'].order = 1
+		self.visuals['pixel_boundary'].set_gl_state('translucent', depth_test=False)
+
 	def getDimensions(self) -> tuple[int, int]:
 		return self.data['lowres']
 
@@ -516,11 +533,8 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 			T[0:3,3] = np.asarray(pos).reshape(-1,3)
 
 			self.data['last_transform'] = T
-			# lats,lons = self.data['raycast_src'].rayCastFromSensorFor2D(self.data['lowres'],
-			# 															T,
-			# 															self.data['lowres_rays_sf'],
-			# 															self.data['curr_datetime'])
-			lats,lons = self.data['raycast_src'].rayCastFromSensorFor2D(self.data['res'],
+
+			lats,lons = self.data['raycast_src'].rayCastFromSensorFor2D(self.data['lowres'],
 																		T,
 																		self.data['lowres_rays_sf'],
 																		self.data['curr_datetime'])
@@ -529,18 +543,18 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 																		self.data['lowres_rays_sf'],
 																		self.data['curr_datetime'],
 																		intersect_only=False)
-			np.savetxt(f"{self.data['name']}alllats", all_lats)
-			np.savetxt(f"{self.data['name']}alllons", all_lons)
+
 			self._generatePolyLatLons(lats, lons)
-			self._updateMarkers()
+			# self._updateMarkers()
+			self.visuals['pixel_boundary'].pos = self.data['point_cloud']
 			self._clearStaleFlag()
 
 	def _generatePolyLatLons(self, lats, lons):
-
 		surface_coords = np.hstack((lons.reshape(-1,1),lats.reshape(-1,1)))
 		surface_coords[:,0] = (surface_coords[:,0]+180) * self.data['horiz_pixel_scale']
 		surface_coords[:,1] = (surface_coords[:,1]+90) * self.data['vert_pixel_scale']
-		self.data['point_cloud'] = surface_coords
+		hull = ConvexHull(surface_coords)
+		self.data['point_cloud'] = surface_coords[hull.vertices]
 
 		return
 
@@ -552,6 +566,12 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 												'help': '',
 												'static': True,
 												'callback': self.setSensorConeColour,
+												'widget_data': None}
+		self._dflt_opts['sensor_alpha'] = {'value': 0.4,
+												'type': 'fraction',
+												'help': '',
+												'static': True,
+												'callback': self.setSensorAlpha,
 												'widget_data': None}
 		self._dflt_opts['sensor_pixel_size'] = {'value': 1,
 												'type': 'number',
@@ -575,6 +595,13 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 	def setPixelSize(self, size):
 		self.opts['sensor_pixel_size']['value'] = size
 		self._updateMarkers()
+
+	def setSensorAlpha(self, alpha):
+		# Takes a little while to take effect.
+		logger.debug("Changing sensor alpha %s -> %s",  self.opts['sensor_alpha']['value'], alpha)
+		self.opts['sensor_alpha']['value'] = alpha
+		self.visuals['pixel_boundary'].opacity = self.opts['sensor_alpha']['value']
+		self.visuals['pixel_boundary'].opacity = self.opts['sensor_alpha']['value']
 
 	def setSensorVisibility(self, state):
 		for visual in self.visuals.values():

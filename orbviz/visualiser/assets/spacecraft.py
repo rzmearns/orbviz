@@ -163,9 +163,8 @@ class Spacecraft3DAsset(base_assets.AbstractVispyAsset):
 										edge_color='white',
 										size=self.opts['spacecraft_marker_size']['value'],
 										symbol='o')
+
 	# Use AbstractVispyAsset.updateIndex()
-	# def updateIndex(self, index:int) -> None:
-	# 	self.setStaleFlagRecursive()
 
 	def recomputeRedraw(self) -> None:
 		if self.isFirstDraw():
