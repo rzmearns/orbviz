@@ -45,7 +45,8 @@ class HistoricalShell(base_shell.BaseShell):
 		self._addContext('3D-history', history3d_context.History3DContext('3D-history',
 																			self.window,
 																			self.data['history'],
-																			self.data['groundstations']))
+																			self.data['groundstations'],
+																			self.data['earth_rdm']))
 		self._addContext('2D-history', history2d_context.History2DContext('2D-history',
 																			self.window,
 																			self.data['history'],

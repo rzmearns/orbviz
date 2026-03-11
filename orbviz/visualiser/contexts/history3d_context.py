@@ -21,7 +21,8 @@ class History3DContext(base.BaseContext):
 
 	def __init__(self, name:str, parent_window:QtWidgets.QMainWindow,
 						history_data:HistoryData,
-						groundstation_data:GroundStationCollection):
+						groundstation_data:GroundStationCollection,
+						raycast_src):
 		# super().__init__(name, data)
 		super().__init__(name)
 		self.window = parent_window
@@ -30,9 +31,10 @@ class History3DContext(base.BaseContext):
 		self.data: dict[str,Any] = {}
 		self.data['history'] = history_data
 		self.data['groundstations'] = groundstation_data
+		self.data['raycast_src'] = raycast_src
 		self.canvas_wrapper = history3d_cw.History3DCanvasWrapper()
 		# self.canvas_wrapper.setModel(self.data)
-		self.canvas_wrapper.setModel(self.data['history'], self.data['groundstations'])
+		self.canvas_wrapper.setModel(self.data['history'], self.data['groundstations'], self.data['raycast_src'])
 		self.controls = Controls(self, self.canvas_wrapper)
 
 		disp_hsplitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)

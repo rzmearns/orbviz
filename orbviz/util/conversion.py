@@ -62,6 +62,42 @@ def eci2ecef(eci:np.ndarray, time: dt.datetime, high_precision=True) -> tuple:
 
 	return ecef
 
+def ecef2eci(ecef:np.ndarray, time: dt.datetime, high_precision=True) -> tuple:
+	"""
+	Observer => Point  ECI  =>  ECEF
+
+	J2000 frame
+
+	Parameters
+	----------
+	ecef : np.ndarray [n,3]
+		ECEF x-location [meters]
+	time : datetime.datetime
+		time of obsevation (UTC)
+
+	Results
+	-------
+	ecf: np.ndarray [n,3]
+		ECEF coordinates
+	"""
+
+	if high_precision:
+		# will use astropy GCRS.transform_to(ITRS(obstime=time))
+		# this is slightly slower than rotatin the eci vector by sidereal time, but produces a slightly more accurate result
+		# direct pymap3d rotation (which uses astropy do to conversion) ~ 27ms per call (32400 coordinates)
+		# sidereal rotation ~ 0.8ms per call (32400 coordinates)
+		return np.array(pymap3d.ecef2eci(ecef[:,0],ecef[:,1],ecef[:,2],time)).T
+	else:
+		# TODO: implement
+		raise NotImplementedError
+		# gst = pymap3d.sidereal.greenwichsrt(pymap3d.sidereal.juliandate(time))
+		# R = R3(gst)
+
+		# ecef = np.empty(ecef.shape)
+		# ecef = R.dot(ecef.T).T
+
+	return eci
+
 def R3(x: float):
 	"""Rotation matrix for ECI"""
 	return np.array([[np.cos(x), np.sin(x), 0], [-np.sin(x), np.cos(x), 0], [0, 0, 1]])

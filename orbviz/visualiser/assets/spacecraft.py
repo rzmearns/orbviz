@@ -71,6 +71,8 @@ class Spacecraft3DAsset(base_assets.AbstractVispyAsset):
 		self.data['history_src'] = args[1]
 		self.data['strings'] = [self.data['sc_config'].name]
 
+		self.data['raycast_src'] = args[2]
+
 		first_sat_orbit = list(self.data['history_src'].getOrbits().values())[0]
 
 		if hasattr(first_sat_orbit,'pos'):
@@ -149,7 +151,7 @@ class Spacecraft3DAsset(base_assets.AbstractVispyAsset):
 	def _setSensorAssetSources(self) -> None:
 		for asset_name, asset in self.assets.items():
 			if 'sensor_suite_' in asset_name:
-				asset.setSource(self.data['history_src'])
+				asset.setSource(self.data['history_src'], self.data['raycast_src'])
 
 	def _createVisuals(self) -> None:
 		self.visuals['marker'] = scene.visuals.Markers(parent=None,
@@ -162,6 +164,8 @@ class Spacecraft3DAsset(base_assets.AbstractVispyAsset):
 										size=self.opts['spacecraft_marker_size']['value'],
 										symbol='o')
 	# Use AbstractVispyAsset.updateIndex()
+	# def updateIndex(self, index:int) -> None:
+	# 	self.setStaleFlagRecursive()
 
 	def recomputeRedraw(self) -> None:
 		if self.isFirstDraw():
@@ -175,6 +179,9 @@ class Spacecraft3DAsset(base_assets.AbstractVispyAsset):
 				rot_mat = self.data['history_src'].getSCAttitude(self.data['sc_config'].id).getAttitudeMatrix(self.data['curr_index'])
 				quat = self.data['history_src'].getSCAttitude(self.data['sc_config'].id).getAttitudeQuat(self.data['curr_index'])
 				# recomputeRedraw child assets
+				for asset_name, asset in self.assets.items():
+					if 'sensor_suite_' in asset_name:
+						asset.setCurrentDatetime(self.data['history_src'].timespan[self.data['curr_index']])
 				self.data['curr_quat'] = quat
 				self._recomputeRedrawChildren(pos=self.data['curr_pos'].reshape(1,3), rotation=rot_mat)
 			else:

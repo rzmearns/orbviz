@@ -70,7 +70,7 @@ class Earth3DAsset(base_assets.AbstractVispyAsset):
 
 	def _createVisuals(self) -> None:
 		# Earth Sphere
-		self.visuals['earth_sphere'] = scene.visuals.Sphere(radius=c.R_EARTH,
+		self.visuals['earth_sphere'] = scene.visuals.Sphere(radius=c.R_EARTH-0.5,
 								method='latitude',
 								parent=None,
 								color=colours.normaliseColour(self.opts['earth_sphere_colour']['value']))

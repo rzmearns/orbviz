@@ -40,8 +40,9 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundVispyAsset):
 
 	def setSource(self, *args, **kwargs) -> None:
 		# args[0] = history_src
+		# args[1] = raycast_src
 		for sensor in self.assets.values():
-			sensor.setSource(args[0])
+			sensor.setSource(args[0], args[1])
 
 	def _instantiateAssets(self) -> None:
 		sensor_names = self.data['sens_suite_config'].getSensorNames()
@@ -64,6 +65,11 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundVispyAsset):
 
 	def _createVisuals(self) -> None:
 		pass
+
+	def setCurrentDatetime(self, curr_dt:dt.datetime) -> None:
+		self.data['curr_datetime'] = curr_dt
+		for asset in self.assets.values():
+			asset.setCurrentDatetime(curr_dt)
 
 	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
 							 rotation:nptyping.NDArray|None=None, quat:nptyping.NDArray|None=None) -> None:
@@ -151,20 +157,63 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 		self.data['vispy_quat'] = self.data['bf_quat']
 		self.opts['sensor_cone_colour']['value'] = colour
 
+		self.data['curr_datetime'] = None
+		self.data['lowres'] = (60, 30)
+		self.data['fov'] = (62.2, 48.8)
+		self.data['lens_model'] = pinhole
+		# rays from each pixel in sensor frame
+		self.data['lowres_vectors_sf'] = self.data['lens_model'].generatePixelRays(self.data['lowres'], self.data['fov'])
+		num_rays = len(self.data['lowres_vectors_sf'])
+		self.data['lowres_segments_sf'] = np.hstack((self.data['lowres_vectors_sf'][:,:3], np.zeros((num_rays, 3))))
+		self.data['flattened_lowres_segments_sf'] = self.data['lowres_segments_sf'].reshape(-1,3)
+		self.data['lowres_segments_ray_colours'] = 0.5*np.ones((num_rays,4))
+
+		self.data['darker_colour'] = []
+		self.data['invt_colour'] = []
+		ray_colour = colours.normaliseColour(self.opts['sensor_cone_colour']['value'])
+		for el in ray_colour:
+			c = el - 0.1
+			if c < 0:
+				c = 0
+			ic = 1-c
+			self.data['darker_colour'].append(c)
+			self.data['invt_colour'].append(ic)
+
+		self.data['lowres_segments_ray_colours'][:,:3] = self.data['darker_colour']
+
 	def setSource(self, *args, **kwargs) -> None:
 		# args[0] = history_src
+		# args[1] = raycast_src
 		self.data['history_src'] = args[0]
+		self.data['raycast_src'] = args[1]
 
 	def _createVisuals(self) -> None:
 		self.visuals['sensor_cone'] = vVisuals.Mesh(self.data['mesh_vertices'],
     											self.data['mesh_faces'],
     											color=colours.normaliseColour(self.opts['sensor_cone_colour']['value']),
     											parent=None)
+		self.visuals['rays'] = vVisuals.Line(3000*self.data['flattened_lowres_segments_sf'],
+											 color=(0,0,0,0.25),
+											 width=0.01,
+											 connect='segments')
+		self.visuals['ray_markers'] = vVisuals.Markers(scaling=True,
+												edge_color='white',
+												symbol='o',
+												antialias=0,
+												parent=None)
+		self.visuals['ray_markers'].set_data(pos=3000*self.data['lowres_vectors_sf'][:,:3],
+											size=20,
+											face_color=self.data['lowres_segments_ray_colours'])
+
+
 		self.setTransform(rotation=Rotation.from_quat(self.data['bf_quat']).as_matrix().reshape(3,3))
 		wireframe_filter = vFilters.WireframeFilter(width=1)
 		alpha_filter = vFilters.Alpha(self.opts['sensor_cone_alpha']['value'])
 		self.visuals['sensor_cone'].attach(alpha_filter)
 		self.visuals['sensor_cone'].attach(wireframe_filter)
+
+	def setCurrentDatetime(self, dt:dt.datetime) -> None:
+		self.data['curr_datetime'] = dt
 
 	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
 							 rotation:nptyping.NDArray|None=None, quat:nptyping.NDArray|None=None) -> None:
@@ -181,7 +230,26 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 																												self.data['curr_index'])
 			T[0:3,0:3] = rot_mat
 			T[0:3,3] = np.asarray(pos).reshape(-1,3)
+			cart_intsct, intsct = self.data['raycast_src'].rayCastFromSensorFor3D(self.data['lowres'],
+																		T,
+																		self.data['lowres_vectors_sf'],
+																		self.data['curr_datetime'],
+																		intersect_only=False)
+
+			intsct_colours = self.data['lowres_segments_ray_colours'].copy()
+			intsct_colours[~intsct,:3] = self.data['invt_colour']
+
+			marker_pos = self.data['lowres_vectors_sf'][:,:3].copy()
+			dist = np.linalg.norm(cart_intsct[intsct]/1000 - pos, axis=1)
+			marker_pos[intsct] = marker_pos[intsct]*dist.reshape(-1,1)
+			marker_pos[~intsct] = marker_pos[~intsct]*3000
+
+			self.visuals['ray_markers'].set_data(pos=marker_pos,
+											size=20,
+											face_color=intsct_colours)
 			self.visuals['sensor_cone'].transform = vTransforms.linear.MatrixTransform(T.T)
+			self.visuals['ray_markers'].transform = vTransforms.linear.MatrixTransform(T.T)
+			self.visuals['rays'].transform = vTransforms.linear.MatrixTransform(T.T)
 			self._clearStaleFlag()
 
 	def _setDefaultOptions(self) -> None:
@@ -376,6 +444,7 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 		self.data['lens_model'] = pinhole
 		# rays from each pixel in sensor frame
 		self.data['lowres_rays_sf'] = self.data['lens_model'].generatePixelRays(self.data['lowres'], self.data['fov'])
+		self.data['edge_rays'] = self.data['lens_model'].generateEdgeRays(self.data['lowres'], self.data['fov'])
 		# need to create a valid polygon for instantiation (but before valid data exists)
 		self.data['point_cloud'] = np.zeros((364,2))
 		self.data['point_cloud'][:363,0] = np.arange(0,363)
@@ -447,10 +516,21 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 			T[0:3,3] = np.asarray(pos).reshape(-1,3)
 
 			self.data['last_transform'] = T
-			lats,lons = self.data['raycast_src'].rayCastFromSensorFor2D(self.data['lowres'],
+			# lats,lons = self.data['raycast_src'].rayCastFromSensorFor2D(self.data['lowres'],
+			# 															T,
+			# 															self.data['lowres_rays_sf'],
+			# 															self.data['curr_datetime'])
+			lats,lons = self.data['raycast_src'].rayCastFromSensorFor2D(self.data['res'],
 																		T,
 																		self.data['lowres_rays_sf'],
 																		self.data['curr_datetime'])
+			all_lats, all_lons = self.data['raycast_src'].rayCastFromSensorFor2D(self.data['res'],
+																		T,
+																		self.data['lowres_rays_sf'],
+																		self.data['curr_datetime'],
+																		intersect_only=False)
+			np.savetxt(f"{self.data['name']}alllats", all_lats)
+			np.savetxt(f"{self.data['name']}alllons", all_lons)
 			self._generatePolyLatLons(lats, lons)
 			self._updateMarkers()
 			self._clearStaleFlag()
