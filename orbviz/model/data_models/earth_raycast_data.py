@@ -276,11 +276,10 @@ class EarthRayCastData(BaseDataModel):
 		lons = np.empty(num_rays,)
 		lons.fill(np.nan)
 		lats[earth_intsct], lons[earth_intsct] = self._convertCartesianToEllipsoidGeodetic(cart_earth_intsct[earth_intsct,:])
-		# np.save(f"lats_lons_{state}_{curr_dt}.npy",np.column_stack((lats,lons)))
 		if intersect_only:
-			return lats[earth_intsct], lons[earth_intsct]
+			return lats[earth_intsct], lons[earth_intsct],
 		else:
-			return lats, lons
+			return lats, lons,
 
 	def rayCastFromSensorFor3D(self, resolution:tuple[int,int],
 								sens_eci_transform:np.ndarray, sens_rays_cf:np.ndarray,

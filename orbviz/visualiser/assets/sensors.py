@@ -15,6 +15,7 @@ import vispy.visuals.transforms as vTransforms
 
 import orbviz.model.data_models.data_types as orbviz_data_types
 import orbviz.model.geometry.polyhedra as polyhedra
+import orbviz.model.geometry.polygons as polygons
 import orbviz.model.lens_models.pinhole as pinhole
 import orbviz.util.conversion as orbviz_conversion
 import orbviz.visualiser.assets.base_assets as base_assets
@@ -448,13 +449,10 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 		self.data['lowres_rays_sf'] = self.data['lens_model'].generatePixelRays(self.data['lowres'], self.data['fov'])
 		self.data['edge_rays'] = self.data['lens_model'].generateEdgeRays(self.data['lowres'], self.data['fov'])
 		# need to create a valid polygon for instantiation (but before valid data exists)
-		# self.data['point_cloud'] = np.zeros((364,2))
-		# self.data['point_cloud'][:363,0] = np.arange(0,363)
-		# self.data['point_cloud'][-1,0] = -1
-
 		self.data['point_cloud'] = np.array([[1,0],
 											[0,0],
 											[0,1]])
+		self.data['point_cloud_boundary'] = self.data['point_cloud'].copy()
 
 		self.data['last_transform'] = np.eye(4)
 		self.data['history_src'] = None
@@ -502,8 +500,9 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 													edge_color=colours.normaliseColour(self.opts['sensor_colour']['value']),
 													size=self.opts['sensor_pixel_size']['value'],
 													symbol='o')
+		self.visuals['pixel_projection'].visible = self.opts['plot_pixels']['value']
 
-		self.visuals['pixel_boundary'] = polygon_visuals.FastPolygon(self.data['point_cloud'],
+		self.visuals['pixel_boundary'] = polygon_visuals.FastPolygon(self.data['point_cloud_boundary'],
 																		color=colours.normaliseColour(self.opts['sensor_colour']['value']),
 																		border_color=colours.normaliseColour(self.opts['sensor_colour']['value']),
 																		border_width=2,
@@ -544,17 +543,20 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 																		self.data['curr_datetime'],
 																		intersect_only=False)
 
-			self._generatePolyLatLons(lats, lons)
-			# self._updateMarkers()
-			self.visuals['pixel_boundary'].pos = self.data['point_cloud']
+			self._generatePolyLatLons(all_lats, all_lons)
+			self._updateMarkers()
+			self.visuals['pixel_boundary'].pos = self.data['point_cloud_boundary']
 			self._clearStaleFlag()
 
 	def _generatePolyLatLons(self, lats, lons):
-		surface_coords = np.hstack((lons.reshape(-1,1),lats.reshape(-1,1)))
+		intsct_lats = lats[~np.isnan(lats)]
+		intsct_lons = lons[~np.isnan(lons)]
+		surface_coords = np.hstack((intsct_lons.reshape(-1,1),intsct_lats.reshape(-1,1)))
 		surface_coords[:,0] = (surface_coords[:,0]+180) * self.data['horiz_pixel_scale']
 		surface_coords[:,1] = (surface_coords[:,1]+90) * self.data['vert_pixel_scale']
-		hull = ConvexHull(surface_coords)
-		self.data['point_cloud'] = surface_coords[hull.vertices]
+		self.data['point_cloud'] = surface_coords
+		ch = ConvexHull(surface_coords)
+		self.data['point_cloud_boundary'] = surface_coords[ch.vertices]
 
 		return
 
@@ -579,6 +581,12 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 												'static': True,
 												'callback': self.setPixelSize,
 											'widget_data': None}
+		self._dflt_opts['plot_pixels'] = {'value': False,
+												'type': 'boolean',
+												'help': '',
+												'static': True,
+												'callback': self.setPixelVisibility,
+											'widget_data': None}
 		self.opts = self._dflt_opts.copy()
 
 	#----- OPTIONS CALLBACKS -----#
@@ -595,6 +603,10 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 	def setPixelSize(self, size):
 		self.opts['sensor_pixel_size']['value'] = size
 		self._updateMarkers()
+
+	def setPixelVisibility(self, state:bool) -> None:
+		self.opts['plot_pixels']['value'] = state
+		self.visuals['pixel_projection'].visible = self.opts['plot_pixels']['value']
 
 	def setSensorAlpha(self, alpha):
 		# Takes a little while to take effect.

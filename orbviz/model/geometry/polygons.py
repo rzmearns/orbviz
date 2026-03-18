@@ -1,5 +1,3 @@
-
-
 import numpy as np
 import numpy.typing as nptyping
 import triangle as tr
@@ -21,7 +19,9 @@ def generateCircle(center:tuple[float,float,float] | nptyping.NDArray,
 
 	return coords + center
 
-def polygonTriangulate(polygon_verts):
+def polygonTriangulate(polygon_verts: np.ndarray):
+	if len(polygon_verts)<3:
+		raise ValueError
 	t_data = {}
 	t_data['vertices'] = array_u.uniqueRowsOrdered(polygon_verts)
 	t_data['segments'] = np.hstack((np.arange(len(t_data['vertices'])-1).reshape(-1,1),np.arange(1,len(t_data['vertices'])).reshape(-1,1)))
@@ -38,3 +38,12 @@ def isPolygonConvex(polygon_verts):
 						(np.roll(polygon_verts,shift=-2,axis=0)-rot_verts), axis=1)>0
 	# regardless of winding, if all convex_angle is False or True then poly is convex
 	return (cnvx_angles == cnvx_angles[0]).all()
+
+def reorderCW(points):
+	center = np.mean(points, axis=0)
+
+	diff = points - center
+	angles = np.arctan2(diff[:, 1], diff[:, 0])
+	indices = np.argsort(-angles)
+
+	return points[indices]
