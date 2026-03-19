@@ -14,7 +14,7 @@ import spherapy.timespan as timespan
 import spherapy.updater as updater
 
 import orbviz
-from orbviz.model.data_models import constellation_data, data_types, event_data, groundstation_data
+from orbviz.model.data_models import constellation_data, data_types, event_data, groundstation_data, sensor_data
 from orbviz.model.data_models.base_models import BaseDataModel
 from orbviz.model.geometry import primgeom
 import orbviz.util.constants as orbviz_constants
@@ -45,6 +45,8 @@ class HistoryData(BaseDataModel):
 		self.timespan: timespan.TimeSpan | None = None
 		self.orbits: dict[int, orbit.Orbit] = {}
 		self.attitudes: dict[int, HistoricalAttitude] = {}
+		# TODO: for multi spacecraft this needs to a dict and properly initiliased
+		self.sensor_data: dict[int, sensor_data.SensorData] = {}
 		self.constellation: constellation_data.ConstellationData | None = None
 		self.events: dict[int, event_data.EventData] | None = None
 		self.groundstationCollection: groundstation_data.GroundStationCollection | None = None
@@ -114,11 +116,21 @@ class HistoryData(BaseDataModel):
 			raise ValueError(f'History data:{self} has no attitudes yet')
 		return self.attitudes[sc_id]
 
+	def getSCSensorData(self, sc_id:int) -> "sensor_data.SensorData":
+		if len(self.sensor_data.values()) == 0:
+			logger.warning('History data:%s has no sensor data yet', self)
+			raise ValueError(f'History data:{self} has no sensor data yet')
+		return self.sensor_data[sc_id]
+
+	def clearData(self):
+		self.attitudes = {}
+		self.sensor_data = {}
+
 	def process(self) -> None:
 		# Load attitude and create timespan
 		prim_sc_id = list(self.getConfigValue('primary_satellite_config').getAllSpacecraftConfigs().keys())[0]
 		# clear attitudes
-		self.attitudes = {}
+		self.clearData()
 		if self.getConfigValue('attitude_configs')[prim_sc_id].definesTimeSpan():
 			# TODO: for multi sat need to pick one?
 			for sc_id, sc_config in self.getConfigValue('primary_satellite_config').getAllSpacecraftConfigs().items():
@@ -141,6 +153,11 @@ class HistoryData(BaseDataModel):
 			self.timespan = timespan.TimeSpan(period_start,
 								timestep=f'{timestep}S',
 								timeperiod=f'{duration}S')
+
+		# Create data models which don't require immediate processing
+		for sat_id in [prim_sc_id]:
+			self.sensor_data[sat_id] = sensor_data.SensorData(self.getConfigValue('primary_satellite_config').getSpacecraftConfig(sat_id),
+																self.timespan[:])
 
 		if self.timespan is None:
 			logger.warning("History data:%s, timespan has not been configured", self)
