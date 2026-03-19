@@ -21,7 +21,7 @@ def generateCircle(center:tuple[float,float,float] | nptyping.NDArray,
 
 def polygonTriangulate(polygon_verts: np.ndarray):
 	if len(polygon_verts)<3:
-		raise ValueError
+		return np.zeros((3,2), dtype=np.float64), np.array((0,1,2), dtype=np.int32)
 	t_data = {}
 	t_data['vertices'] = array_u.uniqueRowsOrdered(polygon_verts)
 	t_data['segments'] = np.hstack((np.arange(len(t_data['vertices'])-1).reshape(-1,1),np.arange(1,len(t_data['vertices'])).reshape(-1,1)))
