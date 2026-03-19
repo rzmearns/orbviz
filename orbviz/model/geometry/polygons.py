@@ -47,3 +47,60 @@ def reorderCW(points):
 	indices = np.argsort(-angles)
 
 	return points[indices]
+
+def findCentroid(verts):
+
+	verts_shift = np.roll(verts, -1, axis=0)
+
+	# using shoelace formula
+	common_term = verts[:,0] * verts_shift[:,1] - verts_shift[:,0] * verts[:,1]
+	area = 0.5 * np.sum(common_term)
+	common_term = common_term.reshape(-1,1)
+
+	# Calculate centroid coordinates
+	c = np.sum(verts*common_term + verts_shift*common_term, axis=0) / (6.0 * area)
+
+	return c
+
+def isSplitVertically(x_split, poly_verts):
+
+	if np.all(poly_verts[:,0] < x_split) or np.all(poly_verts[:,0] >= x_split):
+		return False
+
+	return True
+
+def segmentIntersection(l1, l2) -> None|np.ndarray[tuple[int], np.dtype(np.float64)]:
+	'''Return intersection of two line segments
+
+	Args:
+		l1 ([type]): 2x2 array
+		l2 ([type]): 2x2 array
+
+	Returns:
+		[ndarray (2,)]: intersection point
+		None: no intersection
+	'''
+	# Vectors
+	d1 = l1[1]-l1[0]
+	d2 = l2[1]-l2[0]
+	v = l2[0] - l1[0]
+
+	m1 = np.array((d1,d2))
+	m2 = np.array((v,d1))
+	m3 = np.array((v,d2))
+
+	denom = np.linalg.det(m1)
+
+	# check parallelism
+	if np.isclose(denom, 0):
+	    return None
+
+	# Calculate parameterisations of int for each segment
+	t = np.linalg.det(m3) / denom
+	u = np.linalg.det(m2) / denom
+
+	if 0 <= t <= 1 and 0 <= u <= 1:
+	    p_int = l1[0] + t * d1
+	    return p_int
+
+	return None

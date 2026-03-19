@@ -16,6 +16,7 @@ import vispy.visuals.transforms as vTransforms
 import orbviz.model.data_models.data_types as orbviz_data_types
 import orbviz.model.geometry.polyhedra as polyhedra
 import orbviz.model.geometry.polygons as polygons
+import orbviz.model.geometry.spherical as spherical_geom
 import orbviz.model.lens_models.pinhole as pinhole
 import orbviz.util.conversion as orbviz_conversion
 import orbviz.visualiser.assets.base_assets as base_assets
@@ -452,7 +453,8 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 		self.data['point_cloud'] = np.array([[1,0],
 											[0,0],
 											[0,1]])
-		self.data['point_cloud_boundary'] = self.data['point_cloud'].copy()
+		self.data['patch1_edge'] = self.data['point_cloud'].copy()
+		self.data['patch2_edge'] = self.data['point_cloud'].copy()
 
 		self.data['last_transform'] = np.eye(4)
 		self.data['history_src'] = None
@@ -477,7 +479,7 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 
 	def _calcLowRes(self, true_resolution:tuple[int,int]) -> tuple[int,int]:
 		lowres = [0,0]
-		max_1D_resolution = 240
+		max_1D_resolution = 120
 		aspect_ratio = true_resolution[0]/true_resolution[1]
 		if aspect_ratio > 1:
 			lowres = (max_1D_resolution, int(max_1D_resolution/aspect_ratio))
@@ -502,15 +504,23 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 													symbol='o')
 		self.visuals['pixel_projection'].visible = self.opts['plot_pixels']['value']
 
-		self.visuals['pixel_boundary'] = polygon_visuals.FastPolygon(self.data['point_cloud_boundary'],
+		self.visuals['sensor_patch1'] = polygon_visuals.FastPolygon(self.data['patch1_edge'],
+																		color=colours.normaliseColour(self.opts['sensor_colour']['value']),
+																		border_color=colours.normaliseColour(self.opts['sensor_colour']['value']),
+																		border_width=2,
+																		parent=None)
+		self.visuals['sensor_patch2'] = polygon_visuals.FastPolygon(self.data['patch2_edge'],
 																		color=colours.normaliseColour(self.opts['sensor_colour']['value']),
 																		border_color=colours.normaliseColour(self.opts['sensor_colour']['value']),
 																		border_width=2,
 																		parent=None)
 
-		self.visuals['pixel_boundary'].opacity = self.opts['sensor_alpha']['value']
-		self.visuals['pixel_boundary'].order = 1
-		self.visuals['pixel_boundary'].set_gl_state('translucent', depth_test=False)
+		self.visuals['sensor_patch1'].opacity = self.opts['sensor_alpha']['value']
+		self.visuals['sensor_patch1'].order = 1
+		self.visuals['sensor_patch1'].set_gl_state('translucent', depth_test=False)
+		self.visuals['sensor_patch2'].opacity = self.opts['sensor_alpha']['value']
+		self.visuals['sensor_patch2'].order = 1
+		self.visuals['sensor_patch2'].set_gl_state('translucent', depth_test=False)
 
 	def getDimensions(self) -> tuple[int, int]:
 		return self.data['lowres']
@@ -539,7 +549,7 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 
 			if pc is None:
 				# no cached data
-				all_lats, all_lons = self.data['raycast_src'].rayCastFromSensorFor2D(self.data['res'],
+				all_lats, all_lons = self.data['raycast_src'].rayCastFromSensorFor2D(self.data['lowres'],
 																			T,
 																			self.data['lowres_rays_sf'],
 																			self.data['curr_datetime'],
@@ -553,28 +563,29 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 																							pc.copy(),
 																							pc_b.copy())
 
-			self._mapGeodetic2Image(pc, pc_b)
-			self._updateMarkers()
-			self._updatePolygons()
-			self._clearStaleFlag()
+			patch1_verts, patch2_verts, split = self.calcPatchSplit(pc)
 
-	def _mapGeodetic2Image(self, pixel_locs, pixel_boundary_locs):
-		pc = pixel_locs.copy()
-		pc[:,0] = (pc[:,0]+180) * self.data['horiz_pixel_scale']
-		pc[:,1] = (pc[:,1]+90) * self.data['vert_pixel_scale']
-		pc_b = pixel_boundary_locs.copy()
-		pc_b[:,0] = (pc_b[:,0]+180) * self.data['horiz_pixel_scale']
-		pc_b[:,1] = (pc_b[:,1]+90) * self.data['vert_pixel_scale']
-		self.data['point_cloud'] = pc
-		self.data['point_cloud_boundary'] = pc_b
+			self.data['point_cloud'] = self._scale(pc)
+			self.data['patch1_edge'] = self._scale(patch1_verts)
+			self.data['patch2_edge'] = self._scale(patch2_verts)
+			self._updateMarkers()
+			self._updatePolygons(split=split)
+			self._clearStaleFlag()
 
 	def _generatePolyLatLons(self, lats, lons):
 		intsct_lats = lats[~np.isnan(lats)]
 		intsct_lons = lons[~np.isnan(lons)]
 		surface_coords = np.hstack((intsct_lons.reshape(-1,1),intsct_lats.reshape(-1,1)))
+		shifted_surface_coords = surface_coords.copy()
 		if len(surface_coords)>=3:
-			ch = ConvexHull(surface_coords)
-			boundary_surface_coords = surface_coords[ch.vertices]
+			if (surface_coords[:,0].max()-surface_coords[:,0].min())>180:
+				shifted_surface_coords[np.where(shifted_surface_coords[:,0]<0)[0],0] += 360
+				ch = ConvexHull(shifted_surface_coords)
+				boundary_surface_coords = shifted_surface_coords[ch.vertices]
+				boundary_surface_coords[np.where(boundary_surface_coords[:,0]>180)[0],0] -= 360
+			else:
+				ch = ConvexHull(surface_coords)
+				boundary_surface_coords = surface_coords[ch.vertices]
 		else:
 			boundary_surface_coords = np.zeros((0,2),dtype=np.float64)
 
@@ -616,8 +627,15 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 											face_color=colours.normaliseColour(self.opts['sensor_colour']['value']),
 											edge_color=colours.normaliseColour(self.opts['sensor_colour']['value']))
 
-	def _updatePolygons(self):
-		self.visuals['pixel_boundary'].pos = self.data['point_cloud_boundary']
+	def _updatePolygons(self, split=False):
+		self.visuals['sensor_patch1'].pos = self.data['patch1_edge']
+		self.visuals['sensor_patch2'].pos = self.data['patch2_edge']
+		if split:
+			self.visuals['sensor_patch1'].opacity = self.opts['sensor_alpha']['value']
+			self.visuals['sensor_patch2'].opacity = self.opts['sensor_alpha']['value']
+		else:
+			self.visuals['sensor_patch1'].opacity = self.opts['sensor_alpha']['value']/2
+			self.visuals['sensor_patch2'].opacity = self.opts['sensor_alpha']['value']/2
 
 	def setSensorConeColour(self, new_colour:tuple[float,float,float]) -> None:
 		self.opts['sensor_colour']['value'] = new_colour
@@ -651,6 +669,50 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 			if opt['widget_data'] is not None:
 				logger.debug("marking %s for removal", opt_key)
 				opt['widget_data']['mark_for_removal'] = True
+
+	def calcPatchSplit(self, point_cloud):
+		if len(point_cloud)>=3:
+			if (point_cloud[:,0].max()-point_cloud[:,0].min())>180:
+				# point cloud is split across 180 line
+				side1_points = point_cloud[np.where(point_cloud[:,0]>0)]
+				side2_points = point_cloud[np.where(point_cloud[:,0]<0)]
+				if len(side1_points) > 2:
+					ch1 = ConvexHull(side1_points)
+					side1_verts = side1_points[ch1.vertices]
+				else:
+					# not enough points to draw on eastern hemisphere
+					side1_verts = None
+				if len(side2_points) > 2:
+					ch2 = ConvexHull(side2_points)
+					side2_verts = side2_points[ch2.vertices]
+				else:
+					# not enough points to draw polygon on western hemisphere
+					side2_verts = None
+
+				if side2_verts is None:
+					return side1_verts, side1_verts, False
+				if side1_verts is None:
+					return side2_verts, side2_verts, False
+
+				return side1_verts, side2_verts, True
+
+			else:
+				# doesn't straddle 180 line
+				ch = ConvexHull(point_cloud)
+				verts = point_cloud[ch.vertices]
+
+				return verts, verts, False
+
+		else:
+			# no sensor polygon
+			return np.zeros((0,2), dtype=np.float64), np.zeros((0,2), dtype=np.float64), False
+
+
+	def _scale(self, coords):
+		out_arr = coords.copy()
+		out_arr[:,0] = (out_arr[:,0] + 180) * self.data['horiz_pixel_scale']
+		out_arr[:,1] = (out_arr[:,1] + 90) * self.data['vert_pixel_scale']
+		return out_arr
 
 class SensorSuiteImageAsset(base_assets.AbstractCompoundVispyAsset):
 	def __init__(self, sc_id:int, sens_suite_dict:dict[str,Any], name:str|None=None, v_parent:ViewBox|None=None):
