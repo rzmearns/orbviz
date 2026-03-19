@@ -1,4 +1,4 @@
-import datetime as dt
+import datetime as dt  # noqa: I001
 import logging
 
 from typing import Any
@@ -533,32 +533,52 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 
 			self.data['last_transform'] = T
 
-			lats,lons = self.data['raycast_src'].rayCastFromSensorFor2D(self.data['lowres'],
-																		T,
-																		self.data['lowres_rays_sf'],
-																		self.data['curr_datetime'])
-			all_lats, all_lons = self.data['raycast_src'].rayCastFromSensorFor2D(self.data['res'],
-																		T,
-																		self.data['lowres_rays_sf'],
-																		self.data['curr_datetime'],
-																		intersect_only=False)
+			_, pc, pc_b = self.data['history_src'].getSCSensorData(self.data['sc_id']).get2DData(self.data['parent_suite_name'],
+																						self.data['name'],
+																						self.data['curr_index'])
 
-			self._generatePolyLatLons(all_lats, all_lons)
+			if pc is None:
+				# no cached data
+				all_lats, all_lons = self.data['raycast_src'].rayCastFromSensorFor2D(self.data['res'],
+																			T,
+																			self.data['lowres_rays_sf'],
+																			self.data['curr_datetime'],
+																			intersect_only=False)
+				lat_lons = np.hstack((all_lats.reshape(-1,1),all_lons.reshape(-1,1)))
+				pc, pc_b = self._generatePolyLatLons(all_lats, all_lons)
+				self.data['history_src'].getSCSensorData(self.data['sc_id']).submit2DData(self.data['parent_suite_name'],
+																							self.data['name'],
+																							self.data['curr_index'],
+																							lat_lons,
+																							pc.copy(),
+																							pc_b.copy())
+
+			self._mapGeodetic2Image(pc, pc_b)
 			self._updateMarkers()
-			self.visuals['pixel_boundary'].pos = self.data['point_cloud_boundary']
+			self._updatePolygons()
 			self._clearStaleFlag()
+
+	def _mapGeodetic2Image(self, pixel_locs, pixel_boundary_locs):
+		pc = pixel_locs.copy()
+		pc[:,0] = (pc[:,0]+180) * self.data['horiz_pixel_scale']
+		pc[:,1] = (pc[:,1]+90) * self.data['vert_pixel_scale']
+		pc_b = pixel_boundary_locs.copy()
+		pc_b[:,0] = (pc_b[:,0]+180) * self.data['horiz_pixel_scale']
+		pc_b[:,1] = (pc_b[:,1]+90) * self.data['vert_pixel_scale']
+		self.data['point_cloud'] = pc
+		self.data['point_cloud_boundary'] = pc_b
 
 	def _generatePolyLatLons(self, lats, lons):
 		intsct_lats = lats[~np.isnan(lats)]
 		intsct_lons = lons[~np.isnan(lons)]
 		surface_coords = np.hstack((intsct_lons.reshape(-1,1),intsct_lats.reshape(-1,1)))
-		surface_coords[:,0] = (surface_coords[:,0]+180) * self.data['horiz_pixel_scale']
-		surface_coords[:,1] = (surface_coords[:,1]+90) * self.data['vert_pixel_scale']
-		self.data['point_cloud'] = surface_coords
-		ch = ConvexHull(surface_coords)
-		self.data['point_cloud_boundary'] = surface_coords[ch.vertices]
+		if len(surface_coords)>=3:
+			ch = ConvexHull(surface_coords)
+			boundary_surface_coords = surface_coords[ch.vertices]
+		else:
+			boundary_surface_coords = np.zeros((0,2),dtype=np.float64)
 
-		return
+		return surface_coords, boundary_surface_coords
 
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
@@ -595,6 +615,9 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 											size=self.opts['sensor_pixel_size']['value'],
 											face_color=colours.normaliseColour(self.opts['sensor_colour']['value']),
 											edge_color=colours.normaliseColour(self.opts['sensor_colour']['value']))
+
+	def _updatePolygons(self):
+		self.visuals['pixel_boundary'].pos = self.data['point_cloud_boundary']
 
 	def setSensorConeColour(self, new_colour:tuple[float,float,float]) -> None:
 		self.opts['sensor_colour']['value'] = new_colour
