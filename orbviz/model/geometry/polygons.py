@@ -39,6 +39,12 @@ def isPolygonConvex(polygon_verts):
 	# regardless of winding, if all convex_angle is False or True then poly is convex
 	return (cnvx_angles == cnvx_angles[0]).all()
 
+def closePolygon(points):
+	if np.all(points[-1] == points[0]):
+		return points
+	else:
+		return np.append(points,points[0,:].reshape(1,2),axis=0)
+
 def reorderCW(points):
 	center = np.mean(points, axis=0)
 
@@ -104,3 +110,18 @@ def segmentIntersection(l1, l2) -> None|np.ndarray[tuple[int], np.dtype(np.float
 	    return p_int
 
 	return None
+
+def getPolygonVerticalIntersection(verts, x_value):
+
+	''' must be ordered'''
+
+	c_verts = closePolygon(verts)
+	straddling_segment_idxs = np.where(np.diff(c_verts[:,0]>x_value))[0]
+
+	if len(straddling_segment_idxs) > 2:
+		raise ValueError('More than 2 intersections found')
+
+	int_points = [segmentIntersection(np.array((c_verts[idx,:], c_verts[idx+1,:])),
+												np.array([[x_value,-90],[x_value,90]])) for idx in straddling_segment_idxs]
+
+	return np.asarray(int_points)
