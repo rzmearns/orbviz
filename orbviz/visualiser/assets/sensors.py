@@ -555,8 +555,7 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 																			self.data['curr_datetime'],
 																			intersect_only=False)
 				lat_lons = np.hstack((all_lats.reshape(-1,1),all_lons.reshape(-1,1)))
-				pc, pc_b = self._generatePolyLatLons(all_lats, all_lons)
-				patch1_verts, patch2_verts, split = self.calcPatchSplit(pc)
+				pc, patch1_verts, patch2_verts, split = self._calcPatchBoundaries(all_lats, all_lons)
 				if split:
 					pc_b = [patch1_verts.copy(), patch2_verts.copy()]
 				else:
@@ -588,24 +587,60 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 			self._updatePolygons(split=split)
 			self._clearStaleFlag()
 
-	def _generatePolyLatLons(self, lats, lons):
+	def _calcPatchBoundaries(self, lats, lons):
 		intsct_lats = lats[~np.isnan(lats)]
 		intsct_lons = lons[~np.isnan(lons)]
-		surface_coords = np.hstack((intsct_lons.reshape(-1,1),intsct_lats.reshape(-1,1)))
-		shifted_surface_coords = surface_coords.copy()
-		if len(surface_coords)>=3:
-			if (surface_coords[:,0].max()-surface_coords[:,0].min())>180:
-				shifted_surface_coords[np.where(shifted_surface_coords[:,0]<0)[0],0] += 360
-				ch = ConvexHull(shifted_surface_coords)
-				boundary_surface_coords = shifted_surface_coords[ch.vertices]
-				boundary_surface_coords[np.where(boundary_surface_coords[:,0]>180)[0],0] -= 360
-			else:
-				ch = ConvexHull(surface_coords)
-				boundary_surface_coords = surface_coords[ch.vertices]
+		point_cloud = np.hstack((intsct_lons.reshape(-1,1),intsct_lats.reshape(-1,1)))
+		if len(point_cloud)<3:
+			# no sensor polygon
+			return point_cloud, np.zeros((0,2), dtype=np.float64), np.zeros((0,2), dtype=np.float64), False
 		else:
-			boundary_surface_coords = np.zeros((0,2),dtype=np.float64)
+			if (point_cloud[:,0].max()-point_cloud[:,0].min())>180:
+				# point cloud is split across 180 line
+				side1_points = point_cloud[np.where(point_cloud[:,0]>0)]
+				side2_points = point_cloud[np.where(point_cloud[:,0]<0)]
 
-		return surface_coords, boundary_surface_coords
+
+				# shift points so are straddling 180, rather than wrapping to -180
+				shifted_point_cloud = point_cloud.copy()
+				shifted_point_cloud[np.where(shifted_point_cloud[:,0]<0)[0],0] += 360
+				# find points of polygon which lie on lon 180 line
+				ch_all = ConvexHull(shifted_point_cloud)
+				shifted_boundary = shifted_point_cloud[ch_all.vertices]
+				int_points = polygons.getPolygonVerticalIntersection(shifted_boundary, 180)
+				neg_int_points = int_points.copy()
+				neg_int_points[:,0] *= -1
+				# augment point clouds with intersection points
+				side1_points = np.append(side1_points, int_points, axis=0)
+				side2_points = np.append(side2_points, neg_int_points, axis=0)
+
+
+				if len(side1_points) > 2:
+					ch1 = ConvexHull(side1_points)
+					side1_verts = side1_points[ch1.vertices]
+				else:
+					# not enough points to draw polygon on eastern hemisphere
+					side1_verts = None
+				if len(side2_points) > 2:
+					ch2 = ConvexHull(side2_points)
+					side2_verts = side2_points[ch2.vertices]
+				else:
+					# not enough points to draw polygon on western hemisphere
+					side2_verts = None
+
+				if side2_verts is None:
+					return side1_verts, side1_verts, False
+				if side1_verts is None:
+					return side2_verts, side2_verts, False
+
+				return point_cloud, side1_verts, side2_verts, True
+
+			else:
+				# doesn't straddle 180 line
+				ch = ConvexHull(point_cloud)
+				verts = point_cloud[ch.vertices]
+
+				return point_cloud, verts, verts, False
 
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
@@ -685,44 +720,6 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 			if opt['widget_data'] is not None:
 				logger.debug("marking %s for removal", opt_key)
 				opt['widget_data']['mark_for_removal'] = True
-
-	def calcPatchSplit(self, point_cloud):
-		if len(point_cloud)>=3:
-			if (point_cloud[:,0].max()-point_cloud[:,0].min())>180:
-				# point cloud is split across 180 line
-				side1_points = point_cloud[np.where(point_cloud[:,0]>0)]
-				side2_points = point_cloud[np.where(point_cloud[:,0]<0)]
-				if len(side1_points) > 2:
-					ch1 = ConvexHull(side1_points)
-					side1_verts = side1_points[ch1.vertices]
-				else:
-					# not enough points to draw on eastern hemisphere
-					side1_verts = None
-				if len(side2_points) > 2:
-					ch2 = ConvexHull(side2_points)
-					side2_verts = side2_points[ch2.vertices]
-				else:
-					# not enough points to draw polygon on western hemisphere
-					side2_verts = None
-
-				if side2_verts is None:
-					return side1_verts, side1_verts, False
-				if side1_verts is None:
-					return side2_verts, side2_verts, False
-
-				return side1_verts, side2_verts, True
-
-			else:
-				# doesn't straddle 180 line
-				ch = ConvexHull(point_cloud)
-				verts = point_cloud[ch.vertices]
-
-				return verts, verts, False
-
-		else:
-			# no sensor polygon
-			return np.zeros((0,2), dtype=np.float64), np.zeros((0,2), dtype=np.float64), False
-
 
 	def _scale(self, coords):
 		out_arr = coords.copy()
