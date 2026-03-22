@@ -65,7 +65,6 @@ class SensorData:
 
 		sens_key = (suite_name, sens_name)
 		cache_key = timestep_idx
-		print(f'submitting timestep idx {timestep_idx} to {sens_key} cache')
 		self._sens_latlon_cache[sens_key][cache_key] = latlon_data
 		self._sens_pixel_cache[sens_key][cache_key] = pixel_locations
 		self._sens_boundary_cache[sens_key][cache_key] = pixel_boundary_locations
@@ -103,11 +102,19 @@ class SensorData:
 		d['properties']['sensor_name'] = sens_name
 		d['properties']['DateTime'] = self._timestamps[timestep_idx]
 		d['geometry'] = {}
-		d['geometry']['type'] = 'Polygon'
 		sens_key = (suite_name, sens_name)
 		verts = self._sens_boundary_cache[sens_key][timestep_idx]
-		if len(verts) > 0:
-			verts = polygons.closePolygon(verts)
-		d['geometry']['coordinates'] = [verts]
+
+		if len(verts) == 0:
+			return {}
+		else:
+			if isinstance(verts, list):
+				d['geometry']['type'] = 'MultiPolygon'
+				out_verts = [polygons.closePolygon(el) for el in verts]
+			else:
+				d['geometry']['type'] = 'Polygon'
+				out_verts = polygons.closePolygon(verts)
+
+		d['geometry']['coordinates'] = [out_verts]
 
 		return d
