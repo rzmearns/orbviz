@@ -311,11 +311,11 @@ class HistoryData(BaseDataModel):
 		attitudes = {}
 		for sat_id, orbit_data in self.orbits.items():
 			console.send(f"Generating attitude for {sat_id} ...")
-			logger.info(f"Generating attitude for %s", sat_id)
+			logger.info("Generating attitude for %s", sat_id)
 			sc_config = self.getConfigValue('primary_satellite_config').getSpacecraftConfig(sat_id)
 			attitudes[sat_id] = HistoricalAttitude.fromAttitudeConfig(sc_config, orbit_data, self.getConfigValue('attitude_configs')[sat_id])
-		console.send(f"Completed attitude generation")
-		logger.info(f"Completed attitude generation")
+		console.send("Completed attitude generation")
+		logger.info("Completed attitude generation")
 		return attitudes
 
 	def _storeOrbitData(self, orbits:dict[int,orbit.Orbit]) -> None:
