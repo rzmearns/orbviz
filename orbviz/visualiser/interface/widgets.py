@@ -19,6 +19,8 @@ import orbviz.visualiser.colours as colours
 logger = logging.getLogger(__name__)
 
 class TimeSlider(QtWidgets.QWidget):
+	autoplay = QtCore.pyqtSignal(int)
+
 	def __init__(self, parent: QtWidgets.QWidget|None=None, allow_no_callbacks=False) -> None:
 		super().__init__(parent)
 		self.start_dt = None
@@ -45,6 +47,8 @@ class TimeSlider(QtWidgets.QWidget):
 		self._end_dt_label = QtWidgets.QLabel('-')
 		self._curr_dt_picker = SmallDatetimeEntry(self.start_dt)
 		self._curr_dt_picker.updated.connect(self.setIndex2Datetime)
+		self._play_button = QtWidgets.QPushButton('')
+		self._play_button.setIcon(QtGui.QIcon(f"{orbviz_paths.icons_dir.joinpath('play.png')}"))
 		self.setTimeLabels()
 
 		self.slider.setMinimum(0)
@@ -54,12 +58,14 @@ class TimeSlider(QtWidgets.QWidget):
 		hlayout2.addWidget(self._start_dt_label)
 		hlayout2.addStretch()
 		hlayout2.addWidget(self._curr_dt_picker)
+		hlayout2.addWidget(self._play_button)
 		hlayout2.addStretch()
 		hlayout2.addWidget(self._end_dt_label)
 		hlayout3.addWidget(self.slider)
 		vlayout.addLayout(hlayout2)
 		vlayout.addLayout(hlayout3)
 		self.slider.valueChanged.connect(self._run_callbacks)
+		self._play_button.clicked.connect(self._play)
 		self.setLayout(vlayout)
 
 	def setTimespan(self, timespan:TimeSpan):
@@ -154,6 +160,9 @@ class TimeSlider(QtWidgets.QWidget):
 				callback(self.slider.value())
 		elif not self._allow_no_callbacks:
 			logger.warning("No Time Slider callbacks are set")
+
+	def _play(self):
+		self.autoplay.emit(1)
 
 	def blockSignals(self, b: bool) -> bool:
 		slider_res = self.slider.blockSignals(b)

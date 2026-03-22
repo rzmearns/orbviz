@@ -159,6 +159,8 @@ class Controls(BaseControls):
 
 		self.setHotkeys()
 
+		self._connectAutoPlay()
+
 	def setHotkeys(self):
 		self.shortcuts['PgDown'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgDown'), self.context.widget)
 		self.shortcuts['PgDown'].activated.connect(self.time_slider.incrementValue)
@@ -168,6 +170,9 @@ class Controls(BaseControls):
 		self.shortcuts['Home'].activated.connect(self.time_slider.setBeginning)
 		self.shortcuts['End'] = QtWidgets.QShortcut(QtGui.QKeySequence('End'), self.context.widget)
 		self.shortcuts['End'].activated.connect(self.time_slider.setEnd)
+
+	def _connectAutoPlay(self):
+		self.time_slider.autoplay.connect(self.context.autoplay)
 
 	def getCurrIndex(self) -> int:
 		return self.time_slider.getValue()

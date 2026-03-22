@@ -191,6 +191,27 @@ class BaseContext(ABC):
 
 		console.send(f"Saved {self.config['name']} GIF to {gif_config.file_path}")
 
+	def autoplay(self, speed:int):
+		# TODO: need to lockout controls
+
+		console.send('Starting autoplay, please do not touch the controls.')
+
+		start_idx = self.controls.time_slider.getValue()
+		num_steps = self.controls.time_slider.num_ticks
+		for curr_timespan_idx in range(start_idx, num_steps):
+			# rotate
+
+			# update time slider
+			self.controls.time_slider.setValue(curr_timespan_idx)
+
+			# process events
+			app.process_events()
+
+		# reset to pre-gif state
+		self.controls.time_slider.setValue(start_idx)
+
+		console.send(f"Finished autoplay")
+
 	def setupGIFDialog(self):
 
 		if self.data['history'].timespan is None:

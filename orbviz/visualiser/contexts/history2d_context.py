@@ -161,6 +161,7 @@ class Controls(base.BaseControls):
 
 		self.setHotkeys()
 		self._connectSliderCamUpdate()
+		self._connectAutoPlay()
 
 	def setHotkeys(self):
 		self.shortcuts={}
@@ -175,6 +176,9 @@ class Controls(base.BaseControls):
 
 	def _connectSliderCamUpdate(self):
 		self.time_slider.slider.valueChanged.connect(self._updateCam)
+
+	def _connectAutoPlay(self):
+		self.time_slider.autoplay.connect(self.context.autoplay)
 
 	def _updateCam(self):
 		if self.context.sccam_state and self.context.canvas_wrapper is not None:
