@@ -556,6 +556,12 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 																			intersect_only=False)
 				lat_lons = np.hstack((all_lats.reshape(-1,1),all_lons.reshape(-1,1)))
 				pc, pc_b = self._generatePolyLatLons(all_lats, all_lons)
+				patch1_verts, patch2_verts, split = self.calcPatchSplit(pc)
+				if split:
+					pc_b = [patch1_verts.copy(), patch2_verts.copy()]
+				else:
+					pc_b = patch1_verts.copy()
+
 				self.data['history_src'].getSCSensorData(self.data['sc_id']).submit2DData(self.data['parent_suite_name'],
 																							self.data['name'],
 																							self.data['curr_index'],
@@ -563,7 +569,17 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 																							pc.copy(),
 																							pc_b.copy())
 
-			patch1_verts, patch2_verts, split = self.calcPatchSplit(pc)
+			if isinstance(pc_b, list):
+				patch1_verts = pc_b[0]
+				patch2_verts = pc_b[1]
+				split = True
+			else:
+				patch1_verts = pc_b
+				patch2_verts = pc_b
+				split = False
+
+
+			# patch1_verts, patch2_verts, split = self.calcPatchSplit(pc)
 
 			self.data['point_cloud'] = self._scale(pc)
 			self.data['patch1_edge'] = self._scale(patch1_verts)
