@@ -44,6 +44,9 @@ class RefTarget(Enum):
 	SUN = 'sun'
 	MOON = 'moon'
 
+class ExportMethod(Enum):
+	GEOJSON = 'geojson'
+
 class AttitudeConfig:
 	def __init__(self, sc_id):
 		self._sc_id:int = sc_id

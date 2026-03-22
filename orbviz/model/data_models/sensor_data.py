@@ -1,12 +1,17 @@
+import logging
+
 import numpy as np
 
 import orbviz.model.data_models.data_types as data_types
+import orbviz.model.geometry.polygons as polygons
 
+logger = logging.getLogger(__name__)
 
 class SensorData:
 	def __init__(self, sc_config:data_types.SpacecraftConfig,
 						timestamps:np.ndarray[tuple[int], np.dtype[np.datetime64]]):
 
+		self._sc_config = sc_config
 		self._timestamps = timestamps
 		num_samples = len(self._timestamps)
 		# caches
@@ -60,7 +65,49 @@ class SensorData:
 
 		sens_key = (suite_name, sens_name)
 		cache_key = timestep_idx
+		print(f'submitting timestep idx {timestep_idx} to {sens_key} cache')
 		self._sens_latlon_cache[sens_key][cache_key] = latlon_data
 		self._sens_pixel_cache[sens_key][cache_key] = pixel_locations
 		self._sens_boundary_cache[sens_key][cache_key] = pixel_boundary_locations
 		self._cached_timesteps[sens_key][cache_key] = True
+
+
+	def exportDataAsGEOJSON(self) -> dict:
+		d = {}
+		d['type'] = 'FeatureCollection'
+		d['features'] = []
+		for jj, sens_key in enumerate(self._sens_boundary_cache.keys()):
+			for ii in range(len(self._timestamps)):
+				data = self._storeBoundaryAsGEOJSONFeature(self._sc_config.id,
+																		jj+1,
+																		sens_key[0],
+																		sens_key[1],
+																		ii)
+				if data is not None:
+					d['features'].append(data)
+		return d
+
+	def _storeBoundaryAsGEOJSONFeature(self, sc_id, unique_sens_id:int, suite_name, sens_name, timestep_idx):
+		sens_key = (suite_name, sens_name)
+		# print(f'{self._sens_boundary_cache.keys()}')
+		if timestep_idx not in self._sens_boundary_cache[sens_key].keys():
+			logger.warning('Exporting GEO JSON data. Sensor: %s does not have data for timestep: %s',sens_key, timestep_idx)
+			return None
+
+		d = {}
+		d['type'] = "Feature"
+		d['properties'] = {}
+		d['properties']['ID'] = unique_sens_id
+		d['properties']['sat_id'] = sc_id
+		d['properties']['sensor_suite'] = suite_name
+		d['properties']['sensor_name'] = sens_name
+		d['properties']['DateTime'] = self._timestamps[timestep_idx]
+		d['geometry'] = {}
+		d['geometry']['type'] = 'Polygon'
+		sens_key = (suite_name, sens_name)
+		verts = self._sens_boundary_cache[sens_key][timestep_idx]
+		if len(verts) > 0:
+			verts = polygons.closePolygon(verts)
+		d['geometry']['coordinates'] = [verts]
+
+		return d

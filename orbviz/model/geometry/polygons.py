@@ -39,6 +39,12 @@ def isPolygonConvex(polygon_verts):
 	# regardless of winding, if all convex_angle is False or True then poly is convex
 	return (cnvx_angles == cnvx_angles[0]).all()
 
+def closePolygon(points):
+	if np.all(points[-1] == points[0]):
+		return points
+	else:
+		return np.append(points,points[0,:].reshape(1,2),axis=0)
+
 def reorderCW(points):
 	center = np.mean(points, axis=0)
 

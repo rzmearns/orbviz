@@ -418,6 +418,11 @@ class HistoryData(BaseDataModel):
 		self.geo_locations = state['geo_locations']
 		super().deSerialise(state)
 
+	def fetchDataForExport(self, method) -> dict:
+		sc_ids = list(self.sensor_data.keys())
+		return self.sensor_data[sc_ids[0]].exportDataAsGEOJSON()
+
+
 class HistoricalAttitude:
 	def __init__(self, sc_config:data_types.SpacecraftConfig,
 						timestamps:np.ndarray[tuple[int], np.dtype[np.datetime64]],
