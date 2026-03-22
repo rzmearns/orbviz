@@ -19,6 +19,8 @@ import orbviz.visualiser.colours as colours
 logger = logging.getLogger(__name__)
 
 class TimeSlider(QtWidgets.QWidget):
+	autoplay = QtCore.pyqtSignal(int)
+
 	def __init__(self, parent: QtWidgets.QWidget|None=None, allow_no_callbacks=False) -> None:
 		super().__init__(parent)
 		self.start_dt = None
@@ -40,26 +42,39 @@ class TimeSlider(QtWidgets.QWidget):
 		hlayout3 = QtWidgets.QHBoxLayout()
 		hlayout3.setSpacing(0)
 		hlayout3.setContentsMargins(2,1,2,1)
+		play_hlayout = QtWidgets.QHBoxLayout()
+		play_hlayout.setSpacing(0)
+		play_hlayout.setContentsMargins(2,1,2,1)
 		self.slider = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
 		self._start_dt_label = QtWidgets.QLabel('-')
 		self._end_dt_label = QtWidgets.QLabel('-')
 		self._curr_dt_picker = SmallDatetimeEntry(self.start_dt)
 		self._curr_dt_picker.updated.connect(self.setIndex2Datetime)
+		self._play_button = QtWidgets.QPushButton('')
+		self._play_button.setIcon(QtGui.QIcon(f"{orbviz_paths.icons_dir.joinpath('play.png')}"))
+		_play_button_spacer = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
 		self.setTimeLabels()
 
 		self.slider.setMinimum(0)
 		self.slider.setMaximum(self.num_ticks)
 		self.slider.setTickPosition(QtWidgets.QSlider.TicksBelow)
 		self.slider.setTickInterval(1)
+
+		play_hlayout.addWidget(self._play_button)
+
 		hlayout2.addWidget(self._start_dt_label)
 		hlayout2.addStretch()
 		hlayout2.addWidget(self._curr_dt_picker)
+		hlayout2.addItem(_play_button_spacer)
+		hlayout2.addLayout(play_hlayout)
 		hlayout2.addStretch()
+
 		hlayout2.addWidget(self._end_dt_label)
 		hlayout3.addWidget(self.slider)
 		vlayout.addLayout(hlayout2)
 		vlayout.addLayout(hlayout3)
 		self.slider.valueChanged.connect(self._run_callbacks)
+		self._play_button.clicked.connect(self._play)
 		self.setLayout(vlayout)
 
 	def setTimespan(self, timespan:TimeSpan):
@@ -154,6 +169,9 @@ class TimeSlider(QtWidgets.QWidget):
 				callback(self.slider.value())
 		elif not self._allow_no_callbacks:
 			logger.warning("No Time Slider callbacks are set")
+
+	def _play(self):
+		self.autoplay.emit(1)
 
 	def blockSignals(self, b: bool) -> bool:
 		slider_res = self.slider.blockSignals(b)

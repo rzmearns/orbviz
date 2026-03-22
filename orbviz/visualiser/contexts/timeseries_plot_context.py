@@ -151,3 +151,8 @@ class Controls(BaseControls):
 		# Prep toolbars
 		self.toolbar = controls.Toolbar(self.context.window, self.action_dict, context_name=self.context.config['name'])
 		self.menubar = controls.Menubar(self.context.window, self.action_dict, context_name=self.context.config['name'])
+
+		self._connectAutoPlay()
+
+	def _connectAutoPlay(self):
+		self.time_slider.autoplay.connect(self.context.autoplay)
