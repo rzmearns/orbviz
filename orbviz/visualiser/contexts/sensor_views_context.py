@@ -173,6 +173,7 @@ class Controls(BaseControls):
 
 	def _connectAutoPlay(self):
 		self.time_slider.autoplay.connect(self.context.autoplay)
+		self.time_slider.autoplay_stop.connect(self.context.abortAutoplay)
 
 	def getCurrIndex(self) -> int:
 		return self.time_slider.getValue()

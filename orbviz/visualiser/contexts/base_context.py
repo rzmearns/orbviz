@@ -50,6 +50,11 @@ class BaseContext(ABC):
 							'running':False,
 							'config':None}
 
+		self._autoplay_data = {'setup_dialog': None,
+								'abort_dialog': None,
+								'running':False,
+								'config':None}
+
 	@abstractmethod
 	def saveState(self) -> None:
 		raise NotImplementedError()
@@ -198,7 +203,12 @@ class BaseContext(ABC):
 
 		start_idx = self.controls.time_slider.getValue()
 		num_steps = self.controls.time_slider.num_ticks
+		self._autoplay_data['running'] = True
 		for curr_timespan_idx in range(start_idx, num_steps):
+			# check if autoplay aborted
+			if not self._autoplay_data['running']:
+				console.send("Aborting autoplay...")
+				break
 			# rotate
 
 			# update time slider
@@ -228,6 +238,9 @@ class BaseContext(ABC):
 
 	def abortGif(self):
 		self._gif_data['running'] = False
+
+	def abortAutoplay(self):
+		self._autoplay_data['running'] = False
 
 	@abstractmethod
 	def getCameraState(self) -> dict:

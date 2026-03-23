@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 class TimeSlider(QtWidgets.QWidget):
 	autoplay = QtCore.pyqtSignal(int)
-
+	autoplay_stop = QtCore.pyqtSignal()
 	def __init__(self, parent: QtWidgets.QWidget|None=None, allow_no_callbacks=False) -> None:
 		super().__init__(parent)
 		self.start_dt = None
@@ -52,6 +52,8 @@ class TimeSlider(QtWidgets.QWidget):
 		self._curr_dt_picker.updated.connect(self.setIndex2Datetime)
 		self._play_button = QtWidgets.QPushButton('')
 		self._play_button.setIcon(QtGui.QIcon(f"{orbviz_paths.icons_dir.joinpath('play.png')}"))
+		self._stop_button = QtWidgets.QPushButton('')
+		self._stop_button.setIcon(QtGui.QIcon(f"{orbviz_paths.icons_dir.joinpath('stop.png')}"))
 		_play_button_spacer = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
 		self.setTimeLabels()
 
@@ -61,6 +63,7 @@ class TimeSlider(QtWidgets.QWidget):
 		self.slider.setTickInterval(1)
 
 		play_hlayout.addWidget(self._play_button)
+		play_hlayout.addWidget(self._stop_button)
 
 		hlayout2.addWidget(self._start_dt_label)
 		hlayout2.addStretch()
@@ -75,6 +78,7 @@ class TimeSlider(QtWidgets.QWidget):
 		vlayout.addLayout(hlayout3)
 		self.slider.valueChanged.connect(self._run_callbacks)
 		self._play_button.clicked.connect(self._play)
+		self._stop_button.clicked.connect(self._stop)
 		self.setLayout(vlayout)
 
 	def setTimespan(self, timespan:TimeSpan):
@@ -172,6 +176,9 @@ class TimeSlider(QtWidgets.QWidget):
 
 	def _play(self):
 		self.autoplay.emit(1)
+
+	def _stop(self):
+		self.autoplay_stop.emit()
 
 	def blockSignals(self, b: bool) -> bool:
 		slider_res = self.slider.blockSignals(b)
