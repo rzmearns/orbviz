@@ -420,8 +420,34 @@ class HistoryData(BaseDataModel):
 
 	def fetchDataForExport(self, method) -> dict:
 		sc_ids = list(self.sensor_data.keys())
-		return self.sensor_data[sc_ids[0]].exportDataAsGEOJSON()
+		d = {}
+		d['type'] = 'FeatureCollection'
+		d['features'] = []
 
+		# export spacecraft nadir points
+		d['features'] += self.exportSubSatelliteAsGEOJSONFeatures(sc_ids[0])
+
+		# export sensor boundary list
+		d['features'] += self.sensor_data[sc_ids[0]].exportDataAsGEOJSONFeatures()
+
+		return d
+
+	def exportSubSatelliteAsGEOJSONFeatures(self, sc_id) -> list[dict]:
+		feature_list = []
+		for ii in range(len(self.timespan)):
+			d = {}
+			d['type'] = 'Feature'
+			d['properties'] = {}
+			d['properties']['ID'] = 4
+			d['properties']['sat_id'] = sc_id
+			d['properties']['DateTime'] = self.timespan[ii]
+			d['geometry'] = {}
+			d['geometry']['type'] = 'Point'
+			lon_lat = np.array((self.orbits[sc_id].lon[ii], self.orbits[sc_id].lat[ii]))
+			d['geometry']['coordinates'] = lon_lat
+			feature_list.append(d)
+
+		return feature_list
 
 class HistoricalAttitude:
 	def __init__(self, sc_config:data_types.SpacecraftConfig,

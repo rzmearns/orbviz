@@ -71,10 +71,8 @@ class SensorData:
 		self._cached_timesteps[sens_key][cache_key] = True
 
 
-	def exportDataAsGEOJSON(self) -> dict:
-		d = {}
-		d['type'] = 'FeatureCollection'
-		d['features'] = []
+	def exportDataAsGEOJSONFeatures(self) -> list[dict]:
+		feature_list = []
 		for jj, sens_key in enumerate(self._sens_boundary_cache.keys()):
 			for ii in range(len(self._timestamps)):
 				data = self._storeBoundaryAsGEOJSONFeature(self._sc_config.id,
@@ -83,8 +81,8 @@ class SensorData:
 																		sens_key[1],
 																		ii)
 				if data is not None:
-					d['features'].append(data)
-		return d
+					feature_list.append(data)
+		return feature_list
 
 	def _storeBoundaryAsGEOJSONFeature(self, sc_id, unique_sens_id:int, suite_name, sens_name, timestep_idx):
 		sens_key = (suite_name, sens_name)
