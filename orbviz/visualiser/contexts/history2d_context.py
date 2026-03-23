@@ -179,6 +179,7 @@ class Controls(base.BaseControls):
 
 	def _connectAutoPlay(self):
 		self.time_slider.autoplay.connect(self.context.autoplay)
+		self.time_slider.autoplay_stop.connect(self.context.abortAutoplay)
 
 	def _updateCam(self):
 		if self.context.sccam_state and self.context.canvas_wrapper is not None:
