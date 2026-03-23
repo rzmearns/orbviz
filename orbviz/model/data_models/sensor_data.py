@@ -48,21 +48,6 @@ class SensorData:
 	def getTimestamps(self) -> np.ndarray[tuple[int], np.dtype[np.datetime64]]:
 		return self._timestamps
 
-	# def _getCache(self, suite_name:str, sens_name:str, cache_dict):
-	# 	sens_key = (suite_name, sens_name)
-	# 	if sens_key not in cache_dict.keys():
-	# 		cache_dict[sens_key] = {}
-
-	# 	return cache_dict[sens_key]
-
-	# def getSensor2DBoundary(self, suite_name:str, sens_name:str, timestep_idx:int):
-	# 	sens_key = (suite_name, sens_name)
-	# 	cache_key = timestep_idx
-	# 	if self._cached_timesteps[sens_key][cache_key]:
-	# 		return self._sens_boundary_cache[cache_key]
-	# 	else:
-	# 		return None
-
 	def get2DData(self, suite_name:str, sens_name:str, timestep_idx:int):
 		sens_key = (suite_name, sens_name)
 		cache_key = timestep_idx
@@ -119,11 +104,6 @@ class SensorData:
 		return feature_list
 
 	def _storeBoundaryAsGEOJSONFeature(self, sc_id, unique_sens_id:int, suite_name, sens_name, timestep_idx):
-		sens_key = (suite_name, sens_name)
-		# print(f'{self._sens_boundary_cache.keys()}')
-		# if timestep_idx not in self._sens_boundary_cache[sens_key].keys():
-		# 	logger.warning('Exporting GEO JSON data. Sensor: %s does not have data for timestep: %s',sens_key, timestep_idx)
-		# 	return None
 
 		d = {}
 		d['type'] = "Feature"
