@@ -507,23 +507,16 @@ class Spacecraft2DAsset(base_assets.AbstractVispyAsset):
 				self._recomputeRedrawChildren(pos=self.data['curr_pos'].reshape(1,3), rotation=rot_mat)
 
 			# Over the horizon circle asset
-			self.data['oth_edge1'], self.data['oth_edge2'], split = self.calcOTHCircle()
-			self.visuals['oth_circle1'].pos = self.data['oth_edge1']
-			# verts, faces = polygeom.polygonTriangulate(self.data['oth_edge1'])
-			# self.visuals['oth_circle1']._mesh.set_data(vertices=verts, faces=faces)
+			patch1_verts, patch2_verts = self.data['history_src'].getSCData(self.data['sc_config'].id).get2DData(self.data['curr_index'])
 
-			self.visuals['oth_circle2'].pos = self.data['oth_edge2']
-			# verts, faces = polygeom.polygonTriangulate(self.data['oth_edge2'])
-			# self.visuals['oth_circle2']._mesh.set_data(vertices=verts, faces=faces)
+			split = True
+			if len(patch1_verts) == len(patch2_verts):
+				if np.allclose(patch1_verts, patch2_verts):
+					split = False
 
-			if split:
-				self.visuals['oth_circle1'].opacity = self.opts['over_the_horizon_circle_alpha']['value']
-				self.visuals['oth_circle2'].opacity = self.opts['over_the_horizon_circle_alpha']['value']
-				# self.visuals['oth_circle1'].opacity = 1
-				# self.visuals['oth_circle2'].opacity = 1
-			else:
-				self.visuals['oth_circle1'].opacity = self.opts['over_the_horizon_circle_alpha']['value']/2
-				self.visuals['oth_circle2'].opacity = self.opts['over_the_horizon_circle_alpha']['value']/2
+			self.data['oth_edge1'] = self._scale(patch1_verts)
+			self.data['oth_edge2'] = self._scale(patch2_verts)
+			self._updatePolygons(split=split)
 			self._clearStaleFlag()
 
 	def getScreenMouseOverInfo(self) -> dict[str, Any]:
@@ -577,6 +570,22 @@ class Spacecraft2DAsset(base_assets.AbstractVispyAsset):
 		self.opts = self._dflt_opts.copy()
 
 	#----- OPTIONS CALLBACKS -----#
+	def _updateMarkers(self):
+		self.visuals['marker'].set_data(pos=self.data['scaled_coords'][self.data['curr_index']].reshape(1,2),
+								   			size=self.opts['spacecraft_marker_size']['value'],
+											face_color=colours.normaliseColour(self.opts['spacecraft_marker_colour']['value']))
+
+
+	def _updatePolygons(self, split=False):
+		self.visuals['oth_circle1'].pos = self.data['oth_edge1']
+		self.visuals['oth_circle2'].pos = self.data['oth_edge2']
+		if split:
+			self.visuals['oth_circle1'].opacity = self.opts['over_the_horizon_circle_alpha']['value']
+			self.visuals['oth_circle2'].opacity = self.opts['over_the_horizon_circle_alpha']['value']
+		else:
+			self.visuals['oth_circle1'].opacity = self.opts['over_the_horizon_circle_alpha']['value']/2
+			self.visuals['oth_circle2'].opacity = self.opts['over_the_horizon_circle_alpha']['value']/2
+
 	def setMarkerColour(self, new_colour:tuple[float,float,float]) -> None:
 		self.opts['spacecraft_marker_colour']['value'] = new_colour
 		self._updateMarkers()
@@ -621,11 +630,6 @@ class Spacecraft2DAsset(base_assets.AbstractVispyAsset):
 	def setOrbitalMarkerVisibility(self, state:bool) -> None:
 		self.opts['plot_spacecraft_marker']['value'] = state
 		self.visuals['marker'].visible = self.opts['plot_spacecraft_marker']['value']
-
-	def _updateMarkers(self):
-		self.visuals['marker'].set_data(pos=self.data['scaled_coords'][self.data['curr_index']].reshape(1,2),
-								   			size=self.opts['spacecraft_marker_size']['value'],
-											face_color=colours.normaliseColour(self.opts['spacecraft_marker_colour']['value']))
 
 	#----- HELPER FUNCTIONS -----#
 	def _addIndividualSensorSuitePlotOptions(self) -> None:

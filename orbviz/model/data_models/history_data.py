@@ -17,6 +17,7 @@ from orbviz.model.data_models import (
 	event_data,
 	groundstation_data,
 	sensor_data,
+	spacecraft_data,
 )
 from orbviz.model.data_models.base_models import BaseDataModel
 import orbviz.util.constants as orbviz_constants
@@ -48,6 +49,7 @@ class HistoryData(BaseDataModel):
 		self.attitudes: dict[int, attitude_data.HistoricalAttitude] = {}
 		# TODO: for multi spacecraft this needs to a dict and properly initiliased
 		self.sensor_data: dict[int, sensor_data.SensorData] = {}
+		self.sc_data: dict[int, spacecraft_data.SpacecraftData] = {}
 		self.constellation: constellation_data.ConstellationData | None = None
 		self.events: dict[int, event_data.EventData] | None = None
 		self.groundstationCollection: groundstation_data.GroundStationCollection | None = None
@@ -124,6 +126,12 @@ class HistoryData(BaseDataModel):
 			raise ValueError(f'History data:{self} has no attitudes yet')
 		return self.attitudes[sc_id]
 
+	def getSCData(self, sc_id:int) -> "spacecraft_data.SpacecraftData":
+		if len(self.sc_data.values()) == 0:
+			logger.warning('History data:%s has no spacecraft data yet', self)
+			raise ValueError(f'History data:{self} has no spacecraft data yet')
+		return self.sc_data[sc_id]
+
 	def getSCSensorData(self, sc_id:int) -> "sensor_data.SensorData":
 		if len(self.sensor_data.values()) == 0:
 			logger.warning('History data:%s has no sensor data yet', self)
@@ -133,6 +141,7 @@ class HistoryData(BaseDataModel):
 	def clearData(self):
 		self.attitudes = {}
 		self.sensor_data = {}
+		self.sc_data = {}
 
 	def process(self) -> None:
 		# Load attitude and create timespan
@@ -165,6 +174,9 @@ class HistoryData(BaseDataModel):
 		# Create data models which don't require immediate processing
 		for sat_id in [prim_sc_id]:
 			self.sensor_data[sat_id] = sensor_data.SensorData(self,
+																self.getConfigValue('primary_satellite_config').getSpacecraftConfig(sat_id),
+																self.timespan[:])
+			self.sc_data[sat_id] = spacecraft_data.SpacecraftData(self,
 																self.getConfigValue('primary_satellite_config').getSpacecraftConfig(sat_id),
 																self.timespan[:])
 
