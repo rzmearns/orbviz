@@ -123,7 +123,7 @@ class SensorData:
 				split = False
 
 		if (len(patch1_verts)==0) and (len(patch2_verts)==0):
-			return {}
+			return None
 		else:
 			if split:
 				d['geometry']['type'] = 'MultiPolygon'
