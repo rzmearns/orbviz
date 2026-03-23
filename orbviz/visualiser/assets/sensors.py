@@ -444,6 +444,7 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 		self.data['bf_quat'] = bf_quat
 		self.data['res'] = resolution
 		self.data['lowres'] = self._calcLowRes(self.data['res'])
+		# self.data['lowres'] = resolution
 		self.data['fov'] = fov
 		self.data['lens_model'] = pinhole
 		# rays from each pixel in sensor frame
@@ -543,42 +544,14 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 
 			self.data['last_transform'] = T
 
-			_, pc, pc_b = self.data['history_src'].getSCSensorData(self.data['sc_id']).get2DData(self.data['parent_suite_name'],
+			_, pc, [patch1_verts, patch2_verts] = self.data['history_src'].getSCSensorData(self.data['sc_id']).get2DData(self.data['parent_suite_name'],
 																						self.data['name'],
 																						self.data['curr_index'])
 
-			if pc is None:
-				# no cached data
-				all_lats, all_lons = self.data['raycast_src'].rayCastFromSensorFor2D(self.data['lowres'],
-																			T,
-																			self.data['lowres_rays_sf'],
-																			self.data['curr_datetime'],
-																			intersect_only=False)
-				lat_lons = np.hstack((all_lats.reshape(-1,1),all_lons.reshape(-1,1)))
-				pc, patch1_verts, patch2_verts, split = self._calcPatchBoundaries(all_lats, all_lons)
-				if split:
-					pc_b = [patch1_verts.copy(), patch2_verts.copy()]
-				else:
-					pc_b = patch1_verts.copy()
-
-				self.data['history_src'].getSCSensorData(self.data['sc_id']).submit2DData(self.data['parent_suite_name'],
-																							self.data['name'],
-																							self.data['curr_index'],
-																							lat_lons,
-																							pc.copy(),
-																							pc_b.copy())
-
-			if isinstance(pc_b, list):
-				patch1_verts = pc_b[0]
-				patch2_verts = pc_b[1]
-				split = True
-			else:
-				patch1_verts = pc_b
-				patch2_verts = pc_b
-				split = False
-
-
-			# patch1_verts, patch2_verts, split = self.calcPatchSplit(pc)
+			split = True
+			if len(patch1_verts) == len(patch2_verts):
+				if np.allclose(patch1_verts, patch2_verts):
+					split = False
 
 			self.data['point_cloud'] = self._scale(pc)
 			self.data['patch1_edge'] = self._scale(patch1_verts)
@@ -586,61 +559,6 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 			self._updateMarkers()
 			self._updatePolygons(split=split)
 			self._clearStaleFlag()
-
-	def _calcPatchBoundaries(self, lats, lons):
-		intsct_lats = lats[~np.isnan(lats)]
-		intsct_lons = lons[~np.isnan(lons)]
-		point_cloud = np.hstack((intsct_lons.reshape(-1,1),intsct_lats.reshape(-1,1)))
-		if len(point_cloud)<3:
-			# no sensor polygon
-			return point_cloud, np.zeros((0,2), dtype=np.float64), np.zeros((0,2), dtype=np.float64), False
-		else:
-			if (point_cloud[:,0].max()-point_cloud[:,0].min())>180:
-				# point cloud is split across 180 line
-				side1_points = point_cloud[np.where(point_cloud[:,0]>0)]
-				side2_points = point_cloud[np.where(point_cloud[:,0]<0)]
-
-
-				# shift points so are straddling 180, rather than wrapping to -180
-				shifted_point_cloud = point_cloud.copy()
-				shifted_point_cloud[np.where(shifted_point_cloud[:,0]<0)[0],0] += 360
-				# find points of polygon which lie on lon 180 line
-				ch_all = ConvexHull(shifted_point_cloud)
-				shifted_boundary = shifted_point_cloud[ch_all.vertices]
-				int_points = polygons.getPolygonVerticalIntersection(shifted_boundary, 180)
-				neg_int_points = int_points.copy()
-				neg_int_points[:,0] *= -1
-				# augment point clouds with intersection points
-				side1_points = np.append(side1_points, int_points, axis=0)
-				side2_points = np.append(side2_points, neg_int_points, axis=0)
-
-
-				if len(side1_points) > 2:
-					ch1 = ConvexHull(side1_points)
-					side1_verts = side1_points[ch1.vertices]
-				else:
-					# not enough points to draw polygon on eastern hemisphere
-					side1_verts = None
-				if len(side2_points) > 2:
-					ch2 = ConvexHull(side2_points)
-					side2_verts = side2_points[ch2.vertices]
-				else:
-					# not enough points to draw polygon on western hemisphere
-					side2_verts = None
-
-				if side2_verts is None:
-					return side1_verts, side1_verts, False
-				if side1_verts is None:
-					return side2_verts, side2_verts, False
-
-				return point_cloud, side1_verts, side2_verts, True
-
-			else:
-				# doesn't straddle 180 line
-				ch = ConvexHull(point_cloud)
-				verts = point_cloud[ch.vertices]
-
-				return point_cloud, verts, verts, False
 
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}

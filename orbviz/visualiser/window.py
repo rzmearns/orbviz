@@ -46,6 +46,7 @@ class MainWindow(QtWidgets.QMainWindow):
 		self.menubars: dict[str, controls.Menubar] = {}
 
 		global_earth_raycast_data = earth_raycast_data.EarthRayCastData()
+		orbviz.earth_raycast_data = global_earth_raycast_data
 
 		# Build shells
 		self.shell_dict['history'] = historical_shell.HistoricalShell(self, self.toolbars, self.menubars, global_earth_rdm=global_earth_raycast_data)
