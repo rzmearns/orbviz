@@ -63,6 +63,11 @@ class PrimaryConfig(QtWidgets.QWidget):
 			self.tmp_prim_config = None
 			self.prim_config_selector.setError('Not a valid configuration file')
 			self.prim_config_display.clearConfig()
+		except FileNotFoundError:
+			self.tmp_prim_config = None
+			self.prim_config_selector.setError('Configuration file not found')
+			self.prim_config_display.clearConfig()
+
 		self.pane_groupbox.updateGeometry()
 
 	def getConfig(self) -> data_types.PrimaryConfig:
@@ -291,7 +296,7 @@ class HistoricalAttitudeConfig(QtWidgets.QWidget):
 		inv_switch_vlayout.setSpacing(0)
 
 		# Configuration widgets
-		dflt_config_file = orbviz_paths.pnt_dir.joinpath('20240108_ECI_parallel.csv')
+		dflt_config_file = orbviz_paths.att_dir.joinpath('20240108_ECI_parallel.csv')
 		self._attitude_file_selector = widgets.FilePicker('Attitude File',
 												   			dflt_file=dflt_config_file.name,
 															dflt_dir=dflt_config_file.parent,
