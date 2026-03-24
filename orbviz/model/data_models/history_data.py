@@ -446,19 +446,28 @@ class HistoryData(BaseDataModel):
 		self.geo_locations = state['geo_locations']
 		super().deSerialise(state)
 
-	def fetchDataForExport(self, method) -> dict:
+	def fetchDataForExport(self, method) -> tuple[dict,dict,dict]:
 		sc_ids = list(self.sensor_data.keys())
-		d = {}
-		d['type'] = 'FeatureCollection'
-		d['features'] = []
-
+		oth_d = {}
+		oth_d['type'] = 'FeatureCollection'
+		oth_d['features'] = []
 		# export spacecraft nadir points
-		d['features'] += self.exportSubSatelliteAsGEOJSONFeatures(sc_ids[0])
+		oth_d['features'] += self.sc_data[sc_ids[0]].exportDataAsGEOJSONFeatures()
 
+		nadir_d = {}
+		nadir_d['type'] = 'FeatureCollection'
+		nadir_d['features'] = []
+		# export spacecraft nadir points
+		nadir_d['features'] += self.exportSubSatelliteAsGEOJSONFeatures(sc_ids[0])
+
+
+		sensor_d = {}
+		sensor_d['type'] = 'FeatureCollection'
+		sensor_d['features'] = []
 		# export sensor boundary list
-		d['features'] += self.sensor_data[sc_ids[0]].exportDataAsGEOJSONFeatures()
+		sensor_d['features'] += self.sensor_data[sc_ids[0]].exportDataAsGEOJSONFeatures()
 
-		return d
+		return (nadir_d, oth_d, sensor_d)
 
 	def exportSubSatelliteAsGEOJSONFeatures(self, sc_id) -> list[dict]:
 		feature_list = []

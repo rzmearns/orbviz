@@ -3,6 +3,7 @@ import logging
 import numpy as np
 
 from orbviz.model.data_models import data_types
+import orbviz.model.geometry.polygons as polygons
 import orbviz.model.geometry.spherical as spherical_geom
 import orbviz.util.constants as c
 
@@ -45,10 +46,42 @@ class SpacecraftData:
 			return [patch1_verts, patch2_verts]
 
 	def exportDataAsGEOJSONFeatures(self) -> list[dict]:
-		pass
+		feature_list = []
+		for ii in range(len(self._timestamps)):
+			data = self._storeBoundaryAsGEOJSONFeature(self._sc_config.id, ii)
+			if data is not None:
+				feature_list.append(data)
+		return feature_list
 
-	def _storeBoundaryAsGEOJSONFeature(self, sc_id, unique_sens_id:int, suite_name, sens_name, timestep_idx):
-		pass
+	def _storeBoundaryAsGEOJSONFeature(self, sc_id, timestep_idx):
+		d = {}
+		d['type'] = "Feature"
+		d['properties'] = {}
+		d['properties']['ID'] = 1
+		d['properties']['sat_id'] = sc_id
+		d['properties']['DateTime'] = self._timestamps[timestep_idx]
+		d['geometry'] = {}
+
+		[patch1_verts, patch2_verts] = self.get2DData(timestep_idx)
+
+		split = True
+		if len(patch1_verts) == len(patch2_verts):
+			if np.allclose(patch1_verts, patch2_verts):
+				split = False
+
+		if (len(patch1_verts)==0) and (len(patch2_verts)==0):
+			return None
+		else:
+			if split:
+				d['geometry']['type'] = 'MultiPolygon'
+				out_verts = [polygons.closePolygon(el) for el in [patch1_verts, patch2_verts] if len(el) > 3]
+			else:
+				d['geometry']['type'] = 'Polygon'
+				out_verts = polygons.closePolygon(patch1_verts)
+
+		d['geometry']['coordinates'] = [out_verts]
+
+		return d
 
 	def _calcOTHCircle(self, eci_pos, ecf_pos, curr_idx):
 		alt = np.linalg.norm(eci_pos)

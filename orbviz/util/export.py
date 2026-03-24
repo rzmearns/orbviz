@@ -16,13 +16,24 @@ def exportData(shell, method):
 
 
 def _exportGEOJSON(shell):
-	data = shell.data['history'].fetchDataForExport(data_types.ExportMethod('geojson'))
+	subsat_d, oth_d, sensor_d = shell.data['history'].fetchDataForExport(data_types.ExportMethod('geojson'))
 	tstamp_str = dt.datetime.now().strftime('%Y-%m-%d_%H%M%S')
-	json_path = pathlib.Path(f'geojson_{tstamp_str}.json')
-	with json_path.open('w') as fp:
-		json.dump(data, fp, cls=JSONEncoder, indent=4)
+	subsat_json_path = pathlib.Path(f'geojson_subsat_{tstamp_str}.json')
+	oth_json_path = pathlib.Path(f'geojson_oth_{tstamp_str}.json')
+	sensor_json_path = pathlib.Path(f'geojson_sensor_{tstamp_str}.json')
+	with subsat_json_path.open('w') as fp:
+		json.dump(subsat_d, fp, cls=JSONEncoder, indent=4)
 
-	console.send(f'Finished Exporting GEOJSON file {json_path}')
+	with oth_json_path.open('w') as fp:
+		json.dump(oth_d, fp, cls=JSONEncoder, indent=4)
+
+	with sensor_json_path.open('w') as fp:
+		json.dump(sensor_d, fp, cls=JSONEncoder, indent=4)
+
+	console.send('Finished Exporting GEOJSON files:')
+	console.send(f'\tSubsatellite points: {subsat_json_path}')
+	console.send(f'\tOTH circle: {oth_json_path}')
+	console.send(f'\tSensor projections: {sensor_json_path}')
 
 class JSONEncoder(json.JSONEncoder):
 	def default(self, obj):
