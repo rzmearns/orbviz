@@ -87,6 +87,6 @@ class SpacecraftData:
 		alt = np.linalg.norm(eci_pos)
 		phi = np.rad2deg(np.arccos(c.R_EARTH/(alt)))
 		lats, lons1, lons2 = spherical_geom.genSmallCircleCenterSubtendedAngle(phi*2, ecf_pos[1], ecf_pos[0])
-		patch1, patch2 = spherical_geom.splitSmallCirclePatch(ecf_pos[0], ecf_pos[1], lats, lons1, lons2)
+		patch1, patch2 = spherical_geom.splitOTHPatch(ecf_pos[0], ecf_pos[1], lats, lons1, lons2)
 
 		return patch1, patch2

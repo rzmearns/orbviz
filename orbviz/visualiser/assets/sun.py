@@ -636,10 +636,10 @@ class Sun2DAsset(base_assets.AbstractVispyAsset):
 		lats, lons1, lons2 = spherical_geom.genSmallCircleCenterSubtendedAngle(phi_h*2, eclipse_center_lat, eclipse_center_lon)
 		circle1, circle2 = spherical_geom.splitSmallCirclePatch(eclipse_center_lon, eclipse_center_lat, lats, lons1, lons2)
 
-		if np.all(circle1 == circle2):
-			split = False
-		else:
-			split = True
+		split = True
+		if len(circle1) == len(circle2):
+			if np.allclose(circle1, circle2):
+				split = False
 
 		return self._scale(circle1), self._scale(circle2), split
 
