@@ -289,7 +289,12 @@ class HistoryData(BaseDataModel):
 		for ii, sat_id in enumerate(sat_ids):
 			if not running:
 				return orbits
-			orbits[sat_id] = orbit.Orbit.fromTLE(timespan, tle_paths[ii])
+			if tle_paths[ii].exists():
+				orbits[sat_id] = orbit.Orbit.fromTLE(timespan, tle_paths[ii])
+			else:
+				console.sendErr(f'Could not find TLE file: {tle_paths[ii]}')
+				logger.warning('Could not find TLE file: %s', tle_paths[ii])
+				raise FileNotFoundError()
 
 		return orbits
 
