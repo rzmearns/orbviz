@@ -34,16 +34,17 @@ class SensorData:
 		for suite_name, suite_config in sc_config.getSensorSuites().items():
 			for sens_name in suite_config.getSensorNames():
 				sens_key = (suite_name, sens_name)
-				# TODO: these should be held in the config class
-				self._lowres[sens_key] = self._calcLowRes(suite_config.getSensorConfig(sens_name)['resolution'])
-				self._lens_model[sens_key] = pinhole
-				self._lowres_rays_sf[sens_key] = self._lens_model[sens_key].generatePixelRays(self._lowres[sens_key],
-																								suite_config.getSensorConfig(sens_name)['fov'])
+				if suite_config.getSensorConfig(sens_name)['shape'] == data_types.SensorTypes('square_pyramid'):
+					# TODO: these should be held in the config class
+					self._lowres[sens_key] = self._calcLowRes(suite_config.getSensorConfig(sens_name)['resolution'])
+					self._lens_model[sens_key] = pinhole
+					self._lowres_rays_sf[sens_key] = self._lens_model[sens_key].generatePixelRays(self._lowres[sens_key],
+																									suite_config.getSensorConfig(sens_name)['fov'])
 
-				self._sens_boundary_cache[sens_key] = {}
-				self._sens_pixel_cache[sens_key] = {}
-				self._sens_latlon_cache[sens_key] = {}
-				self._cached_timesteps[sens_key] = np.full((num_samples),False)
+					self._sens_boundary_cache[sens_key] = {}
+					self._sens_pixel_cache[sens_key] = {}
+					self._sens_latlon_cache[sens_key] = {}
+					self._cached_timesteps[sens_key] = np.full((num_samples),False)
 
 	def getTimestamps(self) -> np.ndarray[tuple[int], np.dtype[np.datetime64]]:
 		return self._timestamps
