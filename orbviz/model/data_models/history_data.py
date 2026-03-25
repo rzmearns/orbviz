@@ -1,3 +1,4 @@
+import httpx
 import logging
 import pathlib
 
@@ -276,7 +277,26 @@ class HistoryData(BaseDataModel):
 	def _propagatePrimaryOrbits(self, timespan:timespan.TimeSpan,
 										sat_ids:list[int],
 										running:threading.Flag) -> dict[int, orbit.Orbit]:
-		updated_list = updater.updateTLEs(sat_ids) 				# noqa: F841
+
+		reattempt_connection  = True
+		attempt_num = 0
+		while reattempt_connection and attempt_num < 5:
+			try:
+				attempt_num += 1
+				updated_list = updater.updateTLEs(sat_ids) 				# noqa: F841
+				reattempt_connection = False
+			except httpx.ConnectError:
+				console.sendErr('Could not connect to TLE web source. Potentially using out of date TLEs')
+				logger.warning('Could not connect to TLE web source. Potentially using out of date TLEs')
+				reattempt_connection = False
+			except httpx.ReadTimeout:
+				if attempt_num == 1:
+					console.send('Fetching a large TLE dataset, this could take a while')
+					logger.warning('Fetching a large TLE dataset, this could take a while')
+
+				attempt_num += 1
+
+
 		# TODO: check number of sats updated == number of sats requested (remove above noqa)
 		# if collections.Counter(updated_list) == collections.Counter(self.sat_ids):
 		# 		self.finished.emit()
@@ -289,7 +309,12 @@ class HistoryData(BaseDataModel):
 		for ii, sat_id in enumerate(sat_ids):
 			if not running:
 				return orbits
-			orbits[sat_id] = orbit.Orbit.fromTLE(timespan, tle_paths[ii])
+			if tle_paths[ii].exists():
+				orbits[sat_id] = orbit.Orbit.fromTLE(timespan, tle_paths[ii])
+			else:
+				console.sendErr(f'Could not find TLE file: {tle_paths[ii]}')
+				logger.warning('Could not find TLE file: %s', tle_paths[ii])
+				raise FileNotFoundError()
 
 		return orbits
 
