@@ -111,11 +111,16 @@ def segmentIntersection(l1, l2) -> None|np.ndarray[tuple[int], np.dtype(np.float
 
 	return None
 
-def getPolygonVerticalIntersection(verts, x_value):
+def getPolygonVerticalIntersection(verts, x_value, close=True):
 
-	''' must be ordered'''
+	''' must be ordered
+		can get intersection of polyline with x value by not closing polygon, close=False'''
 
-	c_verts = closePolygon(verts)
+	if close:
+		c_verts = closePolygon(verts)
+	else:
+		c_verts = verts.copy()
+
 	straddling_segment_idxs = np.where(np.diff(c_verts[:,0]>x_value))[0]
 
 	if len(straddling_segment_idxs) > 2:
@@ -125,3 +130,22 @@ def getPolygonVerticalIntersection(verts, x_value):
 												np.array([[x_value,-90],[x_value,90]])) for idx in straddling_segment_idxs]
 
 	return np.asarray(int_points)
+
+def splitPolygonVertically(verts, x_value):
+	r_verts = np.roll(verts, -1, axis=0)
+
+	# A crossing occurs if one x is on one side of x_value, and the next index is on the other side
+	cross_mask = (verts[:,0]<x_value) != (r_verts[:,0]<x_value)
+
+	ints = getPolygonVerticalIntersection(verts, x_value)
+
+	insert_idxs = np.where(cross_mask)[0] + 1
+	try:
+		new_verts = np.insert(verts, insert_idxs, ints, axis=0)
+	except ValueError:
+		raise ValueError()
+
+	left_poly = new_verts[new_verts[:, 0] <= x_value]
+	right_poly = new_verts[new_verts[:, 0] >= x_value]
+
+	return left_poly, right_poly
