@@ -35,6 +35,7 @@ venv/
 *.tar
 *.zip
 build/
+dist/
 
 # Logs and databases #
 ######################
