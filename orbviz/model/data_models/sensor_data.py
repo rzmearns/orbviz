@@ -1,7 +1,7 @@
 import logging
 
 import numpy as np
-from scipy.spatial import ConvexHull
+from scipy.ndimage import binary_erosion
 
 import orbviz
 from orbviz.model.data_models import data_types
@@ -69,7 +69,7 @@ class SensorData:
 															self._timestamps[timestep_idx],
 															intersect_only=False)
 			lat_lons = np.hstack((all_lats.reshape(-1,1),all_lons.reshape(-1,1)))
-			pc, patch1_verts, patch2_verts, split = self._calcPatchBoundaries(all_lats, all_lons)
+			pc, patch1_verts, patch2_verts, split = self._calcPatchBoundaries(all_lats, all_lons, self._lowres[sens_key])
 
 			self._sens_latlon_cache[sens_key][cache_key] = lat_lons
 			self._sens_pixel_cache[sens_key][cache_key] = pc
@@ -149,43 +149,54 @@ class SensorData:
 			lowres = (max_1D_resolution, max_1D_resolution)
 		return lowres
 
-	def _calcPatchBoundaries(self, lats, lons):
+	def _calcPatchBoundaries(self, lats, lons, res):
 		intsct_lats = lats[~np.isnan(lats)]
 		intsct_lons = lons[~np.isnan(lons)]
+
 		point_cloud = np.hstack((intsct_lons.reshape(-1,1),intsct_lats.reshape(-1,1)))
+
 		if len(point_cloud)<3:
 			# no sensor polygon
 			return point_cloud, np.zeros((0,2), dtype=np.float64), np.zeros((0,2), dtype=np.float64), False
 		else:
-			if (point_cloud[:,0].max()-point_cloud[:,0].min())>180:
-				# point cloud is split across 180 line
-				side1_points = point_cloud[np.where(point_cloud[:,0]>0)]
-				side2_points = point_cloud[np.where(point_cloud[:,0]<0)]
+			mask = np.invert(np.isnan(lats)).astype(int)
+			edge_mask = mask.reshape([res[1], res[0]])
+			edge_mask = edge_mask - binary_erosion(edge_mask)
+			# Create a boolean mask for all of the pixels between Earth + Space
+			edge_mask = edge_mask.astype('bool')
 
+			verts = np.asarray(np.where(edge_mask)).T
+			hull_verts = polygons.getAugmentedConvexHullBoundary(verts)
+			lats_sq = lats.reshape(res[1],res[0])
+			lons_sq = lons.reshape(res[1],res[0])
+			edge_lats = lats_sq[hull_verts[:,0], hull_verts[:,1]]
+			edge_lons = lons_sq[hull_verts[:,0], hull_verts[:,1]]
+
+			boundary_points = np.vstack((edge_lons, edge_lats)).T
+
+			if (boundary_points[:,0].max()-boundary_points[:,0].min())>180:
+				# point cloud is split across 180 line
+				side1_points = boundary_points[np.where(boundary_points[:,0]>0)]
+				side2_points = boundary_points[np.where(boundary_points[:,0]<0)]
 
 				# shift points so are straddling 180, rather than wrapping to -180
-				shifted_point_cloud = point_cloud.copy()
-				shifted_point_cloud[np.where(shifted_point_cloud[:,0]<0)[0],0] += 360
-				# find points of polygon which lie on lon 180 line
-				ch_all = ConvexHull(shifted_point_cloud)
-				shifted_boundary = shifted_point_cloud[ch_all.vertices]
-				int_points = polygons.getPolygonVerticalIntersection(shifted_boundary, 180)
+				shifted_boundary_points = boundary_points.copy()
+				shifted_boundary_points[np.where(shifted_boundary_points[:,0]<0)[0],0] += 360
+				int_points = polygons.getPolygonVerticalIntersection(shifted_boundary_points, 180)
 				neg_int_points = int_points.copy()
 				neg_int_points[:,0] *= -1
 				# augment point clouds with intersection points
 				side1_points = np.append(side1_points, int_points, axis=0)
 				side2_points = np.append(side2_points, neg_int_points, axis=0)
 
-
 				if len(side1_points) > 2:
-					ch1 = ConvexHull(side1_points)
-					side1_verts = side1_points[ch1.vertices]
+					side1_verts = polygons.reorderCW(side1_points)
+
 				else:
 					# not enough points to draw polygon on eastern hemisphere
 					side1_verts = None
 				if len(side2_points) > 2:
-					ch2 = ConvexHull(side2_points)
-					side2_verts = side2_points[ch2.vertices]
+					side2_verts = polygons.reorderCW(side2_points)
 				else:
 					# not enough points to draw polygon on western hemisphere
 					side2_verts = None
@@ -199,7 +210,7 @@ class SensorData:
 
 			else:
 				# doesn't straddle 180 line
-				ch = ConvexHull(point_cloud)
-				verts = point_cloud[ch.vertices]
 
-				return point_cloud, verts, verts, False
+				return point_cloud, boundary_points, boundary_points, False
+
+
