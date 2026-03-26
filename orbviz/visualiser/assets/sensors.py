@@ -162,7 +162,7 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 		self.opts['sensor_cone_colour']['value'] = colour
 
 		self.data['curr_datetime'] = None
-		self.data['lowres'] = (60, 30)
+		self.data['lowres'] = (120, 67)
 		self.data['fov'] = (62.2, 48.8)
 		self.data['lens_model'] = pinhole
 		# rays from each pixel in sensor frame
@@ -196,10 +196,10 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
     											self.data['mesh_faces'],
     											color=colours.normaliseColour(self.opts['sensor_cone_colour']['value']),
     											parent=None)
-		self.visuals['rays'] = vVisuals.Line(3000*self.data['flattened_lowres_segments_sf'],
-											 color=(0,0,0,0.25),
-											 width=0.01,
-											 connect='segments')
+		# self.visuals['rays'] = vVisuals.Line(3000*self.data['flattened_lowres_segments_sf'],
+		# 									 color=(0,0,0,0.25),
+		# 									 width=0.01,
+		# 									 connect='segments')
 		self.visuals['ray_markers'] = vVisuals.Markers(scaling=True,
 												edge_color='white',
 												symbol='o',
@@ -253,7 +253,7 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 											face_color=intsct_colours)
 			self.visuals['sensor_cone'].transform = vTransforms.linear.MatrixTransform(T.T)
 			self.visuals['ray_markers'].transform = vTransforms.linear.MatrixTransform(T.T)
-			self.visuals['rays'].transform = vTransforms.linear.MatrixTransform(T.T)
+			# self.visuals['rays'].transform = vTransforms.linear.MatrixTransform(T.T)
 			self._clearStaleFlag()
 
 	def _setDefaultOptions(self) -> None:
