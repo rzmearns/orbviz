@@ -203,7 +203,7 @@ class HistoryData(BaseDataModel):
 		if self.getConfigValue('has_supplemental_constellation'):
 			if self.constellation is None:
 				logger.warning("History data:%s, constellation has not been configured", self)
-				raise AttributeError(f"History data:{self},onstellation has not been configured")
+				raise AttributeError(f"History data:{self}, constellation has not been configured")
 
 			self.constellation.setTimespan(self.timespan)
 			self._worker_manager.addWorkerThreadConfig({'thread_name':'constellation',
@@ -241,14 +241,14 @@ class HistoryData(BaseDataModel):
 											'auto_delete': True})
 
 		# check if attitudes is already created, otherwise process
-		if not bool(self.attitudes):
+		if self.getConfigValue('attitude_configs')[prim_sc_id].is_attitude_defined and not bool(self.attitudes):
 			self._worker_manager.addWorkerThreadConfig({'thread_name':'attitudes',
 														'processing_fn':self._processAttitudes,
 														'processing_args':[],
 														'chain_parent':'primary',
 														'delay_start':True,
 														'storage_fn': self._storeAttitudeData,
-														'finished_fn':None,
+														'finished_fn':self._procComplete,
 														'error_fn':self._displayError,
 														'auto_delete': True})
 
