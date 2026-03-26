@@ -221,8 +221,6 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 		self.visuals['sensor_cone'].attach(alpha_filter)
 		self.visuals['sensor_cone'].attach(wireframe_filter)
 		self.visuals['ray_markers'].visible = self.opts['plot_sensor_pixel_projections']['value']
-		print(f"{self.data['name']=}")
-		print(f"\t{self.visuals['ray_markers'].visible=}")
 
 	def setCurrentDatetime(self, dt:dt.datetime) -> None:
 		self.data['curr_datetime'] = dt
@@ -256,14 +254,11 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 			marker_pos[intsct] = marker_pos[intsct]*dist.reshape(-1,1)
 			marker_pos[~intsct] = marker_pos[~intsct]*3000
 
-			print(f"{self.data['name']=}")
-			print(f"\tBefore setting data:{self.visuals['ray_markers'].visible=}")
 			self.visuals['ray_markers'].set_data(pos=marker_pos,
 											size=20,
 											face_color=intsct_colours)
 			self.visuals['sensor_cone'].transform = vTransforms.linear.MatrixTransform(T.T)
 			self.visuals['ray_markers'].transform = vTransforms.linear.MatrixTransform(T.T)
-			print(f"\tAfter setting data:{self.visuals['ray_markers'].visible=}")
 			# self.visuals['rays'].transform = vTransforms.linear.MatrixTransform(T.T)
 			self._clearStaleFlag()
 
@@ -309,10 +304,8 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 			visual.visible = state
 
 	def setPixelProjectionVisibility(self, state):
-		print(f"{self.data['name']=}")
 		self.opts['plot_sensor_pixel_projections']['value'] = state
 		self.visuals['ray_markers'].visible = self.opts['plot_sensor_pixel_projections']['value']
-		print(f"\t{self.visuals['ray_markers'].visible=}")
 
 	def removePlotOptions(self) -> None:
 		for opt_key, opt in self.opts.items():
