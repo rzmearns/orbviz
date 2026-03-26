@@ -163,6 +163,8 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 													self.data_models['history'],
 													self.data_models['raycast_src'])
 				self.assets['spacecraft']._setActiveFlag()
+			else:
+				self.assets['spacecraft']._clearActiveFlag()
 
 
 
