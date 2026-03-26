@@ -254,10 +254,12 @@ class Spacecraft3DAsset(base_assets.AbstractVispyAsset):
 			if isinstance(asset, sensors.SensorSuite3DAsset):
 				if state and self.opts[f'plot_{key}']['value']:
 					# turning on, only if option state has it previously on
-					asset.setVisibilityRecursive(state)
+					# asset.setVisibilityRecursive(state)
+					asset.setDefaultVisibilityRecursive(state)
 				elif not state:
 					# turning off
-					asset.setVisibilityRecursive(state)
+					asset.setDefaultVisibilityRecursive(state)
+					# asset.setVisibilityRecursive(state)
 
 	def setOrbitalMarkerVisibility(self, state:bool) -> None:
 		self.opts['plot_spacecraft_marker']['value'] = state

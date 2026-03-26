@@ -113,6 +113,12 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundVispyAsset):
 	def setSuiteVisibility(self, state:bool) -> None:
 		self.setVisibilityRecursive(state)
 
+	def setDefaultVisibilityRecursive(self, state):
+		'''Sets the visibility of this asset and all child-assets'''
+		self.setVisibility(state)
+		for asset in self.assets.values():
+			asset.setDefaultVisibilityRecursive(state)
+
 	def removePlotOptions(self) -> None:
 		for opt_key, opt in self.opts.items():
 			if opt['widget_data'] is not None:
@@ -162,7 +168,7 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 		self.opts['sensor_cone_colour']['value'] = colour
 
 		self.data['curr_datetime'] = None
-		self.data['lowres'] = (60, 30)
+		self.data['lowres'] = (120, 67)
 		self.data['fov'] = (62.2, 48.8)
 		self.data['lens_model'] = pinhole
 		# rays from each pixel in sensor frame
@@ -196,10 +202,10 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
     											self.data['mesh_faces'],
     											color=colours.normaliseColour(self.opts['sensor_cone_colour']['value']),
     											parent=None)
-		self.visuals['rays'] = vVisuals.Line(3000*self.data['flattened_lowres_segments_sf'],
-											 color=(0,0,0,0.25),
-											 width=0.01,
-											 connect='segments')
+		# self.visuals['rays'] = vVisuals.Line(3000*self.data['flattened_lowres_segments_sf'],
+		# 									 color=(0,0,0,0.25),
+		# 									 width=0.01,
+		# 									 connect='segments')
 		self.visuals['ray_markers'] = vVisuals.Markers(scaling=True,
 												edge_color='white',
 												symbol='o',
@@ -209,12 +215,14 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 											size=20,
 											face_color=self.data['lowres_segments_ray_colours'])
 
-
 		self.setTransform(rotation=Rotation.from_quat(self.data['bf_quat']).as_matrix().reshape(3,3))
 		wireframe_filter = vFilters.WireframeFilter(width=1)
 		alpha_filter = vFilters.Alpha(self.opts['sensor_cone_alpha']['value'])
 		self.visuals['sensor_cone'].attach(alpha_filter)
 		self.visuals['sensor_cone'].attach(wireframe_filter)
+		self.visuals['ray_markers'].visible = self.opts['plot_sensor_pixel_projections']['value']
+		print(f"{self.data['name']=}")
+		print(f"\t{self.visuals['ray_markers'].visible=}")
 
 	def setCurrentDatetime(self, dt:dt.datetime) -> None:
 		self.data['curr_datetime'] = dt
@@ -248,13 +256,21 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 			marker_pos[intsct] = marker_pos[intsct]*dist.reshape(-1,1)
 			marker_pos[~intsct] = marker_pos[~intsct]*3000
 
+			print(f"{self.data['name']=}")
+			print(f"\tBefore setting data:{self.visuals['ray_markers'].visible=}")
 			self.visuals['ray_markers'].set_data(pos=marker_pos,
 											size=20,
 											face_color=intsct_colours)
 			self.visuals['sensor_cone'].transform = vTransforms.linear.MatrixTransform(T.T)
 			self.visuals['ray_markers'].transform = vTransforms.linear.MatrixTransform(T.T)
-			self.visuals['rays'].transform = vTransforms.linear.MatrixTransform(T.T)
+			print(f"\tAfter setting data:{self.visuals['ray_markers'].visible=}")
+			# self.visuals['rays'].transform = vTransforms.linear.MatrixTransform(T.T)
 			self._clearStaleFlag()
+
+	def setDefaultVisibilityRecursive(self, state):
+		for visual_name, visual in self.visuals.items():
+			if visual_name != 'ray_markers':
+				visual.visible = state
 
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
@@ -271,6 +287,12 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 												'static': True,
 												'callback': self.setSensorConeAlpha,
 												'widget_data': None}
+		self._dflt_opts['plot_sensor_pixel_projections'] = {'value': False,
+										  		'type': 'boolean',
+												'help': '',
+												'static': True,
+												'callback': self.setPixelProjectionVisibility,
+												'widget_data': None}
 
 		self.opts = self._dflt_opts.copy()
 
@@ -285,6 +307,12 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 	def setSensorVisibility(self, state):
 		for visual in self.visuals.values():
 			visual.visible = state
+
+	def setPixelProjectionVisibility(self, state):
+		print(f"{self.data['name']=}")
+		self.opts['plot_sensor_pixel_projections']['value'] = state
+		self.visuals['ray_markers'].visible = self.opts['plot_sensor_pixel_projections']['value']
+		print(f"\t{self.visuals['ray_markers'].visible=}")
 
 	def removePlotOptions(self) -> None:
 		for opt_key, opt in self.opts.items():

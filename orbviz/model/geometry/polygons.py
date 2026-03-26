@@ -2,6 +2,8 @@ import numpy as np
 import numpy.typing as nptyping
 import triangle as tr
 
+import scipy.spatial
+
 import orbviz.model.geometry.primgeom as pg
 import orbviz.util.array_u as array_u
 
@@ -149,3 +151,22 @@ def splitPolygonVertically(verts, x_value):
 	right_poly = new_verts[new_verts[:, 0] >= x_value]
 
 	return left_poly, right_poly
+
+def getAugmentedConvexHullBoundary(points):
+	points = np.asarray(points)
+	ch = scipy.spatial.ConvexHull(points, qhull_options='Qc')
+	vertices = ch.vertices
+
+	# Coplanar points (points on the edges but not corners)
+	# hull.coplanar is an (n, 3) array where:
+	# column 0: index of the coplanar point
+	# column 1: index of the nearest vertex (not used here)
+	# column 2: index of the facet (edge/face) it lies on
+	if ch.coplanar.size > 0:
+		coplanar_indices = ch.coplanar[:, 0]
+		# Combine and remove duplicates
+		all_boundary_indices = np.unique(np.concatenate([vertices, coplanar_indices]))
+	else:
+		all_boundary_indices = vertices
+
+	return reorderCW(points[all_boundary_indices])
