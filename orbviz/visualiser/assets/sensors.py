@@ -6,7 +6,6 @@ from typing import Any
 import numpy as np
 import numpy.typing as nptyping
 from scipy.spatial.transform import Rotation
-from scipy.spatial import ConvexHull
 
 import vispy.scene.visuals as vVisuals
 from vispy.scene.widgets.viewbox import ViewBox
@@ -15,8 +14,6 @@ import vispy.visuals.transforms as vTransforms
 
 import orbviz.model.data_models.data_types as orbviz_data_types
 import orbviz.model.geometry.polyhedra as polyhedra
-import orbviz.model.geometry.polygons as polygons
-import orbviz.model.geometry.spherical as spherical_geom
 import orbviz.model.lens_models.pinhole as pinhole
 import orbviz.util.conversion as orbviz_conversion
 import orbviz.visualiser.assets.base_assets as base_assets
