@@ -196,7 +196,6 @@ class HistoryData(BaseDataModel):
 											'chain_parent':None,
 											'delay_start':False,
 											'storage_fn': self._storeOrbitData,
-											'finished_fn':self._procComplete,
 											'error_fn':self._displayError,
 											'auto_delete': True})
 
@@ -212,7 +211,6 @@ class HistoryData(BaseDataModel):
 												'chain_parent':None,
 												'delay_start':False,
 												'storage_fn': self.constellation._storeOrbitData,
-												'finished_fn':self._procComplete,
 												'error_fn':self._displayError,
 												'auto_delete': True})
 
@@ -224,7 +222,6 @@ class HistoryData(BaseDataModel):
 												'chain_parent':'primary',
 												'delay_start':True,
 												'storage_fn': self._storeEventData,
-												'finished_fn':self._procComplete,
 												'error_fn':self._displayError,
 												'auto_delete': True})
 		else:
@@ -236,7 +233,6 @@ class HistoryData(BaseDataModel):
 											'chain_parent':'primary',
 											'delay_start':True,
 											'storage_fn': None,
-											'finished_fn':self._procComplete,
 											'error_fn':self._displayError,
 											'auto_delete': True})
 
@@ -248,7 +244,6 @@ class HistoryData(BaseDataModel):
 														'chain_parent':'primary',
 														'delay_start':True,
 														'storage_fn': self._storeAttitudeData,
-														'finished_fn':self._procComplete,
 														'error_fn':self._displayError,
 														'auto_delete': True})
 
@@ -264,9 +259,6 @@ class HistoryData(BaseDataModel):
 		T[0:3, 3] = np.asarray(self.getOrbit(sc_id).pos[timespan_idx]).reshape(-1,3)
 
 		return T
-
-	def _procComplete(self, worker_object) -> None:
-		logger.info("%s completed", worker_object)
 
 	def _resetCurrIndex(self) -> None:
 		# ensure self.curr_index is both within the bounds of the new timespan, and is not None when
@@ -377,6 +369,7 @@ class HistoryData(BaseDataModel):
 		self._resetCurrIndex()
 		self.sun = list(orbits.values())[0].sun_pos
 		self.moon = list(orbits.values())[0].moon_pos
+		logger.info('Finished storing orbit data')
 
 	def _storeEventData(self, events:dict[int, event_data.EventData]):
 		logger.info('Storing event data')
