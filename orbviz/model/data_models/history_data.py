@@ -473,26 +473,35 @@ class HistoryData(BaseDataModel):
 
 	def fetchDataForExport(self, method) -> tuple[dict,dict,dict]:
 		sc_ids = list(self.sensor_data.keys())
-		oth_d = {}
-		oth_d['type'] = 'FeatureCollection'
-		oth_d['features'] = []
-		# export spacecraft nadir points
-		oth_d['features'] += self.sc_data[sc_ids[0]].exportDataAsGEOJSONFeatures()
+		for sc_id in sc_ids:
+			d = {}
+			d[sc_id] = {}
+			d[sc_id]['sc_id'] = sc_id
+			d[sc_id]['sc_name'] = str(self.sensor_data[sc_id]._sc_config.name)
+			d[sc_id]['period_start'] = self.timespan[0]
+			d[sc_id]['period_end'] = self.timespan[-1]
+			d[sc_id]['timestep'] = self.timespan.timestep
 
-		nadir_d = {}
-		nadir_d['type'] = 'FeatureCollection'
-		nadir_d['features'] = []
-		# export spacecraft nadir points
-		nadir_d['features'] += self.exportSubSatelliteAsGEOJSONFeatures(sc_ids[0])
+			d[sc_id]['oth_d'] = {}
+			d[sc_id]['oth_d']['type'] = 'FeatureCollection'
+			d[sc_id]['oth_d']['features'] = []
+			# export spacecraft nadir points
+			d[sc_id]['oth_d']['features'] += self.sc_data[sc_ids[0]].exportDataAsGEOJSONFeatures()
+
+			d[sc_id]['nadir_d'] = {}
+			d[sc_id]['nadir_d']['type'] = 'FeatureCollection'
+			d[sc_id]['nadir_d']['features'] = []
+			# export spacecraft nadir points
+			d[sc_id]['nadir_d']['features'] += self.exportSubSatelliteAsGEOJSONFeatures(sc_ids[0])
 
 
-		sensor_d = {}
-		sensor_d['type'] = 'FeatureCollection'
-		sensor_d['features'] = []
-		# export sensor boundary list
-		sensor_d['features'] += self.sensor_data[sc_ids[0]].exportDataAsGEOJSONFeatures()
+			d[sc_id]['sensor_d'] = {}
+			d[sc_id]['sensor_d']['type'] = 'FeatureCollection'
+			d[sc_id]['sensor_d']['features'] = []
+			# export sensor boundary list
+			d[sc_id]['sensor_d']['features'] += self.sensor_data[sc_ids[0]].exportDataAsGEOJSONFeatures()
 
-		return (nadir_d, oth_d, sensor_d)
+		return d
 
 	def exportSubSatelliteAsGEOJSONFeatures(self, sc_id) -> list[dict]:
 		feature_list = []
