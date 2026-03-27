@@ -18,6 +18,7 @@ logs_dir = data_dir.joinpath('logs')
 prim_cnfg_dir = data_dir.joinpath('primary_configs')
 att_dir = data_dir.joinpath('attitude')
 save_dir = data_dir.joinpath('saves')
+export_dir = data_dir.joinpath('exports')
 screenshot_dir = data_dir.joinpath('screenshots')
 
 # check dir exist
@@ -30,4 +31,5 @@ logs_dir.mkdir(parents=False, exist_ok=True)
 prim_cnfg_dir.mkdir(parents=False, exist_ok=True)
 att_dir.mkdir(parents=False, exist_ok=True)
 save_dir.mkdir(parents=False, exist_ok=True)
+export_dir.mkdir(parents=False, exist_ok=True)
 screenshot_dir.mkdir(parents=False, exist_ok=True)

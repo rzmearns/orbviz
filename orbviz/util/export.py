@@ -1,11 +1,11 @@
 import datetime as dt
 import json
-import pathlib
 
 import numpy as np
 
 from orbviz.model.data_models import data_types
 import orbviz.visualiser.interface.console as console
+import orbviz.util.paths as orbviz_paths
 
 
 def exportData(shell, method):
@@ -18,9 +18,9 @@ def exportData(shell, method):
 def _exportGEOJSON(shell):
 	subsat_d, oth_d, sensor_d = shell.data['history'].fetchDataForExport(data_types.ExportMethod('geojson'))
 	tstamp_str = dt.datetime.now().strftime('%Y-%m-%d_%H%M%S')
-	subsat_json_path = pathlib.Path(f'geojson_subsat_{tstamp_str}.json')
-	oth_json_path = pathlib.Path(f'geojson_oth_{tstamp_str}.json')
-	sensor_json_path = pathlib.Path(f'geojson_sensor_{tstamp_str}.json')
+	subsat_json_path = orbviz_paths.export_dir.joinpath(f'geojson_subsat_{tstamp_str}.json')
+	oth_json_path = orbviz_paths.export_dir.joinpath(f'geojson_oth_{tstamp_str}.json')
+	sensor_json_path = orbviz_paths.export_dir.joinpath(f'geojson_sensor_{tstamp_str}.json')
 	with subsat_json_path.open('w') as fp:
 		json.dump(subsat_d, fp, cls=JSONEncoder, indent=4)
 
