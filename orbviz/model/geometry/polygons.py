@@ -125,9 +125,6 @@ def getPolygonVerticalIntersection(verts, x_value, close=True):
 
 	straddling_segment_idxs = np.where(np.diff(c_verts[:,0]>x_value))[0]
 
-	if len(straddling_segment_idxs) > 2:
-		raise ValueError('More than 2 intersections found')
-
 	int_points = [segmentIntersection(np.array((c_verts[idx,:], c_verts[idx+1,:])),
 												np.array([[x_value,-90],[x_value,90]])) for idx in straddling_segment_idxs]
 
