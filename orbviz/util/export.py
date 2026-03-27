@@ -40,6 +40,6 @@ class JSONEncoder(json.JSONEncoder):
 		if isinstance(obj, np.ndarray):
 			return obj.tolist()
 		elif isinstance(obj, dt.datetime):
-			return obj.strftime('%Y-%m-%dT%H:%M:%S')
+			return obj.isoformat()
 
 		return super().default(obj)
