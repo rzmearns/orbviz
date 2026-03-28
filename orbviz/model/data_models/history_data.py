@@ -473,7 +473,7 @@ class HistoryData(BaseDataModel):
 			d[sc_id]['sc_name'] = str(self.sensor_data[sc_id]._sc_config.name)
 			d[sc_id]['period_start'] = self.timespan[0]
 			d[sc_id]['period_end'] = self.timespan[-1]
-			d[sc_id]['timestep'] = self.timespan.time_step
+			d[sc_id]['timestep'] = int(self.timespan.time_step.total_seconds())
 
 			d[sc_id]['oth_d'] = {}
 			d[sc_id]['oth_d']['type'] = 'FeatureCollection'
