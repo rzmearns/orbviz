@@ -160,8 +160,6 @@ class Worker(QtCore.QRunnable):
 			self.delayStart = kwargs.pop('delay_start')
 		else:
 			self.delayStart = False
-		# print(f'{args=}')
-		# print(f'{kwargs=}')
 		self.kwargs = kwargs
 		self.signals = WorkerSignals()
 		self.started = Flag(False)
@@ -199,7 +197,6 @@ class Worker(QtCore.QRunnable):
 				# only report complete if no chained workers
 				# (report finished will result in threading being deleted)
 				if not self.chainedWorkers:
-					print(f'{self}:{self.chainedWorkers=}')
 					logger.info('Thread %s completed. No chained workers. Emitting REPORT_COMPLETE signal', self)
 					self.signals.report_complete.emit(self)
 
