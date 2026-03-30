@@ -26,13 +26,13 @@ def _exportGEOJSON(shell):
 		oth_json_path = orbviz_paths.export_dir.joinpath(f'{sat_name_str}_oth_{tstamp_start_str}_{tstamp_end_str}_{timestep_str}.geojson')
 		sensor_json_path = orbviz_paths.export_dir.joinpath(f'{sat_name_str}_sensor_{tstamp_start_str}_{tstamp_end_str}_{timestep_str}.geojson')
 		with subsat_json_path.open('w') as fp:
-			json.dump(data[sc_id]['nadir_d'], fp, cls=JSONEncoder, indent=4)
+			json.dump(data[sc_id]['nadir_d'], fp, cls=JSONEncoder)
 
 		with oth_json_path.open('w') as fp:
-			json.dump(data[sc_id]['oth_d'], fp, cls=JSONEncoder, indent=4)
+			json.dump(data[sc_id]['oth_d'], fp, cls=JSONEncoder)
 
 		with sensor_json_path.open('w') as fp:
-			json.dump(data[sc_id]['sensor_d'], fp, cls=JSONEncoder, indent=4)
+			json.dump(data[sc_id]['sensor_d'], fp, cls=JSONEncoder)
 
 		console.send('Finished Exporting GEOJSON files:')
 		console.send(f'\tSubsatellite points: {subsat_json_path}')
@@ -42,7 +42,7 @@ def _exportGEOJSON(shell):
 class JSONEncoder(json.JSONEncoder):
 	def default(self, obj):
 		if isinstance(obj, np.ndarray):
-			return obj.tolist()
+			return obj.round(4).tolist()
 		elif isinstance(obj, dt.datetime):
 			return obj.isoformat()
 

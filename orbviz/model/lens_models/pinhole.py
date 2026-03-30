@@ -17,7 +17,7 @@ def generatePixelRays(pixels:tuple[int,int], fov:tuple[float,float]) -> np.ndarr
 	y = y.ravel()
 	num_rays = len(x)
 	pixelCoords = np.vstack([x,y]).T
-	offsets = frame_centre - pixelCoords
+	offsets = frame_centre - pixelCoords - 0.5
 	offsets[:,0] *= -1
 	angles = offsets / np.array([w, h]) * np.array([fov_arr[0]/2, fov_arr[1]/2])
 

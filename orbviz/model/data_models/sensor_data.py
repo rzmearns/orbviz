@@ -139,15 +139,26 @@ class SensorData:
 
 	def _calcLowRes(self, true_resolution:tuple[int,int]) -> tuple[int,int]:
 		lowres = [0,0]
-		max_1D_resolution = 120
+		# max_1D_resolution = 120
+		lowres_ratio = 10
 		aspect_ratio = true_resolution[0]/true_resolution[1]
 		if aspect_ratio > 1:
-			lowres = (max_1D_resolution, int(max_1D_resolution/aspect_ratio))
+			lowres_h = int(true_resolution[1]/lowres_ratio)
+			lowres_h = max(3, lowres_h)
+			if lowres_h == 3:
+				lowres_ratio = true_resolution[1]/lowres_h
+			lowres_w = int(true_resolution[0]/lowres_ratio)
 		elif aspect_ratio < 1:
-			lowres = (int(max_1D_resolution/aspect_ratio), max_1D_resolution)
+			lowres_w = int(true_resolution[0]/lowres_ratio)
+			lowres_w = max(3, lowres_w)
+			if lowres_w == 3:
+				lowres_ratio = true_resolution[0]/lowres_w
+			lowres_h = int(true_resolution[1]/lowres_ratio)
 		else:
-			lowres = (max_1D_resolution, max_1D_resolution)
-		return lowres
+			lowres_w = max(3, int(true_resolution[0]/lowres_ratio))
+			lowres_h = max(3, int(true_resolution[1]/lowres_ratio))
+
+		return (lowres_w, lowres_h)
 
 	def _calcPatchBoundaries(self, lats, lons, res):
 		intsct_lats = lats[~np.isnan(lats)]

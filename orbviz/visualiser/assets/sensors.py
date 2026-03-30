@@ -126,7 +126,7 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundVispyAsset):
 
 class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 	def __init__(self, sc_id:int, sensor_name:str, parent_suite_name:str, mesh_verts, mesh_faces,
-			  			bf_quat, colour, sens_type=None, v_parent=None, *args, **kwargs):
+						config:dict={}, sens_type=None, v_parent=None, *args, **kwargs):
 		super().__init__(sensor_name, v_parent)
 
 		self._setDefaultOptions()
@@ -140,8 +140,10 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 						sensor_name,
 						mesh_verts,
 						mesh_faces,
-						bf_quat,
-						colour)
+						config['bf_quat'],
+						config['resolution'],
+						config['fov'],
+						config['colour'])
 
 		if self.data['type'] is None:
 			logger.error('Sensor() should not be called directly, use one of the constructor methods')
@@ -153,7 +155,7 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 
 		self._attachToParentView()
 		
-	def _initData(self, sc_id:int, parent_suite_name:str, sens_type:str, sensor_name:str, mesh_verts:nptyping.NDArray, mesh_faces:nptyping.NDArray, bf_quat:nptyping.NDArray, colour:tuple[float,float,float]):
+	def _initData(self, sc_id:int, parent_suite_name:str, sens_type:str, sensor_name:str, mesh_verts:nptyping.NDArray, mesh_faces:nptyping.NDArray, bf_quat:nptyping.NDArray, resolution:tuple[int,int], fov:tuple[float,float], colour:tuple[float,float,float]):
 		self.data['sc_id'] = sc_id
 		self.data['parent_suite_name'] = parent_suite_name
 		self.data['type'] = sens_type
@@ -164,9 +166,10 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 		self.data['vispy_quat'] = self.data['bf_quat']
 		self.opts['sensor_cone_colour']['value'] = colour
 
+		self.data['res'] = resolution
 		self.data['curr_datetime'] = None
-		self.data['lowres'] = (120, 67)
-		self.data['fov'] = (62.2, 48.8)
+		self.data['lowres'] = self._calcLowRes(self.data['res'])
+		self.data['fov'] = fov
 		self.data['lens_model'] = pinhole
 		# rays from each pixel in sensor frame
 		self.data['lowres_vectors_sf'] = self.data['lens_model'].generatePixelRays(self.data['lowres'], self.data['fov'])
@@ -218,6 +221,7 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 		self.visuals['sensor_cone'].attach(alpha_filter)
 		self.visuals['sensor_cone'].attach(wireframe_filter)
 		self.visuals['ray_markers'].visible = self.opts['plot_sensor_pixel_projections']['value']
+		self.visuals['sensor_cone'].visible = self.opts['plot_sensor_cone']['value']
 
 	def setCurrentDatetime(self, dt:dt.datetime) -> None:
 		self.data['curr_datetime'] = dt
@@ -285,6 +289,12 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 												'static': True,
 												'callback': self.setPixelProjectionVisibility,
 												'widget_data': None}
+		self._dflt_opts['plot_sensor_cone'] = {'value': True,
+										  		'type': 'boolean',
+												'help': '',
+												'static': True,
+												'callback': self.setSensorConeVisibility,
+												'widget_data': None}
 
 		self.opts = self._dflt_opts.copy()
 
@@ -304,6 +314,10 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 		self.opts['plot_sensor_pixel_projections']['value'] = state
 		self.visuals['ray_markers'].visible = self.opts['plot_sensor_pixel_projections']['value']
 
+	def setSensorConeVisibility(self, state):
+		self.opts['plot_sensor_cone']['value'] = state
+		self.visuals['sensor_cone'].visible = self.opts['plot_sensor_cone']['value']
+
 	def removePlotOptions(self) -> None:
 		for opt_key, opt in self.opts.items():
 			if opt['widget_data'] is not None:
@@ -318,7 +332,7 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 										sensor_dict['fov'])
 		bf_quat = np.asarray(sensor_dict['bf_quat']).reshape(1,4)
 		colour = sensor_dict['colour']
-		return cls(sc_id, sensor_name, parent_suite_name, mesh_verts, mesh_faces, bf_quat, colour, sens_type='cone', v_parent=parent)
+		return cls(sc_id, sensor_name, parent_suite_name, mesh_verts, mesh_faces, sensor_dict, sens_type='cone', v_parent=parent)
 
 	@classmethod
 	def squarePyramid(cls, sc_id:int, sensor_name:str, parent_suite_name:str, sensor_dict:dict[str,Any], parent:ViewBox|None=None):
@@ -331,7 +345,30 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 		
 		bf_quat = np.asarray(sensor_dict['bf_quat']).reshape(1,4)
 		colour = sensor_dict['colour']
-		return cls(sc_id, sensor_name, parent_suite_name, mesh_verts, mesh_faces, bf_quat, colour, sens_type='square_pyramid', v_parent=parent)
+		return cls(sc_id, sensor_name, parent_suite_name, mesh_verts, mesh_faces, sensor_dict, sens_type='square_pyramid', v_parent=parent)
+
+	def _calcLowRes(self, true_resolution:tuple[int,int]) -> tuple[int,int]:
+		lowres = [0,0]
+		# max_1D_resolution = 120
+		lowres_ratio = 10
+		aspect_ratio = true_resolution[0]/true_resolution[1]
+		if aspect_ratio > 1:
+			lowres_h = int(true_resolution[1]/lowres_ratio)
+			lowres_h = max(3, lowres_h)
+			if lowres_h == 3:
+				lowres_ratio = true_resolution[1]/lowres_h
+			lowres_w = int(true_resolution[0]/lowres_ratio)
+		elif aspect_ratio < 1:
+			lowres_w = int(true_resolution[0]/lowres_ratio)
+			lowres_w = max(3, lowres_w)
+			if lowres_w == 3:
+				lowres_ratio = true_resolution[0]/lowres_w
+			lowres_h = int(true_resolution[1]/lowres_ratio)
+		else:
+			lowres_w = max(3, int(true_resolution[0]/lowres_ratio))
+			lowres_h = max(3, int(true_resolution[1]/lowres_ratio))
+
+		return (lowres_w, lowres_h)
 
 class SensorSuite2DAsset(base_assets.AbstractCompoundVispyAsset):
 	def __init__(self, sc_id:int, sens_suite_dict:dict[str,Any], name:str|None=None, v_parent:ViewBox|None=None):
@@ -498,15 +535,26 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 
 	def _calcLowRes(self, true_resolution:tuple[int,int]) -> tuple[int,int]:
 		lowres = [0,0]
-		max_1D_resolution = 120
+		# max_1D_resolution = 120
+		lowres_ratio = 10
 		aspect_ratio = true_resolution[0]/true_resolution[1]
 		if aspect_ratio > 1:
-			lowres = (max_1D_resolution, int(max_1D_resolution/aspect_ratio))
+			lowres_h = int(true_resolution[1]/lowres_ratio)
+			lowres_h = max(3, lowres_h)
+			if lowres_h == 3:
+				lowres_ratio = true_resolution[1]/lowres_h
+			lowres_w = int(true_resolution[0]/lowres_ratio)
 		elif aspect_ratio < 1:
-			lowres = (int(max_1D_resolution/aspect_ratio), max_1D_resolution)
+			lowres_w = int(true_resolution[0]/lowres_ratio)
+			lowres_w = max(3, lowres_w)
+			if lowres_w == 3:
+				lowres_ratio = true_resolution[0]/lowres_w
+			lowres_h = int(true_resolution[1]/lowres_ratio)
 		else:
-			lowres = (max_1D_resolution, max_1D_resolution)
-		return lowres
+			lowres_w = max(3, int(true_resolution[0]/lowres_ratio))
+			lowres_h = max(3, int(true_resolution[1]/lowres_ratio))
+
+		return (lowres_w, lowres_h)
 
 	def _instantiateAssets(self) -> None:
 		pass
