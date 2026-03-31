@@ -186,30 +186,29 @@ class SensorData:
 			boundary_points = np.vstack((edge_lons, edge_lats)).T
 
 			if (boundary_points[:,0].max()-boundary_points[:,0].min())>180:
-				# point cloud is split across 180 line
-				side1_points = boundary_points[np.where(boundary_points[:,0]>0)]
-				side2_points = boundary_points[np.where(boundary_points[:,0]<0)]
 
-				# shift points so are straddling 180, rather than wrapping to -180
 				shifted_boundary_points = boundary_points.copy()
 				shifted_boundary_points[np.where(shifted_boundary_points[:,0]<0)[0],0] += 360
 				int_points = polygons.getPolygonVerticalIntersection(shifted_boundary_points, 180)
 				neg_int_points = int_points.copy()
 				neg_int_points[:,0] *= -1
-				# augment point clouds with intersection points
-				side1_points = np.append(side1_points, int_points, axis=0)
-				side2_points = np.append(side2_points, neg_int_points, axis=0)
 
-				if len(side1_points) > 2:
-					side1_verts = polygons.reorderCW(side1_points)
+				c_verts = polygons.closePolygon(shifted_boundary_points)
+				x_value = 180
+				straddling_segment_idxs = np.where(np.diff(c_verts[:,0]>x_value))[0]
 
-				else:
-					# not enough points to draw polygon on eastern hemisphere
+				for idx, int_point in zip(straddling_segment_idxs, int_points):
+					for epsilon_sign in [1, -1]:
+						offset = np.array([epsilon_sign * 1e-5, 0])
+						shifted_boundary_points = np.insert(shifted_boundary_points, 2*idx, int_point + offset).reshape([len(shifted_boundary_points)+1, 2])
+					
+				side1_verts = shifted_boundary_points[np.where(shifted_boundary_points[:,0]>180)]
+				side1_verts -= np.array([360, 0])
+				side2_verts = shifted_boundary_points[np.where(shifted_boundary_points[:,0]<180)]
+
+				if len(side1_verts) <= 2:
 					side1_verts = None
-				if len(side2_points) > 2:
-					side2_verts = polygons.reorderCW(side2_points)
-				else:
-					# not enough points to draw polygon on western hemisphere
+				if len(side2_verts) <= 2:
 					side2_verts = None
 
 				if side2_verts is None:
