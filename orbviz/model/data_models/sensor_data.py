@@ -193,6 +193,9 @@ class SensorData:
 				neg_int_points = int_points.copy()
 				neg_int_points[:,0] *= -1
 
+				#TODO: change the interface to polygons.getPolygonVerticalIntersection
+				# 		to also return the indices of intersection, so that the next few
+				#		lines are not needed
 				c_verts = polygons.closePolygon(shifted_boundary_points)
 				x_value = 180
 				straddling_segment_idxs = np.where(np.diff(c_verts[:,0]>x_value))[0]
