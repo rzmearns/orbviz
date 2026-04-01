@@ -168,9 +168,10 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 
 		self.data['res'] = resolution
 		self.data['curr_datetime'] = None
-		self.data['lowres'] = self._calcLowRes(self.data['res'])
-		self.data['fov'] = fov
 		self.data['lens_model'] = pinhole
+		self.data['lowres'] = self.data['lens_model'].calcLowRes(self.data['res'])
+		self.data['fov'] = fov
+
 		# rays from each pixel in sensor frame
 		self.data['lowres_vectors_sf'] = self.data['lens_model'].generatePixelRays(self.data['lowres'], self.data['fov'])
 		num_rays = len(self.data['lowres_vectors_sf'])
@@ -347,29 +348,6 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 		colour = sensor_dict['colour']
 		return cls(sc_id, sensor_name, parent_suite_name, mesh_verts, mesh_faces, sensor_dict, sens_type='square_pyramid', v_parent=parent)
 
-	def _calcLowRes(self, true_resolution:tuple[int,int]) -> tuple[int,int]:
-		lowres = [0,0]
-		# max_1D_resolution = 120
-		lowres_ratio = 10
-		aspect_ratio = true_resolution[0]/true_resolution[1]
-		if aspect_ratio > 1:
-			lowres_h = int(true_resolution[1]/lowres_ratio)
-			lowres_h = max(3, lowres_h)
-			if lowres_h == 3:
-				lowres_ratio = true_resolution[1]/lowres_h
-			lowres_w = int(true_resolution[0]/lowres_ratio)
-		elif aspect_ratio < 1:
-			lowres_w = int(true_resolution[0]/lowres_ratio)
-			lowres_w = max(3, lowres_w)
-			if lowres_w == 3:
-				lowres_ratio = true_resolution[0]/lowres_w
-			lowres_h = int(true_resolution[1]/lowres_ratio)
-		else:
-			lowres_w = max(3, int(true_resolution[0]/lowres_ratio))
-			lowres_h = max(3, int(true_resolution[1]/lowres_ratio))
-
-		return (lowres_w, lowres_h)
-
 class SensorSuite2DAsset(base_assets.AbstractCompoundVispyAsset):
 	def __init__(self, sc_id:int, sens_suite_dict:dict[str,Any], name:str|None=None, v_parent:ViewBox|None=None):
 		super().__init__(name, v_parent)
@@ -497,11 +475,11 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 		self.data['sc_id'] = sc_id
 		self.data['parent_suite_name'] = parent_suite_name
 		self.data['bf_quat'] = bf_quat
-		self.data['res'] = resolution
-		self.data['lowres'] = self._calcLowRes(self.data['res'])
-		# self.data['lowres'] = resolution
-		self.data['fov'] = fov
 		self.data['lens_model'] = pinhole
+		self.data['res'] = resolution
+		self.data['fov'] = fov
+		self.data['lowres'] = self.data['lens_model'].calcLowRes(self.data['res'])
+
 		# rays from each pixel in sensor frame
 		self.data['lowres_rays_sf'] = self.data['lens_model'].generatePixelRays(self.data['lowres'], self.data['fov'])
 		self.data['edge_rays'] = self.data['lens_model'].generateEdgeRays(self.data['lowres'], self.data['fov'])
@@ -532,29 +510,6 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 
 	def setCurrentDatetime(self, dt:dt.datetime) -> None:
 		self.data['curr_datetime'] = dt
-
-	def _calcLowRes(self, true_resolution:tuple[int,int]) -> tuple[int,int]:
-		lowres = [0,0]
-		# max_1D_resolution = 120
-		lowres_ratio = 10
-		aspect_ratio = true_resolution[0]/true_resolution[1]
-		if aspect_ratio > 1:
-			lowres_h = int(true_resolution[1]/lowres_ratio)
-			lowres_h = max(3, lowres_h)
-			if lowres_h == 3:
-				lowres_ratio = true_resolution[1]/lowres_h
-			lowres_w = int(true_resolution[0]/lowres_ratio)
-		elif aspect_ratio < 1:
-			lowres_w = int(true_resolution[0]/lowres_ratio)
-			lowres_w = max(3, lowres_w)
-			if lowres_w == 3:
-				lowres_ratio = true_resolution[0]/lowres_w
-			lowres_h = int(true_resolution[1]/lowres_ratio)
-		else:
-			lowres_w = max(3, int(true_resolution[0]/lowres_ratio))
-			lowres_h = max(3, int(true_resolution[1]/lowres_ratio))
-
-		return (lowres_w, lowres_h)
 
 	def _instantiateAssets(self) -> None:
 		pass
@@ -821,10 +776,19 @@ class SensorImageAsset(base_assets.AbstractSimpleVispyAsset):
 		self.data['sc_id'] = sc_id
 		self.data['parent_suite_name'] = parent_suite_name
 		self.data['bf_quat'] = bf_quat
-		self.data['res'] = resolution
-		self.data['lowres'] = self._calcLowRes(self.data['res'])
-		self.data['fov'] = fov
 		self.data['lens_model'] = pinhole
+		if (resolution[0] * resolution[1]) > 8294400:
+			scaled_res = self.data['lens_model'].calcReScaling(resolution, 1920/max(resolution))
+			logger.warning('Sensor Image Asset full resolution is too great. Scaling down. %s -> %s', resolution, scaled_res)
+			self.data['res'] = scaled_res
+		else:
+			self.data['res'] = resolution
+
+		self.data['lens_model'] = pinhole
+		self.data['fov'] = fov
+		self.data['lowres'] = self.data['lens_model'].calcLowRes(self.data['res'])
+
+
 		# rays from each pixel in sensor frame
 		self.data['lowres_rays_sf'] = self.data['lens_model'].generatePixelRays(self.data['lowres'], self.data['fov'])
 		self.data['lowres_pix_per_rad'] = self.data['lens_model'].calcPixelAngularSize(self.data['lowres'], self.data['fov'])
@@ -853,18 +817,6 @@ class SensorImageAsset(base_assets.AbstractSimpleVispyAsset):
 
 	def setCurrentMoonECI(self, moon_eci_pos:np.ndarray) -> None:
 		self.data['curr_moon_eci'] = moon_eci_pos
-
-	def _calcLowRes(self, true_resolution:tuple[int,int]) -> tuple[int,int]:
-		lowres = [0,0]
-		max_1D_resolution = 480
-		aspect_ratio = true_resolution[0]/true_resolution[1]
-		if aspect_ratio > 1:
-			lowres = (max_1D_resolution, int(max_1D_resolution/aspect_ratio))
-		elif aspect_ratio < 1:
-			lowres = (int(max_1D_resolution/aspect_ratio), max_1D_resolution)
-		else:
-			lowres = (max_1D_resolution, max_1D_resolution)
-		return lowres
 
 	def _instantiateAssets(self) -> None:
 		pass

@@ -43,3 +43,36 @@ def generateEdgeRays(pixels:tuple[int,int], fov:tuple[float,float]) -> np.ndarra
 	left_range = np.arange(0,pixels[1]*pixels[0],pixels[0])
 	edge_rays = np.vstack((all_rays[left_range,:],all_rays[right_range,:],all_rays[1:pixels[0]-1,:],all_rays[num_rays-pixels[0]+1:-1,:]))
 	return edge_rays
+
+def calcLowRes(true_resolution:tuple[int,int]) -> tuple[int,int]:
+	lowres = [0,0]
+	max_1D_res = 240
+	min_1D_res = 3
+	lowres_ratio = 10
+	aspect_ratio = true_resolution[0]/true_resolution[1]
+	if aspect_ratio > 1:
+		lowres_h = int(true_resolution[1]/lowres_ratio)
+		lowres_h = np.clip(lowres_h, min_1D_res, max_1D_res)
+		if lowres_h == max_1D_res or lowres_h == max_1D_res:
+			lowres_ratio = true_resolution[1]/lowres_h
+		lowres_w = int(true_resolution[0]/lowres_ratio)
+
+	elif aspect_ratio < 1:
+		lowres_w = int(true_resolution[0]/lowres_ratio)
+		lowres_w = np.clip(lowres_w, min_1D_res, max_1D_res)
+		if lowres_w == max_1D_res or lowres_w == max_1D_res:
+			lowres_ratio = true_resolution[0]/lowres_w
+		lowres_h = int(true_resolution[1]/lowres_ratio)
+	else:
+		lowres_w = int(true_resolution[0]/lowres_ratio)
+		lowres_w = np.clip(lowres_w, min_1D_res, max_1D_res)
+		lowres_h = lowres_w
+
+	return (lowres_w, lowres_h)
+
+def calcReScaling(true_resolution:tuple[int,int], scaling:float) -> tuple[int,int]:
+
+	scaled_res_w = int(true_resolution[0] * scaling)
+	scaled_res_h = int(true_resolution[1] * scaling)
+
+	return (scaled_res_w, scaled_res_h)

@@ -36,8 +36,9 @@ class SensorData:
 				sens_key = (suite_name, sens_name)
 				if suite_config.getSensorConfig(sens_name)['shape'] == data_types.SensorTypes('square_pyramid'):
 					# TODO: these should be held in the config class
-					self._lowres[sens_key] = self._calcLowRes(suite_config.getSensorConfig(sens_name)['resolution'])
 					self._lens_model[sens_key] = pinhole
+					self._lowres[sens_key] = self._lens_model[sens_key].calcLowRes(suite_config.getSensorConfig(sens_name)['resolution'])
+
 					self._lowres_rays_sf[sens_key] = self._lens_model[sens_key].generatePixelRays(self._lowres[sens_key],
 																									suite_config.getSensorConfig(sens_name)['fov'])
 
@@ -137,28 +138,7 @@ class SensorData:
 
 		return d
 
-	def _calcLowRes(self, true_resolution:tuple[int,int]) -> tuple[int,int]:
-		lowres = [0,0]
-		# max_1D_resolution = 120
-		lowres_ratio = 10
-		aspect_ratio = true_resolution[0]/true_resolution[1]
-		if aspect_ratio > 1:
-			lowres_h = int(true_resolution[1]/lowres_ratio)
-			lowres_h = max(3, lowres_h)
-			if lowres_h == 3:
-				lowres_ratio = true_resolution[1]/lowres_h
-			lowres_w = int(true_resolution[0]/lowres_ratio)
-		elif aspect_ratio < 1:
-			lowres_w = int(true_resolution[0]/lowres_ratio)
-			lowres_w = max(3, lowres_w)
-			if lowres_w == 3:
-				lowres_ratio = true_resolution[0]/lowres_w
-			lowres_h = int(true_resolution[1]/lowres_ratio)
-		else:
-			lowres_w = max(3, int(true_resolution[0]/lowres_ratio))
-			lowres_h = max(3, int(true_resolution[1]/lowres_ratio))
 
-		return (lowres_w, lowres_h)
 
 	def _calcPatchBoundaries(self, lats, lons, res):
 		intsct_lats = lats[~np.isnan(lats)]
