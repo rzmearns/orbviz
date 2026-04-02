@@ -2,6 +2,7 @@ import datetime as dt
 import logging
 import pathlib
 import string
+import json
 
 from typing import Any, TYPE_CHECKING
 # if TYPE_CHECKING:
@@ -66,6 +67,10 @@ class PrimaryConfig(QtWidgets.QWidget):
 		except FileNotFoundError:
 			self.tmp_prim_config = None
 			self.prim_config_selector.setError('Configuration file not found')
+			self.prim_config_display.clearConfig()
+		except json.decoder.JSONDecodeError as e:
+			self.tmp_prim_config = None
+			self.prim_config_selector.setError(f"Can't read config file: {str(e)}")
 			self.prim_config_display.clearConfig()
 
 		self.pane_groupbox.updateGeometry()

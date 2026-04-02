@@ -144,8 +144,8 @@ def splitPolygonVertically(verts, x_value):
 	except ValueError:
 		raise ValueError()
 
-	left_poly = new_verts[new_verts[:, 0] <= x_value]
-	right_poly = new_verts[new_verts[:, 0] >= x_value]
+	left_poly = new_verts[np.logical_or(new_verts[:, 0] < x_value, np.isclose(new_verts[:,0],x_value))]
+	right_poly = new_verts[np.logical_or(new_verts[:, 0] > x_value, np.isclose(new_verts[:,0],x_value))]
 
 	return left_poly, right_poly
 
