@@ -784,6 +784,22 @@ class SensorImageAsset(base_assets.AbstractSimpleVispyAsset):
 		else:
 			self.data['res'] = resolution
 
+		# TODO: FIX THE NEED TO DO THIS
+		# THIS IS A HACK TO FIX INCORRECT NUMBER OF RAYS BEING GENERATED IN
+		# pinhole.generatePixelRays when there is an odd number of pixels
+		# make even num pixels
+		if self.data['res'][0]%2!= 0:
+			x_res = self.data['res'][0] + 1
+		else:
+			x_res = self.data['res'][0]
+
+		if self.data['res'][1]%2!= 0:
+			y_res = self.data['res'][1] + 1
+		else:
+			y_res = self.data['res'][1]
+
+		self.data['res'] = (x_res, y_res)
+
 		self.data['lens_model'] = pinhole
 		self.data['fov'] = fov
 		self.data['lowres'] = self.data['lens_model'].calcLowRes(self.data['res'])
