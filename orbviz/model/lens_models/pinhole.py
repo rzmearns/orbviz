@@ -9,17 +9,20 @@ def generatePixelRays(pixels:tuple[int,int], fov:tuple[float,float]) -> np.ndarr
 	res_arr = np.asarray(pixels, dtype=int)
 	# print(f'{res_arr=}')
 	fov_arr = np.deg2rad(np.asarray(fov))
-	frame_centre = res_arr/2
-	w,h = frame_centre
-	x,y = np.meshgrid(range(res_arr[0]), range(res_arr[1]))
+	x_fov_step = (fov_arr[0]/(res_arr[0]-1))
+	y_fov_step = (fov_arr[1]/(res_arr[1]-1))
 
-	x = x.ravel()
-	y = y.ravel()
-	num_rays = len(x)
-	pixelCoords = np.vstack([x,y]).T
-	offsets = frame_centre - pixelCoords - 0.5
-	offsets[:,0] *= -1
-	angles = offsets / np.array([w, h]) * np.array([fov_arr[0]/2, fov_arr[1]/2])
+	x_fov_range = np.append(np.arange(-fov_arr[0]/2, fov_arr[0]/2, x_fov_step), fov_arr[0]/2)
+	y_fov_range = np.append(np.arange(-fov_arr[1]/2, fov_arr[1]/2, y_fov_step), fov_arr[1]/2)
+	angles_x, angles_y = np.meshgrid(x_fov_range, y_fov_range)
+
+
+	# angles_x, angles_y = np.meshgrid(np.append(np.arange(-fov_arr[0]/2, fov_arr[0]/2, x_fov_step),fov_arr[0]/2),
+    									# np.append(np.arange(-fov_arr[1]/2, fov_arr[1]/2, y_fov_step),fov[1]/2))
+	angles_x_flat = angles_x.ravel()
+	angles_y_flat = angles_y.ravel()
+	angles = np.vstack([angles_x_flat, angles_y_flat]).T
+	num_rays = len(angles)
 
 	# rays in camera frame
 	rays_cf = np.ones((num_rays, 3))
@@ -48,7 +51,7 @@ def calcLowRes(true_resolution:tuple[int,int]) -> tuple[int,int]:
 	lowres = [0,0]
 	max_1D_res = 240
 	min_1D_res = 3
-	lowres_ratio = 10
+	lowres_ratio = 100
 	aspect_ratio = true_resolution[0]/true_resolution[1]
 	if aspect_ratio > 1:
 		lowres_h = int(true_resolution[1]/lowres_ratio)
