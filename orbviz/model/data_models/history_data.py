@@ -218,7 +218,7 @@ class HistoryData(BaseDataModel):
 			# Set up event processing thread
 			self._worker_manager.addWorkerThreadConfig({'thread_name':'events',
 												'processing_fn':self._loadEvents,
-												'processing_args':[self.get_configValue('events_file')],
+												'processing_args':[self.getConfigValue('events_file')],
 												'chain_parent':'primary',
 												'delay_start':True,
 												'storage_fn': self._storeEventData,
