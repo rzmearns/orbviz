@@ -426,7 +426,9 @@ class Sun2DAsset(base_assets.AbstractVispyAsset):
 											first_sat_orbit.sun_pos[:,1],
 											first_sat_orbit.sun_pos[:,2],
 											first_sat_orbit.timespan.asDatetime())
+		sat_alt = np.linalg.norm(first_sat_orbit.pos, axis=1)
 		self.data['coords'] = np.vstack((lon,lat)).T
+		self.data['sat_alt'] = sat_alt - c.R_EARTH
 		scaled_lat = ((lat + 90) * self.data['vert_pixel_scale']).reshape(-1,1)
 		scaled_lon = ((lon + 180) * self.data['horiz_pixel_scale']).reshape(-1,1)
 		self.data['scaled_coords'] = np.hstack((scaled_lon,scaled_lat))
@@ -457,7 +459,8 @@ class Sun2DAsset(base_assets.AbstractVispyAsset):
 
 			self.visuals['terminator'].pos = self.data['terminator_edge']
 
-			self.data['eclipse_edge1'], self.data['eclipse_edge2'], split = self.calcEclipseOutline(self.data['coords'][self.data['curr_index']], np.linalg.norm(self.data['coords'][self.data['curr_index']]))
+			self.data['eclipse_edge1'], self.data['eclipse_edge2'], split = self.calcEclipseOutline(self.data['coords'][self.data['curr_index']],
+																									self.data['sat_alt'][self.data['curr_index']])
 
 			self.visuals['eclipse_patch1'].pos = self.data['eclipse_edge1']
 			self.visuals['eclipse_patch2'].pos = self.data['eclipse_edge2']
