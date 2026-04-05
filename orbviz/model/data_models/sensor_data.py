@@ -173,33 +173,11 @@ class SensorData:
 				neg_int_points = int_points.copy()
 				neg_int_points[:,0] *= -1
 
-				#TODO: change the interface to polygons.getPolygonVerticalIntersection
-				# 		to also return the indices of intersection, so that the next few
-				#		lines are not needed
-				c_verts = polygons.closePolygon(shifted_boundary_points)
-				x_value = 180
-				straddling_segment_idxs = np.where(np.diff(c_verts[:,0]>x_value))[0]
+				left, right = polygons.splitPolygonVertically(shifted_boundary_points, 180)
 
-				for idx, int_point in zip(straddling_segment_idxs, int_points):
-					for epsilon_sign in [1, -1]:
-						offset = np.array([epsilon_sign * 1e-5, 0])
-						shifted_boundary_points = np.insert(shifted_boundary_points, 2*idx, int_point + offset).reshape([len(shifted_boundary_points)+1, 2])
-					
-				side1_verts = shifted_boundary_points[np.where(shifted_boundary_points[:,0]>180)]
-				side1_verts -= np.array([360, 0])
-				side2_verts = shifted_boundary_points[np.where(shifted_boundary_points[:,0]<180)]
+				right[:,0] -= 360
 
-				if len(side1_verts) <= 2:
-					side1_verts = None
-				if len(side2_verts) <= 2:
-					side2_verts = None
-
-				if side2_verts is None:
-					return side1_verts, side1_verts, False
-				if side1_verts is None:
-					return side2_verts, side2_verts, False
-
-				return point_cloud, side1_verts, side2_verts, True
+				return point_cloud, left, right, True
 
 			else:
 				# doesn't straddle 180 line

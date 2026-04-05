@@ -52,7 +52,12 @@ def eci2ecef(eci:np.ndarray, time: dt.datetime, high_precision=True) -> tuple:
 		# this is slightly slower than rotatin the eci vector by sidereal time, but produces a slightly more accurate result
 		# direct pymap3d rotation (which uses astropy do to conversion) ~ 27ms per call (32400 coordinates)
 		# sidereal rotation ~ 0.8ms per call (32400 coordinates)
-		return np.array(pymap3d.eci2ecef(eci[:,0],eci[:,1],eci[:,2],time)).T
+		if len(eci.shape) == 2:
+			return np.array(pymap3d.eci2ecef(eci[:,0],eci[:,1],eci[:,2],time)).T
+		elif len(eci.shape) == 1:
+			return np.array(pymap3d.eci2ecef(eci[0],eci[1],eci[2],time)).T
+		else:
+			raise ValueError('Dimensions of eci passed to eci2ecef is too great: %s', eci.shape)
 	else:
 		gst = pymap3d.sidereal.greenwichsrt(pymap3d.sidereal.juliandate(time))
 		R = R3(gst)
