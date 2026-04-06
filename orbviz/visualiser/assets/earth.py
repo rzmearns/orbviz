@@ -557,61 +557,6 @@ class Earth2DAsset(base_assets.AbstractVispyAsset):
 												'static': True,
 												'callback': self.setVisibilityRecursive,
 											'widget_data': None}
-		self._dflt_opts['plot_earth_sphere'] = {'value': True,
-										  		'type': 'boolean',
-												'help': '',
-												'static': True,
-												'callback': self.setEarthSphereVisibility,
-											'widget_data': None}
-		self._dflt_opts['earth_sphere_colour'] = {'value': (220,220,220),
-												'type': 'colour',
-												'help': '',
-												'static': True,
-												'callback': self.setEarthSphereColour,
-											'widget_data': None}
-		self._dflt_opts['plot_earth_axis'] = {'value': True,
-										  		'type': 'boolean',
-												'help': '',
-												'static': True,
-												'callback': self.setEarthAxisVisibility,
-											'widget_data': None}
-		self._dflt_opts['earth_axis_colour'] = {'value': (255,0,0),
-												'type': 'colour',
-												'help': '',
-												'static': True,
-												'callback': self.setEarthAxisColour,
-											'widget_data': None}
-		self._dflt_opts['plot_parallels'] = {'value': True,
-										  		'type': 'boolean',
-												'help': '',
-												'static': True,
-												'callback': None,
-											'widget_data': None}
-		self._dflt_opts['plot_equator'] = {'value': True,
-										  		'type': 'boolean',
-												'help': '',
-												'static': True,
-												'callback': None,
-											'widget_data': None}
-		self._dflt_opts['plot_meridians'] = {'value': True,
-										  		'type': 'boolean',
-												'help': '',
-												'static': True,
-												'callback': None,
-											'widget_data': None}
-		self._dflt_opts['plot_landmass'] = {'value': True,
-										  		'type': 'boolean',
-												'help': '',
-												'static': True,
-												'callback': self.setLandmassVisibility,
-											'widget_data': None}
-		self._dflt_opts['landmass_colour'] = {'value': (0,0,0),
-												'type': 'colour',
-												'help': '',
-												'static': True,
-												'callback': self.setLandMassColour,
-											'widget_data': None}
-
 		self.opts = self._dflt_opts.copy()
 
 	#----- OPTIONS CALLBACKS -----#
