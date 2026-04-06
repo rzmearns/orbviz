@@ -40,9 +40,16 @@ class BodyGizmo(base_assets.AbstractSimpleVispyAsset):
 							 rotation:nptyping.NDArray=np.eye(3)) -> None:
 		if self.isStale():
 			T = np.eye(4)
-			T[0:3,0:3] = self.opts['gizmo_scale']['value']*rotation
+			if self.isNaN():
+				rot_mat = np.eye(3)
+			else:
+				rot_mat = rotation
+
+			T[0:3,0:3] = self.opts['gizmo_scale']['value']*rot_mat
+
 			T[0:3,3] = np.asarray(pos).reshape(-1,3)
 			self.visuals['gizmo'].transform = vTransforms.linear.MatrixTransform(T.T)
+			self.applyNaNVisualState()
 			self._clearStaleFlag()
 
 	def _setDefaultOptions(self) -> None:
@@ -66,6 +73,12 @@ class BodyGizmo(base_assets.AbstractSimpleVispyAsset):
 												'static': True,
 												'callback': self.setGizmoZColour,
 											'widget_data': None}
+		self._dflt_opts['gizmo_NaN_colour'] = {'value': (255,0,255),
+												'type': 'colour',
+												'help': '',
+												'static': True,
+												'callback': self.setGizmoNaNColour,
+												'widget_data': None}
 		self._dflt_opts['gizmo_width'] = {'value': 3,
 										  		'type': 'number',
 												'help': '',
@@ -102,6 +115,18 @@ class BodyGizmo(base_assets.AbstractSimpleVispyAsset):
 		old_colour_arr[5,0:3] = np.asarray(colours.normaliseColour(colour))
 		self.visuals['gizmo'].set_data(color=old_colour_arr)
 		self.opts['gizmo_Z_axis_colour']['value'] = colour
+
+	def setGizmoNaNColour(self, colour:tuple[float,float,float]) -> None:
+		self.opts['gizmo_NaN_colour']['value'] = colour
+
+	def applyNaNVisualState(self) -> None:
+		if self.isNaN():
+			self.setTemporaryGizmoXColour(self.opts['gizmo_NaN_colour']['value'])
+			self.setTemporaryGizmoYColour(self.opts['gizmo_NaN_colour']['value'])
+			self.setTemporaryGizmoZColour(self.opts['gizmo_NaN_colour']['value'])
+		else:
+			self.restoreGizmoColours()
+
 
 	def setTemporaryGizmoXColour(self, colour:tuple[float,float,float]) -> None:
 		old_colour_arr = self.visuals['gizmo'].color
