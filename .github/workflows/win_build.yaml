@@ -3,7 +3,7 @@ name: Build Release EXE
 on:
   push:
     branches:
-      - feature/exe  # Triggers when code is merged into release
+      - release  # Triggers when code is merged into release
 
 jobs:
   build:
