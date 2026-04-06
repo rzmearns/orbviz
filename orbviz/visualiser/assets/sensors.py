@@ -116,11 +116,6 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundVispyAsset):
 		else:
 			self.setSuiteVisibility(True)
 
-	def restoreVisualState(self) -> None:
-		if self.data['nan_visual_state']:
-			self.data['nan_visual_state'] = False
-			self.restoreGizmoColours()
-
 	def setSuiteVisibility(self, state:bool) -> None:
 		self.setVisibilityRecursive(state)
 
