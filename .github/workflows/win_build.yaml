@@ -12,10 +12,6 @@ jobs:
       contents: write
 
     steps:
-      - name: Set Version Timestamp
-        id: vtimestamp
-        run: echo "VTIMESTAMP=$(date +"%Y%m%d%H%M%S")" >> $GITHUB_ENV
-
       - name: Checkout code
         uses: actions/checkout@v4
 
