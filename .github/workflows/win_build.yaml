@@ -51,4 +51,4 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            orbviz-win.zip
+            orbviz-win-v${{ env.RELEASE_TAG }}.zip
