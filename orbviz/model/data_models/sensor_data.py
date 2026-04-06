@@ -52,6 +52,7 @@ class SensorData:
 
 	def get2DData(self, suite_name:str, sens_name:str, timestep_idx:int):
 		sens_key = (suite_name, sens_name)
+		print(f'{sens_key=}')
 		cache_key = timestep_idx
 		if self._cached_timesteps[sens_key][cache_key]:
 			# data already cached, fetch
@@ -157,7 +158,13 @@ class SensorData:
 			edge_mask = edge_mask.astype('bool')
 
 			verts = np.asarray(np.where(edge_mask)).T
-			hull_verts = polygons.getAugmentedConvexHullBoundary(verts)
+
+			# check if verts are a single straight line
+			if np.any(np.all(verts == verts[0,:], axis=0)):
+				hull_verts = verts
+			else:
+				hull_verts = polygons.getAugmentedConvexHullBoundary(verts)
+
 			lats_sq = lats.reshape(res[1],res[0])
 			lons_sq = lons.reshape(res[1],res[0])
 			edge_lats = lats_sq[hull_verts[:,0], hull_verts[:,1]]
