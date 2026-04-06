@@ -12,6 +12,10 @@ jobs:
       contents: write
 
     steps:
+      - name: Set Version Timestamp
+        id: vtimestamp
+        run: echo "VTIMESTAMP=$(date +"%Y%m%d%H%M%S")" >> $GITHUB_ENV
+
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -31,12 +35,15 @@ jobs:
         run: |
           pyinstaller orbviz-pyinstaller-package.spec
 
+      - name: Zip Bundle
+        run: Compress-Archive -Path dist/* -DestinationPath orbviz-win.zip
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ github.run_number }}
-          name: Release v${{ github.run_number }}
+          tag_name: v$VTIMESTAMP
+          name: Release v$VTIMESTAMP
           draft: false
           prerelease: false
           files: |
-            dist/orbviz
+            orbviz-win.zip
