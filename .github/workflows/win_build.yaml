@@ -35,14 +35,19 @@ jobs:
         run: |
           pyinstaller orbviz-pyinstaller-package.spec
 
+      - name: Generate Release Tag
+        id: tag
+        run: |
+          echo "RELEASE_TAG=$(date +'%Y.%m.%d-%H%M')" >> $env:GITHUB_ENV
+
       - name: Zip Bundle
-        run: Compress-Archive -Path dist/* -DestinationPath orbviz-win.zip
+        run: Compress-Archive -Path dist/* -DestinationPath orbviz-win-v${{ env.RELEASE_TAG }}.zip
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v$VTIMESTAMP
-          name: Release v$VTIMESTAMP
+          tag_name: v${{ env.RELEASE_TAG }}
+          name: Release v${{ env.RELEASE_TAG }}
           draft: false
           prerelease: false
           files: |
