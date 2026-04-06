@@ -52,7 +52,6 @@ class SensorData:
 
 	def get2DData(self, suite_name:str, sens_name:str, timestep_idx:int):
 		sens_key = (suite_name, sens_name)
-		print(f'{sens_key=}')
 		cache_key = timestep_idx
 		if self._cached_timesteps[sens_key][cache_key]:
 			# data already cached, fetch
