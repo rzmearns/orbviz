@@ -38,6 +38,7 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundVispyAsset):
 			self.data['name'] = 'SensorSuite'
 		self.data['sc_id'] = sc_id
 		self.data['sens_suite_config'] = sens_suite_dict
+		self.sensor_pp_vis_state = {}
 
 	def setSource(self, *args, **kwargs) -> None:
 		# args[0] = history_src
@@ -62,6 +63,7 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundVispyAsset):
 																	self.data['name'],
 																	sens_dict,
 																	parent=self.data['v_parent'])
+			self.sensor_pp_vis_state[sensor] = self.assets[sensor].opts['plot_sensor_pixel_projections']['value']
 		self._addIndividualSensorPlotOptions()
 
 	def _createVisuals(self) -> None:
@@ -112,9 +114,15 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundVispyAsset):
 
 	def applyNaNVisualState(self) -> None:
 		if self.isNaN():
+			# save pixel projection state for each sensor within the sensor suite
+			for sensor_name, sensor in self.assets.items():
+				self.sensor_pp_vis_state[sensor_name] = self.assets[sensor_name].opts['plot_sensor_pixel_projections']['value']
 			self.setSuiteVisibility(False)
 		else:
 			self.setSuiteVisibility(True)
+			# restore pixel projection state for each sensor within the sensor suite
+			for sensor_name, sensor in self.assets.items():
+				sensor.setPixelProjectionVisibility(self.sensor_pp_vis_state[sensor_name])
 
 	def setSuiteVisibility(self, state:bool) -> None:
 		self.setVisibilityRecursive(state)
