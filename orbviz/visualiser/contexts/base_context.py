@@ -220,7 +220,7 @@ class BaseContext(ABC):
 		# reset to pre-gif state
 		self.controls.time_slider.setValue(start_idx)
 
-		console.send(f"Finished autoplay")
+		console.send("Finished autoplay")
 
 	def setupGIFDialog(self):
 
