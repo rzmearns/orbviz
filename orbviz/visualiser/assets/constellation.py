@@ -4,7 +4,6 @@ from typing import Any
 from typing_extensions import Self
 
 import numpy as np
-import numpy.typing as nptyping
 from scipy.spatial.transform import Rotation
 import spherapy.orbit as orbit
 
@@ -455,8 +454,8 @@ class InstancedConstellationBeams(base_assets.AbstractVispyAsset):
 			self.visuals['circles'].set_data(width=self.opts['circle_width']['value'],
 											 color=colours.normaliseColour(self.opts['beams_colour']['value']))
 
-	def _genBeamCircles(self, instance_transforms:list[nptyping.NDArray]|nptyping.NDArray,
-							 instance_positions:list[nptyping.NDArray]|nptyping.NDArray) -> nptyping.NDArray | None:
+	def _genBeamCircles(self, instance_transforms:list[np.ndarray[tuple[int, int], np.dtype[np.float64]]]|np.ndarray[tuple[int, int], np.dtype[np.float64]],
+							 instance_positions:list[np.ndarray[tuple[int, int], np.dtype[np.float64]]]|np.ndarray[tuple[int, int], np.dtype[np.float64]]) -> np.ndarray[tuple[int, int], np.dtype[np.float64]] | None:
 		total_len = 0
 		gen_conn = False
 		circles = None

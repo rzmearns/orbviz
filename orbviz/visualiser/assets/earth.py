@@ -1,7 +1,6 @@
 import logging
 
 import numpy as np
-import numpy.typing as nptyping
 import pymap3d
 from skyfield.api import wgs84
 import spherapy.timespan as timespan
@@ -272,8 +271,8 @@ class ParallelsGrid3DAsset(base_assets.AbstractSimpleVispyAsset):
 								connect=self.data['p_conn'],
 								parent=None)
 
-	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
-						 rotation:nptyping.NDArray=np.eye(3)) -> None:
+	def setTransform(self, pos:tuple[float,float,float]|np.ndarray[int, np.dtype[np.float64]]=(0,0,0),
+						 rotation:np.ndarray[tuple[int, int], np.dtype[np.float64]]=np.eye(3)) -> None:
 		if self.isFirstDraw():
 			self._clearFirstDrawFlag()
 		if self.isStale():
@@ -410,8 +409,8 @@ class MeridiansGrid3DAsset(base_assets.AbstractSimpleVispyAsset):
 								parent=None)
 		self.setTransform()
 
-	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
-						 rotation:nptyping.NDArray=np.eye(3)) -> None:
+	def setTransform(self, pos:tuple[float,float,float]|np.ndarray[int, np.dtype[np.float64]]=(0,0,0),
+						 rotation:np.ndarray[tuple[int, int], np.dtype[np.float64]]=np.eye(3)) -> None:
 		if self.isFirstDraw():
 			self._clearFirstDrawFlag()
 		if self.isStale():

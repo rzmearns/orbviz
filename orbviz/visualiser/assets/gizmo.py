@@ -1,7 +1,4 @@
-
-
 import numpy as np
-import numpy.typing as nptyping
 
 from PyQt5 import QtGui
 
@@ -36,8 +33,8 @@ class BodyGizmo(base_assets.AbstractSimpleVispyAsset):
 		scale_vec = self.opts['gizmo_scale']['value']*np.ones((1,3))
 		self.visuals['gizmo'].transform = vTransforms.STTransform(scale=scale_vec).as_matrix()
 
-	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
-							 rotation:nptyping.NDArray=np.eye(3)) -> None:
+	def setTransform(self, pos:tuple[float,float,float]|np.ndarray[int, np.dtype[np.float64]]=(0,0,0),
+							 rotation:np.ndarray[tuple[int, int], np.dtype[np.float64]]=np.eye(3)) -> None:
 		if self.isStale():
 			T = np.eye(4)
 			if self.isNaN():
@@ -214,8 +211,8 @@ class ViewBoxGizmo(base_assets.AbstractSimpleVispyAsset):
 
 		self.setViewBoxTransform()
 
-	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
-							 rotation:nptyping.NDArray=np.eye(3)) -> None:
+	def setTransform(self, pos:tuple[float,float,float]|np.ndarray[int, np.dtype[np.float64]]=(0,0,0),
+							 rotation:np.ndarray[tuple[int, int], np.dtype[np.float64]]=np.eye(3)) -> None:
 		pass
 
 	def onMouseMove(self, event:QtGui.QMouseEvent) -> None:

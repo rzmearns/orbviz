@@ -4,7 +4,6 @@ import logging
 from typing import Any
 
 import numpy as np
-import numpy.typing as nptyping
 from scipy.spatial.transform import Rotation
 
 import vispy.scene.visuals as vVisuals
@@ -74,8 +73,9 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundVispyAsset):
 		for asset in self.assets.values():
 			asset.setCurrentDatetime(curr_dt)
 
-	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
-							 rotation:nptyping.NDArray|None=None, quat:nptyping.NDArray|None=None) -> None:
+	def setTransform(self, pos:tuple[float,float,float]|np.ndarray[int, np.dtype[np.float64]]=(0,0,0),
+							 rotation:np.ndarray[tuple[int, int], np.dtype[np.float64]]|None=None,
+							 quat:np.ndarray[int, np.dtype[np.float64]]|None=None) -> None:
 		if self.isStale():
 			if rotation is None and quat is None:
 				logger.warning("Rotation and quaternion passed to sensor suite: %s cannot both be None", self.data['name'])
@@ -172,7 +172,11 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 
 		self._attachToParentView()
 		
-	def _initData(self, sc_id:int, parent_suite_name:str, sens_type:str, sensor_name:str, mesh_verts:nptyping.NDArray, mesh_faces:nptyping.NDArray, bf_quat:nptyping.NDArray, resolution:tuple[int,int], fov:tuple[float,float], colour:tuple[float,float,float]):
+	def _initData(self, sc_id:int, parent_suite_name:str, sens_type:str, sensor_name:str,
+						mesh_verts:np.ndarray[tuple[int, int], np.dtype[np.float64]],
+						mesh_faces:np.ndarray[tuple[int, int], np.dtype[np.int64]],
+						bf_quat:np.ndarray[int, np.dtype[np.float64]],
+						resolution:tuple[int,int], fov:tuple[float,float], colour:tuple[float,float,float]):
 		self.data['sc_id'] = sc_id
 		self.data['parent_suite_name'] = parent_suite_name
 		self.data['type'] = sens_type
@@ -244,8 +248,9 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 	def setCurrentDatetime(self, dt:dt.datetime) -> None:
 		self.data['curr_datetime'] = dt
 
-	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
-							 rotation:nptyping.NDArray|None=None, quat:nptyping.NDArray|None=None) -> None:
+	def setTransform(self, pos:tuple[float,float,float]|np.ndarray[int, np.dtype[np.float64]]=(0,0,0),
+							 rotation:np.ndarray[tuple[int, int], np.dtype[np.float64]]|None=None,
+							 quat:np.ndarray[int, np.dtype[np.float64]]|None=None) -> None:
 		if self.isFirstDraw():
 			self._clearFirstDrawFlag()
 		if self.isStale():
@@ -420,8 +425,9 @@ class SensorSuite2DAsset(base_assets.AbstractCompoundVispyAsset):
 	def getSensorByKey(self, sens_key:str):
 		return self.assets[sens_key]
 
-	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
-							 rotation:nptyping.NDArray|None=None, quat:nptyping.NDArray|None=None) -> None:
+	def setTransform(self, pos:tuple[float,float,float]|np.ndarray[int, np.dtype[np.float64]]=(0,0,0),
+							 rotation:np.ndarray[tuple[int, int], np.dtype[np.float64]]|None=None,
+							 quat:np.ndarray[int, np.dtype[np.float64]]|None=None) -> None:
 		if self.isStale():
 			if rotation is None and quat is None:
 				logger.warning("Rotation and quaternion passed to sensor suite: %s cannot both be None", self.data['name'])
@@ -560,8 +566,9 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 	def getDimensions(self) -> tuple[int, int]:
 		return self.data['lowres']
 
-	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
-							 rotation:nptyping.NDArray|None=None, quat:nptyping.NDArray|None=None) -> None:
+	def setTransform(self, pos:tuple[float,float,float]|np.ndarray[int, np.dtype[np.float64]]=(0,0,0),
+							 rotation:np.ndarray[tuple[int, int], np.dtype[np.float64]]|None=None,
+							 quat:np.ndarray[int, np.dtype[np.float64]]|None=None) -> None:
 		if self.isFirstDraw():
 			self._clearFirstDrawFlag()
 		if self.isStale() and self.isActive():
@@ -742,8 +749,9 @@ class SensorSuiteImageAsset(base_assets.AbstractCompoundVispyAsset):
 		# key = self.data['sens_suite_config'].getSensorNames()[sens_id]
 		return self.assets[sens_key]
 
-	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
-							 rotation:nptyping.NDArray|None=None, quat:nptyping.NDArray|None=None) -> None:
+	def setTransform(self, pos:tuple[float,float,float]|np.ndarray[int, np.dtype[np.float64]]=(0,0,0),
+							 rotation:np.ndarray[tuple[int, int], np.dtype[np.float64]]|None=None,
+							 quat:np.ndarray[int, np.dtype[np.float64]]|None=None) -> None:
 		if self.isStale():
 			if rotation is None and quat is None:
 				logger.warning("Rotation and quaternion passed to sensor suite: %s cannot both be None", self.data['name'])
@@ -868,8 +876,9 @@ class SensorImageAsset(base_assets.AbstractSimpleVispyAsset):
 	def getDimensions(self) -> tuple[int, int]:
 		return self.data['lowres']
 
-	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
-							 rotation:nptyping.NDArray|None=None, quat:nptyping.NDArray|None=None) -> None:
+	def setTransform(self, pos:tuple[float,float,float]|np.ndarray[int, np.dtype[np.float64]]=(0,0,0),
+							 rotation:np.ndarray[tuple[int, int], np.dtype[np.float64]]|None=None,
+							 quat:np.ndarray[int, np.dtype[np.float64]]|None=None) -> None:
 		if self.isFirstDraw():
 			self._clearFirstDrawFlag()
 
