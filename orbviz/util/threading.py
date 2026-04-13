@@ -90,8 +90,8 @@ class WorkerManager:
 
 	def _checkAllThreadsComplete(self):
 		all_completed = True
-		for worker_name, completed in self._wt_is_complete.items():
-			if not completed:
+		for worker_completion_status in self._wt_is_complete.values():
+			if not worker_completion_status:
 				all_completed = False
 
 		if all_completed:
