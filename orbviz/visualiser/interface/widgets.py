@@ -4,10 +4,10 @@ import logging
 import math
 import pathlib
 
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+
 # if TYPE_CHECKING:
 import numpy as np
-
 from spherapy.timespan import TimeSpan
 
 from PyQt5 import QtCore, QtGui, QtWidgets

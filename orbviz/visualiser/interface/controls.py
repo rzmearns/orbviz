@@ -1,10 +1,11 @@
 import datetime as dt
+import json
 import logging
 import pathlib
 import string
-import json
 
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+
 # if TYPE_CHECKING:
 import numpy as np
 

@@ -1,8 +1,7 @@
 import numpy as np
 import numpy.typing as nptyping
-import triangle as tr
-
 import scipy.spatial
+import triangle as tr
 
 import orbviz.model.geometry.primgeom as pg
 import orbviz.util.array_u as array_u

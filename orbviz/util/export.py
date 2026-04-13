@@ -4,8 +4,8 @@ import json
 import numpy as np
 
 from orbviz.model.data_models import data_types
-import orbviz.visualiser.interface.console as console
 import orbviz.util.paths as orbviz_paths
+import orbviz.visualiser.interface.console as console
 
 
 def exportData(shell, method):

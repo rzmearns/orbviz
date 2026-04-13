@@ -1,9 +1,9 @@
-import httpx
 import logging
 import pathlib
 
 from typing import Any
 
+import httpx
 import numpy as np
 from numpy import typing as nptyping
 from progressbar import progressbar
