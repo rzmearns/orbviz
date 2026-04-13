@@ -76,7 +76,7 @@ def isSplitVertically(x_split, poly_verts):
 
 	return True
 
-def segmentIntersection(l1, l2) -> None|np.ndarray[tuple[int], np.dtype(np.float64)]:
+def segmentIntersection(l1, l2) -> None|np.ndarray[tuple[int], np.dtype[np.float64]]:
 	'''Return intersection of two line segments
 
 	Args:
