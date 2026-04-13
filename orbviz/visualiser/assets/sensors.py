@@ -348,8 +348,6 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 								  		sensor_dict['range'],
 										(0,0,1),
 										sensor_dict['fov'])
-		bf_quat = np.asarray(sensor_dict['bf_quat']).reshape(1,4)
-		colour = sensor_dict['colour']
 		return cls(sc_id, sensor_name, parent_suite_name, mesh_verts, mesh_faces, sensor_dict, sens_type='cone', v_parent=parent)
 
 	@classmethod
@@ -361,8 +359,6 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 										sensor_dict['fov'][0],
 										axis_sample=2)
 		
-		bf_quat = np.asarray(sensor_dict['bf_quat']).reshape(1,4)
-		colour = sensor_dict['colour']
 		return cls(sc_id, sensor_name, parent_suite_name, mesh_verts, mesh_faces, sensor_dict, sens_type='square_pyramid', v_parent=parent)
 
 class SensorSuite2DAsset(base_assets.AbstractCompoundVispyAsset):
