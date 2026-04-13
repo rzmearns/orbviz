@@ -277,7 +277,7 @@ class HistoryData(BaseDataModel):
 				attempt_num += 1
 				updated_list = updater.updateTLEs(sat_ids) 				# noqa: F841
 				reattempt_connection = False
-			except httpx.ConnectError:
+			except httpx.ConnectError:  								# noqa: PERF203
 				console.sendErr('Could not connect to TLE web source. Potentially using out of date TLEs')
 				logger.warning('Could not connect to TLE web source. Potentially using out of date TLEs')
 				reattempt_connection = False
