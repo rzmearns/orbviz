@@ -1,7 +1,7 @@
 import logging
 import pathlib
 
-from typing import Any, cast
+from typing import cast
 
 import numpy as np
 from scipy.spatial.transform import Rotation

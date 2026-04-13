@@ -2,7 +2,7 @@ import httpx
 import logging
 import pathlib
 
-from typing import Any, cast
+from typing import Any
 
 import numpy as np
 from numpy import typing as nptyping
