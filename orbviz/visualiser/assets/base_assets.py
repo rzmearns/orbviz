@@ -37,6 +37,9 @@ class AbstractSimpleVispyAsset(ABC):
 		# (likely due to a new timestep being displayed), and as such, the
 		# positions and transforms of child-assets and visuals must be recomputed
 		self.is_stale = False
+		# Flag to indicate that the underlying data of the asset is numerically invalid
+		# and so should not be drawn in the standard way
+		self.is_nan = False
 
 	def _attachToParentView(self) -> None:
 		'''Sets all vispy visuals to use the stored parent'''
@@ -92,6 +95,23 @@ class AbstractSimpleVispyAsset(ABC):
 	def _clearActiveFlag(self) -> None:
 		self.is_active = False
 		logger.debug('Clearing ACTIVE flag for %s', self)
+
+	def isNaN(self) -> bool:
+		return self.is_nan
+
+	def _setNaNFlag(self) -> None:
+		self.is_nan = True
+		logger.debug('Setting NaN flag for %s', self)
+
+	def setNaNFlagRecursive(self) -> None:
+		self._setNaNFlag()
+
+	def _clearNaNFlag(self) -> None:
+		self.is_nan = False
+		logger.debug('Clearing NaN flag for %s', self)
+
+	def clearNaNFlagRecursive(self) -> None:
+		self._clearNaNFlag()
 
 	def setActiveFlagRecursive(self) -> None:
 		self._setActiveFlag()
@@ -262,6 +282,10 @@ class AbstractCompoundVispyAsset(ABC):
 		# (likely due to a new timestep being displayed), and as such, the
 		# positions and transforms of child-assets and visuals must be recomputed
 		self.is_stale = False
+		# Flag to indicate that the underlying data of the asset is numerically invalid
+		# and so should not be drawn in the standard way
+		self.is_nan = False
+
 
 	def _attachToParentView(self) -> None:
 		'''Sets all vispy visuals to use the stored parent'''
@@ -370,6 +394,30 @@ class AbstractCompoundVispyAsset(ABC):
 
 	def isFirstDraw(self) -> bool:
 		return self.first_draw
+
+	def isNaN(self) -> bool:
+		return self.is_nan
+
+	def _setNaNFlag(self) -> None:
+		self.is_nan = True
+		logger.debug('Setting NaN flag for %s', self)
+
+	def setNaNFlagRecursive(self) -> None:
+		self._setNaNFlag()
+		for asset in self.assets.values():
+			if asset is not None:
+				asset.setNaNFlagRecursive()
+
+	def _clearNaNFlag(self) -> None:
+		self.is_nan = False
+		logger.debug('Clearing NaN flag for %s', self)
+
+	def clearNaNFlagRecursive(self) -> None:
+		self._clearNaNFlag()
+		for asset in self.assets.values():
+			if asset is not None:
+				asset.clearNaNFlagRecursive()
+
 
 	def setVisibility(self, state:bool) -> None:
 		logger.debug('Setting visibility for %s to %s', self, state)
@@ -534,6 +582,10 @@ class AbstractVispyAsset(ABC):
 		# (likely due to a new timestep being displayed), and as such, the
 		# positions and transforms of child-assets and visuals must be recomputed
 		self.is_stale = False
+		# Flag to indicate that the underlying data of the asset is numerically invalid
+		# and so should not be drawn in the standard way
+		self.is_nan = False
+
 
 	##### Viewbox methods
 	def _attachToParentView(self) -> None:
@@ -650,6 +702,29 @@ class AbstractVispyAsset(ABC):
 
 	def isFirstDraw(self) -> bool:
 		return self.first_draw
+
+	def isNaN(self) -> bool:
+		return self.is_nan
+
+	def _setNaNFlag(self) -> None:
+		self.is_nan = True
+		logger.debug('Setting NaN flag for %s', self)
+
+	def setNaNFlagRecursive(self) -> None:
+		self._setNaNFlag()
+		for asset in self.assets.values():
+			if asset is not None:
+				asset.setNaNFlagRecursive()
+
+	def _clearNaNFlag(self) -> None:
+		self.is_nan = False
+		logger.debug('Clearing NaN flag for %s', self)
+
+	def clearNaNFlagRecursive(self) -> None:
+		self._clearNaNFlag()
+		for asset in self.assets.values():
+			if asset is not None:
+				asset.clearNaNFlagRecursive()
 
 	def setVisibility(self, state:bool) -> None:
 		logger.debug('Setting visibility for %s to %s', self, state)

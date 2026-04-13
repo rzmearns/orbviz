@@ -58,5 +58,15 @@
 	"callback": null,
 	"contexts": ["all"],
 	"toggleable": false
+   },
+"export_geo_json": {
+	"tooltip": "Export GEOJSON Data",
+	"menu_item": "Export GEOJSON",
+	"containing_menu": "Export",
+	"button_icon": "resources/icons/table-export.png",
+	"hotkey": "ctrl+o",
+	"callback": null,
+	"contexts": ["all"],
+	"toggleable": false
    }
 }

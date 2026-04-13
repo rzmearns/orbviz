@@ -50,6 +50,11 @@ class BaseContext(ABC):
 							'running':False,
 							'config':None}
 
+		self._autoplay_data = {'setup_dialog': None,
+								'abort_dialog': None,
+								'running':False,
+								'config':None}
+
 	@abstractmethod
 	def saveState(self) -> None:
 		raise NotImplementedError()
@@ -191,6 +196,32 @@ class BaseContext(ABC):
 
 		console.send(f"Saved {self.config['name']} GIF to {gif_config.file_path}")
 
+	def autoplay(self, speed:int):
+		# TODO: need to lockout controls
+
+		console.send('Starting autoplay, please do not touch the controls.')
+
+		start_idx = self.controls.time_slider.getValue()
+		num_steps = self.controls.time_slider.num_ticks
+		self._autoplay_data['running'] = True
+		for curr_timespan_idx in range(start_idx, num_steps):
+			# check if autoplay aborted
+			if not self._autoplay_data['running']:
+				console.send("Aborting autoplay...")
+				break
+			# rotate
+
+			# update time slider
+			self.controls.time_slider.setValue(curr_timespan_idx)
+
+			# process events
+			app.process_events()
+
+		# reset to pre-gif state
+		self.controls.time_slider.setValue(start_idx)
+
+		console.send(f"Finished autoplay")
+
 	def setupGIFDialog(self):
 
 		if self.data['history'].timespan is None:
@@ -207,6 +238,9 @@ class BaseContext(ABC):
 
 	def abortGif(self):
 		self._gif_data['running'] = False
+
+	def abortAutoplay(self):
+		self._autoplay_data['running'] = False
 
 	@abstractmethod
 	def getCameraState(self) -> dict:

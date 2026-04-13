@@ -67,6 +67,8 @@ class DataPaneModel(QtCore.QAbstractTableModel):
 					# logger.warning(e)
 					# print(e)
 					return_val = None
+				except AttributeError:
+					return_val = None
 				except Exception as e:
 					logger.warning("Datapane callback for %s:%s", self._items[row]['parameter'], e)
 					return_val = 'Error'

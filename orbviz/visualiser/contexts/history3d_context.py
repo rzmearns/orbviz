@@ -21,7 +21,8 @@ class History3DContext(base.BaseContext):
 
 	def __init__(self, name:str, parent_window:QtWidgets.QMainWindow,
 						history_data:HistoryData,
-						groundstation_data:GroundStationCollection):
+						groundstation_data:GroundStationCollection,
+						raycast_src):
 		# super().__init__(name, data)
 		super().__init__(name)
 		self.window = parent_window
@@ -30,9 +31,10 @@ class History3DContext(base.BaseContext):
 		self.data: dict[str,Any] = {}
 		self.data['history'] = history_data
 		self.data['groundstations'] = groundstation_data
+		self.data['raycast_src'] = raycast_src
 		self.canvas_wrapper = history3d_cw.History3DCanvasWrapper()
 		# self.canvas_wrapper.setModel(self.data)
-		self.canvas_wrapper.setModel(self.data['history'], self.data['groundstations'])
+		self.canvas_wrapper.setModel(self.data['history'], self.data['groundstations'], self.data['raycast_src'])
 		self.controls = Controls(self, self.canvas_wrapper)
 
 		disp_hsplitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)
@@ -127,8 +129,8 @@ class History3DContext(base.BaseContext):
 		# self.data = state_dict['data']
 		# self.canvas_wrapper.setSource(self.data['timespan'],
 		# 								self.data['orbit'],
-		# 								self.data['pointing'],
-		# 								self.data['pointing_invert_transform'],
+		# 								self.data['attitude'],
+		# 								self.data['attitude_invert_transform'],
 		# 								self.data['constellation_list'],
 		# 								self.data['constellation_beam_angle'])
 		# self.canvas_wrapper.setFirstDrawFlags()
@@ -187,6 +189,7 @@ class Controls(base.BaseControls):
 
 		self.setHotkeys()
 		self._connectSliderCamUpdate()
+		self._connectAutoPlay()
 
 	def setHotkeys(self):
 		self.shortcuts['PgDown'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgDown'), self.context.widget)
@@ -209,6 +212,10 @@ class Controls(base.BaseControls):
 
 	def _connectSliderCamUpdate(self):
 		self.time_slider.slider.valueChanged.connect(self._updateCam)
+
+	def _connectAutoPlay(self):
+		self.time_slider.autoplay.connect(self.context.autoplay)
+		self.time_slider.autoplay_stop.connect(self.context.abortAutoplay)
 
 	def _updateCam(self):
 		if self.context.sccam_state and self.context.canvas_wrapper is not None:

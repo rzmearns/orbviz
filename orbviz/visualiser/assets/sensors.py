@@ -1,4 +1,4 @@
-import datetime as dt
+import datetime as dt  # noqa: I001
 import logging
 
 from typing import Any
@@ -18,6 +18,7 @@ import orbviz.model.lens_models.pinhole as pinhole
 import orbviz.util.conversion as orbviz_conversion
 import orbviz.visualiser.assets.base_assets as base_assets
 import orbviz.visualiser.colours as colours
+import orbviz.visualiser.visuals.polygons as polygon_visuals
 
 logger = logging.getLogger(__name__)
 
@@ -37,11 +38,13 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundVispyAsset):
 			self.data['name'] = 'SensorSuite'
 		self.data['sc_id'] = sc_id
 		self.data['sens_suite_config'] = sens_suite_dict
+		self.sensor_pp_vis_state = {}
 
 	def setSource(self, *args, **kwargs) -> None:
 		# args[0] = history_src
+		# args[1] = raycast_src
 		for sensor in self.assets.values():
-			sensor.setSource(args[0])
+			sensor.setSource(args[0], args[1])
 
 	def _instantiateAssets(self) -> None:
 		sensor_names = self.data['sens_suite_config'].getSensorNames()
@@ -60,10 +63,16 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundVispyAsset):
 																	self.data['name'],
 																	sens_dict,
 																	parent=self.data['v_parent'])
+			self.sensor_pp_vis_state[sensor] = self.assets[sensor].opts['plot_sensor_pixel_projections']['value']
 		self._addIndividualSensorPlotOptions()
 
 	def _createVisuals(self) -> None:
 		pass
+
+	def setCurrentDatetime(self, curr_dt:dt.datetime) -> None:
+		self.data['curr_datetime'] = curr_dt
+		for asset in self.assets.values():
+			asset.setCurrentDatetime(curr_dt)
 
 	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
 							 rotation:nptyping.NDArray|None=None, quat:nptyping.NDArray|None=None) -> None:
@@ -75,8 +84,11 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundVispyAsset):
 				logger.warning("Both rotation and quaternion passed to sensor suite: %s, don't know which one to use", self.data['name'])
 				raise ValueError("Both rotation and quaternion passed to sensor suite: %s, don't know which one to use", self.data['name'])
 
-			for asset in self.assets.values():
-				asset.setTransform(pos=pos, rotation=rotation, quat=quat)
+			self.applyNaNVisualState()
+			if not self.isNaN():
+				for asset in self.assets.values():
+					asset.setTransform(pos=pos, rotation=rotation, quat=quat)
+
 			self._clearStaleFlag()
 
 	def _setDefaultOptions(self) -> None:
@@ -100,8 +112,26 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundVispyAsset):
 			self.assets[f'{sens_key}'].setSensorVisibility(state)
 		return _visibilityCallback
 
+	def applyNaNVisualState(self) -> None:
+		if self.isNaN():
+			# save pixel projection state for each sensor within the sensor suite
+			for sensor_name, sensor in self.assets.items():
+				self.sensor_pp_vis_state[sensor_name] = self.assets[sensor_name].opts['plot_sensor_pixel_projections']['value']
+			self.setSuiteVisibility(False)
+		else:
+			self.setSuiteVisibility(True)
+			# restore pixel projection state for each sensor within the sensor suite
+			for sensor_name, sensor in self.assets.items():
+				sensor.setPixelProjectionVisibility(self.sensor_pp_vis_state[sensor_name])
+
 	def setSuiteVisibility(self, state:bool) -> None:
 		self.setVisibilityRecursive(state)
+
+	def setDefaultVisibilityRecursive(self, state):
+		'''Sets the visibility of this asset and all child-assets'''
+		self.setVisibility(state)
+		for asset in self.assets.values():
+			asset.setDefaultVisibilityRecursive(state)
 
 	def removePlotOptions(self) -> None:
 		for opt_key, opt in self.opts.items():
@@ -113,7 +143,7 @@ class SensorSuite3DAsset(base_assets.AbstractCompoundVispyAsset):
 
 class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 	def __init__(self, sc_id:int, sensor_name:str, parent_suite_name:str, mesh_verts, mesh_faces,
-			  			bf_quat, colour, sens_type=None, v_parent=None, *args, **kwargs):
+						config:dict={}, sens_type=None, v_parent=None, *args, **kwargs):
 		super().__init__(sensor_name, v_parent)
 
 		self._setDefaultOptions()
@@ -127,8 +157,10 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 						sensor_name,
 						mesh_verts,
 						mesh_faces,
-						bf_quat,
-						colour)
+						config['bf_quat'],
+						config['resolution'],
+						config['fov'],
+						config['colour'])
 
 		if self.data['type'] is None:
 			logger.error('Sensor() should not be called directly, use one of the constructor methods')
@@ -140,7 +172,7 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 
 		self._attachToParentView()
 		
-	def _initData(self, sc_id:int, parent_suite_name:str, sens_type:str, sensor_name:str, mesh_verts:nptyping.NDArray, mesh_faces:nptyping.NDArray, bf_quat:nptyping.NDArray, colour:tuple[float,float,float]):
+	def _initData(self, sc_id:int, parent_suite_name:str, sens_type:str, sensor_name:str, mesh_verts:nptyping.NDArray, mesh_faces:nptyping.NDArray, bf_quat:nptyping.NDArray, resolution:tuple[int,int], fov:tuple[float,float], colour:tuple[float,float,float]):
 		self.data['sc_id'] = sc_id
 		self.data['parent_suite_name'] = parent_suite_name
 		self.data['type'] = sens_type
@@ -151,20 +183,66 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 		self.data['vispy_quat'] = self.data['bf_quat']
 		self.opts['sensor_cone_colour']['value'] = colour
 
+		self.data['res'] = resolution
+		self.data['curr_datetime'] = None
+		self.data['lens_model'] = pinhole
+		self.data['lowres'] = self.data['lens_model'].calcLowRes(self.data['res'])
+		self.data['fov'] = fov
+
+		# rays from each pixel in sensor frame
+		self.data['lowres_vectors_sf'] = self.data['lens_model'].generatePixelRays(self.data['lowres'], self.data['fov'])
+		num_rays = len(self.data['lowres_vectors_sf'])
+		self.data['lowres_segments_sf'] = np.hstack((self.data['lowres_vectors_sf'][:,:3], np.zeros((num_rays, 3))))
+		self.data['flattened_lowres_segments_sf'] = self.data['lowres_segments_sf'].reshape(-1,3)
+		self.data['lowres_segments_ray_colours'] = 0.5*np.ones((num_rays,4))
+
+		self.data['darker_colour'] = []
+		self.data['invt_colour'] = []
+		ray_colour = colours.normaliseColour(self.opts['sensor_cone_colour']['value'])
+		for el in ray_colour:
+			c = el - 0.1
+			if c < 0:
+				c = 0
+			ic = 1-c
+			self.data['darker_colour'].append(c)
+			self.data['invt_colour'].append(ic)
+
+		self.data['lowres_segments_ray_colours'][:,:3] = self.data['darker_colour']
+
 	def setSource(self, *args, **kwargs) -> None:
 		# args[0] = history_src
+		# args[1] = raycast_src
 		self.data['history_src'] = args[0]
+		self.data['raycast_src'] = args[1]
 
 	def _createVisuals(self) -> None:
 		self.visuals['sensor_cone'] = vVisuals.Mesh(self.data['mesh_vertices'],
     											self.data['mesh_faces'],
     											color=colours.normaliseColour(self.opts['sensor_cone_colour']['value']),
     											parent=None)
+		# self.visuals['rays'] = vVisuals.Line(3000*self.data['flattened_lowres_segments_sf'],
+		# 									 color=(0,0,0,0.25),
+		# 									 width=0.01,
+		# 									 connect='segments')
+		self.visuals['ray_markers'] = vVisuals.Markers(scaling=True,
+												edge_color='white',
+												symbol='o',
+												antialias=0,
+												parent=None)
+		self.visuals['ray_markers'].set_data(pos=3000*self.data['lowres_vectors_sf'][:,:3],
+											size=20,
+											face_color=self.data['lowres_segments_ray_colours'])
+
 		self.setTransform(rotation=Rotation.from_quat(self.data['bf_quat']).as_matrix().reshape(3,3))
 		wireframe_filter = vFilters.WireframeFilter(width=1)
 		alpha_filter = vFilters.Alpha(self.opts['sensor_cone_alpha']['value'])
 		self.visuals['sensor_cone'].attach(alpha_filter)
 		self.visuals['sensor_cone'].attach(wireframe_filter)
+		self.visuals['ray_markers'].visible = self.opts['plot_sensor_pixel_projections']['value']
+		self.visuals['sensor_cone'].visible = self.opts['plot_sensor_cone']['value']
+
+	def setCurrentDatetime(self, dt:dt.datetime) -> None:
+		self.data['curr_datetime'] = dt
 
 	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
 							 rotation:nptyping.NDArray|None=None, quat:nptyping.NDArray|None=None) -> None:
@@ -181,8 +259,32 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 																												self.data['curr_index'])
 			T[0:3,0:3] = rot_mat
 			T[0:3,3] = np.asarray(pos).reshape(-1,3)
+			cart_intsct, intsct = self.data['raycast_src'].rayCastFromSensorFor3D(self.data['lowres'],
+																		T,
+																		self.data['lowres_vectors_sf'],
+																		self.data['curr_datetime'],
+																		intersect_only=False)
+
+			intsct_colours = self.data['lowres_segments_ray_colours'].copy()
+			intsct_colours[~intsct,:3] = self.data['invt_colour']
+
+			marker_pos = self.data['lowres_vectors_sf'][:,:3].copy()
+			dist = np.linalg.norm(cart_intsct[intsct]/1000 - pos, axis=1)
+			marker_pos[intsct] = marker_pos[intsct]*dist.reshape(-1,1)
+			marker_pos[~intsct] = marker_pos[~intsct]*3000
+
+			self.visuals['ray_markers'].set_data(pos=marker_pos,
+											size=20,
+											face_color=intsct_colours)
 			self.visuals['sensor_cone'].transform = vTransforms.linear.MatrixTransform(T.T)
+			self.visuals['ray_markers'].transform = vTransforms.linear.MatrixTransform(T.T)
+			# self.visuals['rays'].transform = vTransforms.linear.MatrixTransform(T.T)
 			self._clearStaleFlag()
+
+	def setDefaultVisibilityRecursive(self, state):
+		for visual_name, visual in self.visuals.items():
+			if visual_name != 'ray_markers':
+				visual.visible = state
 
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
@@ -199,6 +301,18 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 												'static': True,
 												'callback': self.setSensorConeAlpha,
 												'widget_data': None}
+		self._dflt_opts['plot_sensor_pixel_projections'] = {'value': False,
+										  		'type': 'boolean',
+												'help': '',
+												'static': True,
+												'callback': self.setPixelProjectionVisibility,
+												'widget_data': None}
+		self._dflt_opts['plot_sensor_cone'] = {'value': True,
+										  		'type': 'boolean',
+												'help': '',
+												'static': True,
+												'callback': self.setSensorConeVisibility,
+												'widget_data': None}
 
 		self.opts = self._dflt_opts.copy()
 
@@ -214,6 +328,14 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 		for visual in self.visuals.values():
 			visual.visible = state
 
+	def setPixelProjectionVisibility(self, state):
+		self.opts['plot_sensor_pixel_projections']['value'] = state
+		self.visuals['ray_markers'].visible = self.opts['plot_sensor_pixel_projections']['value']
+
+	def setSensorConeVisibility(self, state):
+		self.opts['plot_sensor_cone']['value'] = state
+		self.visuals['sensor_cone'].visible = self.opts['plot_sensor_cone']['value']
+
 	def removePlotOptions(self) -> None:
 		for opt_key, opt in self.opts.items():
 			if opt['widget_data'] is not None:
@@ -228,7 +350,7 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 										sensor_dict['fov'])
 		bf_quat = np.asarray(sensor_dict['bf_quat']).reshape(1,4)
 		colour = sensor_dict['colour']
-		return cls(sc_id, sensor_name, parent_suite_name, mesh_verts, mesh_faces, bf_quat, colour, sens_type='cone', v_parent=parent)
+		return cls(sc_id, sensor_name, parent_suite_name, mesh_verts, mesh_faces, sensor_dict, sens_type='cone', v_parent=parent)
 
 	@classmethod
 	def squarePyramid(cls, sc_id:int, sensor_name:str, parent_suite_name:str, sensor_dict:dict[str,Any], parent:ViewBox|None=None):
@@ -241,7 +363,7 @@ class Sensor3DAsset(base_assets.AbstractSimpleVispyAsset):
 		
 		bf_quat = np.asarray(sensor_dict['bf_quat']).reshape(1,4)
 		colour = sensor_dict['colour']
-		return cls(sc_id, sensor_name, parent_suite_name, mesh_verts, mesh_faces, bf_quat, colour, sens_type='square_pyramid', v_parent=parent)
+		return cls(sc_id, sensor_name, parent_suite_name, mesh_verts, mesh_faces, sensor_dict, sens_type='square_pyramid', v_parent=parent)
 
 class SensorSuite2DAsset(base_assets.AbstractCompoundVispyAsset):
 	def __init__(self, sc_id:int, sens_suite_dict:dict[str,Any], name:str|None=None, v_parent:ViewBox|None=None):
@@ -370,16 +492,21 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 		self.data['sc_id'] = sc_id
 		self.data['parent_suite_name'] = parent_suite_name
 		self.data['bf_quat'] = bf_quat
-		self.data['res'] = resolution
-		self.data['lowres'] = self._calcLowRes(self.data['res'])
-		self.data['fov'] = fov
 		self.data['lens_model'] = pinhole
+		self.data['res'] = resolution
+		self.data['fov'] = fov
+		self.data['lowres'] = self.data['lens_model'].calcLowRes(self.data['res'])
+
 		# rays from each pixel in sensor frame
 		self.data['lowres_rays_sf'] = self.data['lens_model'].generatePixelRays(self.data['lowres'], self.data['fov'])
+		self.data['edge_rays'] = self.data['lens_model'].generateEdgeRays(self.data['lowres'], self.data['fov'])
 		# need to create a valid polygon for instantiation (but before valid data exists)
-		self.data['point_cloud'] = np.zeros((364,2))
-		self.data['point_cloud'][:363,0] = np.arange(0,363)
-		self.data['point_cloud'][-1,0] = -1
+		self.data['point_cloud'] = np.array([[1,0],
+											[0,0],
+											[0,1]])
+		self.data['patch1_edge'] = self.data['point_cloud'].copy()
+		self.data['patch2_edge'] = self.data['point_cloud'].copy()
+
 		self.data['last_transform'] = np.eye(4)
 		self.data['history_src'] = None
 		self.data['raycast_src'] = None
@@ -401,18 +528,6 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 	def setCurrentDatetime(self, dt:dt.datetime) -> None:
 		self.data['curr_datetime'] = dt
 
-	def _calcLowRes(self, true_resolution:tuple[int,int]) -> tuple[int,int]:
-		lowres = [0,0]
-		max_1D_resolution = 240
-		aspect_ratio = true_resolution[0]/true_resolution[1]
-		if aspect_ratio > 1:
-			lowres = (max_1D_resolution, int(max_1D_resolution/aspect_ratio))
-		elif aspect_ratio < 1:
-			lowres = (int(max_1D_resolution/aspect_ratio), max_1D_resolution)
-		else:
-			lowres = (max_1D_resolution, max_1D_resolution)
-		return lowres
-
 	def _instantiateAssets(self) -> None:
 		pass
 
@@ -426,6 +541,25 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 													edge_color=colours.normaliseColour(self.opts['sensor_colour']['value']),
 													size=self.opts['sensor_pixel_size']['value'],
 													symbol='o')
+		self.visuals['pixel_projection'].visible = self.opts['plot_pixels']['value']
+
+		self.visuals['sensor_patch1'] = polygon_visuals.FastPolygon(self.data['patch1_edge'],
+																		color=colours.normaliseColour(self.opts['sensor_colour']['value']),
+																		border_color=colours.normaliseColour(self.opts['sensor_colour']['value']),
+																		border_width=2,
+																		parent=None)
+		self.visuals['sensor_patch2'] = polygon_visuals.FastPolygon(self.data['patch2_edge'],
+																		color=colours.normaliseColour(self.opts['sensor_colour']['value']),
+																		border_color=colours.normaliseColour(self.opts['sensor_colour']['value']),
+																		border_width=2,
+																		parent=None)
+
+		self.visuals['sensor_patch1'].opacity = self.opts['sensor_alpha']['value']
+		self.visuals['sensor_patch1'].order = 1
+		self.visuals['sensor_patch1'].set_gl_state('translucent', depth_test=False)
+		self.visuals['sensor_patch2'].opacity = self.opts['sensor_alpha']['value']
+		self.visuals['sensor_patch2'].order = 1
+		self.visuals['sensor_patch2'].set_gl_state('translucent', depth_test=False)
 
 	def getDimensions(self) -> tuple[int, int]:
 		return self.data['lowres']
@@ -447,22 +581,22 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 			T[0:3,3] = np.asarray(pos).reshape(-1,3)
 
 			self.data['last_transform'] = T
-			lats,lons = self.data['raycast_src'].rayCastFromSensorFor2D(self.data['lowres'],
-																		T,
-																		self.data['lowres_rays_sf'],
-																		self.data['curr_datetime'])
-			self._generatePolyLatLons(lats, lons)
+
+			_, pc, [patch1_verts, patch2_verts] = self.data['history_src'].getSCSensorData(self.data['sc_id']).get2DData(self.data['parent_suite_name'],
+																						self.data['name'],
+																						self.data['curr_index'])
+
+			split = True
+			if len(patch1_verts) == len(patch2_verts):
+				if np.allclose(patch1_verts, patch2_verts):
+					split = False
+
+			self.data['point_cloud'] = self._scale(pc)
+			self.data['patch1_edge'] = self._scale(patch1_verts)
+			self.data['patch2_edge'] = self._scale(patch2_verts)
 			self._updateMarkers()
+			self._updatePolygons(split=split)
 			self._clearStaleFlag()
-
-	def _generatePolyLatLons(self, lats, lons):
-
-		surface_coords = np.hstack((lons.reshape(-1,1),lats.reshape(-1,1)))
-		surface_coords[:,0] = (surface_coords[:,0]+180) * self.data['horiz_pixel_scale']
-		surface_coords[:,1] = (surface_coords[:,1]+90) * self.data['vert_pixel_scale']
-		self.data['point_cloud'] = surface_coords
-
-		return
 
 	def _setDefaultOptions(self) -> None:
 		self._dflt_opts = {}
@@ -473,11 +607,23 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 												'static': True,
 												'callback': self.setSensorConeColour,
 												'widget_data': None}
+		self._dflt_opts['sensor_alpha'] = {'value': 0.4,
+												'type': 'fraction',
+												'help': '',
+												'static': True,
+												'callback': self.setSensorAlpha,
+												'widget_data': None}
 		self._dflt_opts['sensor_pixel_size'] = {'value': 1,
 												'type': 'number',
 												'help': '',
 												'static': True,
 												'callback': self.setPixelSize,
+											'widget_data': None}
+		self._dflt_opts['plot_pixels'] = {'value': False,
+												'type': 'boolean',
+												'help': '',
+												'static': True,
+												'callback': self.setPixelVisibility,
 											'widget_data': None}
 		self.opts = self._dflt_opts.copy()
 
@@ -488,6 +634,16 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 											face_color=colours.normaliseColour(self.opts['sensor_colour']['value']),
 											edge_color=colours.normaliseColour(self.opts['sensor_colour']['value']))
 
+	def _updatePolygons(self, split=False):
+		self.visuals['sensor_patch1'].pos = self.data['patch1_edge']
+		self.visuals['sensor_patch2'].pos = self.data['patch2_edge']
+		if split:
+			self.visuals['sensor_patch1'].opacity = self.opts['sensor_alpha']['value']
+			self.visuals['sensor_patch2'].opacity = self.opts['sensor_alpha']['value']
+		else:
+			self.visuals['sensor_patch1'].opacity = self.opts['sensor_alpha']['value']/2
+			self.visuals['sensor_patch2'].opacity = self.opts['sensor_alpha']['value']/2
+
 	def setSensorConeColour(self, new_colour:tuple[float,float,float]) -> None:
 		self.opts['sensor_colour']['value'] = new_colour
 		self._updateMarkers()
@@ -495,6 +651,17 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 	def setPixelSize(self, size):
 		self.opts['sensor_pixel_size']['value'] = size
 		self._updateMarkers()
+
+	def setPixelVisibility(self, state:bool) -> None:
+		self.opts['plot_pixels']['value'] = state
+		self.visuals['pixel_projection'].visible = self.opts['plot_pixels']['value']
+
+	def setSensorAlpha(self, alpha):
+		# Takes a little while to take effect.
+		logger.debug("Changing sensor alpha %s -> %s",  self.opts['sensor_alpha']['value'], alpha)
+		self.opts['sensor_alpha']['value'] = alpha
+		self.visuals['pixel_boundary'].opacity = self.opts['sensor_alpha']['value']
+		self.visuals['pixel_boundary'].opacity = self.opts['sensor_alpha']['value']
 
 	def setSensorVisibility(self, state):
 		for visual in self.visuals.values():
@@ -509,6 +676,12 @@ class Sensor2DAsset(base_assets.AbstractSimpleVispyAsset):
 			if opt['widget_data'] is not None:
 				logger.debug("marking %s for removal", opt_key)
 				opt['widget_data']['mark_for_removal'] = True
+
+	def _scale(self, coords):
+		out_arr = coords.copy()
+		out_arr[:,0] = (out_arr[:,0] + 180) * self.data['horiz_pixel_scale']
+		out_arr[:,1] = (out_arr[:,1] + 90) * self.data['vert_pixel_scale']
+		return out_arr
 
 class SensorSuiteImageAsset(base_assets.AbstractCompoundVispyAsset):
 	def __init__(self, sc_id:int, sens_suite_dict:dict[str,Any], name:str|None=None, v_parent:ViewBox|None=None):
@@ -620,10 +793,35 @@ class SensorImageAsset(base_assets.AbstractSimpleVispyAsset):
 		self.data['sc_id'] = sc_id
 		self.data['parent_suite_name'] = parent_suite_name
 		self.data['bf_quat'] = bf_quat
-		self.data['res'] = resolution
-		self.data['lowres'] = self._calcLowRes(self.data['res'])
-		self.data['fov'] = fov
 		self.data['lens_model'] = pinhole
+		if (resolution[0] * resolution[1]) > 8294400:
+			scaled_res = self.data['lens_model'].calcReScaling(resolution, 1920/max(resolution))
+			logger.warning('Sensor Image Asset full resolution is too great. Scaling down. %s -> %s', resolution, scaled_res)
+			self.data['res'] = scaled_res
+		else:
+			self.data['res'] = resolution
+
+		# TODO: FIX THE NEED TO DO THIS
+		# THIS IS A HACK TO FIX INCORRECT NUMBER OF RAYS BEING GENERATED IN
+		# pinhole.generatePixelRays when there is an odd number of pixels
+		# make even num pixels
+		if self.data['res'][0]%2!= 0:
+			x_res = self.data['res'][0] + 1
+		else:
+			x_res = self.data['res'][0]
+
+		if self.data['res'][1]%2!= 0:
+			y_res = self.data['res'][1] + 1
+		else:
+			y_res = self.data['res'][1]
+
+		self.data['res'] = (x_res, y_res)
+
+		self.data['lens_model'] = pinhole
+		self.data['fov'] = fov
+		self.data['lowres'] = self.data['lens_model'].calcLowRes(self.data['res'])
+
+
 		# rays from each pixel in sensor frame
 		self.data['lowres_rays_sf'] = self.data['lens_model'].generatePixelRays(self.data['lowres'], self.data['fov'])
 		self.data['lowres_pix_per_rad'] = self.data['lens_model'].calcPixelAngularSize(self.data['lowres'], self.data['fov'])
@@ -652,18 +850,6 @@ class SensorImageAsset(base_assets.AbstractSimpleVispyAsset):
 
 	def setCurrentMoonECI(self, moon_eci_pos:np.ndarray) -> None:
 		self.data['curr_moon_eci'] = moon_eci_pos
-
-	def _calcLowRes(self, true_resolution:tuple[int,int]) -> tuple[int,int]:
-		lowres = [0,0]
-		max_1D_resolution = 480
-		aspect_ratio = true_resolution[0]/true_resolution[1]
-		if aspect_ratio > 1:
-			lowres = (max_1D_resolution, int(max_1D_resolution/aspect_ratio))
-		elif aspect_ratio < 1:
-			lowres = (int(max_1D_resolution/aspect_ratio), max_1D_resolution)
-		else:
-			lowres = (max_1D_resolution, max_1D_resolution)
-		return lowres
 
 	def _instantiateAssets(self) -> None:
 		pass

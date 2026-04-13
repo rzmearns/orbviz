@@ -131,8 +131,7 @@ class EarthRayCastData(BaseDataModel):
 		sun_ecf = orbviz_conversion.eci2ecef(sun_eci, curr_dt, high_precision=orbviz.high_precision)
 		# check intersection of rays with earth
 		cart_earth_intsct, earth_intsct = self._lineOfSightToSurface(pos_ecf, sens_rays_ecf)
-		# cart_earth_intsct.shape = (num_rays,3)
-		# earth_intsct.shape = (num_rays,)
+
 		lats = np.zeros(num_rays)
 		lons = np.zeros(num_rays)
 		lats[earth_intsct], lons[earth_intsct] = self._convertCartesianToEllipsoidGeodetic(cart_earth_intsct[earth_intsct,:])
@@ -258,8 +257,9 @@ class EarthRayCastData(BaseDataModel):
 
 	def rayCastFromSensorFor2D(self, resolution:tuple[int,int],
 								sens_eci_transform:np.ndarray, sens_rays_cf:np.ndarray,
-								curr_dt:dt.datetime) -> tuple[np.ndarray, np.ndarray]:
+								curr_dt:dt.datetime, intersect_only=True) -> tuple[np.ndarray, np.ndarray]:
 		num_rays = len(sens_rays_cf)
+
 		# convert sensor frame to eci
 		sens_rays_eci = sens_eci_transform[:3,:3].dot(sens_rays_cf[:,:3].T).T
 		pos_eci = sens_eci_transform[:3,3]
@@ -271,12 +271,35 @@ class EarthRayCastData(BaseDataModel):
 		# check intersection of rays with earth
 		cart_earth_intsct, earth_intsct = self._lineOfSightToSurface(pos_ecf, sens_rays_ecf)
 
-		# earth_intsct.shape = (num_rays,)
-		lats = np.zeros(num_rays)
-		lons = np.zeros(num_rays)
+		lats = np.empty(num_rays,)
+		lats.fill(np.nan)
+		lons = np.empty(num_rays,)
+		lons.fill(np.nan)
 		lats[earth_intsct], lons[earth_intsct] = self._convertCartesianToEllipsoidGeodetic(cart_earth_intsct[earth_intsct,:])
-		# np.save(f"lats_lons_{state}_{curr_dt}.npy",np.column_stack((lats,lons)))
-		return lats[earth_intsct], lons[earth_intsct]
+		if intersect_only:
+			return lats[earth_intsct], lons[earth_intsct],
+		else:
+			return lats, lons,
+
+	def rayCastFromSensorFor3D(self, resolution:tuple[int,int],
+								sens_eci_transform:np.ndarray, sens_rays_cf:np.ndarray,
+								curr_dt:dt.datetime, intersect_only=True) -> tuple[np.ndarray, np.ndarray]:
+
+		# convert sensor frame to eci
+		sens_rays_eci = sens_eci_transform[:3,:3].dot(sens_rays_cf[:,:3].T).T
+		pos_eci = sens_eci_transform[:3,3]
+
+		# convert eci frame to ecef
+		sens_rays_ecf = orbviz_conversion.eci2ecef(sens_rays_eci, curr_dt, high_precision=orbviz.high_precision)
+		# np.save(f"sens_rays_ecf_{state}_{curr_dt}.npy",sens_rays_ecf)
+		pos_ecf = orbviz_conversion.eci2ecef(pos_eci, curr_dt, high_precision=orbviz.high_precision)
+		# check intersection of rays with earth
+		cart_earth_intsct, earth_intsct = self._lineOfSightToSurface(pos_ecf, sens_rays_ecf)
+
+		eci_cart_earth_intsct = orbviz_conversion.ecef2eci(cart_earth_intsct, curr_dt, high_precision=True)
+		return eci_cart_earth_intsct, earth_intsct
+
+
 
 	def _convertCartesianToEllipsoidGeodetic(self, cart:np.ndarray, iters:int=3, wrap_lon:bool=True) -> tuple[np.ndarray, np.ndarray]:
 		'''
@@ -315,13 +338,13 @@ class EarthRayCastData(BaseDataModel):
 		lat = np.degrees(lat)
 		return lat, lon
 
-	def _lineOfSightToSurface(self, position, rays, atm_height=0):
+	def _lineOfSightToSurface(self, position, rays, atm_height=0) -> tuple[np.ndarray, bool]:
 		"""
 		Find the intersection of rays from position with the WGS-84 geoid, position and rays in ECEF
 
 		Parameters:
 			position (ndarray(dtype=float, ndim=3)): ECEF position vector of spacecraft
-			pointing (ndarray(dtype=float, ndim=[N,3])): unit vectors defining ECEF pointing directions
+			attitude (ndarray(dtype=float, ndim=[N,3])): unit vectors defining ECEF attitude directions
 
 		Returns:
 			ndarray(dtype=float, ndim=[N,3]): ECEF cartesian vectors describing closest point on earth that each ray intersects

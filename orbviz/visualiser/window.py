@@ -6,7 +6,8 @@ from typing import Any
 from PyQt5 import QtCore, QtWidgets
 
 import orbviz
-from orbviz.model.data_models import earth_raycast_data
+from orbviz.model.data_models import data_types, earth_raycast_data
+import orbviz.util.export as orbviz_export
 from orbviz.visualiser.interface import dialogs
 import orbviz.visualiser.interface.console as console
 import orbviz.visualiser.interface.controls as controls
@@ -45,6 +46,7 @@ class MainWindow(QtWidgets.QMainWindow):
 		self.menubars: dict[str, controls.Menubar] = {}
 
 		global_earth_raycast_data = earth_raycast_data.EarthRayCastData()
+		orbviz.earth_raycast_data = global_earth_raycast_data
 
 		# Build shells
 		self.shell_dict['history'] = historical_shell.HistoricalShell(self, self.toolbars, self.menubars, global_earth_rdm=global_earth_raycast_data)
@@ -96,6 +98,10 @@ class MainWindow(QtWidgets.QMainWindow):
 		for shell in self.shell_dict.values():
 			if shell.isActive():
 				dialogs.GroundStationDialog(shell, shell.data['groundstations'].getEnabledDict())
+
+	def exportData(self):
+		method = data_types.ExportMethod('geojson')
+		orbviz_export.exportData(self.shell_dict['history'], data_types.ExportMethod(method))
 
 	def __del__(self) -> None:
 		sys.stderr = sys.__stderr__

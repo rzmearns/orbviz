@@ -39,7 +39,7 @@ def configureLogger():
 	stdout_format = logging.Formatter('%(name)s:%(levelname)s: %(message)s')
 	stdout_handler.setFormatter(stdout_format)
 
-	static_file_handler = logging.FileHandler(f"{orbviz_paths.data_dir}/logs/orbviz.log",mode='w')
+	static_file_handler = logging.FileHandler(f"{orbviz_paths.logs_dir}/orbviz.log",mode='w')
 	static_file_handler.setLevel(logging.DEBUG)
 	static_file_format = logging.Formatter('%(name)s:%(levelname)s: %(message)s')
 	static_file_handler.setFormatter(static_file_format)

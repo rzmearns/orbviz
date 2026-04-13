@@ -1,3 +1,4 @@
+import httpx
 import logging
 import pathlib
 
@@ -6,16 +7,21 @@ from typing import Any, cast
 import numpy as np
 from numpy import typing as nptyping
 from progressbar import progressbar
-from scipy.spatial.transform import Rotation
 import spherapy.orbit as orbit
 import spherapy.timespan as timespan
 import spherapy.updater as updater
 
-import orbviz
-from orbviz.model.data_models import constellation_data, data_types, event_data, groundstation_data
+from orbviz.model.data_models import (
+	attitude_data,
+	constellation_data,
+	data_types,
+	event_data,
+	groundstation_data,
+	sensor_data,
+	spacecraft_data,
+)
 from orbviz.model.data_models.base_models import BaseDataModel
 import orbviz.util.constants as orbviz_constants
-import orbviz.util.conversion as orbviz_conversions
 import orbviz.util.threading as threading
 import orbviz.visualiser.interface.console as console
 
@@ -26,23 +32,25 @@ class HistoryData(BaseDataModel):
 		super().__init__(*args, **kwargs)
 		self._setConfig('data_type',data_types.DataType.HISTORY)
 		# initialise empty config
+		# configs
 		self._setConfig('timespan_period_start', None)
 		self._setConfig('timespan_period_end', None)
 		self._setConfig('sampling_period', None)
-		self._setConfig('pointing_defines_timespan', False)
 		self._setConfig('primary_satellite_ids', []) # keys of orbits, position dict
 		self._setConfig('primary_satellite_config', None)
 		self._setConfig('has_supplemental_constellation', False)
 		self._setConfig('num_geolocations', 0)
-		self._setConfig('is_pointing_defined', False)
-		self._setConfig('pointing_file', None)
-		self._setConfig('pointing_invert_transform', False)
+		self._setConfig('attitude_configs', {}) # keys of sc_id
 		self._setConfig('events_defined', False)
 		self._setConfig('events_file', None)
 
+		# data
 		self.timespan: timespan.TimeSpan | None = None
 		self.orbits: dict[int, orbit.Orbit] = {}
-		self.pointings: dict[int, HistoricalAttitude] = {}
+		self.attitudes: dict[int, attitude_data.HistoricalAttitude] = {}
+		# TODO: for multi spacecraft this needs to a dict and properly initiliased
+		self.sensor_data: dict[int, sensor_data.SensorData] = {}
+		self.sc_data: dict[int, spacecraft_data.SpacecraftData] = {}
 		self.constellation: constellation_data.ConstellationData | None = None
 		self.events: dict[int, event_data.EventData] | None = None
 		self.groundstationCollection: groundstation_data.GroundStationCollection | None = None
@@ -50,8 +58,9 @@ class HistoryData(BaseDataModel):
 		self.moon: nptyping.NDArray[np.float64] | None = None
 		self.geo_locations: list[nptyping.NDArray[np.float64]] = []
 		self.curr_index:int|None = None
-		self._worker_threads: dict[str, threading.Worker | None] = {'primary': None,
-																	'constellation': None}
+		self._worker_manager = threading.WorkerManager()
+		self._worker_manager.setAllThreadCompletionFunction(self.data_ready.emit)
+
 		self.datapane_data = []
 		self._createDataPaneEntries()
 		logger.info("Finished initialising HistoryData")
@@ -99,29 +108,56 @@ class HistoryData(BaseDataModel):
 			raise ValueError(f'History data:{self} has no orbits yet')
 		return self.orbits
 
-	def getPointings(self) -> dict[int, "HistoricalAttitude"]:
-		if len(self.pointings.values()) == 0:
-			logger.warning('History data:%s has no pointings yet', self)
-			raise ValueError(f'History data:{self} has no pointings yet')
-		return self.pointings
+	def getOrbit(self, sc_id:int) -> orbit.Orbit:
+		if len(self.orbits.values()) == 0:
+			logger.warning('History data:%s has no orbits yet', self)
+			raise ValueError(f'History data:{self} has no orbits yet')
+		return self.orbits[sc_id]
 
-	def getSCAttitude(self, sc_id:int) -> "HistoricalAttitude":
-		return self.pointings[sc_id]
+
+	def getAttitudes(self) -> dict[int, "attitude_data.HistoricalAttitude"]:
+		if len(self.attitudes.values()) == 0:
+			logger.warning('History data:%s has no attitudes yet', self)
+			raise ValueError(f'History data:{self} has no attitudes yet')
+		return self.attitudes
+
+	def getSCAttitude(self, sc_id:int) -> "attitude_data.HistoricalAttitude":
+		if len(self.attitudes.values()) == 0:
+			logger.warning('History data:%s has no attitudes yet', self)
+			raise ValueError(f'History data:{self} has no attitudes yet')
+		return self.attitudes[sc_id]
+
+	def getSCData(self, sc_id:int) -> "spacecraft_data.SpacecraftData":
+		if len(self.sc_data.values()) == 0:
+			logger.warning('History data:%s has no spacecraft data yet', self)
+			raise ValueError(f'History data:{self} has no spacecraft data yet')
+		return self.sc_data[sc_id]
+
+	def getSCSensorData(self, sc_id:int) -> "sensor_data.SensorData":
+		if len(self.sensor_data.values()) == 0:
+			logger.warning('History data:%s has no sensor data yet', self)
+			raise ValueError(f'History data:{self} has no sensor data yet')
+		return self.sensor_data[sc_id]
+
+	def clearData(self):
+		self.attitudes = {}
+		self.sensor_data = {}
+		self.sc_data = {}
 
 	def process(self) -> None:
-		# Load pointing and create timespan
-		if self.getConfigValue('is_pointing_defined'):
+		# Load attitude and create timespan
+		prim_sc_id = list(self.getConfigValue('primary_satellite_config').getAllSpacecraftConfigs().keys())[0]
+		# clear attitudes
+		self.clearData()
+		if self.getConfigValue('attitude_configs')[prim_sc_id].definesTimeSpan():
+			# TODO: for multi sat need to pick one?
 			for sc_id, sc_config in self.getConfigValue('primary_satellite_config').getAllSpacecraftConfigs().items():
-				self.pointings[sc_id] = HistoricalAttitude(self.getConfigValue('pointing_file'), sc_config)
-			if self.getConfigValue('pointing_defines_timespan'):
-				console.send("Loading timespan from pointing file.")
-				_timearr = self.pointings[self.getConfigValue('primary_satellite_ids')[0]].getPointingTimestamps()
-				self.timespan = timespan.TimeSpan.fromDatetime(_timearr)
-				logger.info('Generating timespan from pointing file timestamps for: %s', self)
-			else:
-				self.timespan = None
-
-		if self.timespan is None or not self.getConfigValue('is_pointing_defined'):
+				self.attitudes[sc_id] = attitude_data.HistoricalAttitude.fromAttitudeConfig(sc_config, None, self.getConfigValue('attitude_configs')[sc_id])
+			console.send("Loading timespan from attitude file.")
+			_timearr = self.attitudes[prim_sc_id].getAttitudeTimestamps()
+			self.timespan = timespan.TimeSpan.fromDatetime(_timearr)
+			logger.info('Generating timespan from attitude file timestamps for: %s', self)
+		else:
 			logger.info('Generating timespan from configuration for: %s', self)
 			period_start = self.getConfigValue('timespan_period_start').replace(microsecond=0)
 			period_end = self.getConfigValue('timespan_period_end').replace(microsecond=0)
@@ -136,6 +172,14 @@ class HistoryData(BaseDataModel):
 								timestep=f'{timestep}S',
 								timeperiod=f'{duration}S')
 
+		# Create data models which don't require immediate processing
+		for sat_id in [prim_sc_id]:
+			self.sensor_data[sat_id] = sensor_data.SensorData(self,
+																self.getConfigValue('primary_satellite_config').getSpacecraftConfig(sat_id),
+																self.timespan[:])
+			self.sc_data[sat_id] = spacecraft_data.SpacecraftData(self,
+																self.getConfigValue('primary_satellite_config').getSpacecraftConfig(sat_id),
+																self.timespan[:])
 
 		if self.timespan is None:
 			logger.warning("History data:%s, timespan has not been configured", self)
@@ -146,62 +190,75 @@ class HistoryData(BaseDataModel):
 
 
 		# Set up workers for orbit propagation
-		self._worker_threads['primary'] = threading.Worker(self._propagatePrimaryOrbits, self.timespan, self.getConfigValue('primary_satellite_ids'))
-		self._worker_threads['primary'].signals.result.connect(self._storeOrbitData)
-		self._worker_threads['primary'].signals.report_finished.connect(self._procComplete)
-		self._worker_threads['primary'].signals.error.connect(self._displayError)
-		self._worker_threads['primary'].setAutoDelete(True)
+		self._worker_manager.addWorkerThreadConfig({'thread_name':'primary',
+											'processing_fn':self._propagatePrimaryOrbits,
+											'processing_args':[self.timespan, self.getConfigValue('primary_satellite_ids')],
+											'chain_parent':None,
+											'delay_start':False,
+											'storage_fn': self._storeOrbitData,
+											'error_fn':self._displayError,
+											'auto_delete': True})
 
 		if self.getConfigValue('has_supplemental_constellation'):
 			if self.constellation is None:
 				logger.warning("History data:%s, constellation has not been configured", self)
-				raise AttributeError(f"History data:{self},onstellation has not been configured")
+				raise AttributeError(f"History data:{self}, constellation has not been configured")
 
 			self.constellation.setTimespan(self.timespan)
-			self._worker_threads['constellation'] = threading.Worker(self._propagateConstellationOrbits, self.timespan, self.constellation.getConfigValue('satellite_ids'))
-			self._worker_threads['constellation'].signals.result.connect(self.constellation._storeOrbitData)
-			self._worker_threads['constellation'].signals.report_finished.connect(self._procComplete)
-			self._worker_threads['constellation'].signals.error.connect(self._displayError)
-			self._worker_threads['constellation'].setAutoDelete(True)
-		else:
-			self._worker_threads['constellation'] = None
+			self._worker_manager.addWorkerThreadConfig({'thread_name':'constellation',
+												'processing_fn':self._propagateConstellationOrbits,
+												'processing_args':[self.timespan, self.constellation.getConfigValue('satellite_ids')],
+												'chain_parent':None,
+												'delay_start':False,
+												'storage_fn': self.constellation._storeOrbitData,
+												'error_fn':self._displayError,
+												'auto_delete': True})
 
 		if self.getConfigValue('events_defined'):
 			# Set up event processing thread
-			self._worker_threads['events'] = threading.Worker(self._loadEvents,
-																self.getConfigValue('events_file'),
-																delay_start=True)
-			self._worker_threads['primary'].addChainedWorker('events', self._worker_threads['events'])
-			self._worker_threads['events'].signals.result.connect(self._storeEventData)
-			self._worker_threads['events'].signals.report_finished.connect(self._procComplete)
-			self._worker_threads['events'].signals.error.connect(self._displayError)
-			self._worker_threads['events'].setAutoDelete(True)
+			self._worker_manager.addWorkerThreadConfig({'thread_name':'events',
+												'processing_fn':self._loadEvents,
+												'processing_args':[self.getConfigValue('events_file')],
+												'chain_parent':'primary',
+												'delay_start':True,
+												'storage_fn': self._storeEventData,
+												'error_fn':self._displayError,
+												'auto_delete': True})
 		else:
 			self.events = None
 
-		self._worker_threads['groundstations'] = threading.Worker(self._recalculateGroundStations,
-																delay_start=True)
-		self._worker_threads['primary'].addChainedWorker('groundstations', self._worker_threads['groundstations'])
-		self._worker_threads['groundstations'].signals.report_finished.connect(self._procComplete)
-		self._worker_threads['groundstations'].signals.error.connect(self._displayError)
-		self._worker_threads['groundstations'].setAutoDelete(True)
+		self._worker_manager.addWorkerThreadConfig({'thread_name':'groundstations',
+											'processing_fn':self._recalculateGroundStations,
+											'processing_args':[],
+											'chain_parent':'primary',
+											'delay_start':True,
+											'storage_fn': None,
+											'error_fn':self._displayError,
+											'auto_delete': True})
 
-		for thread_name, thread in self._worker_threads.items():
-			if thread is not None and not thread.delayStart:
-				logger.info('Starting thread %s:%s',thread_name, thread)
-				orbviz.threadpool.logStart(thread)
+		# check if attitudes is already created, otherwise process
+		if self.getConfigValue('attitude_configs')[prim_sc_id].is_attitude_defined and not bool(self.attitudes):
+			self._worker_manager.addWorkerThreadConfig({'thread_name':'attitudes',
+														'processing_fn':self._processAttitudes,
+														'processing_args':[],
+														'chain_parent':'primary',
+														'delay_start':True,
+														'storage_fn': self._storeAttitudeData,
+														'error_fn':self._displayError,
+														'auto_delete': True})
 
-	def _procComplete(self, worker_object) -> None:
-		logger.info("%s completion triggered processing of computed data", worker_object)
-		for thread_name, thread in self._worker_threads.items():
-			if thread is not None:
-				logger.debug('\t%s:%s', thread_name, thread.isRunning())
-				if thread.isRunning() or (not thread.hasStarted() and not thread.isRunning()):
-					# if any thread is running, or isn't running but hasn't started yet
-					return
-			else:
-				logger.debug('\t%s:None', thread_name)
-		self.data_ready.emit()
+
+		self._worker_manager.registerWorkerThreads()
+		self._worker_manager.start()
+
+	# cross model accessors
+
+	def getSensorTransform(self, sc_id:int, suite_name:str, sens_name:str, timespan_idx:int):
+		T = np.eye(4)
+		T[0:3, 0:3] = self.getSCAttitude(sc_id).getSensorAttitudeMatrix(suite_name, sens_name, timespan_idx)
+		T[0:3, 3] = np.asarray(self.getOrbit(sc_id).pos[timespan_idx]).reshape(-1,3)
+
+		return T
 
 	def _resetCurrIndex(self) -> None:
 		# ensure self.curr_index is both within the bounds of the new timespan, and is not None when
@@ -212,7 +269,26 @@ class HistoryData(BaseDataModel):
 	def _propagatePrimaryOrbits(self, timespan:timespan.TimeSpan,
 										sat_ids:list[int],
 										running:threading.Flag) -> dict[int, orbit.Orbit]:
-		updated_list = updater.updateTLEs(sat_ids) 				# noqa: F841
+
+		reattempt_connection  = True
+		attempt_num = 0
+		while reattempt_connection and attempt_num < 5:
+			try:
+				attempt_num += 1
+				updated_list = updater.updateTLEs(sat_ids) 				# noqa: F841
+				reattempt_connection = False
+			except httpx.ConnectError:
+				console.sendErr('Could not connect to TLE web source. Potentially using out of date TLEs')
+				logger.warning('Could not connect to TLE web source. Potentially using out of date TLEs')
+				reattempt_connection = False
+			except httpx.ReadTimeout:
+				if attempt_num == 1:
+					console.send('Fetching a large TLE dataset, this could take a while')
+					logger.warning('Fetching a large TLE dataset, this could take a while')
+
+				attempt_num += 1
+
+
 		# TODO: check number of sats updated == number of sats requested (remove above noqa)
 		# if collections.Counter(updated_list) == collections.Counter(self.sat_ids):
 		# 		self.finished.emit()
@@ -225,7 +301,12 @@ class HistoryData(BaseDataModel):
 		for ii, sat_id in enumerate(sat_ids):
 			if not running:
 				return orbits
-			orbits[sat_id] = orbit.Orbit.fromTLE(timespan, tle_paths[ii])
+			if tle_paths[ii].exists():
+				orbits[sat_id] = orbit.Orbit.fromTLE(timespan, tle_paths[ii])
+			else:
+				console.sendErr(f'Could not find TLE file: {tle_paths[ii]}')
+				logger.warning('Could not find TLE file: %s', tle_paths[ii])
+				raise FileNotFoundError()
 
 		return orbits
 
@@ -268,15 +349,35 @@ class HistoryData(BaseDataModel):
 
 	def _recalculateGroundStations(self, running:threading.Flag) -> None:
 		self.groundstationCollection.updateTimespans(self.timespan)
+		console.send("Completed generating ground station location data")
+		logger.info("Completed generating ground station location data")
+
+	def _processAttitudes(self, running:threading.Flag) -> None:
+		attitudes = {}
+		for sat_id, orbit_data in self.orbits.items():
+			console.send(f"Generating attitude for {sat_id} ...")
+			logger.info("Generating attitude for %s", sat_id)
+			sc_config = self.getConfigValue('primary_satellite_config').getSpacecraftConfig(sat_id)
+			attitudes[sat_id] = attitude_data.HistoricalAttitude.fromAttitudeConfig(sc_config, orbit_data, self.getConfigValue('attitude_configs')[sat_id])
+		console.send("Completed attitude generation")
+		logger.info("Completed attitude generation")
+		return attitudes
 
 	def _storeOrbitData(self, orbits:dict[int,orbit.Orbit]) -> None:
+		logger.info('Storing orbit data')
 		self.orbits = orbits
 		self._resetCurrIndex()
 		self.sun = list(orbits.values())[0].sun_pos
 		self.moon = list(orbits.values())[0].moon_pos
+		logger.info('Finished storing orbit data')
 
 	def _storeEventData(self, events:dict[int, event_data.EventData]):
+		logger.info('Storing event data')
 		self.events = events
+
+	def _storeAttitudeData(self, attitudes:dict[int, "attitude_data.HistoricalAttitude"]):
+		logger.info('Storing attitude data')
+		self.attitudes = attitudes
 
 	def _createDataPaneEntries(self):
 		self.datapane_data.append({'parameter':'Altitude',
@@ -328,7 +429,7 @@ class HistoryData(BaseDataModel):
 						'unit':'m/s',
 						'precision':2})
 		self.datapane_data.append({'parameter':'Quaternion',
-						'value':lambda : list(self.pointings.values())[0].getAttitude(self.curr_index),
+						'value':lambda : list(self.attitudes.values())[0].getAttitude(self.curr_index),
 						'unit':None,
 						'precision':4})
 
@@ -336,7 +437,7 @@ class HistoryData(BaseDataModel):
 		state = {}
 		state['timespan'] = self.timespan
 		state['orbits'] = self.orbits
-		state['pointings'] = self.pointings
+		state['attitudes'] = self.attitudes
 		if self.constellation is not None:
 			state['constellation'] = self.constellation.prepSerialisation()
 		else:
@@ -351,7 +452,7 @@ class HistoryData(BaseDataModel):
 	def deSerialise(self, state):
 		self.timespan = state['timespan']
 		self.orbits = state['orbits']
-		self.pointings = state['pointings']
+		self.attitudes = state['attitudes']
 		if state['constellation'] is not None:
 			self.constellation = constellation_data.ConstellationData.emptyForDeSerialisation()
 			self.constellation.deSerialise(state['constellation'])
@@ -363,127 +464,52 @@ class HistoryData(BaseDataModel):
 		self.geo_locations = state['geo_locations']
 		super().deSerialise(state)
 
+	def fetchDataForExport(self, method) -> tuple[dict,dict,dict]:
+		sc_ids = list(self.sensor_data.keys())
+		for sc_id in sc_ids:
+			d = {}
+			d[sc_id] = {}
+			d[sc_id]['sc_id'] = sc_id
+			d[sc_id]['sc_name'] = str(self.sensor_data[sc_id]._sc_config.name)
+			d[sc_id]['period_start'] = self.timespan[0]
+			d[sc_id]['period_end'] = self.timespan[-1]
+			d[sc_id]['timestep'] = int(self.timespan.time_step.total_seconds())
 
-class HistoricalAttitude:
-	def __init__(self, p_file: pathlib.Path, sc_config:data_types.SpacecraftConfig, quat_defn_direction:str='eci2bf'):
-		self.sc_config = sc_config
-		self._timestamps, self._sc_raw_quats = self._loadPointingFile(p_file)
-		num_samples = len(self._timestamps)
-		self._attitude_quats:np.ndarray[tuple[int,int],np.dtype[np.float64]] = np.zeros(self._sc_raw_quats.shape, dtype=np.float64)
-		self._sens_attitude_quats:dict[tuple[str,str],np.ndarray[tuple[int,int],np.dtype[np.float64]]] = {}
+			d[sc_id]['oth_d'] = {}
+			d[sc_id]['oth_d']['type'] = 'FeatureCollection'
+			d[sc_id]['oth_d']['features'] = []
+			# export spacecraft nadir points
+			d[sc_id]['oth_d']['features'] += self.sc_data[sc_ids[0]].exportDataAsGEOJSONFeatures()
 
-		self._cached_sc_idx = np.full((num_samples),False)
-		self._attitude_matrix_cache:np.ndarray[tuple[int,int,int],np.dtype[np.float64]] = np.zeros((num_samples,3,3), dtype=np.float64)
-		self._cached_sens_idx:dict[tuple[str,str], np.ndarray[tuple[int],np.dtype[np.bool_]]] = {}
-		self._sens_attitude_matrix_cache:dict[tuple[str,str], np.ndarray[tuple[int,int],np.dtype[np.float64]]] = {}
-
-		# TODO: set standard transform direction as eci2bf
-		if quat_defn_direction == 'eci2bf':
-			self._invert_transform = True
-			self._attitude_quats = self._sc_raw_quats
-		elif quat_defn_direction == 'bf2eci':
-			self._invert_transform = False
-			self._attitude_quats = self._sc_raw_quats
-			self._attitude_quats[:,3] *= -1
-
-		for suite_name, suite_config in sc_config.getSensorSuites().items():
-			for sens_name in suite_config.getSensorNames():
-				sens_bf_quat = suite_config.getSensorBodyQuat(sens_name)
-				sens_key = (suite_name, sens_name)
-				self._sens_attitude_quats[sens_key] = self._quatArrMult(self._attitude_quats, np.tile(sens_bf_quat,(num_samples,1)))
-				self._cached_sens_idx[sens_key] = np.full((num_samples),False)
-				self._sens_attitude_matrix_cache[sens_key] = np.zeros((num_samples,3,3), dtype=np.float64)
+			d[sc_id]['nadir_d'] = {}
+			d[sc_id]['nadir_d']['type'] = 'FeatureCollection'
+			d[sc_id]['nadir_d']['features'] = []
+			# export spacecraft nadir points
+			d[sc_id]['nadir_d']['features'] += self.exportSubSatelliteAsGEOJSONFeatures(sc_ids[0])
 
 
-	def getPointingTimestamps(self) -> np.ndarray[tuple[int], np.dtype[np.datetime64]]:
-		return self._timestamps
+			d[sc_id]['sensor_d'] = {}
+			d[sc_id]['sensor_d']['type'] = 'FeatureCollection'
+			d[sc_id]['sensor_d']['features'] = []
+			# export sensor boundary list
+			d[sc_id]['sensor_d']['features'] += self.sensor_data[sc_ids[0]].exportDataAsGEOJSONFeatures()
 
-	def getAttitude(self, curr_index) -> np.ndarray[tuple[int],np.dtype[np.float64]] | bool:
-		if self.isAttitudeValid(curr_index):
-			return self.getAttitudeQuat(curr_index)
-		return False
+		return d
 
-	def _loadPointingFile(self, p_file: pathlib.Path) -> tuple[np.ndarray[tuple[int], np.dtype[np.datetime64]], np.ndarray[tuple[int,int],np.dtype[np.float64]]]:
-		pointing_q = np.array(())
-		pointing_w = np.genfromtxt(p_file, delimiter=',', usecols=[1], skip_header=1).reshape(-1,1)
-		pointing_x = np.genfromtxt(p_file, delimiter=',', usecols=[2], skip_header=1).reshape(-1,1)
-		pointing_y = np.genfromtxt(p_file, delimiter=',', usecols=[3], skip_header=1).reshape(-1,1)
-		pointing_z = np.genfromtxt(p_file, delimiter=',', usecols=[4], skip_header=1).reshape(-1,1)
-		pointing_q = np.hstack((pointing_x,pointing_y,pointing_z,pointing_w))
-		pointing_dates = np.genfromtxt(p_file, delimiter=',', usecols=[0],skip_header=1, converters={0:orbviz_conversions.date_parser})
+	def exportSubSatelliteAsGEOJSONFeatures(self, sc_id) -> list[dict]:
+		feature_list = []
+		for ii in range(len(self.timespan)):
+			d = {}
+			d['type'] = 'Feature'
+			d['properties'] = {}
+			d['properties']['ID'] = 4
+			d['properties']['sat_id'] = sc_id
+			d['properties']['DateTime'] = self.timespan[ii]
+			d['geometry'] = {}
+			d['geometry']['type'] = 'Point'
+			lon_lat = np.array((self.orbits[sc_id].lon[ii], self.orbits[sc_id].lat[ii]))
+			d['geometry']['coordinates'] = lon_lat
+			feature_list.append(d)
 
-		return pointing_dates, pointing_q
+		return feature_list
 
-	def isAttitudeValid(self, idx:int) -> bool:
-		if np.any(np.isnan(self._attitude_quats[idx,:])):
-			return False
-		return True
-
-	def getAttitudeQuat(self, *args:int) -> np.ndarray[tuple[int],np.dtype[np.float64]]|np.ndarray[tuple[int,int],np.dtype[np.float64]]:
-		if len(args) > 0:
-			return self._attitude_quats[args[0],:]
-		return self._attitude_quats
-
-	def getAttitudeMatrix(self, idx:int) -> np.ndarray[tuple[int,int],np.dtype[np.float64]]:
-		cache_key = idx
-		if self._cached_sc_idx[cache_key]:
-			return self._attitude_matrix_cache[cache_key,:,:]
-		else:
-			if self.isAttitudeValid(idx):
-				rot_mat = Rotation.from_quat(self._attitude_quats[idx,:]).as_matrix()
-			else:
-				rot_mat = np.eye(3)
-			self._cached_sc_idx[cache_key] = True
-			self._attitude_matrix_cache[cache_key,:,:] = rot_mat
-			cast("np.ndarray[tuple[int,int], np.dtype[np.float64]]",rot_mat)
-			return rot_mat
-
-	def getSensorAttitudeQuat(self, suite_name:str, sens_name:str, *args:int) -> np.ndarray[tuple[int],np.dtype[np.float64]]|np.ndarray[tuple[int,int],np.dtype[np.float64]]:
-		if len(args) > 0:
-			return self._sens_attitude_quats[(suite_name,sens_name)][args[0],:]
-		return self._sens_attitude_quats[(suite_name,sens_name)]
-
-	def getSensorAttitudeMatrix(self, suite_name:str, sens_name:str, idx:int) -> np.ndarray[tuple[int],np.dtype[np.float64]]|np.ndarray[tuple[int,int],np.dtype[np.float64]]:
-		sens_key = (suite_name, sens_name)
-		cache_key = idx
-		if self._cached_sens_idx[sens_key][cache_key]:
-			return self._sens_attitude_matrix_cache[sens_key][cache_key,:,:]
-		else:
-			rot_mat = Rotation.from_quat(self._sens_attitude_quats[sens_key][idx,:]).as_matrix()
-			self._cached_sens_idx[sens_key][idx] = True
-			self._sens_attitude_matrix_cache[sens_key][cache_key,:,:] = rot_mat
-			return rot_mat
-
-	def _quatMult(self, q1,q2):
-		"""Multiples two quaternions
-
-		Multiplies two quaternions, R and S
-		All quaternions need to be supplied in (x,y,z,w)
-
-		#T = R*S
-		#Tw = (Rw*Sw − Rx*Sx − Ry*Sy − Rz*Sz)
-		#Tx = (Rw*Sx + Rx*Sw − Ry*Sz + Rz*Sy)
-		#Ty = (Rw*Sy + Rx*Sz + Ry*Sw − Rz*Sx)
-		#Tz = (Rw*Sz − Rx*Sy + Ry*Sx + Rz*Sw)
-
-		Args:
-			q1 (ndarray(4,)):
-			q2 (ndarray(4,)):
-
-		Returns:
-			ndarray(4,): resulting quaternion
-		"""
-
-		w = q1[3]*q2[3]-q1[0]*q2[0]-q1[1]*q2[1]-q1[2]*q2[2]
-		x = q1[3]*q2[0]+q1[0]*q2[3]+q1[1]*q2[2]-q1[2]*q2[1]
-		y = q1[3]*q2[1]-q1[0]*q2[2]+q1[1]*q2[3]+q1[2]*q2[0]
-		z = q1[3]*q2[2]+q1[0]*q2[1]-q1[1]*q2[0]+q1[2]*q2[3]
-		return np.array((x,y,z,w))
-
-	def _quatArrMult(self, q1_arr, q2_arr):
-		res_q_arr = np.zeros((len(q1_arr),4))
-		res_q_arr[:,3] = q1_arr[:,3]*q2_arr[:,3]-q1_arr[:,0]*q2_arr[:,0]-q1_arr[:,1]*q2_arr[:,1]-q1_arr[:,2]*q2_arr[:,2]
-		res_q_arr[:,0] = q1_arr[:,3]*q2_arr[:,0]+q1_arr[:,0]*q2_arr[:,3]+q1_arr[:,1]*q2_arr[:,2]-q1_arr[:,2]*q2_arr[:,1]
-		res_q_arr[:,1] = q1_arr[:,3]*q2_arr[:,1]-q1_arr[:,0]*q2_arr[:,2]+q1_arr[:,1]*q2_arr[:,3]+q1_arr[:,2]*q2_arr[:,0]
-		res_q_arr[:,2] = q1_arr[:,3]*q2_arr[:,2]+q1_arr[:,0]*q2_arr[:,1]-q1_arr[:,1]*q2_arr[:,0]+q1_arr[:,2]*q2_arr[:,3]
-		return res_q_arr

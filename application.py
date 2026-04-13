@@ -61,6 +61,7 @@ class Application(QtWidgets.QApplication):
 			context.controls.action_dict['load']['callback'] = self.load
 			context.controls.action_dict['spacetrak-credentials']['callback'] = dialogs.SpaceTrackCredentialsDialog
 			context.controls.action_dict['groundstations']['callback'] = self.window.setActiveShellGroundStations
+			context.controls.action_dict['export_geo_json']['callback'] = self.window.exportData
 		else:
 			logger.error('context: %s does not have an associated action dictionary from a resources/actions/<context>.json file.',context)
 			raise ValueError()
@@ -151,7 +152,7 @@ if __name__ == '__main__':
 	setDefaultPackageOptions()
 	parser = argparse.ArgumentParser(
 						prog='orbviz',
-						description='Visualisation software for satellites; including orbits and pointing.')
+						description='Visualisation software for satellites; including orbits and attitudes.')
 	parser.add_argument('--nogl+', action='store_true', dest='nogl_plus')
 	parser.add_argument('--high_precision', action='store_true', dest='high_precision')
 	parser.add_argument('--debug', action='store_true', dest='debug')

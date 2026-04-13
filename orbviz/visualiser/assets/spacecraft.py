@@ -27,7 +27,7 @@ class Spacecraft3DAsset(base_assets.AbstractVispyAsset):
 		self._setDefaultOptions()
 		self._initData()
 
-		self.data['pointing_defined'] = False
+		self.data['attitude_defined'] = False
 
 		self._instantiateAssets()
 		self._createVisuals()
@@ -41,15 +41,15 @@ class Spacecraft3DAsset(base_assets.AbstractVispyAsset):
 		self.data['coords'] = np.zeros((4,3))
 		self.data['strings'] = ['']
 		self.data['curr_index'] = 2
-		self.data['pointing'] = None
-		self.data['pointing_invert_transform'] = False
+		self.data['attitude'] = None
+		self.data['attitude_invert_transform'] = False
 		self.data['sc_config'] = None
 		self.data['history_src'] = None
 
 		self.data['old_config_filestem'] = None
 		self.data['old_suite_names'] = []
 		self.data['old_sc_config'] = None
-		self.data['old_pointing_defined'] = False
+		self.data['old_attitude_defined'] = False
 
 	def setSource(self, *args, **kwargs) -> None:
 		# args[0] spacecraft configuration
@@ -71,6 +71,8 @@ class Spacecraft3DAsset(base_assets.AbstractVispyAsset):
 		self.data['history_src'] = args[1]
 		self.data['strings'] = [self.data['sc_config'].name]
 
+		self.data['raycast_src'] = args[2]
+
 		first_sat_orbit = list(self.data['history_src'].getOrbits().values())[0]
 
 		if hasattr(first_sat_orbit,'pos'):
@@ -85,22 +87,23 @@ class Spacecraft3DAsset(base_assets.AbstractVispyAsset):
 		else:
 			self.data['strings'] = ['']
 
+		# TODO: a lot of this can be done by comparison between attitude configs directly (save the old config)
 		config_changed = (self.data['sc_config'] != self.data['old_sc_config'])
-		pointing_active_changed = (self.data['history_src'].getConfigValue('is_pointing_defined') != self.data['old_pointing_defined'])
-		pointing_defined = self.data['history_src'].getConfigValue('is_pointing_defined')
+		attitude_active_changed = (self.data['history_src'].getConfigValue('attitude_configs')[self.data['sc_config'].id].isAttitudeDefined() != self.data['old_attitude_defined'])
+		attitude_defined = self.data['history_src'].getConfigValue('attitude_configs')[self.data['sc_config'].id].isAttitudeDefined()
 
-		if not pointing_active_changed and not config_changed:
+		if not attitude_active_changed and not config_changed:
 			# config has not changed -> don't need to re-instantiate sensors
-			logger.info('Spacecraft pointing related config has not changed')
+			logger.info('Spacecraft attitude related config has not changed')
 			return
 
 		# remove old sensors if there were some, but aren't now
-		if (not pointing_defined and pointing_active_changed) or (pointing_defined and config_changed):
-			# If pointing had previously been defined -> old sensors, options need to be removed
-			# if no pointing, no point having sensors
+		if (not attitude_defined and attitude_active_changed) or (attitude_defined and config_changed):
+			# If attitude had previously been defined -> old sensors, options need to be removed
+			# if no attitude, no point having sensors
 			self._removeSensorAssets(self.data['old_suite_names'])
 
-		if pointing_defined:
+		if attitude_defined:
 			self._instantiateSensorAssets()
 			self._setSensorAssetSources()
 
@@ -113,12 +116,12 @@ class Spacecraft3DAsset(base_assets.AbstractVispyAsset):
 			self.data['old_config_filestem'] = None
 			self.data['old_suite_names'] = []
 		if self.data['history_src']:
-			self.data['old_pointing_defined'] = self.data['history_src'].getConfigValue('is_pointing_defined')
+			self.data['old_attitude_defined'] = self.data['history_src'].getConfigValue('attitude_configs')[self.data['sc_config'].id].isAttitudeDefined()
 		else:
-			self.data['old_pointing_defined'] = False
+			self.data['old_attitude_defined'] = False
 
-		self.setOrbitalMarkerVisibility(not self.data['history_src'].getConfigValue('is_pointing_defined'))
-		self.setAttitudeAssetsVisibility(self.data['history_src'].getConfigValue('is_pointing_defined'))
+		self.setOrbitalMarkerVisibility(not self.data['history_src'].getConfigValue('attitude_configs')[self.data['sc_config'].id].isAttitudeDefined())
+		self.setAttitudeAssetsVisibility(self.data['history_src'].getConfigValue('attitude_configs')[self.data['sc_config'].id].isAttitudeDefined())
 
 	def _instantiateAssets(self) -> None:
 		self.assets['body_frame'] = gizmo.BodyGizmo(scale=700,
@@ -148,7 +151,7 @@ class Spacecraft3DAsset(base_assets.AbstractVispyAsset):
 	def _setSensorAssetSources(self) -> None:
 		for asset_name, asset in self.assets.items():
 			if 'sensor_suite_' in asset_name:
-				asset.setSource(self.data['history_src'])
+				asset.setSource(self.data['history_src'], self.data['raycast_src'])
 
 	def _createVisuals(self) -> None:
 		self.visuals['marker'] = scene.visuals.Markers(parent=None,
@@ -160,6 +163,7 @@ class Spacecraft3DAsset(base_assets.AbstractVispyAsset):
 										edge_color='white',
 										size=self.opts['spacecraft_marker_size']['value'],
 										symbol='o')
+
 	# Use AbstractVispyAsset.updateIndex()
 
 	def recomputeRedraw(self) -> None:
@@ -169,11 +173,19 @@ class Spacecraft3DAsset(base_assets.AbstractVispyAsset):
 			# set marker position
 			self._updateMarkers()
 			self.data['curr_pos'] = self.data['history_src'].getOrbits()[self.data['sc_config'].id].pos[self.data['curr_index']].reshape(1,3)
-			if self.data['history_src'].getConfigValue('is_pointing_defined'):
+			if self.data['history_src'].getConfigValue('attitude_configs')[self.data['sc_config'].id].isAttitudeDefined():
 				# set gizmo and sensor orientations
 				rot_mat = self.data['history_src'].getSCAttitude(self.data['sc_config'].id).getAttitudeMatrix(self.data['curr_index'])
 				quat = self.data['history_src'].getSCAttitude(self.data['sc_config'].id).getAttitudeQuat(self.data['curr_index'])
+				if self.data['history_src'].getSCAttitude(self.data['sc_config'].id).isAttitudeValid(self.data['curr_index']):
+					self.clearNaNFlagRecursive()
+				else:
+					self.setNaNFlagRecursive()
+
 				# recomputeRedraw child assets
+				for asset_name, asset in self.assets.items():
+					if 'sensor_suite_' in asset_name:
+						asset.setCurrentDatetime(self.data['history_src'].timespan[self.data['curr_index']])
 				self.data['curr_quat'] = quat
 				self._recomputeRedrawChildren(pos=self.data['curr_pos'].reshape(1,3), rotation=rot_mat)
 			else:
@@ -247,10 +259,12 @@ class Spacecraft3DAsset(base_assets.AbstractVispyAsset):
 			if isinstance(asset, sensors.SensorSuite3DAsset):
 				if state and self.opts[f'plot_{key}']['value']:
 					# turning on, only if option state has it previously on
-					asset.setVisibilityRecursive(state)
+					# asset.setVisibilityRecursive(state)
+					asset.setDefaultVisibilityRecursive(state)
 				elif not state:
 					# turning off
-					asset.setVisibilityRecursive(state)
+					asset.setDefaultVisibilityRecursive(state)
+					# asset.setVisibilityRecursive(state)
 
 	def setOrbitalMarkerVisibility(self, state:bool) -> None:
 		self.opts['plot_spacecraft_marker']['value'] = state
@@ -300,7 +314,7 @@ class Spacecraft2DAsset(base_assets.AbstractVispyAsset):
 		self._setDefaultOptions()
 		self._initData()
 
-		self.data['pointing_defined'] = False
+		self.data['attitude_defined'] = False
 
 		self._instantiateAssets()
 		self._createVisuals()
@@ -329,7 +343,7 @@ class Spacecraft2DAsset(base_assets.AbstractVispyAsset):
 		self.data['old_config_filestem'] = None
 		self.data['old_suite_names'] = []
 		self.data['old_sc_config'] = None
-		self.data['old_pointing_defined'] = False
+		self.data['old_attitude_defined'] = False
 
 	def setSource(self, *args, **kwargs) -> None:
 		# args[0] spacecraft configuration
@@ -379,22 +393,26 @@ class Spacecraft2DAsset(base_assets.AbstractVispyAsset):
 		else:
 			self.data['strings'] = ['']
 
-		config_changed = (self.data['sc_config'] != self.data['old_sc_config'])
-		pointing_active_changed = (self.data['history_src'].getConfigValue('is_pointing_defined') != self.data['old_pointing_defined'])
-		pointing_defined = self.data['history_src'].getConfigValue('is_pointing_defined')
+		# new attitude info passed to setSource
+		passed_attitude = self.data['history_src'].getConfigValue('attitude_configs')[self.data['sc_config'].id]
 
-		if not pointing_active_changed and not config_changed:
+		# TODO: a lot of this can be done by comparison between attitude configs directly (save the old config)
+		config_changed = (self.data['sc_config'] != self.data['old_sc_config'])
+		attitude_active_changed = (passed_attitude.isAttitudeDefined() != self.data['old_attitude_defined'])
+		attitude_defined = passed_attitude.isAttitudeDefined()
+
+		if not attitude_active_changed and not config_changed:
 			# config has not changed -> don't need to re-instantiate sensors
-			logger.debug('Spacecraft pointing related config has not changed')
+			logger.debug('Spacecraft attitude related config has not changed')
 			return
 
 		# remove old sensors if there were some
-		if (not pointing_defined and pointing_active_changed) or (pointing_defined and config_changed):
-			# If pointing had previously been defined -> old sensors, options need to be removed
-			# if no pointing, no point having sensors
+		if (not attitude_defined and attitude_active_changed) or (attitude_defined and config_changed):
+			# If attitude had previously been defined -> old sensors, options need to be removed
+			# if no attitude, no point having sensors
 			self._removeSensorAssets(self.data['old_suite_names'])
 
-		if pointing_defined:
+		if attitude_defined:
 			self._instantiateSensorAssets()
 			self._setSensorAssetSources()
 
@@ -407,9 +425,9 @@ class Spacecraft2DAsset(base_assets.AbstractVispyAsset):
 			self.data['old_config_filestem'] = None
 			self.data['old_suite_names'] = []
 		if self.data['history_src']:
-			self.data['old_pointing_defined'] = self.data['history_src'].getConfigValue('is_pointing_defined')
+			self.data['old_attitude_defined'] = self.data['history_src'].getConfigValue('attitude_configs')[self.data['sc_config'].id].isAttitudeDefined()
 		else:
-			self.data['old_pointing_defined'] = False
+			self.data['old_attitude_defined'] = False
 
 	def setScale(self, horizontal_size, vertical_size):
 		self.data['horiz_pixel_scale'] = horizontal_size/360
@@ -483,7 +501,7 @@ class Spacecraft2DAsset(base_assets.AbstractVispyAsset):
 			self._clearFirstDrawFlag()
 		if self.isStale():
 			self._updateMarkers()
-			if self.data['history_src'].getConfigValue('is_pointing_defined'):
+			if self.data['history_src'].getConfigValue('attitude_configs')[self.data['sc_config'].id].isAttitudeDefined():
 				self.data['curr_pos'] = self.data['history_src'].getOrbits()[self.data['sc_config'].id].pos[self.data['curr_index']].reshape(1,3)
 				# set gizmo and sensor orientations
 				rot_mat = self.data['history_src'].getSCAttitude(self.data['sc_config'].id).getAttitudeMatrix(self.data['curr_index'])
@@ -496,23 +514,16 @@ class Spacecraft2DAsset(base_assets.AbstractVispyAsset):
 				self._recomputeRedrawChildren(pos=self.data['curr_pos'].reshape(1,3), rotation=rot_mat)
 
 			# Over the horizon circle asset
-			self.data['oth_edge1'], self.data['oth_edge2'], split = self.calcOTHCircle()
-			self.visuals['oth_circle1'].pos = self.data['oth_edge1']
-			# verts, faces = polygeom.polygonTriangulate(self.data['oth_edge1'])
-			# self.visuals['oth_circle1']._mesh.set_data(vertices=verts, faces=faces)
+			patch1_verts, patch2_verts = self.data['history_src'].getSCData(self.data['sc_config'].id).get2DData(self.data['curr_index'])
 
-			self.visuals['oth_circle2'].pos = self.data['oth_edge2']
-			# verts, faces = polygeom.polygonTriangulate(self.data['oth_edge2'])
-			# self.visuals['oth_circle2']._mesh.set_data(vertices=verts, faces=faces)
+			split = True
+			if len(patch1_verts) == len(patch2_verts):
+				if np.allclose(patch1_verts, patch2_verts):
+					split = False
 
-			if split:
-				self.visuals['oth_circle1'].opacity = self.opts['over_the_horizon_circle_alpha']['value']
-				self.visuals['oth_circle2'].opacity = self.opts['over_the_horizon_circle_alpha']['value']
-				# self.visuals['oth_circle1'].opacity = 1
-				# self.visuals['oth_circle2'].opacity = 1
-			else:
-				self.visuals['oth_circle1'].opacity = self.opts['over_the_horizon_circle_alpha']['value']/2
-				self.visuals['oth_circle2'].opacity = self.opts['over_the_horizon_circle_alpha']['value']/2
+			self.data['oth_edge1'] = self._scale(patch1_verts)
+			self.data['oth_edge2'] = self._scale(patch2_verts)
+			self._updatePolygons(split=split)
 			self._clearStaleFlag()
 
 	def getScreenMouseOverInfo(self) -> dict[str, Any]:
@@ -566,6 +577,22 @@ class Spacecraft2DAsset(base_assets.AbstractVispyAsset):
 		self.opts = self._dflt_opts.copy()
 
 	#----- OPTIONS CALLBACKS -----#
+	def _updateMarkers(self):
+		self.visuals['marker'].set_data(pos=self.data['scaled_coords'][self.data['curr_index']].reshape(1,2),
+								   			size=self.opts['spacecraft_marker_size']['value'],
+											face_color=colours.normaliseColour(self.opts['spacecraft_marker_colour']['value']))
+
+
+	def _updatePolygons(self, split=False):
+		self.visuals['oth_circle1'].pos = self.data['oth_edge1']
+		self.visuals['oth_circle2'].pos = self.data['oth_edge2']
+		if split:
+			self.visuals['oth_circle1'].opacity = self.opts['over_the_horizon_circle_alpha']['value']
+			self.visuals['oth_circle2'].opacity = self.opts['over_the_horizon_circle_alpha']['value']
+		else:
+			self.visuals['oth_circle1'].opacity = self.opts['over_the_horizon_circle_alpha']['value']/2
+			self.visuals['oth_circle2'].opacity = self.opts['over_the_horizon_circle_alpha']['value']/2
+
 	def setMarkerColour(self, new_colour:tuple[float,float,float]) -> None:
 		self.opts['spacecraft_marker_colour']['value'] = new_colour
 		self._updateMarkers()
@@ -610,11 +637,6 @@ class Spacecraft2DAsset(base_assets.AbstractVispyAsset):
 	def setOrbitalMarkerVisibility(self, state:bool) -> None:
 		self.opts['plot_spacecraft_marker']['value'] = state
 		self.visuals['marker'].visible = self.opts['plot_spacecraft_marker']['value']
-
-	def _updateMarkers(self):
-		self.visuals['marker'].set_data(pos=self.data['scaled_coords'][self.data['curr_index']].reshape(1,2),
-								   			size=self.opts['spacecraft_marker_size']['value'],
-											face_color=colours.normaliseColour(self.opts['spacecraft_marker_colour']['value']))
 
 	#----- HELPER FUNCTIONS -----#
 	def _addIndividualSensorSuitePlotOptions(self) -> None:
@@ -672,7 +694,7 @@ class SpacecraftViewsAsset(base_assets.AbstractVispyAsset):
 		self._setDefaultOptions()
 		self._initData()
 
-		self.data['pointing_defined'] = False
+		self.data['attitude_defined'] = False
 
 		self._instantiateAssets()
 		self._createVisuals()
@@ -692,7 +714,7 @@ class SpacecraftViewsAsset(base_assets.AbstractVispyAsset):
 		self.data['old_config_filestem'] = None
 		self.data['old_suite_names'] = []
 		self.data['old_sc_config'] = None
-		self.data['old_pointing_defined'] = False
+		self.data['old_attitude_defined'] = False
 
 	def setSource(self, *args, **kwargs) -> None:
 		# args[0] spacecraft configuration
@@ -723,21 +745,21 @@ class SpacecraftViewsAsset(base_assets.AbstractVispyAsset):
 		self.data['strings'] = [self.data['sc_config'].name]
 
 		config_changed = (self.data['sc_config'] != self.data['old_sc_config'])
-		pointing_active_changed = (self.data['history_src'].getConfigValue('is_pointing_defined') != self.data['old_pointing_defined'])
-		pointing_defined = self.data['history_src'].getConfigValue('is_pointing_defined')
+		attitude_active_changed = (self.data['history_src'].getConfigValue('attitude_configs')[self.data['sc_config'].id].isAttitudeDefined() != self.data['old_attitude_defined'])
+		attitude_defined = self.data['history_src'].getConfigValue('attitude_configs')[self.data['sc_config'].id].isAttitudeDefined()
 
-		if not pointing_active_changed and not config_changed:
+		if not attitude_active_changed and not config_changed:
 			# config has not changed -> don't need to re-instantiate sensors
-			logger.debug('Spacecraft pointing related config has not changed')
+			logger.debug('Spacecraft attitude related config has not changed')
 			return
 
 		# remove old sensors if there were some
-		if (not pointing_defined and pointing_active_changed) or (pointing_defined and config_changed):
-			# If pointing had previously been defined -> old sensors, options need to be removed
-			# if no pointing, no point having sensors
+		if (not attitude_defined and attitude_active_changed) or (attitude_defined and config_changed):
+			# If attitude had previously been defined -> old sensors, options need to be removed
+			# if no attitude, no point having sensors
 			self._removeSensorAssets(self.data['old_suite_names'])
 
-		if pointing_defined:
+		if attitude_defined:
 			self._instantiateSensorAssets()
 			self._setSensorAssetSources()
 
@@ -750,9 +772,9 @@ class SpacecraftViewsAsset(base_assets.AbstractVispyAsset):
 			self.data['old_config_filestem'] = None
 			self.data['old_suite_names'] = []
 		if self.data['history_src']:
-			self.data['old_pointing_defined'] = self.data['history_src'].getConfigValue('is_pointing_defined')
+			self.data['old_attitude_defined'] = self.data['history_src'].getConfigValue('attitude_configs')[self.data['sc_config'].id].isAttitudeDefined()
 		else:
-			self.data['old_pointing_defined'] = False
+			self.data['old_attitude_defined'] = False
 
 	def _instantiateAssets(self) -> None:
 		if self.data['sc_config'] is not None:
@@ -789,7 +811,7 @@ class SpacecraftViewsAsset(base_assets.AbstractVispyAsset):
 		if self.isFirstDraw():
 			self._clearFirstDrawFlag()
 		if self.isStale():
-			if self.data['history_src'].getConfigValue('is_pointing_defined'):
+			if self.data['history_src'].getConfigValue('attitude_configs')[self.data['sc_config'].id].isAttitudeDefined():
 				orbit_data = self.data['history_src'].getOrbits()[self.data['sc_config'].id]
 				self.data['curr_pos'] = orbit_data.pos[self.data['curr_index']].reshape(1,3)
 				# set gizmo and sensor orientations

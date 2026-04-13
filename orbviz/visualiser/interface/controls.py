@@ -2,8 +2,11 @@ import datetime as dt
 import logging
 import pathlib
 import string
+import json
 
-from typing import Any
+from typing import Any, TYPE_CHECKING
+# if TYPE_CHECKING:
+import numpy as np
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -61,6 +64,15 @@ class PrimaryConfig(QtWidgets.QWidget):
 			self.tmp_prim_config = None
 			self.prim_config_selector.setError('Not a valid configuration file')
 			self.prim_config_display.clearConfig()
+		except FileNotFoundError:
+			self.tmp_prim_config = None
+			self.prim_config_selector.setError('Configuration file not found')
+			self.prim_config_display.clearConfig()
+		except json.decoder.JSONDecodeError as e:
+			self.tmp_prim_config = None
+			self.prim_config_selector.setError(f"Can't read config file: {str(e)}")
+			self.prim_config_display.clearConfig()
+
 		self.pane_groupbox.updateGeometry()
 
 	def getConfig(self) -> data_types.PrimaryConfig:
@@ -107,35 +119,147 @@ class TimePeriodConfig(QtWidgets.QWidget):
 	def getSamplingPeriod(self) -> int:
 		return self.sampling_period.period
 
-class HistoricalPointingConfig(QtWidgets.QWidget):
+class AttitudeConfig(QtWidgets.QWidget):
+	auto_time_period = QtCore.pyqtSignal(bool)
+
+	def __init__(self, *args, **kwargs):
+		super().__init__()
+
+		self._rbuttons = widgets.RadioGroup({data_types.AttitudeGenMethod.NONE: 'No Attitude',
+											 data_types.AttitudeGenMethod.HISTORICAL: 'Historical Attitude Data',
+											 data_types.AttitudeGenMethod.GENERATED: 'Generated Attitude Data'})
+		self._curr_selected = None
+
+		self._err_label = QtWidgets.QLabel('')
+
+		err_font = QtGui.QFont()
+		err_font.setBold(True)
+		self._err_label.setFont(err_font)
+		self._err_label.setStyleSheet('''
+										QLabel {
+												color:#FF0000;
+												}
+									''')
+
+		_vlayout = QtWidgets.QVBoxLayout()
+		self._slayout = QtWidgets.QStackedLayout()
+
+		self.attitude_configurators = {}
+		self.attitude_configurators[data_types.AttitudeGenMethod.NONE] = QtWidgets.QWidget()
+		self.attitude_configurators[data_types.AttitudeGenMethod.HISTORICAL] = HistoricalAttitudeConfig()
+		self.attitude_configurators[data_types.AttitudeGenMethod.GENERATED] = GeneratedAttitudeConfig()
+		self._rbuttons.selection_changed.connect(self._onSelection)
+
+
+		for att_cnfg_w in self.attitude_configurators.values():
+			self._slayout.addWidget(att_cnfg_w)
+
+		_vlayout.addWidget(self._rbuttons)
+		_vlayout.addWidget(self._err_label)
+		_vlayout.addLayout(self._slayout)
+		_vlayout.addStretch()
+		self.setLayout(_vlayout)
+
+		self._rbuttons.setCurrSelected(data_types.AttitudeGenMethod.NONE)
+		self._curr_selected = data_types.AttitudeGenMethod.NONE
+
+	def _onSelection(self, att_str:str):
+		attitude_type = data_types.AttitudeGenMethod(att_str)
+		for k, w in self.attitude_configurators.items():
+			if k == attitude_type:
+				self._slayout.setCurrentWidget(w)
+				w.setEnabled(True)
+				self._curr_selected = attitude_type
+			else:
+				w.setEnabled(False)
+
+		if attitude_type == data_types.AttitudeGenMethod.HISTORICAL:
+			self._setWarning('Historical Attitude Data will override the manually entered timeperiod.')
+			self.auto_time_period.emit(True)
+		else:
+			self._clearWarning()
+			self.auto_time_period.emit(False)
+
+	def _setWarning(self, warn_text:str) -> None:
+		self._err_label.setText(warn_text)
+
+	def _clearWarning(self) -> None:
+		self._err_label.setText('')
+
+	def getAttitudeConfigs(self, sc_id:int) -> dict[int, data_types.AttitudeConfig]:
+		# TODO: fix method for specifying sc_id shouldn't need to pass from parent
+		configs = {}
+		configs[sc_id] = data_types.AttitudeConfig(sc_id)
+		logger.debug('Populating Attitude Configuration')
+		self._populateConfigDispatcher(self._curr_selected)(configs[sc_id], self.attitude_configurators[self._curr_selected])
+		return configs
+
+	def _populateConfigDispatcher(self, att_gen_method:data_types.AttitudeGenMethod):
+		return {
+			data_types.AttitudeGenMethod.NONE: self._populateConfigFromNone,
+			data_types.AttitudeGenMethod.HISTORICAL: self._populateConfigFromHistorical,
+			data_types.AttitudeGenMethod.GENERATED: self._populateConfigFromGenerator
+		}.get(att_gen_method, self._populateConfigFromNone)
+
+	def _populateConfigFromNone(self, config:data_types.AttitudeConfig, configurator_widget:QtWidgets.QWidget):
+		logger.debug('No Attitude Selected')
+
+	def _populateConfigFromHistorical(self, config:data_types.AttitudeConfig, configurator_widget:QtWidgets.QWidget):
+		logger.debug('Attitude configured to use Historical file')
+		config.gen_type = data_types.AttitudeGenMethod('historical')
+		config.historical_attitude_file = configurator_widget.getAttitudeFilePath()
+		config.is_attitude_defined = True
+		config.attitude_defines_timespan = True
+		config.attitude_invert_transform = configurator_widget.isAttitudeTransformInverse()
+
+	def _populateConfigFromGenerator(self, config:data_types.AttitudeConfig, configurator_widget:QtWidgets.QWidget):
+		logger.debug('Attitude configured to be generated')
+		config.gen_type = data_types.AttitudeGenMethod('generated')
+		config.is_attitude_defined = True
+		config.attitude_defines_timespan = False
+		config.attitude_invert_transform = True
+		config.prim_body_axis = configurator_widget.getPrimBodyAxis()
+		config.prim_target = configurator_widget.getPrimTarget()
+		config.sec_body_axis = configurator_widget.getSecBodyAxis()
+		config.sec_target = configurator_widget.getSecTarget()
+
+
+class GeneratedAttitudeConfig(QtWidgets.QWidget):
 	def __init__(self, *args, **kwargs):
 		super().__init__()
 		# Layout containers
 		super_layout = QtWidgets.QVBoxLayout()
-		pane_groupbox = QtWidgets.QGroupBox('Historical Pointing Data')
+		pane_groupbox = QtWidgets.QGroupBox('Generated Attitude Configuration')
 		config_vlayout = QtWidgets.QVBoxLayout()
 		config_vlayout.setSpacing(10)
-		inv_switch_vlayout = QtWidgets.QVBoxLayout()
-		inv_switch_vlayout.setSpacing(0)
 
 		# Configuration widgets
-		dflt_config_file = orbviz_paths.pnt_dir.joinpath('20240108_ECI_parallel.csv')
-		self._pointing_file_selector = widgets.FilePicker('Pointing File',
-												   			dflt_file=dflt_config_file.name,
-															dflt_dir=dflt_config_file.parent,
-															save=False,
-															margins=[0,0,0,0])
-		self.pointing_file_inv_toggle = widgets.LabelledSwitch(labels=('BF->ECI','ECI->BF'), dflt_state=True)
-		_label_font = QtGui.QFont()
-		_label_font.setWeight(QtGui.QFont.Medium)
-		pointing_file_inv_label = QtWidgets.QLabel('Pointing File frame transform direction:')
-		pointing_file_inv_label.setFont(_label_font)
+		_prim_groupbox = QtWidgets.QGroupBox('Primary Axis Selection')
+		_prim_layout = QtWidgets.QVBoxLayout()
+		self._prim_target_selector = widgets.BasicOptionBox('Primary Target',
+															dflt_option='nadir',
+															options_list=[e.value for e in data_types.RefTarget])
+		self._prim_axis_selector = widgets. BasicValueBox('Body Axis to Pimary Target', str((1, 0, 0)))
+
+		_sec_groupbox = QtWidgets.QGroupBox('Secondary Axis Selection')
+		_sec_layout = QtWidgets.QVBoxLayout()
+		self._sec_target_selector = widgets.BasicOptionBox('Secondary Target',
+															dflt_option='ram',
+															options_list=[e.value for e in data_types.RefTarget])
+		self._sec_axis_selector = widgets.BasicValueBox('Secondary Axis to Secondary Target', str((0, 1, 0)))
+		self._sec_mode_selector = QtWidgets.QLabel('The angle between the secondary axis and the target will be minimised.')
 
 		# Place configuration widgets
-		config_vlayout.addWidget(self._pointing_file_selector)
-		inv_switch_vlayout.addWidget(pointing_file_inv_label)
-		inv_switch_vlayout.addWidget(self.pointing_file_inv_toggle)
-		config_vlayout.addLayout(inv_switch_vlayout)
+		_prim_layout.addWidget(self._prim_target_selector)
+		_prim_layout.addWidget(self._prim_axis_selector)
+		_prim_groupbox.setLayout(_prim_layout)
+		_sec_layout.addWidget(self._sec_target_selector)
+		_sec_layout.addWidget(self._sec_axis_selector)
+		_sec_layout.addWidget(self._sec_mode_selector)
+		_sec_groupbox.setLayout(_sec_layout)
+
+		config_vlayout.addWidget(_prim_groupbox)
+		config_vlayout.addWidget(_sec_groupbox)
 		pane_groupbox.setLayout(config_vlayout)
 
 		# Scrollable container
@@ -146,22 +270,93 @@ class HistoricalPointingConfig(QtWidgets.QWidget):
 		super_layout.addWidget(scroll_area)
 		self.setLayout(super_layout)
 
-	def getPointingConfig(self) -> pathlib.Path:
-		return self._pointing_file_selector.path
+	def getPrimTarget(self) -> data_types.RefTarget:
+		return data_types.RefTarget(self._prim_target_selector.getCurrentValue())
 
-	def isPointingTransformInverse(self) -> bool:
-		return self.pointing_file_inv_toggle.isChecked()
+	def getPrimBodyAxis(self) -> np.ndarray:
+		return self._prim_axis_selector.getValueAsArray()
+
+	def getSecTarget(self) -> data_types.RefTarget:
+		return data_types.RefTarget(self._sec_target_selector.getCurrentValue())
+
+	def getSecBodyAxis(self) -> np.ndarray:
+		return self._sec_axis_selector.getValueAsArray()
 
 	def prepSerialisation(self) -> dict[str, Any]:
 		state = {}
-		state['use_pointing_period'] = {}
-		state['pointing_file'] = self._pointing_file_selector.prepSerialisation()
-		state['frame_inv'] = self.pointing_file_inv_toggle.prepSerialisation()
 		return state
 
 	def deSerialise(self, state:dict[str, Any]) -> None:
-		self._pointing_file_selector.deSerialise(state['pointing_file'])
-		self.pointing_file_inv_toggle.deSerialise(state['frame_inv'])
+		pass
+
+class HistoricalAttitudeConfig(QtWidgets.QWidget):
+	def __init__(self, *args, **kwargs):
+		super().__init__()
+		# Layout containers
+		super_layout = QtWidgets.QVBoxLayout()
+		pane_groupbox = QtWidgets.QGroupBox('Historical Attitude Data')
+		config_vlayout = QtWidgets.QVBoxLayout()
+		config_vlayout.setSpacing(10)
+		inv_switch_vlayout = QtWidgets.QVBoxLayout()
+		inv_switch_vlayout.setSpacing(0)
+
+		# Configuration widgets
+		dflt_config_file = orbviz_paths.att_dir.joinpath('20240108_ECI_parallel.csv')
+		self._attitude_file_selector = widgets.FilePicker('Attitude File',
+												   			dflt_file=dflt_config_file.name,
+															dflt_dir=dflt_config_file.parent,
+															save=False,
+															margins=[0,0,0,0])
+		self.attitude_file_inv_toggle = widgets.LabelledSwitch(labels=('BF->ECI','ECI->BF'), dflt_state=True)
+		_label_font = QtGui.QFont()
+		_label_font.setWeight(QtGui.QFont.Medium)
+		attitude_file_inv_label = QtWidgets.QLabel('Attitude File frame transform direction:')
+		attitude_file_inv_label.setFont(_label_font)
+
+		# Place configuration widgets
+		config_vlayout.addWidget(self._attitude_file_selector)
+		inv_switch_vlayout.addWidget(attitude_file_inv_label)
+		inv_switch_vlayout.addWidget(self.attitude_file_inv_toggle)
+		config_vlayout.addLayout(inv_switch_vlayout)
+		config_vlayout.addStretch()
+		pane_groupbox.setLayout(config_vlayout)
+
+		# Scrollable container
+		scroll_area = QtWidgets.QScrollArea()
+		scroll_area.setWidget(pane_groupbox)
+		scroll_area.setWidgetResizable(True)
+
+		super_layout.addWidget(scroll_area)
+		self.setLayout(super_layout)
+
+	def getAttitudeFilePath(self) -> pathlib.Path:
+		return self._attitude_file_selector.path
+
+	def isAttitudeTransformInverse(self) -> bool:
+		''' Determines direction of quaternion frame transform specified by Attitude File
+
+		Default Attitude transform is BF2ECI
+		Inverse transforrm is ECI2BF
+
+		Toggle:
+			True -> ECI2BF (inverse)
+			False: -> BF2ECI
+
+		Returns:
+			bool: Attitude Transform is inverted
+		'''
+		return self.attitude_file_inv_toggle.isChecked()
+
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['use_attitude_period'] = {}
+		state['attitude_file'] = self._attitude_file_selector.prepSerialisation()
+		state['frame_inv'] = self.attitude_file_inv_toggle.prepSerialisation()
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		self._attitude_file_selector.deSerialise(state['attitude_file'])
+		self.attitude_file_inv_toggle.deSerialise(state['frame_inv'])
 
 class HistoricalEventConfig(QtWidgets.QWidget):
 	def __init__(self, *args, **kwargs):
