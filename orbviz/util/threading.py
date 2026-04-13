@@ -185,7 +185,7 @@ class Worker(QtCore.QRunnable):
 		except:
 			traceback.print_exc()
 			exctype, value = sys.exc_info()[:2]
-			logger.error('Thread %s experienced error. TERMINATING', self)
+			logger.exception('Thread %s experienced error. TERMINATING', self)
 			self.signals.error.emit((exctype, value, traceback.format_exc()))
 		else:
 			logger.info('Thread %s finished. Emitting RESULT signal', self)
