@@ -2,7 +2,8 @@ import logging
 import sys
 import traceback
 
-from typing import Any, Callable, TypedDict
+from collections.abc import Callable
+from typing import Any, TypedDict
 
 from PyQt5 import QtCore
 
