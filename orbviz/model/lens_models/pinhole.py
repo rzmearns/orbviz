@@ -26,7 +26,7 @@ def generatePixelRays(pixels:tuple[int,int], fov:tuple[float,float]) -> np.ndarr
 
 	# rays in camera frame
 	rays_cf = np.ones((num_rays, 3))
-	rays_cf[:,0] = -np.tan(angles[:,0])
+	rays_cf[:,0] = np.tan(angles[:,0])
 	rays_cf[:,1] = np.tan(angles[:,1])
 	# print(f'{rays_cf.shape=}')
 	unit_rays_cf = primgeom.unitVector(rays_cf)
