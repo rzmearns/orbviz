@@ -3,10 +3,11 @@ import datetime as dt
 from enum import Enum
 import json
 import logging
-import numpy as np
 import pathlib
 
 from typing import Any
+
+import numpy as np
 
 import orbviz.visualiser.interface.console as console
 

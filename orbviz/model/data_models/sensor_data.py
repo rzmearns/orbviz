@@ -22,9 +22,9 @@ class SensorData:
 		num_samples = len(self._timestamps)
 		# caches
 		# caches are indexed using the timespan index
-		self._sens_boundary_cache:dict[tuple[str,str], dict[int,np.ndarray[int,int], np.dtype[np.float64]]] = {}
-		self._sens_pixel_cache:dict[tuple[str,str], dict[int,np.ndarray[int,int], np.dtype[np.float64]]] = {}
-		self._sens_latlon_cache:dict[tuple[str,str], dict[int,np.ndarray[int,int], np.dtype[np.float64]]] = {}
+		self._sens_boundary_cache:dict[tuple[str,str], dict[int,np.ndarray[tuple[int,int], np.dtype[np.float64]]]] = {}
+		self._sens_pixel_cache:dict[tuple[str,str], dict[int,np.ndarray[tuple[int,int], np.dtype[np.float64]]]] = {}
+		self._sens_latlon_cache:dict[tuple[str,str], dict[int,np.ndarray[tuple[int,int], np.dtype[np.float64]]]] = {}
 		self._cached_timesteps:dict[tuple[str,str], np.ndarray[tuple[int],np.dtype[np.bool_]]] = {}
 
 		self._lowres = {}

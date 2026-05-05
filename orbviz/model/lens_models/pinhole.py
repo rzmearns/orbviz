@@ -48,7 +48,6 @@ def generateEdgeRays(pixels:tuple[int,int], fov:tuple[float,float]) -> np.ndarra
 	return edge_rays
 
 def calcLowRes(true_resolution:tuple[int,int]) -> tuple[int,int]:
-	lowres = [0,0]
 	max_1D_res = 240
 	min_1D_res = 3
 	lowres_ratio = 100

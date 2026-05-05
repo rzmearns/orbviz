@@ -1,19 +1,16 @@
-
-
 import numpy as np
-import numpy.typing as nptyping
 import scipy.spatial
 
 import orbviz.model.geometry.primgeom as pg
 
 
-def calcConeMeshGrid(apex:tuple[float,float,float] | nptyping.NDArray,
+def calcConeMeshGrid(apex:tuple[float,float,float] | np.ndarray[int,np.dtype[np.float64]],
 					 height:float,
-					 axis:tuple[float,float,float] | nptyping.NDArray,
+					 axis:tuple[float,float,float] | np.ndarray[int,np.dtype[np.float64]],
 					 apex_angle_deg:float,
 					 axis_sample:int=3,
 					 r_sample:int=2,
-					 theta_sample:int=100) -> tuple[list[nptyping.NDArray],list[nptyping.NDArray]]:
+					 theta_sample:int=100) -> tuple[list[np.ndarray[int,np.dtype[np.float64]]],list[np.ndarray[int,np.dtype[np.float64]]]]:
 		
 	phi = np.deg2rad(apex_angle_deg/2)
 	R = height*np.tan(phi)
@@ -37,13 +34,13 @@ def calcConeMeshGrid(apex:tuple[float,float,float] | nptyping.NDArray,
 	
 	return [X,Y,Z],[X2,Y2,Z2]
 
-def calcConePoints(apex:tuple[float,float,float] | nptyping.NDArray,
+def calcConePoints(apex:tuple[float,float,float] | np.ndarray[int,np.dtype[np.float64]],
 					height:float,
-					axis:tuple[float,float,float] | nptyping.NDArray,
+					axis:tuple[float,float,float] | np.ndarray[int,np.dtype[np.float64]],
 					apex_angle_deg:float,
 					axis_sample:int=3,
 					theta_sample:int=30,
-					sort_output:bool=True) -> nptyping.NDArray:
+					sort_output:bool=True) -> np.ndarray[tuple[int, int],np.dtype[np.float64]]:
 
 	phi = np.deg2rad(apex_angle_deg/2)
 	
@@ -71,12 +68,12 @@ def calcConePoints(apex:tuple[float,float,float] | nptyping.NDArray,
 	else:
 		return coords[np.sort(np.unique(coords,axis=0, return_index=True)[1])]+apex
 
-def calcConeMesh(apex:tuple[float,float,float] | nptyping.NDArray,
+def calcConeMesh(apex:tuple[float,float,float] | np.ndarray[int,np.dtype[np.float64]],
 					height:float,
-					axis:tuple[float,float,float] | nptyping.NDArray,
+					axis:tuple[float,float,float] | np.ndarray[int,np.dtype[np.float64]],
 					apex_angle_deg:float,
 					axis_sample:int=3,
-					theta_sample:int=30) -> tuple[nptyping.NDArray,nptyping.NDArray]:
+					theta_sample:int=30) -> tuple[np.ndarray[tuple[int, int],np.dtype[np.float32]], np.ndarray[tuple[int, int],np.dtype[np.uint32]]]:
 	coords = calcConePoints(apex, height, axis, apex_angle_deg, axis_sample=axis_sample, theta_sample=theta_sample)
 	hull = scipy.spatial.ConvexHull(coords)
 
@@ -85,12 +82,12 @@ def calcConeMesh(apex:tuple[float,float,float] | nptyping.NDArray,
 
 	return vertices.astype('float32'), faces.astype(dtype='uint32')
 
-def calcSquarePyramidPoints(apex:tuple[float,float,float] | nptyping.NDArray,
+def calcSquarePyramidPoints(apex:tuple[float,float,float] | np.ndarray[int,np.dtype[np.float64]],
 							height:float,
-							axis:tuple[float,float,float] | nptyping.NDArray,
+							axis:tuple[float,float,float] | np.ndarray[int,np.dtype[np.float64]],
 							x_angle_deg:float,
 							y_angle_deg:float,
-							axis_sample:int=3) -> nptyping.NDArray:
+							axis_sample:int=3) -> np.ndarray[tuple[int, int],np.dtype[np.float64]]:
 	# Z direction is along axis of pyramid,
 	# X direction is the cross section height
 	# Y direction is the cross section width
@@ -122,12 +119,12 @@ def calcSquarePyramidPoints(apex:tuple[float,float,float] | nptyping.NDArray,
 
 	return np.unique(coords+apex, axis=0)
 
-def calcSquarePyramidMesh(apex:tuple[float,float,float] | nptyping.NDArray,
+def calcSquarePyramidMesh(apex:tuple[float,float,float] | np.ndarray[int,np.dtype[np.float64]],
 							height:float,
-							axis:tuple[float,float,float] | nptyping.NDArray,
+							axis:tuple[float,float,float] | np.ndarray[int,np.dtype[np.float64]],
 							x_angle_deg:float,
 							y_angle_deg:float,
-							axis_sample:int=3) -> tuple[nptyping.NDArray,nptyping.NDArray]:
+							axis_sample:int=3) -> tuple[np.ndarray[tuple[int, int],np.dtype[np.float32]], np.ndarray[tuple[int, int],np.dtype[np.uint32]]]:
 	coords = calcSquarePyramidPoints(apex, height, axis, x_angle_deg, y_angle_deg, axis_sample=axis_sample)
 	hull = scipy.spatial.ConvexHull(coords)
 
@@ -136,7 +133,7 @@ def calcSquarePyramidMesh(apex:tuple[float,float,float] | nptyping.NDArray,
 
 	return vertices.astype('float32'), faces.astype(dtype='uint32')
 
-def calcSphereMeshGrid(center:tuple[float,float,float] | nptyping.NDArray, r:float) -> list[nptyping.NDArray]:
+def calcSphereMeshGrid(center:tuple[float,float,float] | np.ndarray[int,np.dtype[np.float64]], r:float) -> list[np.ndarray[int,np.dtype[np.float64]]]:
 	R = np.sqrt(r)
 	u_angle = np.linspace(0, 2*np.pi, 25)
 	v_angle = np.linspace(0, np.pi, 25)
@@ -145,13 +142,13 @@ def calcSphereMeshGrid(center:tuple[float,float,float] | nptyping.NDArray, r:flo
 	z = np.outer(R*np.ones(u_angle.shape[0]), R*np.cos(v_angle)) + center[2]
 	return [x,y,z]
 
-def calcCylinderMeshGrid(end_point:tuple[float,float,float] | nptyping.NDArray,
+def calcCylinderMeshGrid(end_point:tuple[float,float,float] | np.ndarray[int,np.dtype[np.float64]],
 							height:float,
-							axis:tuple[float,float,float] | nptyping.NDArray,
+							axis:tuple[float,float,float] | np.ndarray[int,np.dtype[np.float64]],
 							radius:float,
 							axis_sample:int=3,
 							r_sample:int=2,
-							theta_sample:int=100) -> tuple[list[nptyping.NDArray],list[nptyping.NDArray],list[nptyping.NDArray]]:
+							theta_sample:int=100) -> tuple[list[np.ndarray[int,np.dtype[np.float64]]],list[np.ndarray[int,np.dtype[np.float64]]],list[np.ndarray[int,np.dtype[np.float64]]]]:
 
 	R = radius
 
@@ -176,12 +173,12 @@ def calcCylinderMeshGrid(end_point:tuple[float,float,float] | nptyping.NDArray,
 
 	return [X,Y,Z],[X2,Y2,Z2],[X3,Y3,Z3]
 
-def calcCylinderPoints(end_point:tuple[float,float,float] | nptyping.NDArray,
+def calcCylinderPoints(end_point:tuple[float,float,float] | np.ndarray[int,np.dtype[np.float64]],
 						height:float,
-						axis:tuple[float,float,float] | nptyping.NDArray,
+						axis:tuple[float,float,float] | np.ndarray[int,np.dtype[np.float64]],
 						radius:float,
 						axis_sample:int=3,
-						theta_sample:int=30) -> nptyping.NDArray:
+						theta_sample:int=30) -> np.ndarray[tuple[int, int],np.dtype[np.float64]]:
 
 	R = radius
 	end_point = np.asarray(end_point)
@@ -206,12 +203,12 @@ def calcCylinderPoints(end_point:tuple[float,float,float] | nptyping.NDArray,
 
 	return coords
 
-def calcCylinderMesh(end_point:tuple[float,float,float] | nptyping.NDArray,
+def calcCylinderMesh(end_point:tuple[float,float,float] | np.ndarray[int,np.dtype[np.float64]],
 						height:float,
-						axis:tuple[float,float,float] | nptyping.NDArray,
+						axis:tuple[float,float,float] | np.ndarray[int,np.dtype[np.float64]],
 						radius:float,
 						axis_sample:int=3,
-						theta_sample:int=30) -> tuple[nptyping.NDArray,nptyping.NDArray]:
+						theta_sample:int=30) -> tuple[np.ndarray[tuple[int, int],np.dtype[np.float32]], np.ndarray[tuple[int, int],np.dtype[np.uint32]]]:
 	coords = calcCylinderPoints(end_point, height, axis, radius, axis_sample=axis_sample, theta_sample=theta_sample)
 	hull = scipy.spatial.ConvexHull(coords)
 

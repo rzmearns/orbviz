@@ -1,16 +1,14 @@
 import numpy as np
-import numpy.typing as nptyping
-import triangle as tr
-
 import scipy.spatial
+import triangle as tr
 
 import orbviz.model.geometry.primgeom as pg
 import orbviz.util.array_u as array_u
 
 
-def generateCircle(center:tuple[float,float,float] | nptyping.NDArray,
+def generateCircle(center:tuple[float,float,float] | np.ndarray[int,np.dtype[np.float64]],
 					 radius:float,
-					 normal:tuple[float,float,float] | nptyping.NDArray,
+					 normal:tuple[float,float,float] | np.ndarray[int,np.dtype[np.float64]],
 					 sampling:int=180):
 	coords = np.zeros((sampling,3))
 	theta = np.linspace(0, 2*np.pi, sampling)
@@ -77,7 +75,7 @@ def isSplitVertically(x_split, poly_verts):
 
 	return True
 
-def segmentIntersection(l1, l2) -> None|np.ndarray[tuple[int], np.dtype(np.float64)]:
+def segmentIntersection(l1, l2) -> None|np.ndarray[tuple[int], np.dtype[np.float64]]:
 	'''Return intersection of two line segments
 
 	Args:

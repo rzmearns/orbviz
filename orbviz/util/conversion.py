@@ -101,8 +101,6 @@ def ecef2eci(ecef:np.ndarray, time: dt.datetime, high_precision=True) -> tuple:
 		# ecef = np.empty(ecef.shape)
 		# ecef = R.dot(ecef.T).T
 
-	return eci
-
 def R3(x: float):
 	"""Rotation matrix for ECI"""
 	return np.array([[np.cos(x), np.sin(x), 0], [-np.sin(x), np.cos(x), 0], [0, 0, 1]])
