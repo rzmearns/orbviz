@@ -1,6 +1,6 @@
-
-
 import numpy as np
+
+import orbviz.model.geometry.polygons as polygons
 
 
 def smallCircleRadius(center_lat: float, center_lon:float, radii_end_lat: float, radii_end_lon: float) -> float:
@@ -158,6 +158,7 @@ def splitSmallCirclePatch(center_lon, center_lat, lats, lons1, lons2):
 	hemisphere_sign = np.sign(center_lat)
 	hemisphere_boundary = hemisphere_sign * 90
 	if np.all(lons1>-180) and np.all(lons1<180) and np.all(lons2>-180) and np.all(lons2<180):
+		# all within map, doesn't straddle either edge
 		if not (abs(lons1[0] - lons1[-1]) < 90) or  not (abs(lons2[0] - lons2[-1]) < 90):
 			# gaussian shape which isn't split by map edges
 			lons1 = np.hstack((180,180,lons1))
@@ -217,3 +218,99 @@ def splitSmallCirclePatch(center_lon, center_lat, lats, lons1, lons2):
 			circle1[:,0] = (circle[:,0] + 360)
 
 	return circle1, circle2
+
+
+def splitOTHPatch(center_lon, center_lat, lats, lons1, lons2):
+	hemisphere_sign = np.sign(center_lat)
+	hemisphere_boundary = hemisphere_sign * 90
+
+	# determine if circle or gaussian when projected to 2D
+	is_circle = (lons1[np.argmax(lons1)] - lons2[np.argmin(lons2)])<180
+	is_straddle_right = np.append(lons1, lons2).max() > 180
+	is_straddle_left = np.append(lons1, lons2).min() < -180
+	# print(f'{is_circle=}')
+
+	if is_circle:
+		# projection on 2d is closed
+		all_lats = np.append(lats, np.flip(lats))
+		all_lons = np.append(lons1, np.flip(lons2))
+		boundary = np.vstack((all_lons,all_lats)).T
+
+		if is_straddle_right:
+		# if (boundary[:,0].max()>180) and (boundary[:,0].min()<180):
+			# print(f'\t{is_straddle_right=}')
+			# straddling right edge
+			side1_points, side2_points = polygons.splitPolygonVertically(boundary, 180)
+
+			# shift points to left of -180 to 180
+			side2_points[:,0] -= 360
+
+			return side1_points, side2_points
+
+		# elif (boundary[:,0].max()>-180) and (boundary[:,0].min()<-180):
+		elif is_straddle_left:
+			# print(f'\t{is_straddle_left=}')
+			# straddling left edge
+			side1_points, side2_points = polygons.splitPolygonVertically(boundary, -180)
+
+			# shift points to left of -180 to 180
+			side1_points[:,0] += 360
+
+			return side1_points, side2_points
+		else:
+			return boundary, boundary
+	else:
+		# gaussian shape
+		all_lats = np.append(lats, np.flip(lats))
+		all_lons = np.append(lons1, np.flip(lons2))
+		all_lon_lats = np.vstack((all_lons,all_lats)).T
+
+
+		if is_straddle_left and is_straddle_right:
+			raise ValueError("OTH circle is straddling both left and right edges of map")
+
+			return None, None
+
+		elif is_straddle_left:
+			# print(f'\t{is_straddle_left=}')
+
+			int_point = polygons.getPolygonVerticalIntersection(all_lon_lats, -180, close=False)
+			right_points = all_lon_lats[all_lon_lats[:,0]>-180,:]
+			left_points = all_lon_lats[all_lon_lats[:,0]<-180,:]
+			left_points[:,0] += 360
+			boundary = np.concatenate((np.array([[180, hemisphere_boundary],
+												[180, int_point[0,1]]]),
+										left_points,
+										right_points,
+										np.array([[-180, int_point[0,1]],
+													[-180, hemisphere_boundary]]),
+										), axis=0)
+			return boundary, boundary
+
+
+		elif is_straddle_right:
+			# print(f'\t{is_straddle_right=}')
+
+			int_point = polygons.getPolygonVerticalIntersection(all_lon_lats, 180, close=False)
+			# print(f'\t{int_point=}')
+			right_points = all_lon_lats[all_lon_lats[:,0]>180,:]
+			left_points = all_lon_lats[all_lon_lats[:,0]<180,:]
+			right_points[:,0] -= 360
+			boundary = np.concatenate((np.array([[180, hemisphere_boundary],
+												[180, int_point[0,1]]]),
+										left_points,
+										right_points,
+										np.array([[-180, int_point[0,1]],
+													[-180, hemisphere_boundary]]),
+										), axis=0)
+			return boundary, boundary
+
+		else:
+			lons1 = np.hstack((180,180,lons1))
+			lats1 = np.hstack((hemisphere_boundary,lats[0], lats))
+			lons2 = np.hstack((-180,-180,lons2))
+			lats2 = np.hstack((hemisphere_boundary,lats[0], lats))
+			circle = np.vstack((np.hstack((lons1.reshape(-1,1),lats1.reshape(-1,1))),
+						np.flip(np.hstack((lons2.reshape(-1,1),lats2.reshape(-1,1))),axis=0)))
+
+		return circle, circle

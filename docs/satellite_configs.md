@@ -13,7 +13,7 @@
 ```
 {
 	"name": "<Constellation Display Name>",
-	"beam_width": <float, full beam width angle for earth pointing beam>,
+	"beam_width": <float, full beam width angle for nadir pointed beam>,
 	"satellites":{
 		"<NORAD Name>": <NORAD Catalog ID>,
 		"<NORAD Name>": <NORAD Catalog ID>,

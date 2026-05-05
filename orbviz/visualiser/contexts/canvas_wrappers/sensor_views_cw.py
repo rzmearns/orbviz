@@ -79,23 +79,25 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 	def _getCurrentDisplayedSensor(self, view:int) -> sensors.SensorImageAsset | None:
 		return self.displayed_sensors[view]
 
-	def generateSensorFullRes(self, sc_id: int, sens_suite_key: str, sens_key: str) -> tuple[np.ndarray, np.ndarray, object, SensorImgMetadata]:
-		# TOOD: use sc_id to select which spacecraft asset to generate
-		sc_asset = self.assets['spacecraft']
+	def generateSensorFullRes(self, idx:int, sc_id: int, sens_suite_key: str, sens_key: str) -> tuple[np.ndarray, np.ndarray, object, SensorImgMetadata]:
 		sensor_asset = self.assets['spacecraft'].getSensorSuiteByKey(sens_suite_key).getSensorByKey(sens_key)
+		# TODO: sensor_asset.generateFullRes should not be done by the asset, move out to model rather than view.
 		img_data, mo_data, moConverterFunction = sensor_asset.generateFullRes()
-		img_metadata = SensorImgMetadata(spacecraft_id=sc_id,
-						spacecraft_name=self.assets['spacecraft'].data['name'],
+		sc_metadata = self.data_models['history'].getSCData(sc_id).generateMetadata(idx)
+		sens_metadata = self.data_models['history'].getSCSensorData(sc_id).generateMetadata(idx, sens_suite_key, sens_key)
+		# TODO: check curr_datetimes are the same in both sources of metadata
+		img_metadata = SensorImgMetadata(spacecraft_id=sc_metadata['id'],
+						spacecraft_name=sc_metadata['name'],
 						sensor_suite_name=sens_suite_key,
 						sensor_name=sens_key,
 						resolution=(img_data.shape[1], img_data.shape[0]),
-						fov=sensor_asset.data['fov'],
-						lens_model=sensor_asset.data['lens_model'].__name__,
-						current_time=sensor_asset.data['curr_datetime'],
-						sensor_body_frame_quaternion = sensor_asset.data['bf_quat'],
-						spacecraft_quaternion=sc_asset.data['curr_quat'].reshape(4,).tolist(),
-						spacecraft_eci_position=sc_asset.data['curr_pos'].reshape(3,).tolist(),
-						sensor_eci_quaternion=sensor_asset.data['curr_quat'].reshape(4,).tolist(),
+						fov=sens_metadata['fov'],
+						lens_model=sens_metadata['lens_model'],
+						current_time=sens_metadata['curr_dt'],
+						sensor_body_frame_quaternion = sens_metadata['bf_quat'],
+						spacecraft_quaternion=sc_metadata['quat'].reshape(4,).tolist(),
+						spacecraft_eci_position=sc_metadata['pos'].reshape(3,).tolist(),
+						sensor_eci_quaternion=sens_metadata['eci_quat'].reshape(4,).tolist(),
 						image_md5_hash=None)
 
 		return img_data, mo_data, moConverterFunction, img_metadata
@@ -157,11 +159,14 @@ class SensorViewsCanvasWrapper(BaseCanvas):
 			raise exceptions.InvalidDataError
 
 		if self.data_models['history'].hasOrbits():
-			if self.data_models['history'].getConfigValue('is_pointing_defined'):
+			sc_id = self.data_models['history'].getConfigValue('primary_satellite_ids')[0]
+			if self.data_models['history'].getConfigValue('attitude_configs')[sc_id].isAttitudeDefined():
 				self.assets['spacecraft'].setSource(list(self.data_models['history'].getPrimaryConfig().getAllSpacecraftConfigs().values())[0],
 													self.data_models['history'],
 													self.data_models['raycast_src'])
 				self.assets['spacecraft']._setActiveFlag()
+			else:
+				self.assets['spacecraft']._clearActiveFlag()
 
 
 

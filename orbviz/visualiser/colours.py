@@ -1,7 +1,4 @@
-
-
 import numpy as np
-import numpy.typing as nptyping
 
 max_colours = 10
 
@@ -18,14 +15,14 @@ def rgb2hex(rgb_tuple:tuple[int,int,int]) -> str:
 
 	return hex_str
 
-def getNumberedColour(num:int, pallette_type:str='bright') -> nptyping.NDArray | None:
+def getNumberedColour(num:int, pallette_type:str='bright') -> np.ndarray[int, np.dtype[np.int8]] | None:
 	return{
 		'bright': _brightColDict(num),
 		'paper': _paperColDict(num),
 	}.get(pallette_type, None)
 
 
-def _brightColDict(num:int) -> nptyping.NDArray:
+def _brightColDict(num:int) -> np.ndarray[int, np.dtype[np.int8]]:
 	return {
 		0: np.asarray([230, 25, 75]),
 		1: np.asarray([60,180,75]),
@@ -52,7 +49,7 @@ def _brightColDict(num:int) -> nptyping.NDArray:
 	}.get(num % max_colours, np.asarray([230,25,75]))
 
 
-def _paperColDict(num:int) -> nptyping.NDArray:
+def _paperColDict(num:int) -> np.ndarray[int, np.dtype[np.int8]]:
 	return {
 		0: np.asarray([227,26,28]),
 		1: np.asarray([31,120,180]),

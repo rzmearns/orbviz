@@ -1,7 +1,6 @@
 import logging
 
 import numpy as np
-import numpy.typing as nptyping
 import pymap3d
 from skyfield.api import wgs84
 import spherapy.timespan as timespan
@@ -70,7 +69,7 @@ class Earth3DAsset(base_assets.AbstractVispyAsset):
 
 	def _createVisuals(self) -> None:
 		# Earth Sphere
-		self.visuals['earth_sphere'] = scene.visuals.Sphere(radius=c.R_EARTH,
+		self.visuals['earth_sphere'] = scene.visuals.Sphere(radius=c.R_EARTH-0.5,
 								method='latitude',
 								parent=None,
 								color=colours.normaliseColour(self.opts['earth_sphere_colour']['value']))
@@ -272,8 +271,8 @@ class ParallelsGrid3DAsset(base_assets.AbstractSimpleVispyAsset):
 								connect=self.data['p_conn'],
 								parent=None)
 
-	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
-						 rotation:nptyping.NDArray=np.eye(3)) -> None:
+	def setTransform(self, pos:tuple[float,float,float]|np.ndarray[int, np.dtype[np.float64]]=(0,0,0),
+						 rotation:np.ndarray[tuple[int, int], np.dtype[np.float64]]=np.eye(3)) -> None:
 		if self.isFirstDraw():
 			self._clearFirstDrawFlag()
 		if self.isStale():
@@ -410,8 +409,8 @@ class MeridiansGrid3DAsset(base_assets.AbstractSimpleVispyAsset):
 								parent=None)
 		self.setTransform()
 
-	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
-						 rotation:nptyping.NDArray=np.eye(3)) -> None:
+	def setTransform(self, pos:tuple[float,float,float]|np.ndarray[int, np.dtype[np.float64]]=(0,0,0),
+						 rotation:np.ndarray[tuple[int, int], np.dtype[np.float64]]=np.eye(3)) -> None:
 		if self.isFirstDraw():
 			self._clearFirstDrawFlag()
 		if self.isStale():
@@ -557,61 +556,6 @@ class Earth2DAsset(base_assets.AbstractVispyAsset):
 												'static': True,
 												'callback': self.setVisibilityRecursive,
 											'widget_data': None}
-		self._dflt_opts['plot_earth_sphere'] = {'value': True,
-										  		'type': 'boolean',
-												'help': '',
-												'static': True,
-												'callback': self.setEarthSphereVisibility,
-											'widget_data': None}
-		self._dflt_opts['earth_sphere_colour'] = {'value': (220,220,220),
-												'type': 'colour',
-												'help': '',
-												'static': True,
-												'callback': self.setEarthSphereColour,
-											'widget_data': None}
-		self._dflt_opts['plot_earth_axis'] = {'value': True,
-										  		'type': 'boolean',
-												'help': '',
-												'static': True,
-												'callback': self.setEarthAxisVisibility,
-											'widget_data': None}
-		self._dflt_opts['earth_axis_colour'] = {'value': (255,0,0),
-												'type': 'colour',
-												'help': '',
-												'static': True,
-												'callback': self.setEarthAxisColour,
-											'widget_data': None}
-		self._dflt_opts['plot_parallels'] = {'value': True,
-										  		'type': 'boolean',
-												'help': '',
-												'static': True,
-												'callback': None,
-											'widget_data': None}
-		self._dflt_opts['plot_equator'] = {'value': True,
-										  		'type': 'boolean',
-												'help': '',
-												'static': True,
-												'callback': None,
-											'widget_data': None}
-		self._dflt_opts['plot_meridians'] = {'value': True,
-										  		'type': 'boolean',
-												'help': '',
-												'static': True,
-												'callback': None,
-											'widget_data': None}
-		self._dflt_opts['plot_landmass'] = {'value': True,
-										  		'type': 'boolean',
-												'help': '',
-												'static': True,
-												'callback': self.setLandmassVisibility,
-											'widget_data': None}
-		self._dflt_opts['landmass_colour'] = {'value': (0,0,0),
-												'type': 'colour',
-												'help': '',
-												'static': True,
-												'callback': self.setLandMassColour,
-											'widget_data': None}
-
 		self.opts = self._dflt_opts.copy()
 
 	#----- OPTIONS CALLBACKS -----#

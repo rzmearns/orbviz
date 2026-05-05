@@ -1,7 +1,4 @@
-
-
 import numpy as np
-import numpy.typing as nptyping
 
 from PyQt5 import QtGui
 
@@ -36,13 +33,20 @@ class BodyGizmo(base_assets.AbstractSimpleVispyAsset):
 		scale_vec = self.opts['gizmo_scale']['value']*np.ones((1,3))
 		self.visuals['gizmo'].transform = vTransforms.STTransform(scale=scale_vec).as_matrix()
 
-	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
-							 rotation:nptyping.NDArray=np.eye(3)) -> None:
+	def setTransform(self, pos:tuple[float,float,float]|np.ndarray[int, np.dtype[np.float64]]=(0,0,0),
+							 rotation:np.ndarray[tuple[int, int], np.dtype[np.float64]]=np.eye(3)) -> None:
 		if self.isStale():
 			T = np.eye(4)
-			T[0:3,0:3] = self.opts['gizmo_scale']['value']*rotation
+			if self.isNaN():
+				rot_mat = np.eye(3)
+			else:
+				rot_mat = rotation
+
+			T[0:3,0:3] = self.opts['gizmo_scale']['value']*rot_mat
+
 			T[0:3,3] = np.asarray(pos).reshape(-1,3)
 			self.visuals['gizmo'].transform = vTransforms.linear.MatrixTransform(T.T)
+			self.applyNaNVisualState()
 			self._clearStaleFlag()
 
 	def _setDefaultOptions(self) -> None:
@@ -66,6 +70,12 @@ class BodyGizmo(base_assets.AbstractSimpleVispyAsset):
 												'static': True,
 												'callback': self.setGizmoZColour,
 											'widget_data': None}
+		self._dflt_opts['gizmo_NaN_colour'] = {'value': (255,0,255),
+												'type': 'colour',
+												'help': '',
+												'static': True,
+												'callback': self.setGizmoNaNColour,
+												'widget_data': None}
 		self._dflt_opts['gizmo_width'] = {'value': 3,
 										  		'type': 'number',
 												'help': '',
@@ -102,6 +112,18 @@ class BodyGizmo(base_assets.AbstractSimpleVispyAsset):
 		old_colour_arr[5,0:3] = np.asarray(colours.normaliseColour(colour))
 		self.visuals['gizmo'].set_data(color=old_colour_arr)
 		self.opts['gizmo_Z_axis_colour']['value'] = colour
+
+	def setGizmoNaNColour(self, colour:tuple[float,float,float]) -> None:
+		self.opts['gizmo_NaN_colour']['value'] = colour
+
+	def applyNaNVisualState(self) -> None:
+		if self.isNaN():
+			self.setTemporaryGizmoXColour(self.opts['gizmo_NaN_colour']['value'])
+			self.setTemporaryGizmoYColour(self.opts['gizmo_NaN_colour']['value'])
+			self.setTemporaryGizmoZColour(self.opts['gizmo_NaN_colour']['value'])
+		else:
+			self.restoreGizmoColours()
+
 
 	def setTemporaryGizmoXColour(self, colour:tuple[float,float,float]) -> None:
 		old_colour_arr = self.visuals['gizmo'].color
@@ -189,8 +211,8 @@ class ViewBoxGizmo(base_assets.AbstractSimpleVispyAsset):
 
 		self.setViewBoxTransform()
 
-	def setTransform(self, pos:tuple[float,float,float]|nptyping.NDArray=(0,0,0),
-							 rotation:nptyping.NDArray=np.eye(3)) -> None:
+	def setTransform(self, pos:tuple[float,float,float]|np.ndarray[int, np.dtype[np.float64]]=(0,0,0),
+							 rotation:np.ndarray[tuple[int, int], np.dtype[np.float64]]=np.eye(3)) -> None:
 		pass
 
 	def onMouseMove(self, event:QtGui.QMouseEvent) -> None:

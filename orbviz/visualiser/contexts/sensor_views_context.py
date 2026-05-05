@@ -73,7 +73,7 @@ class SensorViewsContext(BaseContext):
 	def connectControls(self) -> None:
 		self.controls.time_slider.add_connect(self._updateDisplayedIndex)
 		self.controls.sensor_view_selectors.selected.connect(self.setViewActiveSensor)
-		self.controls.sensor_view_selectors.generate.connect(self.generateSensorFullRes)
+		self.controls.sensor_view_selectors.generate.connect(self.generateSensorFullResCurrIdx)
 		self.controls.action_dict['save-gif']['callback'] = self.setupGIFDialog
 		self.controls.action_dict['save-screenshot']['callback'] = self.setupScreenshot
 
@@ -117,9 +117,13 @@ class SensorViewsContext(BaseContext):
 	def setViewActiveSensor(self, view_id:int, sc_id:int, suite_key:str, sens_key:str) -> None:
 		self.canvas_wrapper.selectSensor(view_id, sc_id, suite_key, sens_key)
 
-	def generateSensorFullRes(self, view_id:int, sc_id:int, suite_key:str, sens_key:str) -> None:
-		logger.debug('Generating Full Res for view %s: %s - %s - %s', view_id, sc_id, suite_key, sens_key)
-		img_data, mo_data, moConverterFunction, img_metadata = self.canvas_wrapper.generateSensorFullRes(sc_id, suite_key, sens_key)
+	def generateSensorFullResCurrIdx(self, view_id:int, sc_id:int, suite_key:str, sens_key:str) -> None:
+		idx = self.getIndex()
+		self.generateSensorFullRes(idx, view_id, sc_id, suite_key, sens_key)
+
+	def generateSensorFullRes(self, idx:int, view_id:int, sc_id:int, suite_key:str, sens_key:str) -> None:
+		logger.info('Generating Full Res @ idx: %s for view %s: %s - %s - %s', idx, view_id, sc_id, suite_key, sens_key)
+		img_data, mo_data, moConverterFunction, img_metadata = self.canvas_wrapper.generateSensorFullRes(idx, sc_id, suite_key, sens_key)
 		dialogs.fullResSensorImageDialog(img_data, mo_data, moConverterFunction, img_metadata)
 
 	def getIndex(self) -> int|None:
@@ -159,6 +163,8 @@ class Controls(BaseControls):
 
 		self.setHotkeys()
 
+		self._connectAutoPlay()
+
 	def setHotkeys(self):
 		self.shortcuts['PgDown'] = QtWidgets.QShortcut(QtGui.QKeySequence('PgDown'), self.context.widget)
 		self.shortcuts['PgDown'].activated.connect(self.time_slider.incrementValue)
@@ -169,11 +175,17 @@ class Controls(BaseControls):
 		self.shortcuts['End'] = QtWidgets.QShortcut(QtGui.QKeySequence('End'), self.context.widget)
 		self.shortcuts['End'].activated.connect(self.time_slider.setEnd)
 
+	def _connectAutoPlay(self):
+		self.time_slider.autoplay.connect(self.context.autoplay)
+		self.time_slider.autoplay_stop.connect(self.context.abortAutoplay)
+
 	def getCurrIndex(self) -> int:
 		return self.time_slider.getValue()
 
 	def updateSensorViewLists(self):
-		if self.context.data['history'].getConfigValue('is_pointing_defined'):
+		# TODO: need to present selection for sc as well as sensors
+		sc_id = list(self.context.data['history'].getConfigValue('attitude_configs').keys())[0]
+		if self.context.data['history'].getConfigValue('attitude_configs')[sc_id].isAttitudeDefined():
 			sens_dict = self.context.data['history'].getPrimaryConfig().serialiseAllSensors()
 		else:
 			sens_dict = {}

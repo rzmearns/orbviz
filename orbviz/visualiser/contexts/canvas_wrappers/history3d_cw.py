@@ -104,9 +104,10 @@ class History3DCanvasWrapper(BaseCanvas):
 	def setCameraZoom(self, zoom:float) -> None:
 		self.view_box.camera.scale_factor = zoom
 
-	def setModel(self, hist_data:HistoryData, gs_data:GroundStationCollection) -> None:
+	def setModel(self, hist_data:HistoryData, gs_data:GroundStationCollection, raycast_src) -> None:
 		self.data_models['history'] = hist_data
 		self.data_models['groundstations'] = gs_data
+		self.data_models['raycast_src'] = raycast_src
 		# self.modelUpdated()
 
 	def modelUpdated(self) -> None:
@@ -133,7 +134,8 @@ class History3DCanvasWrapper(BaseCanvas):
 
 		if self.data_models['history'].hasOrbits():
 			self.assets['spacecraft'].setSource(list(self.data_models['history'].getPrimaryConfig().getAllSpacecraftConfigs().values())[0],
-													self.data_models['history'])
+													self.data_models['history'],
+													self.data_models['raycast_src'])
 			self.assets['spacecraft'].makeActive()
 
 		# Update data source for events

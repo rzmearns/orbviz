@@ -1,10 +1,14 @@
 import datetime as dt
+from enum import Enum
 import logging
 import math
 import pathlib
 
-from typing import Any
+# TODO: investigate this ruff error
+from typing import TYPE_CHECKING, Any  # noqa: F401
 
+# if TYPE_CHECKING:
+import numpy as np
 from spherapy.timespan import TimeSpan
 
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -16,6 +20,8 @@ import orbviz.visualiser.colours as colours
 logger = logging.getLogger(__name__)
 
 class TimeSlider(QtWidgets.QWidget):
+	autoplay = QtCore.pyqtSignal(int)
+	autoplay_stop = QtCore.pyqtSignal()
 	def __init__(self, parent: QtWidgets.QWidget|None=None, allow_no_callbacks=False) -> None:
 		super().__init__(parent)
 		self.start_dt = None
@@ -37,26 +43,43 @@ class TimeSlider(QtWidgets.QWidget):
 		hlayout3 = QtWidgets.QHBoxLayout()
 		hlayout3.setSpacing(0)
 		hlayout3.setContentsMargins(2,1,2,1)
+		play_hlayout = QtWidgets.QHBoxLayout()
+		play_hlayout.setSpacing(0)
+		play_hlayout.setContentsMargins(2,1,2,1)
 		self.slider = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
 		self._start_dt_label = QtWidgets.QLabel('-')
 		self._end_dt_label = QtWidgets.QLabel('-')
 		self._curr_dt_picker = SmallDatetimeEntry(self.start_dt)
 		self._curr_dt_picker.updated.connect(self.setIndex2Datetime)
+		self._play_button = QtWidgets.QPushButton('')
+		self._play_button.setIcon(QtGui.QIcon(f"{orbviz_paths.icons_dir.joinpath('play.png')}"))
+		self._stop_button = QtWidgets.QPushButton('')
+		self._stop_button.setIcon(QtGui.QIcon(f"{orbviz_paths.icons_dir.joinpath('stop.png')}"))
+		_play_button_spacer = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
 		self.setTimeLabels()
 
 		self.slider.setMinimum(0)
 		self.slider.setMaximum(self.num_ticks)
 		self.slider.setTickPosition(QtWidgets.QSlider.TicksBelow)
 		self.slider.setTickInterval(1)
+
+		play_hlayout.addWidget(self._play_button)
+		play_hlayout.addWidget(self._stop_button)
+
 		hlayout2.addWidget(self._start_dt_label)
 		hlayout2.addStretch()
 		hlayout2.addWidget(self._curr_dt_picker)
+		hlayout2.addItem(_play_button_spacer)
+		hlayout2.addLayout(play_hlayout)
 		hlayout2.addStretch()
+
 		hlayout2.addWidget(self._end_dt_label)
 		hlayout3.addWidget(self.slider)
 		vlayout.addLayout(hlayout2)
 		vlayout.addLayout(hlayout3)
 		self.slider.valueChanged.connect(self._run_callbacks)
+		self._play_button.clicked.connect(self._play)
+		self._stop_button.clicked.connect(self._stop)
 		self.setLayout(vlayout)
 
 	def setTimespan(self, timespan:TimeSpan):
@@ -151,6 +174,12 @@ class TimeSlider(QtWidgets.QWidget):
 				callback(self.slider.value())
 		elif not self._allow_no_callbacks:
 			logger.warning("No Time Slider callbacks are set")
+
+	def _play(self):
+		self.autoplay.emit(1)
+
+	def _stop(self):
+		self.autoplay_stop.emit()
 
 	def blockSignals(self, b: bool) -> bool:
 		slider_res = self.slider.blockSignals(b)
@@ -620,6 +649,9 @@ class BasicOptionBox(QtWidgets.QWidget):
 
 
 		self._label = QtWidgets.QLabel(label)
+		self._options = options_list
+		# insert empty field at start
+		self._options.insert(0,'')
 
 		self._optionbox = NonScrollingComboBox()
 		for item in options_list:
@@ -627,9 +659,10 @@ class BasicOptionBox(QtWidgets.QWidget):
 		self._optionbox.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
 
 		layout.addWidget(self._label)
+		layout.addStretch()
 		layout.addWidget(self._optionbox)
-
-		self._optionbox.setCurrentIndex(options_list.index(dflt_option))
+		self._curr_index = self._options.index(dflt_option)
+		self._optionbox.setCurrentIndex(self._curr_index)
 		self._optionbox.currentIndexChanged.connect(self._run_callbacks)
 		self._optionbox.currentIndexChanged.connect(self.setCurrentIndex)
 
@@ -643,6 +676,9 @@ class BasicOptionBox(QtWidgets.QWidget):
 			return self._curr_index-1
 		else:
 			return None
+
+	def getCurrentValue(self) -> str:
+		return self._options[self._curr_index]
 
 	def add_connect(self, callback):
 		self._callbacks.append(callback)
@@ -1022,9 +1058,13 @@ class ValueBox(QtWidgets.QWidget):
 		self.setLayout(vlayout)
 		self._val_text_box.editingFinished.connect(self._updateValue)
 
-
+	# TODO: specify different data types
+	# TODO: return different types based on data type
 	def getValue(self) -> float:
 		return float(self.value)
+
+	def getValueAsArray(self) -> np.ndarray:
+		return np.fromstring(self.value.strip('()[]'), dtype=float, sep=',')
 
 	def _updateValue(self):
 		self.value = self._val_text_box.text()
@@ -1055,6 +1095,63 @@ class ValueBox(QtWidgets.QWidget):
 			logger.error("%s state was serialised as a %s, is now a ValueBox", self, state['type'])
 			return
 		self.setValue(state['value'])
+
+class BasicValueBox(QtWidgets.QWidget):
+	def __init__(self, label, dflt_value, parent: QtWidgets.QWidget=None):
+		super().__init__(parent)
+		self._callbacks = []
+		self.value = str(dflt_value)
+		layout = QtWidgets.QHBoxLayout()
+		layout.setContentsMargins(2,1,2,1)
+
+		self._label = QtWidgets.QLabel(label)
+		self._val_text_box = QtWidgets.QLineEdit(self.value)
+
+		layout.addWidget(self._label)
+		layout.addStretch()
+		layout.addWidget(self._val_text_box)
+
+		self.setLayout(layout)
+		self._val_text_box.editingFinished.connect(self._updateValue)
+
+	# TODO: specify different data types
+	# TODO: return different types based on data type
+	def getValue(self) -> float:
+		return float(self.value)
+
+	def getValueAsArray(self) -> np.ndarray:
+		return np.fromstring(self.value.strip('()[]'), dtype=float, sep=',')
+
+	def _updateValue(self):
+		self.value = self._val_text_box.text()
+
+	def setValue(self, val:float) -> None:
+		self.value = str(val)
+		self._val_text_box.setText(self.value)
+
+	def addConnect(self, callback):
+		self._callbacks.append(callback)
+
+	def _runCallbacks(self):
+		if len(self._callbacks) > 0:
+			for callback in self._callbacks:
+				pass
+				# callback(self._checkbox.isChecked())
+		else:
+			logger.warning("No BasicValueBox callbacks are set")
+
+	def prepSerialisation(self) -> dict[str, Any]:
+		state = {}
+		state['type'] = 'BasicValueBox'
+		state['value'] = str(self.value)
+		return state
+
+	def deSerialise(self, state:dict[str, Any]) -> None:
+		if state['type'] != 'BasicValueBox':
+			logger.error("%s state was serialised as a %s, is now a BasicValueBox", self, state['type'])
+			return
+		self.setValue(state['value'])
+
 
 class CollapsibleSection(QtWidgets.QWidget):
 	# Ported to PyQT5 and modified, original widget by Caroline Beyne, github user: cbeyne
@@ -2046,6 +2143,37 @@ class MultiSelector(QtWidgets.QWidget):
 				self._moved_left.remove(el)
 
 		return self._moved_left
+
+class RadioGroup(QtWidgets.QWidget):
+	selection_changed = QtCore.pyqtSignal(str)
+
+	def __init__(self, keys:dict[Enum|int|str, str], horizontal=True):
+		super().__init__()
+		if horizontal:
+			_rlayout = QtWidgets.QHBoxLayout()
+		else:
+			_rlayout = QtWidgets.QVBoxLayout()
+
+		self._buttons:dict[Any, QtWidgets.QRadioButton] = {}
+		self._curr_sel_key = None
+
+		_rlayout.addStretch()
+		for k, text in keys.items():
+			self._buttons[k] = QtWidgets.QRadioButton(text, self)
+			# use default value in lambda to pass value of k at lambda assignment, not reference to k
+			self._buttons[k].toggled.connect(lambda state, x=k:self._onSelection(state, x))
+			_rlayout.addWidget(self._buttons[k])
+
+		_rlayout.addStretch()
+		self.setLayout(_rlayout)
+
+	def _onSelection(self, new_state, key:Enum|int|str):
+		if new_state:
+			self.selection_changed.emit(key.value)
+
+	def setCurrSelected(self, key:Enum|int|str):
+		self._buttons[key].setChecked(True)
+
 
 def embedWidgetsInHBoxLayout(w_list, margin=5):
 	"""Embed a list of widgets into a layout to give it a frame"""

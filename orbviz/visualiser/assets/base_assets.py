@@ -5,7 +5,6 @@ from typing import Any
 from typing_extensions import Self
 
 import numpy as np
-import numpy.typing as nptyping
 
 from vispy.scene.widgets.viewbox import ViewBox
 
@@ -37,6 +36,9 @@ class AbstractSimpleVispyAsset(ABC):
 		# (likely due to a new timestep being displayed), and as such, the
 		# positions and transforms of child-assets and visuals must be recomputed
 		self.is_stale = False
+		# Flag to indicate that the underlying data of the asset is numerically invalid
+		# and so should not be drawn in the standard way
+		self.is_nan = False
 
 	def _attachToParentView(self) -> None:
 		'''Sets all vispy visuals to use the stored parent'''
@@ -92,6 +94,23 @@ class AbstractSimpleVispyAsset(ABC):
 	def _clearActiveFlag(self) -> None:
 		self.is_active = False
 		logger.debug('Clearing ACTIVE flag for %s', self)
+
+	def isNaN(self) -> bool:
+		return self.is_nan
+
+	def _setNaNFlag(self) -> None:
+		self.is_nan = True
+		logger.debug('Setting NaN flag for %s', self)
+
+	def setNaNFlagRecursive(self) -> None:
+		self._setNaNFlag()
+
+	def _clearNaNFlag(self) -> None:
+		self.is_nan = False
+		logger.debug('Clearing NaN flag for %s', self)
+
+	def clearNaNFlagRecursive(self) -> None:
+		self._clearNaNFlag()
 
 	def setActiveFlagRecursive(self) -> None:
 		self._setActiveFlag()
@@ -184,7 +203,7 @@ class AbstractSimpleVispyAsset(ABC):
 		raise NotImplementedError
 
 	@abstractmethod
-	def setTransform(self, pos:tuple[float,float,float]=(0,0,0), rotation:nptyping.NDArray=np.eye(3)):
+	def setTransform(self, pos:tuple[float,float,float]=(0,0,0), rotation:np.ndarray[tuple[int, int], np.dtype[np.float64]]=np.eye(3)):
 		'''Directly set the linear transform to be applied to the visuals
 
 			Should include the following iteration in the overriding method
@@ -262,6 +281,10 @@ class AbstractCompoundVispyAsset(ABC):
 		# (likely due to a new timestep being displayed), and as such, the
 		# positions and transforms of child-assets and visuals must be recomputed
 		self.is_stale = False
+		# Flag to indicate that the underlying data of the asset is numerically invalid
+		# and so should not be drawn in the standard way
+		self.is_nan = False
+
 
 	def _attachToParentView(self) -> None:
 		'''Sets all vispy visuals to use the stored parent'''
@@ -371,6 +394,30 @@ class AbstractCompoundVispyAsset(ABC):
 	def isFirstDraw(self) -> bool:
 		return self.first_draw
 
+	def isNaN(self) -> bool:
+		return self.is_nan
+
+	def _setNaNFlag(self) -> None:
+		self.is_nan = True
+		logger.debug('Setting NaN flag for %s', self)
+
+	def setNaNFlagRecursive(self) -> None:
+		self._setNaNFlag()
+		for asset in self.assets.values():
+			if asset is not None:
+				asset.setNaNFlagRecursive()
+
+	def _clearNaNFlag(self) -> None:
+		self.is_nan = False
+		logger.debug('Clearing NaN flag for %s', self)
+
+	def clearNaNFlagRecursive(self) -> None:
+		self._clearNaNFlag()
+		for asset in self.assets.values():
+			if asset is not None:
+				asset.clearNaNFlagRecursive()
+
+
 	def setVisibility(self, state:bool) -> None:
 		logger.debug('Setting visibility for %s to %s', self, state)
 		for visual in self.visuals.values():
@@ -439,7 +486,7 @@ class AbstractCompoundVispyAsset(ABC):
 		raise NotImplementedError
 
 	@abstractmethod
-	def setTransform(self, pos:tuple[float,float,float]=(0,0,0), rotation:nptyping.NDArray=np.eye(3)) -> None:
+	def setTransform(self, pos:tuple[float,float,float]=(0,0,0), rotation:np.ndarray[tuple[int, int], np.dtype[np.float64]]=np.eye(3)) -> None:
 		'''Directly set the linear transform to be applied to the visuals
 
 			Should include the following iteration in the overriding method
@@ -534,6 +581,10 @@ class AbstractVispyAsset(ABC):
 		# (likely due to a new timestep being displayed), and as such, the
 		# positions and transforms of child-assets and visuals must be recomputed
 		self.is_stale = False
+		# Flag to indicate that the underlying data of the asset is numerically invalid
+		# and so should not be drawn in the standard way
+		self.is_nan = False
+
 
 	##### Viewbox methods
 	def _attachToParentView(self) -> None:
@@ -651,6 +702,29 @@ class AbstractVispyAsset(ABC):
 	def isFirstDraw(self) -> bool:
 		return self.first_draw
 
+	def isNaN(self) -> bool:
+		return self.is_nan
+
+	def _setNaNFlag(self) -> None:
+		self.is_nan = True
+		logger.debug('Setting NaN flag for %s', self)
+
+	def setNaNFlagRecursive(self) -> None:
+		self._setNaNFlag()
+		for asset in self.assets.values():
+			if asset is not None:
+				asset.setNaNFlagRecursive()
+
+	def _clearNaNFlag(self) -> None:
+		self.is_nan = False
+		logger.debug('Clearing NaN flag for %s', self)
+
+	def clearNaNFlagRecursive(self) -> None:
+		self._clearNaNFlag()
+		for asset in self.assets.values():
+			if asset is not None:
+				asset.clearNaNFlagRecursive()
+
 	def setVisibility(self, state:bool) -> None:
 		logger.debug('Setting visibility for %s to %s', self, state)
 		for visual in self.visuals.values():
@@ -736,7 +810,7 @@ class AbstractVispyAsset(ABC):
 			self.is_stale = False'''
 		raise NotImplementedError
 
-	def _recomputeRedrawChildren(self,pos:tuple[float,float,float]=(0,0,0), rotation:nptyping.NDArray=np.eye(3)) -> None:
+	def _recomputeRedrawChildren(self,pos:tuple[float,float,float]=(0,0,0), rotation:np.ndarray[tuple[int, int], np.dtype[np.float64]]=np.eye(3)) -> None:
 		for asset in self.assets.values():
 			if isinstance(asset, AbstractVispyAsset):
 				asset.recomputeRedraw()

@@ -78,11 +78,15 @@ class FastPolygonVisual(CompoundVisual):
                                color=self._color.rgba)
 
         if not self._border_color.is_blank:
-            # Close border if it is not already.
-            border_pos = self._pos
-            if np.any(border_pos[0] != border_pos[-1]):
-                border_pos = np.concatenate([border_pos, border_pos[:1]],
-                                            axis=0)
+            if len(self._pos) >= 3:
+                # Close border if it is not already.
+                border_pos = self._pos
+                if np.any(border_pos[0] != border_pos[-1]):
+                    border_pos = np.concatenate([border_pos, border_pos[:1]],
+                                                axis=0)
+            else:
+                border_pos = np.zeros((2,2), dtype=np.float64)
+
             self._border.set_data(pos=border_pos,
                                   color=self._border_color.rgb,
                                   width=self._border_width)
