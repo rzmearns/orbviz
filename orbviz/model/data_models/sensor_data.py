@@ -47,6 +47,18 @@ class SensorData:
 					self._sens_latlon_cache[sens_key] = {}
 					self._cached_timesteps[sens_key] = np.full((num_samples),False)
 
+
+	def generateMetadata(self, idx:int, suite_name:str, sens_name:str) -> dict:
+		sens_key = (suite_name, sens_name)
+		d = {
+				'fov':self._sc_config.getSensorSuites()[suite_name].getSensorConfig(sens_name)['fov'],
+				'lens_model':self._lens_model[sens_key],
+				'curr_dt':self._timestamps[idx],
+				'bf_quat':self._sc_config.getSensorSuites()[suite_name].getSensorBodyQuat(sens_name),
+				'eci_quat':self._parent_data_model.getSCAttitude(self._sc_config.id).getSensorAttitudeQuat(suite_name, sens_name, idx)
+		}
+		return d
+
 	def getTimestamps(self) -> np.ndarray[tuple[int], np.dtype[np.datetime64]]:
 		return self._timestamps
 

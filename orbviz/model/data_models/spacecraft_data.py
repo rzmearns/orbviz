@@ -27,6 +27,17 @@ class SpacecraftData:
 	def getTimestamps(self) -> np.ndarray[tuple[int], np.dtype[np.datetime64]]:
 		return self._timestamps
 
+	def generateMetadata(self, idx:int) -> dict:
+		d = {
+				'id': self._sc_id,
+				'name': self._sc_config.name,
+				'curr_dt': self._timestamps[idx],
+				'quat': self._parent_data_model.getSCAttitude(self._sc_id).getAttitudeQuat(idx),
+				'pos': self._parent_data_model.getOrbit(self._sc_id).pos[idx,:]
+		}
+
+		return d
+
 	def get2DData(self, timestep_idx:int):
 		cache_key = timestep_idx
 		if self._cached_timesteps[cache_key]:
