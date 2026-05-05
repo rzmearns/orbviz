@@ -47,10 +47,9 @@ def generateEdgeRays(pixels:tuple[int,int], fov:tuple[float,float]) -> np.ndarra
 	edge_rays = np.vstack((all_rays[left_range,:],all_rays[right_range,:],all_rays[1:pixels[0]-1,:],all_rays[num_rays-pixels[0]+1:-1,:]))
 	return edge_rays
 
-def calcLowRes(true_resolution:tuple[int,int]) -> tuple[int,int]:
-	max_1D_res = 240
+def calcLowRes(true_resolution:tuple[int,int], lowres_ratio=100) -> tuple[int,int]:
+	max_1D_res = 480
 	min_1D_res = 3
-	lowres_ratio = 100
 	aspect_ratio = true_resolution[0]/true_resolution[1]
 	if aspect_ratio > 1:
 		lowres_h = int(true_resolution[1]/lowres_ratio)

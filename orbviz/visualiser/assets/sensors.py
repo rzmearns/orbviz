@@ -823,7 +823,7 @@ class SensorImageAsset(base_assets.AbstractSimpleVispyAsset):
 
 		self.data['lens_model'] = pinhole
 		self.data['fov'] = fov
-		self.data['lowres'] = self.data['lens_model'].calcLowRes(self.data['res'])
+		self.data['lowres'] = self.data['lens_model'].calcLowRes(self.data['res'], lowres_ratio=10)
 
 
 		# rays from each pixel in sensor frame
