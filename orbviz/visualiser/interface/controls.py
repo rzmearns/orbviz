@@ -4,7 +4,8 @@ import logging
 import pathlib
 import string
 
-from typing import TYPE_CHECKING, Any
+# TODO: investigate this ruff error
+from typing import TYPE_CHECKING, Any  # noqa: F401
 
 # if TYPE_CHECKING:
 import numpy as np
