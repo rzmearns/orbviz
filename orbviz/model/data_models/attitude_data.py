@@ -1,7 +1,7 @@
 import logging
 import pathlib
 
-from typing import Any, cast
+from typing import cast
 
 import numpy as np
 from scipy.spatial.transform import Rotation
@@ -13,6 +13,7 @@ from orbviz.model.data_models import (
 from orbviz.model.geometry import primgeom
 import orbviz.util.conversion as orbviz_conversions
 
+logger = logging.getLogger(__name__)
 
 class HistoricalAttitude:
 	def __init__(self, sc_config:data_types.SpacecraftConfig,

@@ -2,7 +2,8 @@ import logging
 import sys
 import traceback
 
-from typing import TypedDict, Callable, Any
+from collections.abc import Callable
+from typing import Any, TypedDict
 
 from PyQt5 import QtCore
 
@@ -89,8 +90,8 @@ class WorkerManager:
 
 	def _checkAllThreadsComplete(self):
 		all_completed = True
-		for worker_name, completed in self._wt_is_complete.items():
-			if not completed:
+		for worker_completion_status in self._wt_is_complete.values():
+			if not worker_completion_status:
 				all_completed = False
 
 		if all_completed:
@@ -184,7 +185,7 @@ class Worker(QtCore.QRunnable):
 		except:
 			traceback.print_exc()
 			exctype, value = sys.exc_info()[:2]
-			logger.error('Thread %s experienced error. TERMINATING', self)
+			logger.exception('Thread %s experienced error. TERMINATING', self)
 			self.signals.error.emit((exctype, value, traceback.format_exc()))
 		else:
 			logger.info('Thread %s finished. Emitting RESULT signal', self)

@@ -1,11 +1,10 @@
-import httpx
 import logging
 import pathlib
 
-from typing import Any, cast
+from typing import Any
 
+import httpx
 import numpy as np
-from numpy import typing as nptyping
 from progressbar import progressbar
 import spherapy.orbit as orbit
 import spherapy.timespan as timespan
@@ -54,9 +53,9 @@ class HistoryData(BaseDataModel):
 		self.constellation: constellation_data.ConstellationData | None = None
 		self.events: dict[int, event_data.EventData] | None = None
 		self.groundstationCollection: groundstation_data.GroundStationCollection | None = None
-		self.sun: nptyping.NDArray[np.float64] | None = None
-		self.moon: nptyping.NDArray[np.float64] | None = None
-		self.geo_locations: list[nptyping.NDArray[np.float64]] = []
+		self.sun: np.ndarray[tuple[int, int],np.dtype[np.float64]] | None = None
+		self.moon: np.ndarray[tuple[int, int],np.dtype[np.float64]] | None = None
+		self.geo_locations: list[np.ndarray[tuple[int, int],np.dtype[np.float64]]] = []
 		self.curr_index:int|None = None
 		self._worker_manager = threading.WorkerManager()
 		self._worker_manager.setAllThreadCompletionFunction(self.data_ready.emit)
@@ -277,7 +276,7 @@ class HistoryData(BaseDataModel):
 				attempt_num += 1
 				updated_list = updater.updateTLEs(sat_ids) 				# noqa: F841
 				reattempt_connection = False
-			except httpx.ConnectError:
+			except httpx.ConnectError:  								# noqa: PERF203
 				console.sendErr('Could not connect to TLE web source. Potentially using out of date TLEs')
 				logger.warning('Could not connect to TLE web source. Potentially using out of date TLEs')
 				reattempt_connection = False

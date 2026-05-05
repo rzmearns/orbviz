@@ -1,8 +1,7 @@
-
+from typing import Any
 
 from astropy import SkyCoord
 import numpy as np
-import numpy.typing as nptyping
 
 import orbviz.util.constants as consts
 
@@ -48,7 +47,7 @@ def calcPeriod(a:float) -> float:
 	return period
 
 
-def calcOrbitalVel(a:float, pos:nptyping.NDArray) -> nptyping.NDArray:
+def calcOrbitalVel(a:float, pos:np.ndarray[Any,np.dtype[np.float64]]) -> np.ndarray[Any,np.dtype[np.float64]]:
 	"""Return the instantaneous velocity magnitude for an elliptical orbit of semi-major axis, a at position, pos.
 	
 	Parameters
@@ -86,7 +85,7 @@ def calcMeanMotion(a: float) -> float:
 
 	return np.sqrt(consts.GM_EARTH / a**3)
 
-def toNPArray(sky_coord:SkyCoord) -> nptyping.NDArray:
+def toNPArray(sky_coord:SkyCoord) -> np.ndarray[int, np.dtype[np.float64]]:
 	"""Transform an astropy.SkyCoord object into a (3,) numpy array.
 	
 	Parameters

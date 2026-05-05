@@ -4,10 +4,11 @@ import logging
 import math
 import pathlib
 
-from typing import Any, TYPE_CHECKING
+# TODO: investigate this ruff error
+from typing import TYPE_CHECKING, Any  # noqa: F401
+
 # if TYPE_CHECKING:
 import numpy as np
-
 from spherapy.timespan import TimeSpan
 
 from PyQt5 import QtCore, QtGui, QtWidgets

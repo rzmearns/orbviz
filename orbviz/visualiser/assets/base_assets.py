@@ -5,7 +5,6 @@ from typing import Any
 from typing_extensions import Self
 
 import numpy as np
-import numpy.typing as nptyping
 
 from vispy.scene.widgets.viewbox import ViewBox
 
@@ -204,7 +203,7 @@ class AbstractSimpleVispyAsset(ABC):
 		raise NotImplementedError
 
 	@abstractmethod
-	def setTransform(self, pos:tuple[float,float,float]=(0,0,0), rotation:nptyping.NDArray=np.eye(3)):
+	def setTransform(self, pos:tuple[float,float,float]=(0,0,0), rotation:np.ndarray[tuple[int, int], np.dtype[np.float64]]=np.eye(3)):
 		'''Directly set the linear transform to be applied to the visuals
 
 			Should include the following iteration in the overriding method
@@ -487,7 +486,7 @@ class AbstractCompoundVispyAsset(ABC):
 		raise NotImplementedError
 
 	@abstractmethod
-	def setTransform(self, pos:tuple[float,float,float]=(0,0,0), rotation:nptyping.NDArray=np.eye(3)) -> None:
+	def setTransform(self, pos:tuple[float,float,float]=(0,0,0), rotation:np.ndarray[tuple[int, int], np.dtype[np.float64]]=np.eye(3)) -> None:
 		'''Directly set the linear transform to be applied to the visuals
 
 			Should include the following iteration in the overriding method
@@ -811,7 +810,7 @@ class AbstractVispyAsset(ABC):
 			self.is_stale = False'''
 		raise NotImplementedError
 
-	def _recomputeRedrawChildren(self,pos:tuple[float,float,float]=(0,0,0), rotation:nptyping.NDArray=np.eye(3)) -> None:
+	def _recomputeRedrawChildren(self,pos:tuple[float,float,float]=(0,0,0), rotation:np.ndarray[tuple[int, int], np.dtype[np.float64]]=np.eye(3)) -> None:
 		for asset in self.assets.values():
 			if isinstance(asset, AbstractVispyAsset):
 				asset.recomputeRedraw()

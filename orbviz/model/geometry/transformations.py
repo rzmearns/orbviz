@@ -1,7 +1,6 @@
 from functools import reduce
 
 import numpy as np
-import numpy.typing as nptyping
 
 import orbviz.model.geometry.primgeom as pg
 
@@ -14,7 +13,8 @@ hull = (m,3) ndarray - m > 4, not all points coplanar
 '''
 
 
-def shiftPolytope(poly:nptyping.NDArray, delta:tuple[float,float,float]|nptyping.NDArray) -> nptyping.NDArray:
+def shiftPolytope(poly:np.ndarray[tuple[int, int],np.dtype[np.float64]],
+					delta:tuple[float,float,float]|np.ndarray[int,np.dtype[np.float64]]) -> np.ndarray[tuple[int, int],np.dtype[np.float64]]:
 	'''Translate a polytope by the specified delta
 	
 	Parameters
@@ -38,7 +38,7 @@ def shiftPolytope(poly:nptyping.NDArray, delta:tuple[float,float,float]|nptyping
 	return poly_out
 
 
-def expandPolyhedron(poly:nptyping.NDArray, factor:float) -> nptyping.NDArray:
+def expandPolyhedron(poly:np.ndarray[tuple[int, int],np.dtype[np.float64]], factor:float) -> np.ndarray[tuple[int, int],np.dtype[np.float64]]:
 	'''Expand poly vertices from center by factor
 	
 	Parameters
@@ -58,7 +58,7 @@ def expandPolyhedron(poly:nptyping.NDArray, factor:float) -> nptyping.NDArray:
 	return new_poly
 
 
-def rotationMatrix(v1:nptyping.NDArray, v2:nptyping.NDArray) -> nptyping.NDArray:
+def rotationMatrix(v1:np.ndarray[int, np.dtype[np.float64]], v2:np.ndarray[int, np.dtype[np.float64]]) -> np.ndarray[tuple[int, int],np.dtype[np.float64]]:
 	"""
 	Calculates a rotation matrix that changes v1 into v2. 
 	
@@ -123,7 +123,7 @@ def rotationMatrix(v1:nptyping.NDArray, v2:nptyping.NDArray) -> nptyping.NDArray
 	return M
 
 	
-def rotAround(angle:float, axis:nptyping.NDArray=pg.Z) -> nptyping.NDArray:
+def rotAround(angle:float, axis:np.ndarray[int, np.dtype[np.float64]]=pg.Z) -> np.ndarray[tuple[int, int],np.dtype[np.float64]]:
 	'''
 	Returns rotation matrix that rotates counterclockwise by an angle theta
 	around a chosen axis, following the right hand rule.
@@ -153,7 +153,7 @@ def rotAround(angle:float, axis:nptyping.NDArray=pg.Z) -> nptyping.NDArray:
 	return rot_mat
 	
 
-def rotMat(theta:float, rot_base:nptyping.NDArray, rot_axis:nptyping.NDArray) -> nptyping.NDArray:
+def rotMat(theta:float, rot_base:np.ndarray[int, np.dtype[np.float64]], rot_axis:np.ndarray[int, np.dtype[np.float64]]) -> np.ndarray[tuple[int, int],np.dtype[np.float64]]:
 	'''
 	Returns rotation matrix around arbitrary Axis defined by a base point, rot_base and an axis, rot_axis
 	Rotation matrix will perform the following operations on the vector it is applied to:
@@ -219,7 +219,7 @@ def rotMat(theta:float, rot_base:nptyping.NDArray, rot_axis:nptyping.NDArray) ->
 	else:
 		return reduce(np.dot,[np.linalg.inv(T_P1),np.linalg.inv(T_xz),np.linalg.inv(T_z),R_z,T_z,T_xz,T_P1])
 
-def rotMat2xy(normal:nptyping.NDArray) -> nptyping.NDArray:
+def rotMat2xy(normal:np.ndarray[int, np.dtype[np.float64]]) -> np.ndarray[tuple[int, int],np.dtype[np.float64]]:
 	'''
 
 	'''

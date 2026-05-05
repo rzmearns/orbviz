@@ -1,11 +1,8 @@
-
-
 import numpy as np
-import numpy.typing as nptyping
 from scipy.interpolate import interp1d
 
 
-def uniqueRows(arr:nptyping.NDArray, to_decimal:int=8) -> nptyping.NDArray:
+def uniqueRows(arr:np.ndarray[tuple[int, int],np.dtype[np.float64]], to_decimal:int=8) -> np.ndarray[tuple[int, int],np.dtype[np.float64]]:
 	'''
 	Find the unique rows in an array, rounding to the specified tolerance
 	to avoid floating point errors.
@@ -26,7 +23,7 @@ def uniqueRows(arr:nptyping.NDArray, to_decimal:int=8) -> nptyping.NDArray:
 	unique_arr = np.unique(arr.round(decimals=to_decimal), axis=0)
 	return unique_arr
 
-def uniqueRowsOrdered(arr:nptyping.NDArray, to_decimal:int=8) -> nptyping.NDArray:
+def uniqueRowsOrdered(arr:np.ndarray[tuple[int, int],np.dtype[np.float64]], to_decimal:int=8) -> np.ndarray[tuple[int, int],np.dtype[np.float64]]:
 	'''
 	Return the unique rows in an array, rounding to the specified tolerance
 	to avoid floating point errors.

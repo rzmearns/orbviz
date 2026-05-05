@@ -21,7 +21,7 @@ class SpacecraftData:
 		num_samples = len(self._timestamps)
 		# caches
 		# caches are indexed using the timespan index
-		self._oth_boundary_cache:dict[int,np.ndarray[int,int], np.dtype[np.float64]] = {}
+		self._oth_boundary_cache:dict[int,np.ndarray[tuple[int,int], np.dtype[np.float64]]] = {}
 		self._cached_timesteps = np.full((num_samples),False)
 
 	def getTimestamps(self) -> np.ndarray[tuple[int], np.dtype[np.datetime64]]:

@@ -1,10 +1,12 @@
 import datetime as dt
+import json
 import logging
 import pathlib
 import string
-import json
 
-from typing import Any, TYPE_CHECKING
+# TODO: investigate this ruff error
+from typing import TYPE_CHECKING, Any  # noqa: F401
+
 # if TYPE_CHECKING:
 import numpy as np
 
